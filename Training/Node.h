@@ -5,24 +5,30 @@
 #include <vector>
 using std::vector;
 typedef int ValueType;
-
 class Node;
-struct Ele
-{
-	ValueType childValueLowBound = 0;
-	Node* child = nullptr;
+typedef bool(*PredicateFunc)(const Node&);
+
+struct Ele {
+    ValueType childValueLowBound = 1;
+    Node* child = nullptr;
+public:
+    Ele() = default;
 };
 
 class Node {
 public:
-	Node();
-	~Node();
-	vector<Ele> getVectorOfEles();
+    Node();
+    ~Node();
+    vector<Ele>& getVectorOfEles();
+    Node* giveMeTheWay(PredicateFunc func);
 
 private:
-	vector<Ele> eles(3);
-	Node* nextBrother;
-	decltype(eles.size()) elesCount;
+    vector<Ele> es();
+    // the value below could be customize
+    // in the future
+    vector<Ele> eles{(3)};
+    Node* nextBrother;
+    decltype(eles.size()) elesCount;
 };
 
-#endif NODE_H
+#endif
