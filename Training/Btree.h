@@ -3,21 +3,25 @@
 #define BTREE_H
 #include <iostream>
 #include <vector>
+#include <functional> // for lambda
+#include <initializer_list>
 #include "Node.h"
+
 using std::vector;
+using std::initializer_list;
 
 class Btree {
     friend std::ostream& operator<<(std::ostream& os, const Btree& item);
 private:
-    Node *root;
+	Node root{ };
     void adjust();
 
 public:
     Btree();
+	Btree(initializer_list<KeyType> valueList);
     ~Btree();
-    //Btree(ValueType e1, ValueType e2, ...);
-    vector<Node*> find(predicateFunc func);
-    int insert(ValueType e);
+    Node* find(PredicateFunc func);
+    int insert(KeyType e);
 };
 
 

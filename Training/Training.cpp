@@ -18,7 +18,9 @@ using std::ostream;
 
 int main() 
 {
-	auto b = Btree();
+	Node root;
+	// now is 3-order Btree
+	auto b = Btree({ 1, 2, 3, 4, 5, 6, 7, });
 	cout << b << endl;
 	return 0;
 }

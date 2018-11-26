@@ -4,31 +4,47 @@
 
 #include <vector>
 using std::vector;
-typedef int ValueType;
+typedef int KeyType;
+typedef int DataType;
 class Node;
-typedef bool(*PredicateFunc)(const Node&);
+struct Ele;
+typedef bool(*PredicateFunc)(const Ele&);
+
+typedef enum { LEAF, INTERMEDIATE_NODE, } EleType;
 
 struct Ele {
-    ValueType childValueLowBound = 1;
-    Node* child = nullptr;
-public:
-    Ele() = default;
+	// todo: use union to store data and Node?
+	union {
+		struct {
+			// todo: the key type should provide a default value
+			KeyType childValueLowBound;
+			Node* child = nullptr;
+		} /*intermediate_node*/;
+		struct {
+			// todo: the key and data type should provide a default value
+			KeyType key;
+			DataType data;
+		} /*leaf_node*/;
+	} /*u*/;
+
+	EleType eleType = INTERMEDIATE_NODE;
+
+	Ele() {}
 };
 
 class Node {
 public:
-    Node();
+    Node() = default;
     ~Node();
     vector<Ele>& getVectorOfEles();
     Node* giveMeTheWay(PredicateFunc func);
+	bool hasChild() { return elesCount > 0; }
 
 private:
-    vector<Ele> es();
-    // the value below could be customize
-    // in the future
+    // todo: the value below could be customize in the future
     vector<Ele> eles{(3)};
-    Node* nextBrother;
-    decltype(eles.size()) elesCount;
+    Node* nextBrother = nullptr;
+    decltype(eles.size()) elesCount = 0;
 };
 
 #endif
