@@ -2,6 +2,10 @@
 #include "pch.h"
 #include "Node.h"
 
+Node::Node(NodeType type) :nodeType(type)
+{
+	
+}
 Node::~Node()
 {
 }
@@ -11,6 +15,7 @@ vector<Ele>& Node::getVectorOfEles()
     return eles;
 }
 
+// caller should ensure the node is not leaf node
 Node* Node::giveMeTheWay(PredicateFunc func)
 {
 	vector<Ele>& eles = getVectorOfEles();

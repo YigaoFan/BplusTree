@@ -13,7 +13,7 @@ using std::initializer_list;
 class Btree {
     friend std::ostream& operator<<(std::ostream& os, const Btree& item);
 private:
-	Node root{ };
+	Node root{LEAF_NODE};
     void adjust();
 
 public:
