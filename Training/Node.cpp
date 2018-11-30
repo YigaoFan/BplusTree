@@ -16,11 +16,11 @@ vector<Ele>& Node::getVectorOfEles()
 }
 
 // caller should ensure the node is not leaf node
-Node* Node::giveMeTheWay(PredicateFunc func)
+shared_ptr<Node> Node::giveMeTheWay(PredicateFunc func)
 {
 	vector<Ele>& eles = getVectorOfEles();
 	// once encounter a node meeting the demand, return
-	for (auto e : eles) {
+	for (auto& e : eles) {
 		if (func(e)) {
 			return e.child;
 		}

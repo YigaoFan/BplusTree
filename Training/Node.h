@@ -4,7 +4,10 @@
 
 #include <vector>
 #include <functional>
+#include <memory>
 using std::vector;
+using std::shared_ptr;
+
 typedef int KeyType;
 typedef char DataType;
 class Node;
@@ -19,7 +22,7 @@ struct Ele {
 		struct {
 			// todo: the key type should provide a default value
 			KeyType childValueLowBound;
-			Node* child;
+			shared_ptr<Node> child;
 		} /*intermediate_node*/;
 		struct {
 			// todo: the key and data type should provide a default value
@@ -38,7 +41,7 @@ public:
     Node(NodeType type);
     ~Node();
     vector<Ele>& getVectorOfEles();
-    Node* giveMeTheWay(PredicateFunc func);
+    shared_ptr<Node> giveMeTheWay(PredicateFunc func);
 	// hasChild will ensure the node isn't leaf and elesCount isn't 0
 	bool hasChild() { return nodeType!=LEAF_NODE && elesCount > 0; }
 
@@ -48,7 +51,7 @@ private:
 	// todo: the code below initial how many eles?
 	// todo: ensure the ele arranged by value size Ascending
     vector<Ele> eles/* = vector<Ele>(3, nodeType)*/;
-    Node* nextBrother = nullptr;
+    shared_ptr<Node> nextBrother = nullptr;
     decltype(eles.size()) elesCount = 0;
 };
 

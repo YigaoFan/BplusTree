@@ -29,11 +29,11 @@ ostream& operator<<(ostream& os, const Btree& item)
 }
 
 // this is for insert method, maybe not suit for normal search
-Node* Btree::find(PredicateFunc func)
+shared_ptr<Node> Btree::find(PredicateFunc func)
 {
     // for-each Node to chose which should be continued
-	Node* currentNode;
-    for (currentNode = &root;
+	shared_ptr<Node> currentNode;
+    for (currentNode = root;
     currentNode->hasChild(); // here ensure not explore the leaf
     currentNode = currentNode->giveMeTheWay(func));
 	// will get the leaf node
@@ -46,7 +46,7 @@ int Btree::insert(KeyType e)
     // expression below exist some problem need to be clear
     // the return value is the father?
     // using Currying to determine a argument
-    Node* parent = find([e] (const Ele& ele) {
+    shared_ptr<Node> parent = find([e] (const Ele& ele) {
 	    if (ele.childValueLowBound > e) {
 			return true;
 	    }
@@ -57,7 +57,7 @@ int Btree::insert(KeyType e)
 	auto& eles = parent->getVectorOfEles();
 	
 	std::cout << "original: ";
-	for (auto leaf : eles) {
+	for (auto& leaf : eles) {
 		std::cout << leaf.key << " ";
 	}
 	std::cout << endl;
@@ -74,7 +74,7 @@ int Btree::insert(KeyType e)
 	});
 	
 	std::cout << "new: ";
-	for (auto leaf : eles) {
+	for (auto& leaf : eles) {
 		std::cout << leaf.key << " ";
 	}
 	std::cout << endl;
