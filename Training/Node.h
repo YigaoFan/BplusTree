@@ -5,35 +5,12 @@
 #include <vector>
 #include <functional>
 #include <memory>
+#include "Ele.h"
 using std::vector;
 using std::shared_ptr;
 
-typedef int KeyType;
-typedef char DataType;
-class Node;
-struct Ele;
 typedef std::function<bool(const Ele&)> PredicateFunc;
-
 typedef enum { LEAF_NODE, INTERMEDIATE_NODE, } NodeType;
-
-struct Ele {
-	// todo: use union to store data and Node?
-	union {
-		struct {
-			// todo: the key type should provide a default value
-			KeyType childValueLowBound;
-			shared_ptr<Node> child;
-		} /*intermediate_node*/;
-		struct {
-			// todo: the key and data type should provide a default value
-			KeyType key;
-			DataType data;
-		} /*leaf_node*/;
-	} /*u*/;
-
-	Ele(KeyType key) : childValueLowBound(key), child(nullptr) {}
-	Ele(DataType data) : key(data), data(data) {}
-};
 
 class Node {
 public:

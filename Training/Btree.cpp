@@ -50,6 +50,9 @@ int Btree::insert(KeyType e)
 	    if (ele.childValueLowBound > e) {
 			return true;
 	    }
+		else {
+			return false;
+		}
 	});
 
 	//todo: here I use the std::sort directly,
