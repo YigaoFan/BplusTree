@@ -14,17 +14,17 @@ using std::shared_ptr;
 using std::make_shared;
 
 class Btree {
-    friend std::ostream& operator<<(std::ostream& os, const Btree& item);
-private:
+	friend std::ostream& operator<<(std::ostream& os, const Btree& item);
+	private:
 	shared_ptr<Node> root = make_shared<Node>(LEAF_NODE);
-    void adjust();
+	void adjust();
 
-public:
-    Btree();
+	public:
+	Btree();
 	Btree(initializer_list<KeyType> valueList);
-    ~Btree();
-	shared_ptr<Node> find(PredicateFunc func);
-    int insert(KeyType e);
+	~Btree();
+	shared_ptr<Node> fit(PredicateFunc func);
+	int insert(KeyType e);
 };
 
 
