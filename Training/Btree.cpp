@@ -29,7 +29,7 @@ ostream& operator<<(ostream& os, const Btree& item)
 }
 
 // this is for insert method, maybe not suit for normal search
-shared_ptr<Node> Btree::fit(PredicateFunc func)
+shared_ptr<Node> Btree::grabTheFitLeafBack(PredicateFunc func)
 {
 	// for-each Node to chose which should be continued
 	shared_ptr<Node> currentNode;
@@ -46,7 +46,7 @@ int Btree::insert(KeyType e)
 	// expression below exist some problem need to be clear
 	// the return value is the father?
 	// using Currying to determine a argument
-	shared_ptr<Node> parent = fit([e] (const Ele& ele) {
+	shared_ptr<Node> parent = grabTheFitLeafBack([e] (const Ele& ele) {
 			if (ele.childValueLowBound > e) {
 			return true;
 			} else {

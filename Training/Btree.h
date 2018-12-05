@@ -23,7 +23,7 @@ class Btree {
 	Btree();
 	Btree(initializer_list<KeyType> valueList);
 	~Btree();
-	shared_ptr<Node> fit(PredicateFunc func);
+	shared_ptr<Node> grabTheFitLeafBack(PredicateFunc func);
 	int insert(KeyType e);
 };
 
