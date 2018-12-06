@@ -43,14 +43,15 @@ void Node::swapTheBiggestEleOut(shared_ptr<Ele> e)
 int Node::insert(shared_ptr<Ele> e)
 {
 	if (!this->isFull()) {
+		// todo: doInsert need to attention to this Node is leaf or not
 		return this->doInsert(e);
 	} else {
 		this->swapTheBiggestEleOut(e);
 		if (this->nextBrother != nullptr) {
 			return this->nextBrother->insert(e);
 		} else {
+			// todo: need to package this leaf to a withe
 			if (this->father != nullptr) {
-				// todo: need to package this leaf to a withe
 				// todo: maybe lead the data structure to change
 				return this->father->insert(e);
 			} else {
