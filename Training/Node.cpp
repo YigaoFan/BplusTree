@@ -50,6 +50,7 @@ int Node::insert(shared_ptr<Ele> e)
 		if (this->nextBrother != nullptr) {
 			return this->nextBrother->insert(e);
 		} else {
+
 			// todo: need to package this leaf to a withe
 			if (this->father != nullptr) {
 				// todo: maybe lead the data structure to change

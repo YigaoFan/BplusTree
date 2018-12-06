@@ -35,8 +35,8 @@ private:
 			};
 		};
 
-		Ele(KeyType key) : childValueLowBound(key), child(nullptr) {}
-		Ele(DataType data) : key(data), data(data) {}
+		Ele(KeyType lowBound, shared_ptr<Node> node) : childValueLowBound(key), child(node) {}
+		Ele(KeyType key, DataType data) : key(key), data(data) {}
 		Ele(const Ele& e);
 		Ele& operator=(const Ele& e);
 		// todo: the de-constructor maybe need to update 
