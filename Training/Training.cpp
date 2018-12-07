@@ -20,6 +20,7 @@ int main()
 {
 	// now is 3-order Btree
 	auto b = Btree({ 2, 1, /*3, 4, 5, 6, 7, */});
+	std::list<int> i = {};
 	cout << b << endl;
 	return 0;
 }

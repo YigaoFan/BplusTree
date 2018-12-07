@@ -10,7 +10,7 @@ Btree::Btree()
 
 
 
-Btree::Btree(initializer_list<KeyType> valueList)
+Btree::Btree(initializer_list<DataType> valueList)
 {
 	for (auto value : valueList) {
 		insert(value);
@@ -40,7 +40,7 @@ shared_ptr<Node> Btree::grabTheFitLeafBack(PredicateFunc func)
 	return currentNode;
 }
 
-int Btree::insert(KeyType e)
+int Btree::insert(DataType e)
 {
 	std::cout << "insert key: " << e << endl;
 	// expression below exist some problem need to be clear
@@ -55,7 +55,7 @@ int Btree::insert(KeyType e)
 
 	//todo: here I use the std::sort directly,
 	//todo: in the future, update to use insert sort
-	auto& eles = parent->getVectorOfEles();
+	auto& eles = parent->getVectorOfElesRef();
 
 	std::cout << "original: ";
 	for (auto& leaf : eles) {

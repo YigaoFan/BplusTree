@@ -4,21 +4,21 @@
 
 Node::Node(NodeType type) :type(type)
 {
-	
+
 }
 Node::~Node()
 {
 }
 
-vector<Node::Ele>& Node::getVectorOfEles()
+vector<shared_ptr<Node::Ele>>& Node::getVectorOfElesRef()
 {
-    return eles;
+	return eles;
 }
 
 // caller should ensure the node is not leaf node
 shared_ptr<Node> Node::giveMeTheWay(PredicateFunc func)
 {
-	vector<Ele>& eles = getVectorOfEles();
+	auto eles = getVectorOfElesRef();
 	// once encounter a node meeting the demand, return
 	for (auto& e : eles) {
 		if (func(e)) {
@@ -28,13 +28,19 @@ shared_ptr<Node> Node::giveMeTheWay(PredicateFunc func)
 	return nullptr;
 }
 
-void Node::swapTheBiggestEleOut(shared_ptr<Ele> e)
+void Node::exchangeTheBiggestEleOut(shared_ptr<Ele> e)
 {
 	// also need to think the intermediate_node situation
-	for (auto e : this->getVectorOfEles()) {
-		// need to use iterator
-		if (e.key > e.key) {
-
+	// doesn't exist up situation todo: think it!
+	auto& eleVectorRef = this->getVectorOfElesRef();
+	for (auto begin = eleVectorRef.begin(), end = eleVectorRef.end(); begin != end; ++begin) {
+		if ((*begin)->key > e->key) {
+			// should use list?
+			// need to think. Not first use.
+			auto& temp = *begin;
+			(*begin) = e;
+			// todo: maybe occur some error below
+			e = temp;
 		}
 	}
 }
@@ -46,7 +52,7 @@ int Node::insert(shared_ptr<Ele> e)
 		// todo: doInsert need to attention to this Node is leaf or not
 		return this->doInsert(e);
 	} else {
-		this->swapTheBiggestEleOut(e);
+		this->exchangeTheBiggestEleOut(e);
 		if (this->nextBrother != nullptr) {
 			return this->nextBrother->insert(e);
 		} else {

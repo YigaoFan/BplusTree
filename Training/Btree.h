@@ -15,16 +15,17 @@ using std::make_shared;
 
 class Btree {
 	friend std::ostream& operator<<(std::ostream& os, const Btree& item);
-	private:
-	shared_ptr<Node> root = make_shared<Node>(LEAF_NODE);
+private:
+	shared_ptr<Node> root = make_shared<Node>(leaf);
 	void adjust();
 
-	public:
+public:
 	Btree();
-	Btree(initializer_list<KeyType> valueList);
+	Btree(initializer_list<DataType> valueList);
 	~Btree();
+	int insert(DataType e);
+private:
 	shared_ptr<Node> grabTheFitLeafBack(PredicateFunc func);
-	int insert(KeyType e);
 };
 
 
