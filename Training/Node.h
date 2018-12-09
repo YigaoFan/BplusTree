@@ -7,6 +7,7 @@
 #include <memory>
 using std::vector;
 using std::shared_ptr;
+using std::make_shared;
 
 // thing below could use template
 typedef int KeyType;
@@ -46,7 +47,9 @@ private:
 
 public:
     Node(NodeType);
+    Node(NodeType, const shared_ptr<Ele>&);
     ~Node();
+    // return 0 means OK, or bad
 	int insert(shared_ptr<Ele>);
 private:
     vector<shared_ptr<Ele>>& getVectorOfElesRef();
@@ -54,9 +57,8 @@ private:
 	// hasChild will ensure the node isn't leaf and elesCount isn't 0
 	bool hasChild() { return type != leaf && elesCount > 0; }
 	bool isFull() { return childrenCountBound >= eles.size(); }
-	int doInsert(shared_ptr<Ele>);
+	void doInsert(shared_ptr<Ele>);
 	void exchangeTheBiggestEleOut(shared_ptr<Ele>);
-
 
 private:
     // todo: the value below could be customize in the future
@@ -69,6 +71,10 @@ private:
     decltype(eles.size()) elesCount = 0;
 	// todo: future use should change (by template?)
 	decltype(eles.size()) childrenCountBound = 3;
+
+	// tool function
+	static int createNewRoot(shared_ptr<Node>);
+	static shared_ptr<Ele> constructElePointingToNodePackagingThisEle(shared_ptr<Ele>);
 };
 
 #endif

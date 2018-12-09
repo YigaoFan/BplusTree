@@ -1,22 +1,31 @@
 //should use difference compilation 
-#include "pch.h"
+//#include "pch.h"
 #include "Node.h"
+#include <algorithm>
 
 Node::Node(NodeType type) :type(type)
 {
 
 }
+
+Node::Node(NodeType type, const shared_ptr<Ele>& e) : Node(type)
+{
+    this->eles.push_back(e);
+}
+
 Node::~Node()
 {
 }
 
-vector<shared_ptr<Node::Ele>>& Node::getVectorOfElesRef()
+vector<shared_ptr<Node::Ele>>&
+Node::getVectorOfElesRef()
 {
 	return eles;
 }
 
 // caller should ensure the node is not leaf node
-shared_ptr<Node> Node::giveMeTheWay(PredicateFunc func)
+shared_ptr<Node>
+        Node::giveMeTheWay(PredicateFunc func)
 {
 	auto eles = getVectorOfElesRef();
 	// once encounter a node meeting the demand, return
@@ -28,42 +37,56 @@ shared_ptr<Node> Node::giveMeTheWay(PredicateFunc func)
 	return nullptr;
 }
 
-void Node::exchangeTheBiggestEleOut(shared_ptr<Ele> e)
+// the below function's scope is leaf
+void
+Node::exchangeTheBiggestEleOut(shared_ptr<Ele> e)
 {
 	// also need to think the intermediate_node situation
 	// doesn't exist up situation todo: think it!
-	auto& eleVectorRef = this->getVectorOfElesRef();
-	for (auto begin = eleVectorRef.begin(), end = eleVectorRef.end(); begin != end; ++begin) {
-		if ((*begin)->key > e->key) {
-			// should use list?
-			// need to think. Not first use.
-			auto& temp = *begin;
-			(*begin) = e;
-			// todo: maybe occur some error below
-			e = temp;
-		}
-	}
+    this->doInsert(e);
+    auto& eleVectorRef = this->getVectorOfElesRef();
+	*e = *eleVectorRef.back();
+	eleVectorRef.pop_back();
 }
 
-// external caller should ensure the node is leaf
-int Node::insert(shared_ptr<Ele> e)
+shared_ptr<Node::Ele> constructElePointingToNodePackagingThisEle
+// external caller should ensure the insert node is leaf
+int
+Node::insert(shared_ptr<Ele> e)
 {
 	if (!this->isFull()) {
 		// todo: doInsert need to attention to this Node is leaf or not
-		return this->doInsert(e);
+		this->doInsert(e);
+		return 0;
 	} else {
 		this->exchangeTheBiggestEleOut(e);
 		if (this->nextBrother != nullptr) {
 			return this->nextBrother->insert(e);
 		} else {
-
-			// todo: need to package this leaf to a withe
+			// package this leaf to a withe
+			shared_ptr<Ele> newEle = constructElePointingToNodePackagingThisEle(e);
+			shared_ptr<Node> node = make_shared<Node>(e);
+			// construct a Ele pointing to the node?
 			if (this->father != nullptr) {
 				// todo: maybe lead the data structure to change
 				return this->father->insert(e);
 			} else {
 				// create new branch
+				return createNewRoot(this->father);
 			}
 		}
 	}
+}
+
+
+void
+Node::doInsert(shared_ptr<Ele> e)
+{
+    auto& eleVectorRef = this->getVectorOfElesRef();
+    eleVectorRef.push_back(e);
+	std::sort(eleVectorRef.begin(), eleVectorRef.end(),
+	        [] (shared_ptr<Ele> a, shared_ptr<Ele> b)
+            {
+	            return a->key < b->key;
+            });
 }
