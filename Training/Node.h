@@ -73,8 +73,9 @@ private:
 	decltype(eles.size()) childrenCountBound = 3;
 
 	// tool function
-	static int createNewRoot(shared_ptr<Node>);
-	static shared_ptr<Ele> constructElePointingToNodePackagingThisEle(shared_ptr<Ele>);
+	// todo: make the method below like this createNewRoot(node1, node2...);
+	static int createNewRoot(const shared_ptr<Node>&, const shared_ptr<Ele>&);
+	static shared_ptr<Ele> constructToMakeItFitTheFatherInsert(shared_ptr<Ele>);
 };
 
 #endif

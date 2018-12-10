@@ -1,5 +1,4 @@
 //should use difference compilation 
-//#include "pch.h"
 #include "Node.h"
 #include <algorithm>
 
@@ -25,7 +24,7 @@ Node::getVectorOfElesRef()
 
 // caller should ensure the node is not leaf node
 shared_ptr<Node>
-        Node::giveMeTheWay(PredicateFunc func)
+Node::giveMeTheWay(PredicateFunc func)
 {
 	auto eles = getVectorOfElesRef();
 	// once encounter a node meeting the demand, return
@@ -49,7 +48,14 @@ Node::exchangeTheBiggestEleOut(shared_ptr<Ele> e)
 	eleVectorRef.pop_back();
 }
 
-shared_ptr<Node::Ele> constructElePointingToNodePackagingThisEle
+shared_ptr<Node::Ele> 
+Node::constructToMakeItFitTheFatherInsert(shared_ptr<Ele> e)
+{
+	// construct Ele Pointing To Node Packaging This Ele
+	shared_ptr<Node>&& node = make_shared<Node>(intermediate_node, e);
+	return make_shared<Ele>(e->key, node);
+}
+
 // external caller should ensure the insert node is leaf
 int
 Node::insert(shared_ptr<Ele> e)
@@ -64,15 +70,14 @@ Node::insert(shared_ptr<Ele> e)
 			return this->nextBrother->insert(e);
 		} else {
 			// package this leaf to a withe
-			shared_ptr<Ele> newEle = constructElePointingToNodePackagingThisEle(e);
-			shared_ptr<Node> node = make_shared<Node>(e);
-			// construct a Ele pointing to the node?
+			shared_ptr<Ele> newEle = constructToMakeItFitTheFatherInsert(e);
 			if (this->father != nullptr) {
-				// todo: maybe lead the data structure to change
-				return this->father->insert(e);
+				// todo: usually when move to father to insert Ele,
+				// todo: it's the end of this level. Think it!
+				return this->father->insert(newEle);
 			} else {
 				// create new branch
-				return createNewRoot(this->father);
+				return createNewRoot(this->father, newEle);
 			}
 		}
 	}
@@ -89,4 +94,15 @@ Node::doInsert(shared_ptr<Ele> e)
             {
 	            return a->key < b->key;
             });
+}
+
+// todo: how to ensure only the root 
+// todo: have and can trigger this method
+int 
+Node::createNewRoot(const shared_ptr<Node>& oldRoot, const shared_ptr<Ele>& risingEle)
+{
+	// todo: maybe the argument below is wrong, the keyType, not the NodeType
+	shared_ptr<Ele>&& ele = make_shared<Ele>(/*intermediate_node*/, oldRoot);
+	shared_ptr<Node>&& node = make_shared<Node>(/*intermediate_node*/, risingEle);
+
 }
