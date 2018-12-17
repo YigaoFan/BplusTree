@@ -13,9 +13,8 @@ using std::make_shared;
 // thing below could use template
 typedef enum { intermediate_node = 1, leaf, } NodeType;
 
-typedef std::function<bool(const Ele&)> PredicateFunc;
 
-template <typename Key, typename Value, typename Ele, unsigned BtreeOrder>
+template <typename Key, typename Value, unsigned BtreeOrder>
 class Node {
 protected:
 	// Node and Ele sharing the type
@@ -46,10 +45,11 @@ private:
 	};
 
 public:
+	typedef std::function<bool(const Ele&)> PredicateFunc;
     Node(NodeType);
-    Node(NodeType, const shared_ptr<Ele>&);
+	// copy from stack's Ele
+    Node(NodeType, const Ele);
     ~Node();
-    // return 0 means OK, or not is bad
 	int insert(shared_ptr<Ele>);
 private:
     vector<shared_ptr<Ele>>& getVectorOfElesRef();

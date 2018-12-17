@@ -1,45 +1,38 @@
 #include <algorithm>
 #include "Btree.h"
+// seem like the type-para is not useful in this file
+#define BTREE_TEMPLATE_DECLARATION template <typename Key, typename Value, unsigned BtreeOrder>
+#define BTREE_INSTANCE Btree<Key, Value, BtreeOrder>
 using std::ostream;
 using std::endl;
 
-template <typename Key, typename Value, unsigned BtreeOrder>
-Btree<Key, Value, BtreeOrder>::Btree(initializer_list<pair<Key, Value>> pairList)
+// pulic method part:
+BTREE_TEMPLATE_DECLARATION
+BTREE_INSTANCE::Btree(initializer_list<pair<Key, Value>> pair_list)
 {
-	for (auto pair : pairList) {
+	for (auto& pair : pair_list) {
+		this->
 		this->add(pair);
 	}
 }
 
-template <typename Key, typename Value, unsigned BtreeOrder>
-Btree<Key, Value, BtreeOrder>::~Btree()
+BTREE_TEMPLATE_DECLARATION
+BTREE_INSTANCE::~Btree()
 {
 
 }
 
-// this is for add method, maybe not suit for normal search
-template <typename Key, typename Value, unsigned BtreeOrder>
-shared_ptr<Node>
-Btree<Key, Value, BtreeOrder>::grabTheFitLeafBack(PredicateFunc func)
-{
-	// for-each Node to chose which should be continued
-	shared_ptr<Node> currentNode;
-	for (currentNode = root;
-			currentNode->hasChild(); // here ensure not explore the leaf
-			currentNode = currentNode->giveMeTheWay(func));
-	// will get the leaf node
-	return currentNode;
-}
 
-template <typename Key, typename Value, unsigned BtreeOrder>
+
+BTREE_TEMPLATE_DECLARATION
 int
-Btree<Key, Value, BtreeOrder>::add(pair<Key, Value> e)
+BTREE_INSTANCE::add(pair<Key, Value> e)
 {
 	std::cout << "insert key: " << e << endl;
 	// expression below exist some problem need to be clear
 	// the return value is the father?
 	// using Currying to determine a argument
-	shared_ptr<Node> parent = grabTheFitLeafBack([e] (const Ele& ele) {
+	shared_ptr<NodeType> parent = getFitLeafBack([e] (const Ele& ele) {
 			if (ele.childValueLowBound > e) {
 			return true;
 			} else {
@@ -75,9 +68,31 @@ Btree<Key, Value, BtreeOrder>::add(pair<Key, Value> e)
 	return 1;
 }
 
-template <typename Key, typename Value, unsigned BtreeOrder>
+// private method part:
+BTREE_TEMPLATE_DECLARATION
 void
-Btree<Key, Value, BtreeOrder>::adjust()
+BTREE_INSTANCE::adjust()
 {
 
+}
+
+BTREE_TEMPLATE_DECLARATION
+bool
+BTREE_INSTANCE::check(Key key)
+{
+
+}
+
+// helper for add method
+BTREE_TEMPLATE_DECLARATION
+shared_ptr<NodeType>
+BTREE_INSTANCE::getFitLeafBack(PredicateFunc func)
+{
+	// for-each Node to chose which should be continued
+	shared_ptr<NodeType> currentNode;
+	for (currentNode = root;
+		currentNode->hasChild(); // here ensure not explore the leaf
+		currentNode = currentNode->giveMeTheWay(func));
+	// will get the leaf node
+	return currentNode;
 }
