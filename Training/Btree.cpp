@@ -11,8 +11,9 @@ BTREE_TEMPLATE_DECLARATION
 BTREE_INSTANCE::Btree(initializer_list<pair<Key, Value>> pair_list)
 {
 	for (auto& pair : pair_list) {
-		this->
-		this->add(pair);
+		if (check(pair.first)) {
+			this->add(pair);
+		}
 	}
 }
 
@@ -22,13 +23,10 @@ BTREE_INSTANCE::~Btree()
 
 }
 
-
-
 BTREE_TEMPLATE_DECLARATION
 int
 BTREE_INSTANCE::add(pair<Key, Value> e)
 {
-	std::cout << "insert key: " << e << endl;
 	// expression below exist some problem need to be clear
 	// the return value is the father?
 	// using Currying to determine a argument
@@ -43,12 +41,6 @@ BTREE_INSTANCE::add(pair<Key, Value> e)
 	//todo: in the future, update to use add sort
 	auto& eles = parent->getVectorOfElesRef();
 
-	std::cout << "original: ";
-	for (auto& leaf : eles) {
-		std::cout << leaf.key << " ";
-	}
-	std::cout << endl;
-
 	eles.push_back(e);
 	std::sort(eles.begin(), eles.end(),
 			[](const Ele& ele1, const Ele& ele2)
@@ -60,11 +52,6 @@ BTREE_INSTANCE::add(pair<Key, Value> e)
 			}
 			});
 
-	std::cout << "new: ";
-	for (auto& leaf : eles) {
-		std::cout << leaf.key << " ";
-	}
-	std::cout << endl;
 	return 1;
 }
 

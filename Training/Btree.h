@@ -20,11 +20,11 @@ template <typename Key, typename Value, unsigned BtreeOrder>
 class Btree {
 private:
 	typedef Node<Key, Value, BtreeOrder> node_type;
-    shared_ptr<node_type> root_ = make_shared<node_type>(leaf);
-    void adjust();
+	shared_ptr<node_type> root_ = make_shared<node_type>(leaf);
+	void adjust();
 	bool check(Key);
 	Value& traverse();
-    shared_ptr<node_type> getFitLeafBack(typename node_type::PredicateFunc func);
+	shared_ptr<node_type> getFitLeafBack(typename node_type::PredicateFunc func);
 
 public:
     Btree(initializer_list<pair<Key, Value>>);
