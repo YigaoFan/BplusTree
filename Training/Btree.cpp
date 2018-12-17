@@ -3,32 +3,24 @@
 using std::ostream;
 using std::endl;
 
-Btree::Btree()
+template <typename Key, typename Value, unsigned BtreeOrder>
+Btree<Key, Value, BtreeOrder>::Btree(initializer_list<pair<Key, Value>> pairList)
 {
-}
-
-
-
-Btree::Btree(initializer_list<DataType> valueList)
-{
-	for (auto value : valueList) {
-		insert(value);
+	for (auto pair : pairList) {
+		this->add(pair);
 	}
 }
 
-Btree::~Btree()
+template <typename Key, typename Value, unsigned BtreeOrder>
+Btree<Key, Value, BtreeOrder>::~Btree()
 {
 
 }
 
-ostream& operator<<(ostream& os, const Btree& item)
-{
-	//os << item.root.childCount << endl;
-	return os;
-}
-
-// this is for insert method, maybe not suit for normal search
-shared_ptr<Node> Btree::grabTheFitLeafBack(PredicateFunc func)
+// this is for add method, maybe not suit for normal search
+template <typename Key, typename Value, unsigned BtreeOrder>
+shared_ptr<Node>
+Btree<Key, Value, BtreeOrder>::grabTheFitLeafBack(PredicateFunc func)
 {
 	// for-each Node to chose which should be continued
 	shared_ptr<Node> currentNode;
@@ -39,7 +31,9 @@ shared_ptr<Node> Btree::grabTheFitLeafBack(PredicateFunc func)
 	return currentNode;
 }
 
-int Btree::insert(DataType e)
+template <typename Key, typename Value, unsigned BtreeOrder>
+int
+Btree<Key, Value, BtreeOrder>::add(pair<Key, Value> e)
 {
 	std::cout << "insert key: " << e << endl;
 	// expression below exist some problem need to be clear
@@ -53,7 +47,7 @@ int Btree::insert(DataType e)
 			}});
 
 	//todo: here I use the std::sort directly,
-	//todo: in the future, update to use insert sort
+	//todo: in the future, update to use add sort
 	auto& eles = parent->getVectorOfElesRef();
 
 	std::cout << "original: ";
@@ -81,7 +75,9 @@ int Btree::insert(DataType e)
 	return 1;
 }
 
-void Btree::adjust()
+template <typename Key, typename Value, unsigned BtreeOrder>
+void
+Btree<Key, Value, BtreeOrder>::adjust()
 {
 
 }

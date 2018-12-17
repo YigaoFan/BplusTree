@@ -3,6 +3,7 @@
 #define NODE_H
 
 #include <vector>
+#include <array>
 #include <functional>
 #include <memory>
 using std::vector;
@@ -10,12 +11,11 @@ using std::shared_ptr;
 using std::make_shared;
 
 // thing below could use template
-typedef int KeyType;
-typedef char DataType;
 typedef enum { intermediate_node = 1, leaf, } NodeType;
 
 typedef std::function<bool(const Ele&)> PredicateFunc;
 
+template <typename Key, typename Value, typename Ele, unsigned BtreeOrder>
 class Node {
 protected:
 	// Node and Ele sharing the type
@@ -27,18 +27,18 @@ private:
 		union {
 			// intermediate_node
 			struct {
-				KeyType childValueLowBound;
+				Key childValueLowBound;
 				shared_ptr<Node> child;
 			};
 			// leaf
 			struct {
-				KeyType key;
-				DataType data;
+				Key key;
+				Value data;
 			};
 		};
 
-		Ele(KeyType lowBound, shared_ptr<Node> node) : childValueLowBound(key), child(node) {}
-		Ele(KeyType key, DataType data) : key(key), data(data) {}
+		Ele(Key lowBound, shared_ptr<Node> node) : childValueLowBound(key), child(node) {}
+		Ele(Key key, Value data) : key(key), data(data) {}
 		Ele(const Ele& e);
 		Ele& operator=(const Ele& e);
 		// todo: the de-constructor maybe need to update 
@@ -49,7 +49,7 @@ public:
     Node(NodeType);
     Node(NodeType, const shared_ptr<Ele>&);
     ~Node();
-    // return 0 means OK, or bad
+    // return 0 means OK, or not is bad
 	int insert(shared_ptr<Ele>);
 private:
     vector<shared_ptr<Ele>>& getVectorOfElesRef();
@@ -61,11 +61,9 @@ private:
 	void exchangeTheBiggestEleOut(shared_ptr<Ele>);
 
 private:
-    // todo: the value below could be customize in the future
 	// todo: use nodeType should test not produce error
-	// todo: the code below initial how many eles?
 	// todo: ensure the ele arranged by value size Ascending
-    vector<shared_ptr<Ele>> eles;
+    std::array<shared_ptr<Ele>, BtreeOrder> eles;
     shared_ptr<Node> nextBrother = nullptr;
 	shared_ptr<Node> father = nullptr;
     decltype(eles.size()) elesCount = 0;
