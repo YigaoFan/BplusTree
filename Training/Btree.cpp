@@ -70,6 +70,28 @@ BTREE_INSTANCE::check(Key key)
 
 }
 
+BTREE_TEMPLATE_DECLARATION
+std::vector<Value&>
+BTREE_INSTANCE::traverseLeaf(Predicate predicate) 
+{
+	std::vector<Value&> result;
+	auto& first_node = this->getSmallestLeafBack();
+	for (auto& current_node = this->getSmallestLeafBack(); 
+		current_node->nextBrother != nullptr; 
+		current_node = current_node->nextBrother) {
+		if (predicate(current_node)) {
+			result.push_back(current_node);
+		}
+	}
+}
+
+BTREE_TEMPLATE_DECLARATION
+shared_ptr<NodeType>
+BTREE_INSTANCE::getSmallestLeafBack() 
+{
+
+}
+
 // helper for add method
 BTREE_TEMPLATE_DECLARATION
 shared_ptr<NodeType>

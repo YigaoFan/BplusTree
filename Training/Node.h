@@ -51,6 +51,7 @@ public:
     Node(NodeType, const Ele);
     ~Node();
 	int insert(shared_ptr<Ele>);
+	shared_ptr<Node> nextBrother = nullptr;
 private:
     vector<shared_ptr<Ele>>& getVectorOfElesRef();
     shared_ptr<Node> giveMeTheWay(PredicateFunc func);
@@ -64,7 +65,6 @@ private:
 	// todo: use nodeType should test not produce error
 	// todo: ensure the ele arranged by value size Ascending
     std::array<shared_ptr<Ele>, BtreeOrder> eles;
-    shared_ptr<Node> nextBrother = nullptr;
 	shared_ptr<Node> father = nullptr;
     decltype(eles.size()) elesCount = 0;
 	// todo: future use should change (by template?)

@@ -20,10 +20,12 @@ template <typename Key, typename Value, unsigned BtreeOrder>
 class Btree {
 private:
 	typedef Node<Key, Value, BtreeOrder> node_type;
+	typedef std::function<bool(shared_ptr<const NodeType>)> Predicate;
 	shared_ptr<node_type> root_ = make_shared<node_type>(leaf);
 	void adjust();
 	bool check(Key);
-	Value& traverse();
+	std::vector<Value&> traverseLeaf(Predicate);
+	shared_ptr<NodeType> getSmallestLeafBack();
 	shared_ptr<node_type> getFitLeafBack(typename node_type::PredicateFunc func);
 
 public:
