@@ -1,18 +1,21 @@
 #include <algorithm>
 #include "Btree.h"
+using namespace btree;
 // seem like the type-para is not useful in this file
 #define BTREE_TEMPLATE_DECLARATION template <typename Key, typename Value, unsigned BtreeOrder>
 #define BTREE_INSTANCE Btree<Key, Value, BtreeOrder>
 using std::ostream;
 using std::endl;
 
-// pulic method part:
+// public method part:
 BTREE_TEMPLATE_DECLARATION
 BTREE_INSTANCE::Btree(initializer_list<pair<Key, Value>> pair_list)
 {
 	for (auto& pair : pair_list) {
-		if (check(pair.first)) {
+		if (checkOut(pair.first)) {
 			this->add(pair);
+		} else {
+			this->modify(pair);
 		}
 	}
 }
@@ -56,6 +59,7 @@ BTREE_INSTANCE::add(pair<Key, Value> e)
 }
 
 // private method part:
+// todo: private method should declare its use
 BTREE_TEMPLATE_DECLARATION
 void
 BTREE_INSTANCE::adjust()
@@ -64,17 +68,18 @@ BTREE_INSTANCE::adjust()
 }
 
 BTREE_TEMPLATE_DECLARATION
-bool
-BTREE_INSTANCE::check(Key key)
+Btree::node_type
+BTREE_INSTANCE::checkOut(Key key)
 {
 
 }
 
+// todo: maybe useless
 BTREE_TEMPLATE_DECLARATION
-std::vector<Value&>
+std::vector<Value>&
 BTREE_INSTANCE::traverseLeaf(Predicate predicate) 
 {
-	std::vector<Value&> result;
+	std::vector<Value> result;
 	auto& first_node = this->getSmallestLeafBack();
 	for (auto& current_node = this->getSmallestLeafBack(); 
 		current_node->nextBrother != nullptr; 
