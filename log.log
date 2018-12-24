@@ -1,0 +1,7 @@
+1. std::function<bool(Key, Key)> compare 不能随便用应该，在function 里面估计有一个同名的东西；
+
+2. typename 到底什么时候需要用？ typename BTREE_INSTANCE:: node_type
+
+3. Btree.h 文件里的头文件包含的合理吗？会不会导致包含这个文件的文件产生一些不好的影响？
+
+4. 为什么在类定义内部声明函数的时候，貌似不用加一些类型名，像在类的实现文件里一样。
