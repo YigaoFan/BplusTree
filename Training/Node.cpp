@@ -1,18 +1,22 @@
-//should use difference compilation 
 #include "Node.h"
 #include <algorithm>
+#define NODE_TEMPLATE_DECLARATION template <typename Key, typename Value, unsigned BtreeOrder>
+#define NODE_INSTANCE Node<Key, Value, BtreeOrder>
 
-Node::Node(NodeType type) :type(type)
+NODE_TEMPLATE_DECLARATION
+NODE_INSTANCE::Node(const NodeType type) :type_(type)
 {
 
 }
 
-Node::Node(NodeType type, const shared_ptr<Ele>& e) : Node(type)
+NODE_TEMPLATE_DECLARATION
+NODE_INSTANCE::Node(const NodeType type, const Ele e) : Node(type)
 {
     this->eles.push_back(e);
 }
 
-Node::~Node()
+NODE_TEMPLATE_DECLARATION
+NODE_INSTANCE::~Node()
 {
 }
 
@@ -105,4 +109,33 @@ Node::createNewRoot(const shared_ptr<Node>& oldRoot, const shared_ptr<Ele>& risi
 	shared_ptr<Ele>&& ele = make_shared<Ele>(/*intermediate_node*/, oldRoot);
 	shared_ptr<Node>&& node = make_shared<Node>(/*intermediate_node*/, risingEle);
 
+}
+
+//for constructing iterator
+NODE_TEMPLATE_DECLARATION
+typename NODE_INSTANCE::Ele
+NODE_INSTANCE::operator*(Ele* ele_ptr)
+{
+    return *ele_ptr;
+}
+
+NODE_TEMPLATE_DECLARATION
+typename NODE_INSTANCE::Ele* 
+NODE_INSTANCE::operator++(Ele* ele_ptr)
+{
+    return ++ele_ptr;
+}
+
+NODE_TEMPLATE_DECLARATION
+typename NODE_INSTANCE::Ele*
+NODE_INSTANCE::begin()
+{
+    return &eles[0];
+}
+
+NODE_TEMPLATE_DECLARATION
+typename NODE_INSTANCE::Ele*
+NODE_INSTANCE::end()
+{
+    return &eles[BtreeOrder];
 }

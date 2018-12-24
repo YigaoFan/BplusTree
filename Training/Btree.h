@@ -9,27 +9,30 @@
 #include <utility> // for pair
 #include "Node.h"
 
-// Should I think to setup a namespace
 namespace btree {
-
-    template<typename Key,
-            typename Value,
-            unsigned BtreeOrder,
-            std::function<bool(Key, Key)> compare>
+    // todo: ban using <
+    template<typename Key, typename Value, unsigned BtreeOrder>
     class Btree {
     private:
-        typedef Node<Key, Value, BtreeOrder> node_type;
-        typedef std::function<bool(std::shared_ptr<const node_type>)> Predicate;
-        std::shared_ptr<node_type> root_ = std::make_shared<node_type>(leaf);
+        // type
+        typedef Node<Key, Value, BtreeOrder> node_instance_type;
+        typedef std::function<bool(std::shared_ptr<const node_instance_type>)> Predicate;
+        
+        // field
+        std::shared_ptr<node_instance_type> root_ = std::make_shared<node_instance_type>(leaf);
+        std::function<bool(Key, Key)> compare_function_;
+        
+        // method
         void adjust();
-        node_type checkOut(Key);
+        std::shared_ptr<node_instance_type> check_out(Key);
+        std::shared_ptr<node_instance_type> check_out_recur_helper(Key, node_instance_type);
         // provide some all-leaf-do operation?
         std::vector<Value>& traverseLeaf(Predicate);
         std::shared_ptr<NodeType> getSmallestLeafBack();
-        std::shared_ptr<node_type> getFitLeafBack(typename node_type::PredicateFunc);
+        std::shared_ptr<node_instance_type> getFitLeafBack(typename node_instance_type::PredicateFunc);
 
     public:
-        Btree(std::initializer_list<std::pair<Key, Value>>);
+        Btree(std::initializer_list<std::pair<Key, Value>>, std::function<bool(Key, Key)> compare);
         ~Btree();
         Value search(Key);
         int add(std::pair<Key, Value>);

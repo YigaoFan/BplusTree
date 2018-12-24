@@ -6,9 +6,9 @@
 #include <array>
 #include <functional>
 #include <memory>
-using std::vector;
-using std::shared_ptr;
-using std::make_shared;
+//using std::vector;
+//using std::shared_ptr;
+//using std::make_shared;
 
 // thing below could use template
 typedef enum { intermediate_node = 1, leaf, } NodeType;
@@ -16,10 +16,6 @@ typedef enum { intermediate_node = 1, leaf, } NodeType;
 
 template <typename Key, typename Value, unsigned BtreeOrder>
 class Node {
-protected:
-	// Node and Ele sharing the type
-	// start from 1, ensure not int initialization 0 situation
-	NodeType type;
 private:
 	struct Ele {
 		// todo: the key type should provide a default value
@@ -45,10 +41,13 @@ private:
 	};
 
 public:
+    // Node and Ele sharing the type
+    // start from 1, ensure not int initialization 0 situation
+    const NodeType type;
 	typedef std::function<bool(const Ele&)> PredicateFunc;
-    Node(NodeType);
+    Node(const NodeType);
 	// copy from stack's Ele
-    Node(NodeType, const Ele);
+    Node(const NodeType, const Ele);
     ~Node();
 	int insert(shared_ptr<Ele>);
 	shared_ptr<Node> nextBrother = nullptr;
@@ -57,7 +56,7 @@ private:
     shared_ptr<Node> giveMeTheWay(PredicateFunc func);
 	// hasChild will ensure the node isn't leaf and elesCount isn't 0
 	bool hasChild() { return type != leaf && elesCount > 0; }
-	bool isFull() { return childrenCountBound >= eles.size(); }
+	bool isFull() { return children_count_bound_ >= eles.size(); }
 	void doInsert(shared_ptr<Ele>);
 	void exchangeTheBiggestEleOut(shared_ptr<Ele>);
 
@@ -68,12 +67,19 @@ private:
 	shared_ptr<Node> father = nullptr;
     decltype(eles.size()) elesCount = 0;
 	// todo: future use should change (by template?)
-	decltype(eles.size()) childrenCountBound = 3;
+	decltype(eles.size()) children_count_bound_ = 3;
 
 	// tool function
 	// todo: make the method below like this createNewRoot(node1, node2...);
 	static int createNewRoot(const shared_ptr<Node>&, const shared_ptr<Ele>&);
 	static shared_ptr<Ele> constructToMakeItFitTheFatherInsert(shared_ptr<Ele>);
+
+// for constructing iterator
+public:
+    Ele operator*(Ele*);
+    Ele* operator++(Ele*);
+    Ele* begin();
+    Ele* end();
 };
 
 #endif
