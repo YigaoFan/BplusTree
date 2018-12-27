@@ -16,32 +16,30 @@ namespace btree {
     private:
         // type
         using node_instance_type = Node<Key, Value, BtreeOrder>;
-        using  compare_function_type = std::function<bool(Key const, Key const)>;
-
-        // todo: maybe useless
-        typedef std::function<bool(std::shared_ptr<const node_instance_type>)> predicate;
+        using compare_function_type = std::function<bool(Key const, Key const)>;
+        using predicate = std::function<bool(std::shared_ptr<node_instance_type>)>;
         
         // field
         std::shared_ptr<node_instance_type> root_ = std::make_shared<node_instance_type>(leaf);
         compare_function_type compare_function_;
         
         // method
-        void adjust();
-        std::shared_ptr<node_instance_type> check_out(Key);
-        std::shared_ptr<node_instance_type> check_out_recur_helper(Key, std::shared_ptr<node_instance_type>);
+        //void adjust();
+        std::shared_ptr<node_instance_type> check_out(const Key);
+        std::shared_ptr<node_instance_type> check_out_recur_helper(const Key, std::shared_ptr<node_instance_type>);
         // provide some all-leaf-do operation?
-        std::vector<Value>& traverse_leaf(predicate);
-        std::shared_ptr<NodeType> get_smallest_leaf_back();
-        std::shared_ptr<node_instance_type> getFitLeafBack(node_instance_type::PredicateFunc);
+        std::vector<Value> traverse_leaf(predicate);
+        //std::shared_ptr<NodeType> get_smallest_leaf_back();
+        //std::shared_ptr<node_instance_type> getFitLeafBack(node_instance_type::PredicateFunc);
 
     public:
         Btree(const std::initializer_list<std::pair<Key, Value>>, compare_function_type compare);
         ~Btree();
-        Value search(Key);
-        int add(std::pair<Key, Value>);
-        int modify(std::pair<Key, Value>);
-        const std::vector<Key> explore();
-        int remove(Key);
+        Value search(const Key);
+        int add(const std::pair<Key, Value>);
+        int modify(const std::pair<Key, Value>);
+        std::vector<Key> explore();
+        void remove(const Key);
     };
 }
 #endif

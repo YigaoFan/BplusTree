@@ -31,25 +31,76 @@ BTREE_INSTANCE::~Btree()
 }
 
 BTREE_TEMPLATE_DECLARATION
-int
-BTREE_INSTANCE::add(pair<Key, Value> e)
+Value
+BTREE_INSTANCE::search(const Key key)
 {
-    shared_ptr<node_instance_type> node = check_out(pair.first);
-    node->add(e);
+    shared_ptr<node_instance_type> node = this->check_out(key);
+    if (node->is_leaf()) {
+        // todo: should implement []
+        // should ensure copy, not reference
+        // but node[key] is reference
+        return node[key];
+    } else {
+        // todo: return nullptr or Value();
+        return nullptr;
+    }
+}
+
+BTREE_TEMPLATE_DECLARATION
+int
+BTREE_INSTANCE::add(const pair<Key, Value> e)
+{
+    shared_ptr<node_instance_type> node = this->check_out(e.first);
+    // todo: node->add shoudl return int
+    return node->add(e);
     // if node is a leaf, then add into leaf
     // or it's a intermediate node, basically you can
     // be sure to create a new node
 }
 
-// private method part:
-// todo: private method should declare its use
+BTREE_TEMPLATE_DECLARATION
+int
+BTREE_INSTANCE::modify(const pair<Key, Value> pair)
+{
+    shared_ptr<node_instance_type> node = this->check_out(key);
+    node[pair.first] = pair.second;
+    return 1;
+}
+
+BTREE_TEMPLATE_DECLARATION
+vector<Key>
+BTREE_INSTANCE::explore()
+{
+    vector<Key> key_collection;
+
+    this->traverse_leaf([key_collection] (node_instance_type node)
+    {
+        for (auto && ele : node) {
+            key_collection.push_back(ele.key);
+        }
+    });
+
+    return key_collection;
+}
 
 BTREE_TEMPLATE_DECLARATION
 void
-BTREE_INSTANCE::adjust()
+BTREE_INSTANCE::remove(const Key key)
 {
-
+    shared_ptr<node_instance_type> node = this->check_out(key);
+    // todo: should implement the Node method remove
+    node->remove(key);
 }
+
+// private method part:
+// todo: private method should declare its use 
+
+//BTREE_TEMPLATE_DECLARATION
+//void
+//BTREE_INSTANCE::adjust()
+//{
+//
+//}
 
 /// search the key in Btree, return the node that terminated, 
 /// maybe not find the key-corresponding one, but the related one.
@@ -69,7 +120,7 @@ BTREE_INSTANCE::check_out(const Key key)
 
 BTREE_TEMPLATE_DECLARATION
 shared_ptr<typename BTREE_INSTANCE::node_instance_type> 
-BTREE_INSTANCE::check_out_recur_helper(Key const key, shared_ptr<node_instance_type> node)
+BTREE_INSTANCE::check_out_recur_helper(const Key key, shared_ptr<node_instance_type> node)
 {
     // could think how to remove the key parameter after the first call
     shared_ptr<node_instance_type> current_node = node;
@@ -86,9 +137,9 @@ BTREE_INSTANCE::check_out_recur_helper(Key const key, shared_ptr<node_instance_t
 }
 
 
-// todo: maybe useless
+// todo: occur some problem, where return value
 BTREE_TEMPLATE_DECLARATION
-vector<Value>&
+vector<Value>
 BTREE_INSTANCE::traverse_leaf(predicate predicate) 
 {
 	vector<Value> result;
@@ -102,23 +153,23 @@ BTREE_INSTANCE::traverse_leaf(predicate predicate)
 	}
 }
 
-BTREE_TEMPLATE_DECLARATION
-shared_ptr<NodeType>
-BTREE_INSTANCE::get_smallest_leaf_back() 
-{
-
-}
+//BTREE_TEMPLATE_DECLARATION
+//shared_ptr<NodeType>
+//BTREE_INSTANCE::get_smallest_leaf_back() 
+//{
+//
+//}
 
 // helper for add method
-BTREE_TEMPLATE_DECLARATION
-shared_ptr<NodeType>
-BTREE_INSTANCE::getFitLeafBack(PredicateFunc func)
-{
-	// for-each Node to chose which should be continued
-	shared_ptr<NodeType> currentNode;
-	for (currentNode = root;
-		currentNode->hasChild(); // here ensure not explore the leaf
-		currentNode = currentNode->giveMeTheWay(func));
-	// will get the leaf node
-	return currentNode;
-}
+//BTREE_TEMPLATE_DECLARATION
+//shared_ptr<NodeType>
+//BTREE_INSTANCE::getFitLeafBack(PredicateFunc func)
+//{
+//	// for-each Node to chose which should be continued
+//	shared_ptr<NodeType> currentNode;
+//	for (currentNode = root;
+//		currentNode->hasChild(); // here ensure not explore the leaf
+//		currentNode = currentNode->giveMeTheWay(func));
+//	// will get the leaf node
+//	return currentNode;
+//}
