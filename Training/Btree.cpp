@@ -8,23 +8,19 @@ using std::function;
 using std::sort;
 using std::shared_ptr;
 using std::vector;
-// seem like the type-para is not useful in this file
+// seem like the template-type-para is not useful in this file
 #define BTREE_TEMPLATE_DECLARATION template <typename Key, typename Value, unsigned BtreeOrder>
 #define BTREE_INSTANCE Btree<Key, Value, BtreeOrder>
 
 // public method part:
 
 BTREE_TEMPLATE_DECLARATION
-BTREE_INSTANCE::Btree(initializer_list<pair<Key, Value>> pair_list, 
-    function<bool(Key, Key)> compare) : compare_function_(compare)
+BTREE_INSTANCE::Btree(const initializer_list<pair<Key, Value>> pair_list, 
+    compare_function_type compare)
+: compare_function_(compare)
 {
 	for (auto& pair : pair_list) {
-        auto node = check_out(pair.first);
-		if (node.type != leaf) {
-			this->add(pair);
-		} else {
-			this->modify(pair);
-		}
+        this->add(pair);
 	}
 }
 
@@ -38,32 +34,11 @@ BTREE_TEMPLATE_DECLARATION
 int
 BTREE_INSTANCE::add(pair<Key, Value> e)
 {
-	// expression below exist some problem need to be clear
-	// the return value is the father?
-	// using Currying to determine a argument
-	shared_ptr<NodeType> parent = getFitLeafBack([e] (const Ele& ele) {
-			if (ele.childValueLowBound > e) {
-			return true;
-			} else {
-			return false;
-			}});
-
-	//todo: here I use the std::sort directly,
-	//todo: in the future, update to use add sort
-	auto& eles = parent->getVectorOfElesRef();
-
-	eles.push_back(e);
-	sort(eles.begin(), eles.end(),
-			[](const Ele& ele1, const Ele& ele2)
-			{
-			if (ele1.key < ele2.key) {
-			return true;
-			} else {
-			return false;
-			}
-			});
-
-	return 1;
+    shared_ptr<node_instance_type> node = check_out(pair.first);
+    node->add(e);
+    // if node is a leaf, then add into leaf
+    // or it's a intermediate node, basically you can
+    // be sure to create a new node
 }
 
 // private method part:
@@ -76,39 +51,35 @@ BTREE_INSTANCE::adjust()
 
 }
 
-// search the key in Btree, return the node that terminated, 
-// maybe not find the key-corresponding one, but the related one.
+/// search the key in Btree, return the node that terminated, 
+/// maybe not find the key-corresponding one, but the related one.
+/// save the search information
 BTREE_TEMPLATE_DECLARATION
 shared_ptr<typename BTREE_INSTANCE::node_instance_type>
-BTREE_INSTANCE::check_out(Key key)
+BTREE_INSTANCE::check_out(const Key key)
 {
-    auto current_node = this->root_;
+    shared_ptr<node_instance_type> current_node = this->root_;
 
-    if (current_node->type) {
+    if (current_node->is_leaf()) {
         return current_node;
     } else {
-        current_node = check_out_recur_helper(key, current_node);
-        return current_node;
+        return check_out_recur_helper(key, current_node);
     }
-    
 }
 
 BTREE_TEMPLATE_DECLARATION
 shared_ptr<typename BTREE_INSTANCE::node_instance_type> 
-BTREE_INSTANCE::check_out_recur_helper(Key key, node_instance_type node)
+BTREE_INSTANCE::check_out_recur_helper(Key const key, shared_ptr<node_instance_type> node)
 {
     // could think how to remove the key parameter after the first call
-    auto current_node = node;
-    if (current_node->type == leaf) {
+    shared_ptr<node_instance_type> current_node = node;
+    if (current_node->is_leaf()) {
         return current_node;
     }
-    // run below step must be intermediate_node
-    // compare key with ele.childValueLowBound
-    // chose the way
+
     for (auto && ele : *current_node) {
         if (compare_function_(key, ele.childValueLowBound)) {
-            current_node = check_out_recur_helper(key, ele.child);
-            break;
+            return check_out_recur_helper(key, ele.child);
         }
     }
     return current_node;
@@ -118,11 +89,11 @@ BTREE_INSTANCE::check_out_recur_helper(Key key, node_instance_type node)
 // todo: maybe useless
 BTREE_TEMPLATE_DECLARATION
 vector<Value>&
-BTREE_INSTANCE::traverseLeaf(Predicate predicate) 
+BTREE_INSTANCE::traverse_leaf(predicate predicate) 
 {
 	vector<Value> result;
-	auto& first_node = this->getSmallestLeafBack();
-	for (auto& current_node = this->getSmallestLeafBack(); 
+	auto& first_node = this->get_smallest_leaf_back();
+	for (auto& current_node = this->get_smallest_leaf_back(); 
 		current_node->nextBrother != nullptr; 
 		current_node = current_node->nextBrother) {
 		if (predicate(current_node)) {
@@ -133,7 +104,7 @@ BTREE_INSTANCE::traverseLeaf(Predicate predicate)
 
 BTREE_TEMPLATE_DECLARATION
 shared_ptr<NodeType>
-BTREE_INSTANCE::getSmallestLeafBack() 
+BTREE_INSTANCE::get_smallest_leaf_back() 
 {
 
 }

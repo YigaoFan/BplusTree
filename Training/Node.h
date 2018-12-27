@@ -43,7 +43,6 @@ private:
 public:
     // Node and Ele sharing the type
     // start from 1, ensure not int initialization 0 situation
-    const NodeType type;
 	typedef std::function<bool(const Ele&)> PredicateFunc;
     Node(const NodeType);
 	// copy from stack's Ele
@@ -68,18 +67,23 @@ private:
     decltype(eles.size()) elesCount = 0;
 	// todo: future use should change (by template?)
 	decltype(eles.size()) children_count_bound_ = 3;
+    const NodeType type_;
 
 	// tool function
 	// todo: make the method below like this createNewRoot(node1, node2...);
 	static int createNewRoot(const shared_ptr<Node>&, const shared_ptr<Ele>&);
 	static shared_ptr<Ele> constructToMakeItFitTheFatherInsert(shared_ptr<Ele>);
 
-// for constructing iterator
+    //new refactor:
 public:
+    // for constructing iterator
     Ele operator*(Ele*);
     Ele* operator++(Ele*);
     Ele* begin();
     Ele* end();
+
+    // for check
+    bool is_leaf() const { return type_ == leaf; }
 };
 
 #endif

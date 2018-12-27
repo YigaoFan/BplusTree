@@ -15,24 +15,27 @@ namespace btree {
     class Btree {
     private:
         // type
-        typedef Node<Key, Value, BtreeOrder> node_instance_type;
-        typedef std::function<bool(std::shared_ptr<const node_instance_type>)> Predicate;
+        using node_instance_type = Node<Key, Value, BtreeOrder>;
+        using  compare_function_type = std::function<bool(Key const, Key const)>;
+
+        // todo: maybe useless
+        typedef std::function<bool(std::shared_ptr<const node_instance_type>)> predicate;
         
         // field
         std::shared_ptr<node_instance_type> root_ = std::make_shared<node_instance_type>(leaf);
-        std::function<bool(Key, Key)> compare_function_;
+        compare_function_type compare_function_;
         
         // method
         void adjust();
         std::shared_ptr<node_instance_type> check_out(Key);
-        std::shared_ptr<node_instance_type> check_out_recur_helper(Key, node_instance_type);
+        std::shared_ptr<node_instance_type> check_out_recur_helper(Key, std::shared_ptr<node_instance_type>);
         // provide some all-leaf-do operation?
-        std::vector<Value>& traverseLeaf(Predicate);
-        std::shared_ptr<NodeType> getSmallestLeafBack();
-        std::shared_ptr<node_instance_type> getFitLeafBack(typename node_instance_type::PredicateFunc);
+        std::vector<Value>& traverse_leaf(predicate);
+        std::shared_ptr<NodeType> get_smallest_leaf_back();
+        std::shared_ptr<node_instance_type> getFitLeafBack(node_instance_type::PredicateFunc);
 
     public:
-        Btree(std::initializer_list<std::pair<Key, Value>>, std::function<bool(Key, Key)> compare);
+        Btree(const std::initializer_list<std::pair<Key, Value>>, compare_function_type compare);
         ~Btree();
         Value search(Key);
         int add(std::pair<Key, Value>);

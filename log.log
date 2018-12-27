@@ -1,7 +1,41 @@
-1. std::function<bool(Key, Key)> compare 不能随便用应该，在function 里面估计有一个同名的东西；
+1. std::function<bool(Key, Key)> compare 不能随便用应该，在 function 里面估计有一个同名的东西；
 
 2. typename 到底什么时候需要用？ typename BTREE_INSTANCE:: node_type
 
 3. Btree.h 文件里的头文件包含的合理吗？会不会导致包含这个文件的文件产生一些不好的影响？
 
 4. 为什么在类定义内部声明函数的时候，貌似不用加一些类型名，像在类的实现文件里一样。
+
+ 可能当时说的是这个：
+ > BTREE_TEMPLATE_DECLARATION
+shared_ptr<typename BTREE_INSTANCE::node_instance_type> // need typename
+BTREE_INSTANCE::check_out(const Key key)
+{
+    shared_ptr<node_instance_type> current_node = this->root_; // OK
+    
+5. 是否减少 auto 的使用
+
+6. BTREE_INSTANCE::node_instance_type 为什么在头文件的实现文件里还需要用 typename 
+
+7. 使用堆上的内存，至少是为了所有的变量能和用户层的变量能是一样的生存周期。程序使用各个函数分割不同的任务，但由于栈上的内存对外部的变量来说具有临时性，即可以说是不存在的。那函数如何创建函数外的变量，以使这种内存得以共享、持存。————使用堆上的内存。
+   但对于最外层的用户来说，使用堆上的内存是没有必要的，因为本身自己的使用一般就是在这个函数内部，比如 main 函数内部
+
+8. node_instance_type 这个 type 声明成 private ，Btree.h 实现文件依然可以使用。莫非编译器通过某种识别，识别出这是个某个实现函数的定义？然后给予他相应的不同待遇。因为编译器本身大概是不能通过 Btree.cpp 这个文件名来给予他不同待遇。
+
+9. std::shared_ptr<node_instance_type> root_ = std::make_shared<node_instance_type>(leaf); 这里这么使用，是为了一致性，因为 root_ 本身也会指向一些 node ，如果这里直接使用 node_instance_type root_ ，那这里就与后面的结点不同了。
+
+10. const list<int> a{1, 2, 3, 4,};
+    
+    
+    for (int& e : a) {
+        e = 1;
+    }
+    // or:
+    list<const int> a{1, 2, 3, 4,};
+    
+    
+    for (int& e : a) {
+        e = 1;
+    }
+
+    这两种都会报错。我猜 initializer_list 也是一样的。所以，关于这种参数的 const 化不用加太多 const 。当然像 const initializer_list<pair<const Key, const Value>> pair_list 这种，我不是很确定，因为里面又包了一个模板。
