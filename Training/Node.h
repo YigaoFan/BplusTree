@@ -48,16 +48,16 @@ public:
 	// copy from stack's Ele
     Node(const NodeType, const Ele);
     ~Node();
-	int insert(shared_ptr<Ele>);
-	shared_ptr<Node> nextBrother = nullptr;
+	int insert(std::shared_ptr<Ele>);
+	std::shared_ptr<Node> next_brother = nullptr;
 private:
-    vector<shared_ptr<Ele>>& getVectorOfElesRef();
-    shared_ptr<Node> giveMeTheWay(PredicateFunc func);
-	// hasChild will ensure the node isn't leaf and elesCount isn't 0
-	bool hasChild() { return type != leaf && elesCount > 0; }
-	bool isFull() { return children_count_bound_ >= eles.size(); }
-	void doInsert(shared_ptr<Ele>);
-	void exchangeTheBiggestEleOut(shared_ptr<Ele>);
+    std::vector<std::shared_ptr<Ele>>& get_vector_of_elements_ref();
+    std::shared_ptr<Node> giveMeTheWay(PredicateFunc func);
+	// has_child will ensure the node isn't leaf and elesCount isn't 0
+	bool has_child() { return type != leaf && elesCount > 0; }
+	bool is_full() { return children_count_bound_ >= eles.size(); }
+	void do_insert(shared_ptr<Ele>);
+	void exchange_the_biggest_ele_out(shared_ptr<Ele>);
 
 private:
 	// todo: use nodeType should test not produce error
@@ -81,6 +81,8 @@ public:
     Ele* operator++(Ele*);
     Ele* begin();
     Ele* end();
+
+    std::shared_ptr<Ele> operator[](Key);
 
     // for check
     bool is_leaf() const { return type_ == leaf; }

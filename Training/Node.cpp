@@ -1,5 +1,8 @@
 #include "Node.h"
 #include <algorithm>
+
+using std::shared_ptr;
+using std::make_shared;
 #define NODE_TEMPLATE_DECLARATION template <typename Key, typename Value, unsigned BtreeOrder>
 #define NODE_INSTANCE Node<Key, Value, BtreeOrder>
 
@@ -65,7 +68,7 @@ int
 Node::insert(shared_ptr<Ele> e)
 {
 	if (!this->isFull()) {
-		// todo: doInsert need to attention to this Node is leaf or not
+		// todo: do_insert need to attention to this Node is leaf or not
 		this->doInsert(e);
 		return 0;
 	} else {
@@ -138,4 +141,17 @@ typename NODE_INSTANCE::Ele*
 NODE_INSTANCE::end()
 {
     return &eles[BtreeOrder];
+}
+
+NODE_TEMPLATE_DECLARATION
+shared_ptr<typename NODE_INSTANCE::Ele>
+NODE_INSTANCE::operator[](Key k)
+{
+    for (Ele& ele : this) {
+        if (ele.key == k) {
+            // todo: the code below is right? 
+            return make_shared(ele);
+        }
+    }
+    return nullptr;
 }

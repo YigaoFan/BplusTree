@@ -18,7 +18,17 @@ namespace btree {
         using node_instance_type = Node<Key, Value, BtreeOrder>;
         using compare_function_type = std::function<bool(Key const, Key const)>;
         using predicate = std::function<bool(std::shared_ptr<node_instance_type>)>;
-        
+
+    public:
+        Btree(const std::initializer_list<std::pair<Key, Value>>, compare_function_type compare);
+        ~Btree();
+        Value search(const Key);
+        int add(const std::pair<Key, Value>);
+        int modify(const std::pair<Key, Value>);
+        std::vector<Key> explore();
+        void remove(const Key);
+
+    private:
         // field
         std::shared_ptr<node_instance_type> root_ = std::make_shared<node_instance_type>(leaf);
         compare_function_type compare_function_;
@@ -31,15 +41,6 @@ namespace btree {
         std::vector<Value> traverse_leaf(predicate);
         //std::shared_ptr<NodeType> get_smallest_leaf_back();
         //std::shared_ptr<node_instance_type> getFitLeafBack(node_instance_type::PredicateFunc);
-
-    public:
-        Btree(const std::initializer_list<std::pair<Key, Value>>, compare_function_type compare);
-        ~Btree();
-        Value search(const Key);
-        int add(const std::pair<Key, Value>);
-        int modify(const std::pair<Key, Value>);
-        std::vector<Key> explore();
-        void remove(const Key);
     };
 }
 #endif

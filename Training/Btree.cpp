@@ -51,7 +51,7 @@ int
 BTREE_INSTANCE::add(const pair<Key, Value> e)
 {
     shared_ptr<node_instance_type> node = this->check_out(e.first);
-    // todo: node->add shoudl return int
+    // todo: node->add should return int
     return node->add(e);
     // if node is a leaf, then add into leaf
     // or it's a intermediate node, basically you can
@@ -145,8 +145,8 @@ BTREE_INSTANCE::traverse_leaf(predicate predicate)
 	vector<Value> result;
 	auto& first_node = this->get_smallest_leaf_back();
 	for (auto& current_node = this->get_smallest_leaf_back(); 
-		current_node->nextBrother != nullptr; 
-		current_node = current_node->nextBrother) {
+		current_node->next_brother != nullptr; 
+		current_node = current_node->next_brother) {
 		if (predicate(current_node)) {
 			result.push_back(current_node);
 		}
@@ -168,7 +168,7 @@ BTREE_INSTANCE::traverse_leaf(predicate predicate)
 //	// for-each Node to chose which should be continued
 //	shared_ptr<NodeType> currentNode;
 //	for (currentNode = root;
-//		currentNode->hasChild(); // here ensure not explore the leaf
+//		currentNode->has_child(); // here ensure not explore the leaf
 //		currentNode = currentNode->giveMeTheWay(func));
 //	// will get the leaf node
 //	return currentNode;
