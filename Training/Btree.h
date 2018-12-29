@@ -1,7 +1,6 @@
 #pragma once
 #ifndef BTREE_H
 #define BTREE_H
-#include <iostream> // for cin, cout
 #include <vector> // for vector
 #include <functional> // for lambda
 #include <initializer_list> // for initializer_list
@@ -10,7 +9,7 @@
 #include "Node.h"
 
 namespace btree {
-    // todo: ban using <
+    // todo: zhihu bairubing 's answer can make compare function a template args
     template<typename Key, typename Value, unsigned BtreeOrder>
     class Btree {
     private:
@@ -30,16 +29,16 @@ namespace btree {
 
     private:
         // field
-        std::shared_ptr<node_instance_type> root_ = std::make_shared<node_instance_type>(leaf);
+        std::shared_ptr<node_instance_type> root_ = std::make_shared<node_instance_type>(node_instance_type::leaf);
         compare_function_type compare_function_;
         
         // method
         //void adjust();
         std::shared_ptr<node_instance_type> check_out(const Key);
         std::shared_ptr<node_instance_type> check_out_recur_helper(const Key, std::shared_ptr<node_instance_type>);
-        // provide some all-leaf-do operation?
-        std::vector<Value> traverse_leaf(predicate);
-        //std::shared_ptr<NodeType> get_smallest_leaf_back();
+        // provide some all-leaf-do operation
+        std::vector<node_instance_type> traverse_leaf(predicate);
+        std::shared_ptr<node_instance_type> get_smallest_leaf_back();
         //std::shared_ptr<node_instance_type> getFitLeafBack(node_instance_type::PredicateFunc);
     };
 }

@@ -12,10 +12,10 @@ shared_ptr<typename BTREE_INSTANCE::node_instance_type> // need typename
 BTREE_INSTANCE::check_out(const Key key)
 {
     shared_ptr<node_instance_type> current_node = this->root_; // OK
-    
+
 5. 是否减少 auto 的使用
 
-6. BTREE_INSTANCE::node_instance_type 为什么在头文件的实现文件里还需要用 typename 
+6. BTREE_INSTANCE::node_instance_type 为什么在头文件的实现文件里还需要用 typename
 
 7. 使用堆上的内存，至少是为了所有的变量能和用户层的变量能是一样的生存周期。程序使用各个函数分割不同的任务，但由于栈上的内存对外部的变量来说具有临时性，即可以说是不存在的。那函数如何创建函数外的变量，以使这种内存得以共享、持存。————使用堆上的内存。
    但对于最外层的用户来说，使用堆上的内存是没有必要的，因为本身自己的使用一般就是在这个函数内部，比如 main 函数内部
@@ -25,17 +25,33 @@ BTREE_INSTANCE::check_out(const Key key)
 9. std::shared_ptr<node_instance_type> root_ = std::make_shared<node_instance_type>(leaf); 这里这么使用，是为了一致性，因为 root_ 本身也会指向一些 node ，如果这里直接使用 node_instance_type root_ ，那这里就与后面的结点不同了。
 
 10. const list<int> a{1, 2, 3, 4,};
-    
-    
+
+
     for (int& e : a) {
         e = 1;
     }
     // or:
     list<const int> a{1, 2, 3, 4,};
-    
-    
+
+
     for (int& e : a) {
         e = 1;
     }
 
     这两种都会报错。我猜 initializer_list 也是一样的。所以，关于这种参数的 const 化不用加太多 const 。当然像 const initializer_list<pair<const Key, const Value>> pair_list 这种，我不是很确定，因为里面又包了一个模板。
+
+11. private: using a = int; 这个 type 是否受 private 而有范围限制？
+
+12. 头文件里的标准库类型尽量不要用缩写，这样可以帮助查看。
+
+13. 为了把 compare 交给用户自己实现，所以 Btree 自己不使用 < 或 >
+
+14. (*current_node)[0] 对不对？或者 current_node[0] 应该不行吧。
+
+15. for (auto && ele : *current_node) { maybe not correct
+
+16. 0 is ok, other is bad.
+
+17. 类定义遵循先公共，后私有的规则。
+
+18. C++里类定义的声明顺序有关吗？

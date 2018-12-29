@@ -3,19 +3,21 @@
 
 using std::shared_ptr;
 using std::make_shared;
+using std::vector;
+using std::pair;
 #define NODE_TEMPLATE_DECLARATION template <typename Key, typename Value, unsigned BtreeOrder>
 #define NODE_INSTANCE Node<Key, Value, BtreeOrder>
 
 NODE_TEMPLATE_DECLARATION
-NODE_INSTANCE::Node(const NodeType type) :type_(type)
+NODE_INSTANCE::Node(const node_type type) :type_(type)
 {
 
 }
 
 NODE_TEMPLATE_DECLARATION
-NODE_INSTANCE::Node(const NodeType type, const Ele e) : Node(type)
+NODE_INSTANCE::Node(const node_type type, const Ele e) : Node(type)
 {
-    this->eles.push_back(e);
+    this->elements_.push_back(e);
 }
 
 NODE_TEMPLATE_DECLARATION
@@ -30,18 +32,18 @@ Node::getVectorOfElesRef()
 }
 
 // caller should ensure the node is not leaf node
-shared_ptr<Node>
-Node::giveMeTheWay(PredicateFunc func)
-{
-	auto eles = getVectorOfElesRef();
-	// once encounter a node meeting the demand, return
-	for (auto& e : eles) {
-		if (func(e)) {
-			return e.child;
-		}
-	}
-	return nullptr;
-}
+//shared_ptr<Node>
+//Node::giveMeTheWay(PredicateFunc func)
+//{
+//	auto eles = getVectorOfElesRef();
+//	// once encounter a node meeting the demand, return
+//	for (auto& e : eles) {
+//		if (func(e)) {
+//			return e.child;
+//		}
+//	}
+//	return nullptr;
+//}
 
 // the below function's scope is leaf
 void
@@ -108,7 +110,7 @@ Node::doInsert(shared_ptr<Ele> e)
 int 
 Node::createNewRoot(const shared_ptr<Node>& oldRoot, const shared_ptr<Ele>& risingEle)
 {
-	// todo: maybe the argument below is wrong, the keyType, not the NodeType
+	// todo: maybe the argument below is wrong, the keyType, not the node_type
 	shared_ptr<Ele>&& ele = make_shared<Ele>(/*intermediate_node*/, oldRoot);
 	shared_ptr<Node>&& node = make_shared<Node>(/*intermediate_node*/, risingEle);
 
@@ -133,14 +135,15 @@ NODE_TEMPLATE_DECLARATION
 typename NODE_INSTANCE::Ele*
 NODE_INSTANCE::begin()
 {
-    return &eles[0];
+    return &elements_[0];
 }
 
 NODE_TEMPLATE_DECLARATION
+// todo: why use Ele* 
 typename NODE_INSTANCE::Ele*
 NODE_INSTANCE::end()
 {
-    return &eles[BtreeOrder];
+    return &elements_[elements_count_];
 }
 
 NODE_TEMPLATE_DECLARATION
@@ -154,4 +157,37 @@ NODE_INSTANCE::operator[](Key k)
         }
     }
     return nullptr;
+}
+
+NODE_TEMPLATE_DECLARATION
+int
+NODE_INSTANCE::add(pair<Key, Value> pair)
+{
+    // Because only one leaf node is generated in the Btree, 
+    // all the nodes are actually generated here.
+    if (this->is_leaf()) {
+        if (this->is_full()) {
+            // go to another way
+        } else {
+            // the auto&& is right, or not
+            for (Ele & e : *this) {
+                // the code below maybe not right
+                if (pair.first > e.key) {
+                    Ele temp = e;
+                    e.key = pair.first;
+                    e.data = pair.second;
+                    // error, then do what?
+                    pair.first = temp.key;
+                    pair.second = temp.data;
+                }
+            }
+            this->end()->key = pair.first;
+            this->end()->data = pair.second;
+            ++(this->elements_count_);
+        }
+    } else {
+
+    }
+
+    return 0;
 }

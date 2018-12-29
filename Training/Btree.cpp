@@ -1,4 +1,4 @@
-// todo: should in implemention file includes header file? 
+// todo: should in implementation file includes header file? 
 #include <algorithm>
 #include "Btree.h"
 using namespace btree;
@@ -38,8 +38,8 @@ BTREE_INSTANCE::search(const Key key)
     if (node->is_leaf()) {
         // todo: should implement []
         // should ensure copy, not reference
-        // but node[key] is reference
-        return node[key];
+        // but (*node)[key] is reference
+        return (*node)[key];
     } else {
         // todo: return nullptr or Value();
         return nullptr;
@@ -63,7 +63,7 @@ int
 BTREE_INSTANCE::modify(const pair<Key, Value> pair)
 {
     shared_ptr<node_instance_type> node = this->check_out(key);
-    node[pair.first] = pair.second;
+    (*node)[pair.first] = pair.second;
     return 1;
 }
 
@@ -73,11 +73,12 @@ BTREE_INSTANCE::explore()
 {
     vector<Key> key_collection;
 
-    this->traverse_leaf([key_collection] (node_instance_type node)
+    this->traverse_leaf([key_collection](shared_ptr<node_instance_type> node)
     {
-        for (auto && ele : node) {
+        for (auto && ele : *node) {
             key_collection.push_back(ele.key);
         }
+        return false;
     });
 
     return key_collection;
@@ -109,12 +110,10 @@ BTREE_TEMPLATE_DECLARATION
 shared_ptr<typename BTREE_INSTANCE::node_instance_type>
 BTREE_INSTANCE::check_out(const Key key)
 {
-    shared_ptr<node_instance_type> current_node = this->root_;
-
-    if (current_node->is_leaf()) {
-        return current_node;
+    if (this->root_->is_leaf()) {
+        return this->root_;
     } else {
-        return check_out_recur_helper(key, current_node);
+        return check_out_recur_helper(key, this->root_);
     }
 }
 
@@ -126,50 +125,44 @@ BTREE_INSTANCE::check_out_recur_helper(const Key key, shared_ptr<node_instance_t
     shared_ptr<node_instance_type> current_node = node;
     if (current_node->is_leaf()) {
         return current_node;
-    }
-
-    for (auto && ele : *current_node) {
-        if (compare_function_(key, ele.childValueLowBound)) {
-            return check_out_recur_helper(key, ele.child);
+    } else {
+        // traverse the Ele in node
+        for (auto && ele : *current_node) {
+            if (compare_function_(key, ele.child_value_low_bound)) {
+                return check_out_recur_helper(key, ele.child);
+            }
         }
+        return current_node;
     }
-    return current_node;
 }
 
-
-// todo: occur some problem, where return value
+/// operate on the true Node, not the copy
 BTREE_TEMPLATE_DECLARATION
-vector<Value>
+vector<typename BTREE_INSTANCE::node_instance_type>
 BTREE_INSTANCE::traverse_leaf(predicate predicate) 
 {
-	vector<Value> result;
-	auto& first_node = this->get_smallest_leaf_back();
-	for (auto& current_node = this->get_smallest_leaf_back(); 
+	vector<node_instance_type> result;
+	for (shared_ptr<node_instance_type> current_node = this->get_smallest_leaf_back(); 
 		current_node->next_brother != nullptr; 
 		current_node = current_node->next_brother) {
+        // todo: how to predicate a Node? Or should use Ele
 		if (predicate(current_node)) {
 			result.push_back(current_node);
 		}
 	}
+
+    return result;
 }
 
-//BTREE_TEMPLATE_DECLARATION
-//shared_ptr<NodeType>
-//BTREE_INSTANCE::get_smallest_leaf_back() 
-//{
-//
-//}
+BTREE_TEMPLATE_DECLARATION
+shared_ptr<typename BTREE_INSTANCE::node_instance_type>
+BTREE_INSTANCE::get_smallest_leaf_back()
+{
+    shared_ptr<node_instance_type> current_node = this->root_;
+    for (;
+        (!current_node->is_leaf()) && (*current_node)[0].child != nullptr;
+        current_node = (*current_node)[0].child);
 
-// helper for add method
-//BTREE_TEMPLATE_DECLARATION
-//shared_ptr<NodeType>
-//BTREE_INSTANCE::getFitLeafBack(PredicateFunc func)
-//{
-//	// for-each Node to chose which should be continued
-//	shared_ptr<NodeType> currentNode;
-//	for (currentNode = root;
-//		currentNode->has_child(); // here ensure not explore the leaf
-//		currentNode = currentNode->giveMeTheWay(func));
-//	// will get the leaf node
-//	return currentNode;
-//}
+    return current_node;
+}
+
