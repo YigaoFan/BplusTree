@@ -191,3 +191,10 @@ NODE_INSTANCE::add(pair<Key, Value> pair)
 
     return 0;
 }
+
+//todo:
+//Node related :
+//1, node->add
+//2, node->is_leaf()
+//3, operator[]
+//4, for - range supported
