@@ -14,6 +14,7 @@ namespace btree {
     class Btree {
     private:
         // friend can access the compare function
+        // todo: wrong, Node how to access this member?
         friend Node<Key, Value, BtreeOrder>;
         // type
         using node_instance_type = Node<Key, Value, BtreeOrder>;

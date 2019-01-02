@@ -158,14 +158,16 @@ NODE_INSTANCE::add(const pair<Key, Value>& pair)
     // Because only one leaf node is generated in the Btree, 
     // all the nodes are actually generated here.
     if (this->is_leaf()) {
+        // add Ele, there is only one situation--
         if (this->is_full()) {
             return this->leaf_add(pair);
         } else {
             // the auto&& is right, or not
             for (NodeIter<ele_instance_type> e : *this) {
                 // the code below maybe not right
+                // todo: deny using ">" or "<"
                 if (pair.first > e.key) {
-                    Ele temp = e;
+                    ele_instance_type temp = e;
                     e.key = pair.first;
                     e.data = pair.second;
                     // error, then do what?
@@ -176,14 +178,10 @@ NODE_INSTANCE::add(const pair<Key, Value>& pair)
             this->end()->key = pair.first;
             this->end()->data = pair.second;
             ++(this->elements_count_);
-
         }
     } else {
-
-
+        return this->intermediate_node_add(pair);
     }
-
-    return NOT_OK;
 }
 
 /// for the upper level Btree::remove, so
@@ -194,7 +192,7 @@ NODE_INSTANCE::remove(const Key& key)
     if (this->is_leaf()) {
         if ((*this)[key] != nullptr) {
             // do some memory copy
-            --this->elements_count_;
+            --(this->elements_count_);
             return;
         } else {
             // key isn't exist in this Node
@@ -215,3 +213,11 @@ NODE_INSTANCE::leaf_add(const pair<Key, Value>& pair)
 {
     
 }
+
+NODE_TEMPLATE_DECLARATION
+RESULT_FLAG
+NODE_INSTANCE::intermediate_node_add(const pair<Key, Value>& pair)
+{
+
+}
+

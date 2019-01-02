@@ -94,6 +94,7 @@ namespace btree {
 
         // helper
         RESULT_FLAG leaf_add(const std::pair<Key, Value>&);
+        RESULT_FLAG intermediate_node_add(const std::pair<Key, Value>&);
 	};
 }
 #endif
