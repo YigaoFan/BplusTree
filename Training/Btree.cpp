@@ -9,15 +9,15 @@ using std::sort;
 using std::shared_ptr;
 using std::vector;
 // seem like the template-type-para is not useful in this file
-#define BTREE_TEMPLATE_DECLARATION template <typename Key, typename Value, unsigned BtreeOrder>
-#define BTREE_INSTANCE Btree<Key, Value, BtreeOrder>
+#define BTREE_TEMPLATE_DECLARATION template <typename Key, typename Value, typename Compare, unsigned BtreeOrder>
+#define BTREE_INSTANCE Btree<Key, Value, Compare, BtreeOrder>
 
 // public method part:
 
 BTREE_TEMPLATE_DECLARATION
-BTREE_INSTANCE::Btree(const initializer_list<pair<Key, Value>> pair_list, 
-    compare_function_type compare)
-: compare_function_(compare)
+BTREE_INSTANCE::Btree(Compare compare_function,
+        const initializer_list<pair<Key, Value>> pair_list)
+: compare_function_(compare_function)
 {
 	for (auto& pair : pair_list) {
         this->add(pair);
@@ -62,7 +62,7 @@ BTREE_TEMPLATE_DECLARATION
 int
 BTREE_INSTANCE::modify(const pair<Key, Value> pair)
 {
-    shared_ptr<node_instance_type> node = this->check_out(key);
+    shared_ptr<node_instance_type> node = this->check_out(pair.first);
     (*node)[pair.first] = pair.second;
     return 1;
 }

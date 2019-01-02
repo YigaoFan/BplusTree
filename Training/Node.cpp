@@ -1,6 +1,7 @@
 #include "Node.h"
 #include <algorithm>
 
+using namespace btree;
 using std::shared_ptr;
 using std::make_shared;
 using std::vector;
@@ -9,13 +10,13 @@ using std::pair;
 #define NODE_INSTANCE Node<Key, Value, BtreeOrder>
 
 NODE_TEMPLATE_DECLARATION
-NODE_INSTANCE::Node(const node_type type) :type_(type)
+NODE_INSTANCE::Node(const node_category& type) :type_(type)
 {
 
 }
 
 NODE_TEMPLATE_DECLARATION
-NODE_INSTANCE::Node(const node_type type, const Ele e) : Node(type)
+NODE_INSTANCE::Node(const node_category& type, const ele_instance_type& e) : Node(type)
 {
     this->elements_.push_back(e);
 }
@@ -25,11 +26,11 @@ NODE_INSTANCE::~Node()
 {
 }
 
-vector<shared_ptr<Node::Ele>>&
-Node::getVectorOfElesRef()
-{
-	return eles;
-}
+//vector<shared_ptr<Node::Ele>>&
+//Node::getVectorOfElesRef()
+//{
+//	return eles;
+//}
 
 // caller should ensure the node is not leaf node
 //shared_ptr<Node>
@@ -46,6 +47,7 @@ Node::getVectorOfElesRef()
 //}
 
 // the below function's scope is leaf
+// todo: function below could be used
 void
 Node::exchangeTheBiggestEleOut(shared_ptr<Ele> e)
 {
@@ -57,7 +59,7 @@ Node::exchangeTheBiggestEleOut(shared_ptr<Ele> e)
 	eleVectorRef.pop_back();
 }
 
-shared_ptr<Node::Ele> 
+shared_ptr<Node::Ele>
 Node::constructToMakeItFitTheFatherInsert(shared_ptr<Ele> e)
 {
 	// construct Ele Pointing To Node Packaging This Ele
@@ -110,7 +112,7 @@ Node::doInsert(shared_ptr<Ele> e)
 int 
 Node::createNewRoot(const shared_ptr<Node>& oldRoot, const shared_ptr<Ele>& risingEle)
 {
-	// todo: maybe the argument below is wrong, the keyType, not the node_type
+	// todo: maybe the argument below is wrong, the keyType, not the node_category
 	shared_ptr<Ele>&& ele = make_shared<Ele>(/*intermediate_node*/, oldRoot);
 	shared_ptr<Node>&& node = make_shared<Node>(/*intermediate_node*/, risingEle);
 
@@ -121,6 +123,7 @@ NODE_TEMPLATE_DECLARATION
 typename NODE_INSTANCE::Ele
 NODE_INSTANCE::operator*(Ele* ele_ptr)
 {
+    // what use of this function
     return *ele_ptr;
 }
 
@@ -132,18 +135,17 @@ NODE_INSTANCE::operator++(Ele* ele_ptr)
 }
 
 NODE_TEMPLATE_DECLARATION
-typename NODE_INSTANCE::Ele*
+NodeIter<typename NODE_INSTANCE::ele_instance_type>
 NODE_INSTANCE::begin()
 {
-    return &elements_[0];
+    return NodeIter<ele_instance_type>(&elements_[0]);
 }
 
 NODE_TEMPLATE_DECLARATION
-// todo: why use Ele* 
-typename NODE_INSTANCE::Ele*
+NodeIter<typename NODE_INSTANCE::ele_instance_type>
 NODE_INSTANCE::end()
 {
-    return &elements_[elements_count_];
+    return NodeIter<ele_instance_type>(&elements_[BtreeOrder]);
 }
 
 NODE_TEMPLATE_DECLARATION

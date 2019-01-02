@@ -9,17 +9,20 @@
 #include "Node.h"
 
 namespace btree {
-    // todo: zhihu bairubing 's answer can make compare function a template args
-    template<typename Key, typename Value, unsigned BtreeOrder>
+    // todo: should provide the default Compare type. Learn the less<arg>.
+    template<typename Key, typename Value, typename Compare, unsigned BtreeOrder>
     class Btree {
     private:
+        // friend can access the compare function
+        friend Node<Key, Value, BtreeOrder>;
         // type
         using node_instance_type = Node<Key, Value, BtreeOrder>;
-        using compare_function_type = std::function<bool(Key const, Key const)>;
+        // should I open the compare function type?
+        // using compare_function_type = std::function<bool(const Key&, const Key&)>;
         using predicate = std::function<bool(std::shared_ptr<node_instance_type>)>;
 
     public:
-        Btree(const std::initializer_list<std::pair<Key, Value>>, compare_function_type compare);
+        Btree(Compare compare_func, const std::initializer_list<std::pair<Key, Value>>);
         ~Btree();
         Value search(const Key);
         int add(const std::pair<Key, Value>);
@@ -30,7 +33,7 @@ namespace btree {
     private:
         // field
         std::shared_ptr<node_instance_type> root_ = std::make_shared<node_instance_type>(node_instance_type::leaf);
-        compare_function_type compare_function_;
+        Compare compare_function_;
         
         // method
         //void adjust();
