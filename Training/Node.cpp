@@ -1,5 +1,6 @@
 #include "Node.h"
-#include <algorithm>
+// todo: sort used?
+#include <algorithm> 
 
 using namespace btree;
 using std::shared_ptr;
@@ -9,28 +10,6 @@ using std::pair;
 #define NODE_TEMPLATE_DECLARATION template <typename Key, typename Value, unsigned BtreeOrder>
 #define NODE_INSTANCE Node<Key, Value, BtreeOrder>
 
-NODE_TEMPLATE_DECLARATION
-NODE_INSTANCE::Node(const node_category& type) :type_(type)
-{
-
-}
-
-NODE_TEMPLATE_DECLARATION
-NODE_INSTANCE::Node(const node_category& type, const ele_instance_type& e) : Node(type)
-{
-    this->elements_.push_back(e);
-}
-
-NODE_TEMPLATE_DECLARATION
-NODE_INSTANCE::~Node()
-{
-}
-
-//vector<shared_ptr<Node::Ele>>&
-//Node::getVectorOfElesRef()
-//{
-//	return eles;
-//}
 
 // caller should ensure the node is not leaf node
 //shared_ptr<Node>
@@ -68,7 +47,7 @@ Node::constructToMakeItFitTheFatherInsert(shared_ptr<Ele> e)
 }
 
 // external caller should ensure the insert node is leaf
-int
+RESULT_FLAG
 Node::insert(shared_ptr<Ele> e)
 {
 	if (!this->isFull()) {
@@ -109,7 +88,7 @@ Node::doInsert(shared_ptr<Ele> e)
 
 // todo: how to ensure only the root 
 // todo: have and can trigger this method
-int 
+RESULT_FLAG
 Node::createNewRoot(const shared_ptr<Node>& oldRoot, const shared_ptr<Ele>& risingEle)
 {
 	// todo: maybe the argument below is wrong, the keyType, not the node_category
@@ -118,22 +97,26 @@ Node::createNewRoot(const shared_ptr<Node>& oldRoot, const shared_ptr<Ele>& risi
 
 }
 
+// public method part:
+
+NODE_TEMPLATE_DECLARATION
+NODE_INSTANCE::Node(const node_category& type) :type_(type)
+{
+
+}
+
+NODE_TEMPLATE_DECLARATION
+NODE_INSTANCE::Node(const node_category& type, const ele_instance_type& e) : Node(type)
+{
+    this->elements_.push_back(e);
+}
+
+NODE_TEMPLATE_DECLARATION
+NODE_INSTANCE::~Node()
+{
+}
+
 //for constructing iterator
-NODE_TEMPLATE_DECLARATION
-typename NODE_INSTANCE::Ele
-NODE_INSTANCE::operator*(Ele* ele_ptr)
-{
-    // what use of this function
-    return *ele_ptr;
-}
-
-NODE_TEMPLATE_DECLARATION
-typename NODE_INSTANCE::Ele* 
-NODE_INSTANCE::operator++(Ele* ele_ptr)
-{
-    return ++ele_ptr;
-}
-
 NODE_TEMPLATE_DECLARATION
 NodeIter<typename NODE_INSTANCE::ele_instance_type>
 NODE_INSTANCE::begin()
@@ -145,34 +128,41 @@ NODE_TEMPLATE_DECLARATION
 NodeIter<typename NODE_INSTANCE::ele_instance_type>
 NODE_INSTANCE::end()
 {
-    return NodeIter<ele_instance_type>(&elements_[BtreeOrder]);
+    return NodeIter<ele_instance_type>(&elements_[elements_count_]);
 }
 
+/// may return nullptr when not found
 NODE_TEMPLATE_DECLARATION
-shared_ptr<typename NODE_INSTANCE::Ele>
+// I don't know exactly whether I could use ele_instance_type like this.
+shared_ptr<typename NODE_INSTANCE::ele_instance_type>
 NODE_INSTANCE::operator[](Key k)
 {
-    for (Ele& ele : this) {
-        if (ele.key == k) {
-            // todo: the code below is right? 
-            return make_shared(ele);
+    for (NodeIter<ele_instance_type> ele : *this) {
+        if (ele->key == k) {
+            // or could use return *ele directly? shared_ptr supported?
+            return make_shared<ele_instance_type>(*ele);
         }
     }
     return nullptr;
 }
 
+// if node is a leaf, then add into leaf
+// or it's a intermediate node, basically you can
+// be sure to create a new node
 NODE_TEMPLATE_DECLARATION
-int
-NODE_INSTANCE::add(pair<Key, Value> pair)
+RESULT_FLAG
+NODE_INSTANCE::add(const pair<Key, Value>& pair)
 {
+    // Fan said: We focus the operation of so many data structure on one abstract data structure
+
     // Because only one leaf node is generated in the Btree, 
     // all the nodes are actually generated here.
     if (this->is_leaf()) {
         if (this->is_full()) {
-            // go to another way
+            return this->leaf_add(pair);
         } else {
             // the auto&& is right, or not
-            for (Ele & e : *this) {
+            for (NodeIter<ele_instance_type> e : *this) {
                 // the code below maybe not right
                 if (pair.first > e.key) {
                     Ele temp = e;
@@ -186,17 +176,42 @@ NODE_INSTANCE::add(pair<Key, Value> pair)
             this->end()->key = pair.first;
             this->end()->data = pair.second;
             ++(this->elements_count_);
+
         }
     } else {
 
+
     }
 
-    return 0;
+    return NOT_OK;
 }
 
-//todo:
-//Node related :
-//1, node->add
-//2, node->is_leaf()
-//3, operator[]
-//4, for - range supported
+/// for the upper level Btree::remove, so
+NODE_TEMPLATE_DECLARATION
+void
+NODE_INSTANCE::remove(const Key& key)
+{
+    if (this->is_leaf()) {
+        if ((*this)[key] != nullptr) {
+            // do some memory copy
+            --this->elements_count_;
+            return;
+        } else {
+            // key isn't exist in this Node
+            return;
+        }
+    } else {
+        // when not a leaf-node, no need to remove. 
+        // the Btree::check_out ensure the correctness.
+        return;
+    }
+}
+
+// private method part:
+
+NODE_TEMPLATE_DECLARATION
+RESULT_FLAG
+NODE_INSTANCE::leaf_add(const pair<Key, Value>& pair)
+{
+    
+}

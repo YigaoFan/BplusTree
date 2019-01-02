@@ -17,18 +17,17 @@ namespace btree {
         friend Node<Key, Value, BtreeOrder>;
         // type
         using node_instance_type = Node<Key, Value, BtreeOrder>;
-        // should I open the compare function type?
-        // using compare_function_type = std::function<bool(const Key&, const Key&)>;
+        // should I open the compare function type?  using compare_function_type = std::function<bool(const Key&, const Key&)>;
         using predicate = std::function<bool(std::shared_ptr<node_instance_type>)>;
 
     public:
-        Btree(Compare compare_func, const std::initializer_list<std::pair<Key, Value>>);
+        Btree(Compare&, const std::initializer_list<std::pair<Key, Value>>&);
         ~Btree();
-        Value search(const Key);
-        int add(const std::pair<Key, Value>);
-        int modify(const std::pair<Key, Value>);
+        Value search(const Key&);
+        RESULT_FLAG add(const std::pair<Key, Value>&);
+        RESULT_FLAG modify(const std::pair<Key, Value>&);
         std::vector<Key> explore();
-        void remove(const Key);
+        void remove(const Key&);
 
     private:
         // field
@@ -37,10 +36,10 @@ namespace btree {
         
         // method
         //void adjust();
-        std::shared_ptr<node_instance_type> check_out(const Key);
-        std::shared_ptr<node_instance_type> check_out_recur_helper(const Key, std::shared_ptr<node_instance_type>);
+        std::shared_ptr<node_instance_type> check_out(const Key&);
+        std::shared_ptr<node_instance_type> check_out_recur_helper(const Key&, const std::shared_ptr<node_instance_type>&);
         // provide some all-leaf-do operation
-        std::vector<node_instance_type> traverse_leaf(predicate);
+        std::vector<node_instance_type> traverse_leaf(const predicate&);
         std::shared_ptr<node_instance_type> get_smallest_leaf_back();
         //std::shared_ptr<node_instance_type> getFitLeafBack(node_instance_type::PredicateFunc);
     };

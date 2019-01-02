@@ -24,6 +24,12 @@
     <ClInclude Include="Ele.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="NodeIter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonFlag.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Training.cpp">
@@ -36,6 +42,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Ele.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="NodeIter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

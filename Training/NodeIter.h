@@ -2,7 +2,6 @@
 #define NODE_ITER_H
 
 #include <iterator>
-//#include <tclDecls.h>
 
 // todo: Need I define the struct below?
 // todo: I am not very clear the code like the below is in library or user-code
@@ -16,26 +15,25 @@
 //};
 
 // point to Node::Ele
-// todo: Or I must use special Itertor?
+// todo: Or I must use special Iterator?
 template <typename Item>
 class NodeIter
         : public std::iterator<std::forward_iterator_tag, Item> {
-    Item* ptr;
+    Item* ptr_;
 
     // not very clear to add "explicit" below, because of single-arg
     explicit NodeIter(Item* p = nullptr)
-    : ptr(p) {}
+    : ptr_(p) {}
 
-    Item& operator*() const { return *ptr; }
-    Item* operator->() const { return ptr; }
+    Item& operator*() const { return *ptr_; }
+    Item* operator->() const { return ptr_; }
 
-    // todo: implement the ptr->next
-    NodeIter& operator++() { ptr = ptr->next(); return *this; }
+    NodeIter& operator++() { ptr_ = ptr_->next(); return *this; }
 
     bool operator==(const NodeIter& i) const
-    { return ptr == i.ptr; }
+    { return ptr_ == i.ptr_; }
     bool operator!=(const NodeIter& i) const
-    { return ptr != i.ptr; }
+    { return ptr_ != i.ptr_; }
 
 };
 

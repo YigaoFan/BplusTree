@@ -1,5 +1,4 @@
-// todo: what does the pragma mean?
-#pragma once
+#pragma once // ensure included once
 #ifndef NODE_H
 #define NODE_H
 
@@ -7,11 +6,12 @@
 #include <array> // for array
 #include <memory> // for shared_ptr
 #include <utility> // for pair
+#include "CommonFlag.h" // for project define marco
 #include "NodeIter.h" // for NodeIter
 
 namespace btree {
 
-    template <typename Key, typename Value, typename Node_type>
+    template <typename Key, typename Value, typename NodeType>
     struct Ele {
         // todo: the key type should provide a default value to make
         // todo: default construct complete.
@@ -19,7 +19,7 @@ namespace btree {
             // intermediate_node
             struct {
                 Key child_value_low_bound;
-                std::shared_ptr<Node_type> child;
+                std::shared_ptr<NodeType> child;
             };
             // leaf
             struct {
@@ -28,36 +28,31 @@ namespace btree {
             };
         };
 
-        Ele(Key low_bound, std::shared_ptr<Node_type> node) : child_value_low_bound(low_bound), child(node) {}
-
-        Ele(Key key, Value data) : key(key), data(data) {}
-
-        Ele(const Ele &e);
-
+        Ele(const Key& low_bound, const std::shared_ptr<NodeType>& node) : child_value_low_bound(low_bound), child(node) {}
+        Ele(const Key& key, const Value& data) : key(key), data(data) {}
+        // todo: need the function below?
+        Ele(const Ele&);
         Ele &operator=(const Ele &e);
-
         // todo: the de-constructor maybe need to update
         ~Ele();
 
-        // todo: + 1 is right?
+        // related to the data structure of Ele in Node
         Ele* next() { return this + 1;}
     };
 
 	template<typename Key, typename Value, unsigned BtreeOrder>
 	class Node {
 	private:
-	    using ele_instance_type = Ele<Key, Value, Node>;
 		using node_category = enum { intermediate_node = 1, leaf, };
 		const node_category type_;
-	private:
 
 	public:
+        using ele_instance_type = Ele<Key, Value, Node>;
 		explicit Node(const node_category&);
-		// copy from stack's Ele
 		Node(const node_category&, const ele_instance_type&);
-	~Node();
-		int insert(std::shared_ptr<ele_instance_type>);
-		std::shared_ptr<Node> next_brother = nullptr;
+	    ~Node();
+        RESULT_FLAG insert(std::shared_ptr<ele_instance_type>);
+        std::shared_ptr<Node> next_brother{ nullptr };
 
 	private:
 		std::vector<std::shared_ptr<ele_instance_type>>& get_vector_of_elements_ref();
@@ -68,19 +63,16 @@ namespace btree {
 		void exchange_the_biggest_ele_out(std::shared_ptr<ele_instance_type>);
 
 	private:
-		std::shared_ptr<Node> father_ = nullptr;
+		std::shared_ptr<Node> father_{ nullptr };
 
 		// tool function
 		// todo: make the method below like this createNewRoot(node1, node2...);
-		static int createNewRoot(const std::shared_ptr<Node> &, const std::shared_ptr<ele_instance_type> &);
+		static RESULT_FLAG createNewRoot(const std::shared_ptr<Node>&, const std::shared_ptr<ele_instance_type> &);
 		static std::shared_ptr<ele_instance_type> constructToMakeItFitTheFatherInsert(std::shared_ptr<ele_instance_type>);
 
 		//new refactor:
 	public:
 		// for constructing iterator
-		// todo: the function below is error, this function is belong to iterator
-		ele_instance_type operator*(ele_instance_type *);
-		ele_instance_type *operator++(ele_instance_type *);
 		NodeIter<ele_instance_type> begin();
 		NodeIter<ele_instance_type> end();
 
@@ -89,16 +81,19 @@ namespace btree {
 		// for check
 		bool is_leaf() const { return type_ == leaf; }
 
-		// add ele
-		int add(std::pair<Key, Value>);
+		// add Ele or Node
+        RESULT_FLAG add(const std::pair<Key, Value>&);
+
+        void remove(const Key&);
 
 	private:
 		// todo: use nodeType should test not produce error
-		// todo: ensure the ele arranged by value size Ascending
 		// todo: why here use shared_ptr<Ele>?
 		std::array<std::shared_ptr<ele_instance_type>, BtreeOrder> elements_;
+        decltype(elements_.size()) elements_count_{ 0 };
 
-		decltype(elements_.size()) elements_count_{0};
+        // helper
+        RESULT_FLAG leaf_add(const std::pair<Key, Value>&);
 	};
 }
 #endif

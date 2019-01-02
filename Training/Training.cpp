@@ -5,8 +5,10 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <utility>
 #include "Btree.h"
 
+using namespace btree;
 using std::string;
 using std::cout;
 using std::vector;
@@ -14,14 +16,13 @@ using std::endl;
 using std::shared_ptr;
 using std::make_shared;
 using std::ostream;
-using btree::Btree;
+using std::pair;
 
 int main()
 {
+    auto compare = [](const int a, const int b) { return a < b; };
     // now is 3-order Btree
-    auto b = Btree();
-    cout << b << endl;
-    b.root.type == leaf;
-    b.root.value == 2;
+
+    auto b = Btree<int, string, decltype(compare), 3>(compare, { {1, "a"}, {2, "b"}, {3, "c"}, });
     return 0;
 }

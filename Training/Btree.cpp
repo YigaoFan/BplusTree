@@ -1,6 +1,6 @@
 // todo: should in implementation file includes header file? 
 #include <algorithm>
-#include "Btree.h"
+#   clude "Btree.h"
 using namespace btree;
 using std::initializer_list;
 using std::pair;
@@ -15,8 +15,8 @@ using std::vector;
 // public method part:
 
 BTREE_TEMPLATE_DECLARATION
-BTREE_INSTANCE::Btree(Compare compare_function,
-        const initializer_list<pair<Key, Value>> pair_list)
+BTREE_INSTANCE::Btree(Compare& compare_function,
+        const initializer_list<pair<Key, Value>>& pair_list)
 : compare_function_(compare_function)
 {
 	for (auto& pair : pair_list) {
@@ -32,14 +32,19 @@ BTREE_INSTANCE::~Btree()
 
 BTREE_TEMPLATE_DECLARATION
 Value
-BTREE_INSTANCE::search(const Key key)
+BTREE_INSTANCE::search(const Key& key)
 {
     shared_ptr<node_instance_type> node = this->check_out(key);
     if (node->is_leaf()) {
-        // todo: should implement []
         // should ensure copy, not reference
         // but (*node)[key] is reference
-        return (*node)[key];
+        shared_ptr<typename node_instance_type::ele_instance_type> temp = (*node)[key];
+        if (temp != nullptr) {
+            // todo: I think here involving some Ele detail, should make a function
+            return temp->data;
+        } else {
+            return nullptr;
+        }
     } else {
         // todo: return nullptr or Value();
         return nullptr;
@@ -47,20 +52,16 @@ BTREE_INSTANCE::search(const Key key)
 }
 
 BTREE_TEMPLATE_DECLARATION
-int
-BTREE_INSTANCE::add(const pair<Key, Value> e)
+RESULT_FLAG
+BTREE_INSTANCE::add(const pair<Key, Value>& e)
 {
     shared_ptr<node_instance_type> node = this->check_out(e.first);
-    // todo: node->add should return int
     return node->add(e);
-    // if node is a leaf, then add into leaf
-    // or it's a intermediate node, basically you can
-    // be sure to create a new node
 }
 
 BTREE_TEMPLATE_DECLARATION
-int
-BTREE_INSTANCE::modify(const pair<Key, Value> pair)
+RESULT_FLAG
+BTREE_INSTANCE::modify(const pair<Key, Value>& pair)
 {
     shared_ptr<node_instance_type> node = this->check_out(pair.first);
     (*node)[pair.first] = pair.second;
@@ -86,7 +87,7 @@ BTREE_INSTANCE::explore()
 
 BTREE_TEMPLATE_DECLARATION
 void
-BTREE_INSTANCE::remove(const Key key)
+BTREE_INSTANCE::remove(const Key& key)
 {
     shared_ptr<node_instance_type> node = this->check_out(key);
     // todo: should implement the Node method remove
@@ -104,11 +105,11 @@ BTREE_INSTANCE::remove(const Key key)
 //}
 
 /// search the key in Btree, return the node that terminated, 
-/// maybe not find the key-corresponding one, but the related one.
+/// find the key-corresponding one, but the related one.
 /// save the search information
 BTREE_TEMPLATE_DECLARATION
 shared_ptr<typename BTREE_INSTANCE::node_instance_type>
-BTREE_INSTANCE::check_out(const Key key)
+BTREE_INSTANCE::check_out(const Key& key)
 {
     if (this->root_->is_leaf()) {
         return this->root_;
@@ -119,7 +120,7 @@ BTREE_INSTANCE::check_out(const Key key)
 
 BTREE_TEMPLATE_DECLARATION
 shared_ptr<typename BTREE_INSTANCE::node_instance_type> 
-BTREE_INSTANCE::check_out_recur_helper(const Key key, shared_ptr<node_instance_type> node)
+BTREE_INSTANCE::check_out_recur_helper(const Key& key, const shared_ptr<node_instance_type>& node)
 {
     // could think how to remove the key parameter after the first call
     shared_ptr<node_instance_type> current_node = node;
@@ -139,7 +140,7 @@ BTREE_INSTANCE::check_out_recur_helper(const Key key, shared_ptr<node_instance_t
 /// operate on the true Node, not the copy
 BTREE_TEMPLATE_DECLARATION
 vector<typename BTREE_INSTANCE::node_instance_type>
-BTREE_INSTANCE::traverse_leaf(predicate predicate) 
+BTREE_INSTANCE::traverse_leaf(const predicate& predicate) 
 {
 	vector<node_instance_type> result;
 	for (shared_ptr<node_instance_type> current_node = this->get_smallest_leaf_back(); 
