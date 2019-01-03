@@ -93,7 +93,8 @@ namespace btree {
         decltype(elements_.size()) elements_count_{ 0 };
 
         // helper
-        RESULT_FLAG leaf_add(const std::pair<Key, Value>&);
+        RESULT_FLAG leaf_full_then_add(const std::pair<Key, Value>&);
+        RESULT_FLAG leaf_has_area_add(const std::pair<Key, Value>&);
         RESULT_FLAG intermediate_node_add(const std::pair<Key, Value>&);
 	};
 }

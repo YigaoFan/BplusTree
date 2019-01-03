@@ -1,6 +1,7 @@
 #include "Node.h"
 // todo: sort used?
 #include <algorithm> 
+#include <utility>
 
 using namespace btree;
 using std::shared_ptr;
@@ -137,7 +138,7 @@ NODE_TEMPLATE_DECLARATION
 shared_ptr<typename NODE_INSTANCE::ele_instance_type>
 NODE_INSTANCE::operator[](Key k)
 {
-    for (NodeIter<ele_instance_type> ele : *this) {
+    for (ele_instance_type& ele : *this) {
         if (ele->key == k) {
             // or could use return *ele directly? shared_ptr supported?
             return make_shared<ele_instance_type>(*ele);
@@ -160,24 +161,9 @@ NODE_INSTANCE::add(const pair<Key, Value>& pair)
     if (this->is_leaf()) {
         // add Ele, there is only one situation--
         if (this->is_full()) {
-            return this->leaf_add(pair);
+            return this->leaf_full_then_add(pair);
         } else {
-            // the auto&& is right, or not
-            for (NodeIter<ele_instance_type> e : *this) {
-                // the code below maybe not right
-                // todo: deny using ">" or "<"
-                if (pair.first > e.key) {
-                    ele_instance_type temp = e;
-                    e.key = pair.first;
-                    e.data = pair.second;
-                    // error, then do what?
-                    pair.first = temp.key;
-                    pair.second = temp.data;
-                }
-            }
-            this->end()->key = pair.first;
-            this->end()->data = pair.second;
-            ++(this->elements_count_);
+            return this->leaf_has_area_add(pair);
         }
     } else {
         return this->intermediate_node_add(pair);
@@ -209,9 +195,34 @@ NODE_INSTANCE::remove(const Key& key)
 
 NODE_TEMPLATE_DECLARATION
 RESULT_FLAG
-NODE_INSTANCE::leaf_add(const pair<Key, Value>& pair)
+NODE_INSTANCE::leaf_full_then_add(const pair<Key, Value>& pair)
 {
     
+}
+
+NODE_TEMPLATE_DECLARATION
+RESULT_FLAG
+NODE_INSTANCE::leaf_has_area_add(const pair<Key, Value>& pair)
+{
+    for (ele_instance_type& e : *this) {
+        // todo: implement how to get compare
+        // once the pair.key < e.key, arrive the position
+        if (compare(pair.first, e.key)) {
+            //ele_instance_type temp = e;
+            //e.key = pair.first;
+            //e.data = pair.second;
+            //// error, then do what?
+            //pair.first = temp.key;
+            //pair.second = temp.data;
+            // todo: memory back shift, there may be problems
+            // todo: , because relate to object function pointer
+            for (int count = BtreeOrder - elements_count_;)
+            break;
+        }
+    }
+    this->end()->key = pair.first;
+    this->end()->data = pair.second;
+    ++(this->elements_count_);
 }
 
 NODE_TEMPLATE_DECLARATION

@@ -1,6 +1,6 @@
 // todo: should in implementation file includes header file? 
 #include <algorithm>
-#   clude "Btree.h"
+#include "Btree.h"
 using namespace btree;
 using std::initializer_list;
 using std::pair;
@@ -76,7 +76,7 @@ BTREE_INSTANCE::explore()
 
     this->traverse_leaf([key_collection](shared_ptr<node_instance_type> node)
     {
-        for (auto && ele : *node) {
+        for (auto& ele : *node) {
             key_collection.push_back(ele.key);
         }
         return false;
@@ -128,7 +128,7 @@ BTREE_INSTANCE::check_out_recur_helper(const Key& key, const shared_ptr<node_ins
         return current_node;
     } else {
         // traverse the Ele in node
-        for (auto && ele : *current_node) {
+        for (auto& ele : *current_node) {
             if (compare_function_(key, ele.child_value_low_bound)) {
                 return check_out_recur_helper(key, ele.child);
             }
