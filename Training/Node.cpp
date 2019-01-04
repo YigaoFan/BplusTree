@@ -2,6 +2,7 @@
 // todo: sort used?
 #include <algorithm> 
 #include <utility>
+//#include <memory.h> 
 
 using namespace btree;
 using std::shared_ptr;
@@ -204,19 +205,17 @@ NODE_TEMPLATE_DECLARATION
 RESULT_FLAG
 NODE_INSTANCE::leaf_has_area_add(const pair<Key, Value>& pair)
 {
-    for (ele_instance_type& e : *this) {
+    // for (ele_instance_type& e : *this) {
+    for (auto iter = this->begin(); iter != this->end(); ++iter) {
         // todo: implement how to get compare
         // once the pair.key < e.key, arrive the position
-        if (compare(pair.first, e.key)) {
-            //ele_instance_type temp = e;
-            //e.key = pair.first;
-            //e.data = pair.second;
-            //// error, then do what?
-            //pair.first = temp.key;
-            //pair.second = temp.data;
+        if (compare(pair.first, iter->key)) {
             // todo: memory back shift, there may be problems
-            // todo: , because relate to object function pointer
-            for (int count = BtreeOrder - elements_count_;)
+            // todo: , because relate to object function pointer address
+            // todo: maybe not correct
+            memcpy(iter->address() + 1, iter->address(), this->end() - iter);
+            iter->key = pair.first;
+            iter->data = pair.second;
             break;
         }
     }
@@ -229,6 +228,6 @@ NODE_TEMPLATE_DECLARATION
 RESULT_FLAG
 NODE_INSTANCE::intermediate_node_add(const pair<Key, Value>& pair)
 {
-
+    
 }
 

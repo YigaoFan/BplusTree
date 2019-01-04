@@ -21,6 +21,7 @@ class NodeIter
         : public std::iterator<std::forward_iterator_tag, Item> {
     Item* ptr_;
 
+public:
     // not very clear to add "explicit" below, because of single-arg
     explicit NodeIter(Item* p = nullptr)
     : ptr_(p) {}
@@ -34,6 +35,8 @@ class NodeIter
     { return ptr_ == i.ptr_; }
     bool operator!=(const NodeIter& i) const
     { return ptr_ != i.ptr_; }
+
+    Item* address() { return ptr_; }
 
 };
 

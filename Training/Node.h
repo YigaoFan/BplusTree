@@ -37,7 +37,7 @@ namespace btree {
         ~Ele();
 
         // related to the data structure of Ele in Node
-        Ele* next() { return this + 1;}
+        Ele* next() { return this + 1; }
     };
 
 	template<typename Key, typename Value, unsigned BtreeOrder>
@@ -85,6 +85,8 @@ namespace btree {
         RESULT_FLAG add(const std::pair<Key, Value>&);
 
         void remove(const Key&);
+
+        void shift_back_one_ele()
 
 	private:
 		// todo: use nodeType should test not produce error
