@@ -196,32 +196,42 @@ NODE_INSTANCE::remove(const Key& key)
 
 NODE_TEMPLATE_DECLARATION
 RESULT_FLAG
-NODE_INSTANCE::leaf_full_then_add(const pair<Key, Value>& pair)
+NODE_INSTANCE::leaf_full_then_add(pair<Key, Value> pair)
 {
-    
+    // todo: if key is the same, cover the old value
+    // need to think initialization about temp
+    NodeIter<ele_instance_type> endIter = this->end();
+    // todo: care here is rvalue reference and modify other place
+    for (NodeIter<ele_instance_type>&& iter = this->begin(); iter != endIter; ++iter) {
+        if (compare(pair.first, iter->key)) {
+            // save a copy of the end ele_instance_type
+            ele_instance_type temp = *endIter;
+            // todo: need to implement the operator-()
+            this->move_Ele(iter, endIter - 1, 1);
+            *iter = pair;
+            // todo: call another way to process the temp ele_instance_type
+        }
+    }
 }
 
 NODE_TEMPLATE_DECLARATION
 RESULT_FLAG
 NODE_INSTANCE::leaf_has_area_add(const pair<Key, Value>& pair)
 {
-    // for (ele_instance_type& e : *this) {
-    for (auto iter = this->begin(); iter != this->end(); ++iter) {
-        // todo: implement how to get compare
-        // once the pair.key < e.key, arrive the position
+    NodeIter<ele_instance_type> end = this->end();
+
+    for (NodeIter<ele_instance_type> iter = this->begin();
+         iter != end;
+         ++iter) {
+        // once the pair.key < e.key, arrive the insert position
         if (compare(pair.first, iter->key)) {
-            // todo: memory back shift, there may be problems
-            // todo: , because relate to object function pointer address
-            // todo: maybe not correct
-            memcpy(iter->address() + 1, iter->address(), this->end() - iter);
+            this->move_Ele(iter, this->end(), 1);
             iter->key = pair.first;
             iter->data = pair.second;
-            break;
+            ++(this->elements_count_);
+            return OK;
         }
     }
-    this->end()->key = pair.first;
-    this->end()->data = pair.second;
-    ++(this->elements_count_);
 }
 
 NODE_TEMPLATE_DECLARATION
@@ -231,3 +241,15 @@ NODE_INSTANCE::intermediate_node_add(const pair<Key, Value>& pair)
     
 }
 
+NODE_TEMPLATE_DECLARATION
+void
+NODE_INSTANCE::move_Ele(const NodeIter<ele_instance_type>& begin,
+        const NodeIter<ele_instance_type>& end, unsigned distance)
+{
+    //  memory back shift, there may be problems
+    // , because relate to object function pointer address maybe not correct
+    ele_instance_type* src = begin.operator->();
+    // todo: should make NodeIter support operator-()
+    size_t length = (end - begin) * sizeof(NodeIter<ele_instance_type>::value_type);
+    memcpy(src + distance, src, length);
+}

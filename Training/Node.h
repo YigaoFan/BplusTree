@@ -14,22 +14,21 @@ namespace btree {
     template <typename Key, typename Value, typename NodeType>
     struct Ele {
         // todo: the key type should provide a default value to make
-        // todo: default construct complete.
+        // todo: default construct complete
         union {
-            // intermediate_node
-            struct {
-                Key child_value_low_bound;
-                std::shared_ptr<NodeType> child;
-            };
-            // leaf
-            struct {
-                Key key;
-                Value data;
-            };
+            // pair<child_value_low_bound, child>
+            std::pair<Key, std::shared_ptr<NodeType>> intermediate_node;
+            // pair<key, data>
+            std::pair<Key, Value> leaf;
         };
 
-        Ele(const Key& low_bound, const std::shared_ptr<NodeType>& node) : child_value_low_bound(low_bound), child(node) {}
-        Ele(const Key& key, const Value& data) : key(key), data(data) {}
+        // todo: the shared_ptr will come together with low_bound?
+        Ele(const std::pair<Key, std::shared_ptr<NodeType>>& pair)
+        : intermediate_node(pair) {}
+
+        Ele(const std::pair<Key, Value>& pair)
+        : leaf(pair) {}
+
         // todo: need the function below?
         Ele(const Ele&);
         Ele &operator=(const Ele &e);
@@ -48,6 +47,7 @@ namespace btree {
 
 	public:
         using ele_instance_type = Ele<Key, Value, Node>;
+        // todo: need to add Btree* arg pointing to btree
 		explicit Node(const node_category&);
 		Node(const node_category&, const ele_instance_type&);
 	    ~Node();
@@ -86,7 +86,7 @@ namespace btree {
 
         void remove(const Key&);
 
-        void shift_back_one_ele()
+        void shift_back_one_ele();
 
 	private:
 		// todo: use nodeType should test not produce error
@@ -94,10 +94,14 @@ namespace btree {
 		std::array<std::shared_ptr<ele_instance_type>, BtreeOrder> elements_;
         decltype(elements_.size()) elements_count_{ 0 };
 
-        // helper
-        RESULT_FLAG leaf_full_then_add(const std::pair<Key, Value>&);
+        // method "add" helper
+        RESULT_FLAG leaf_full_then_add(std::pair<Key, Value>);
         RESULT_FLAG leaf_has_area_add(const std::pair<Key, Value>&);
         RESULT_FLAG intermediate_node_add(const std::pair<Key, Value>&);
+        // method "add" and "remove" helper
+        void move_Ele(const NodeIter<ele_instance_type>&,
+                      const NodeIter<ele_instance_type>&,
+                              unsigned);
 	};
 }
 #endif

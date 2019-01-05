@@ -36,7 +36,6 @@ public:
     bool operator!=(const NodeIter& i) const
     { return ptr_ != i.ptr_; }
 
-    Item* address() { return ptr_; }
 
 };
 
