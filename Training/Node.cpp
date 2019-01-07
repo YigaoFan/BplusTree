@@ -150,7 +150,7 @@ NODE_INSTANCE::add(const pair<Key, Value>& pair)
         } else {
             // so key is smaller than all Node's keys certainly
             if (this->full()) {
-                return this->full_add(pair);
+                return this->no_area_add(pair);
             } else {
                 return this->area_add(pair);
             }
@@ -184,7 +184,7 @@ NODE_INSTANCE::remove(const Key& key)
 
 NODE_TEMPLATE_DECLARATION
 RESULT_FLAG
-NODE_INSTANCE::full_add(pair<Key, Value> pair)
+NODE_INSTANCE::no_area_add(pair<Key, Value> pair)
 {
     NodeIter<ele_instance_type> end = this->end();
     // todo: care here is rvalue reference and modify other place

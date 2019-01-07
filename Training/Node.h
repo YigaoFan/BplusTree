@@ -38,9 +38,11 @@ namespace btree {
         Ele* next() { return this + 1; }
 
         Key& key() const { return middle ? intermediate_node.first : leaf.first; }
+        // todo: below is wrong
         Value& value() const { return middle ? intermediate_node.second : leaf.second; }
     };
 
+    using node_tag = enum { leaf = 1, middle, }; // todo: maybe one type less
     // When a Node is Created, its all type is done!
 	template<typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 	class Node {
@@ -52,7 +54,11 @@ namespace btree {
         const bool middle;
 
         // Construct
-        explicit Node(const bool&, const BtreeType*, const Node*);
+        explicit Node(const bool&, const BtreeType*, const Node*, const node_tag&);
+
+        // will delete:
+        // how to separately 
+
         Node(const bool&, const BtreeType*, const std::pair<Key, Value>&, const Node*);
         ~Node();
 
@@ -77,7 +83,7 @@ namespace btree {
          //bool has_child() { return middle && elements_count_ > 0; }
         bool full() { return elements_count_ >= BtreeOrder; }
             // for add
-        RESULT_FLAG full_add(std::pair<Key, Value>);
+        RESULT_FLAG no_area_add(std::pair<Key, Value>);
         RESULT_FLAG area_add(const std::pair<Key, Value>&);
         RESULT_FLAG middle_node_add(const std::pair<Key, Value>&);
             // for add and remove
