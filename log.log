@@ -65,3 +65,9 @@ BTREE_INSTANCE::check_out(const Key key)
 22. B+ 树里不允许相同的 key，不会执行检查，执行后来覆盖原则
 
 23. 如果 add 最终会导致树的升层，那 remove 可否同理导致降层？
+
+24. 类的 public 方法不要涉及更底层的细节，比如 Node 的 public 方法不要返回 Ele 相关的东西
+
+25. 记得搜索 detail ，这些注释的是涉及到“觉得有点不应该涉及到细节”的地方
+
+26. 当 <= 时，return true。——compare 函数

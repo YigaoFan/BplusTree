@@ -17,7 +17,7 @@ using std::vector;
 BTREE_TEMPLATE_DECLARATION
 BTREE_INSTANCE::Btree(Compare& compare_function,
         const initializer_list<pair<Key, Value>>& pair_list)
-: compare_function_(compare_function)
+: compare_func_(compare_function)
 {
 	for (auto& p : pair_list) {
         this->add(p);
@@ -53,10 +53,10 @@ BTREE_INSTANCE::search(const Key& key)
 
 BTREE_TEMPLATE_DECLARATION
 RESULT_FLAG
-BTREE_INSTANCE::add(const pair<Key, Value>& e)
+BTREE_INSTANCE::add(const pair<Key, Value>& pair)
 {
-    shared_ptr<node_instance_type> node = this->check_out(e.first);
-    return node->add(e);
+    shared_ptr<node_instance_type> node = this->check_out(pair.first);
+    return node->add(pair);
 }
 
 BTREE_TEMPLATE_DECLARATION
@@ -105,29 +105,29 @@ BTREE_TEMPLATE_DECLARATION
 shared_ptr<typename BTREE_INSTANCE::node_instance_type>
 BTREE_INSTANCE::check_out(const Key& key)
 {
-    if (this->root_->is_leaf()) {
+    if (this->root_->middle) {
         return this->root_;
     } else {
-        return check_out_recur_helper(key, this->root_);
+        return check_out_recur(key, this->root_);
     }
 }
 
 BTREE_TEMPLATE_DECLARATION
 shared_ptr<typename BTREE_INSTANCE::node_instance_type> 
-BTREE_INSTANCE::check_out_recur_helper(const Key& key, const shared_ptr<node_instance_type>& node)
+BTREE_INSTANCE::check_out_recur(const Key& key, const shared_ptr<node_instance_type>& node)
 {
     // could think how to remove the key parameter after the first call
-    shared_ptr<node_instance_type> current_node = node;
-    if (current_node->middle) {
-        // traverse the Ele in node
-        for (auto& ele : *current_node) {
-            if (compare_function_(key, ele.child_value_low_bound)) {
-                return check_out_recur_helper(key, ele.child);
+    shared_ptr<node_instance_type> current = node;
+    if (current->middle) {
+        for (auto& e : *current) {
+            // involved Ele detail
+            if (compare_func_(key, e.child_value_low_bound)) {
+                return check_out_recur(key, e.child);
             }
         }
-        return current_node;
+        return current;
     } else {
-        return current_node;
+        return current;
     }
 }
 
@@ -137,7 +137,7 @@ vector<typename BTREE_INSTANCE::node_instance_type>
 BTREE_INSTANCE::traverse_leaf(const predicate& predicate) 
 {
 	vector<node_instance_type> result;
-	for (shared_ptr<node_instance_type> current_node = this->get_smallest_leaf_back(); 
+	for (shared_ptr<node_instance_type> current_node = this->smallest_leaf_back(); 
 		current_node->next_brother != nullptr; 
 		current_node = current_node->next_brother) {
         // todo: how to predicate a Node? Or should use Ele
@@ -151,7 +151,7 @@ BTREE_INSTANCE::traverse_leaf(const predicate& predicate)
 
 BTREE_TEMPLATE_DECLARATION
 shared_ptr<typename BTREE_INSTANCE::node_instance_type>
-BTREE_INSTANCE::get_smallest_leaf_back()
+BTREE_INSTANCE::smallest_leaf_back()
 {
     shared_ptr<node_instance_type> current_node = this->root_;
     for (;

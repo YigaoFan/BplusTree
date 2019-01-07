@@ -33,12 +33,13 @@ namespace btree {
     private:
         // Field
         std::shared_ptr<node_instance_type> root_ = std::make_shared<node_instance_type>(false, this);
-        const Compare compare_function_;
+        const Compare compare_func_;
 
         std::shared_ptr<node_instance_type> check_out(const Key&);
-        std::shared_ptr<node_instance_type> check_out_recur_helper(const Key&, const std::shared_ptr<node_instance_type>&);
+        std::shared_ptr<node_instance_type> check_out_recur(const Key&, 
+            const std::shared_ptr<node_instance_type>&);
         // provide some all-leaf-do operation
         std::vector<node_instance_type> traverse_leaf(const predicate&);
-        std::shared_ptr<node_instance_type> get_smallest_leaf_back();
+        std::shared_ptr<node_instance_type> smallest_leaf_back();
     };
 }

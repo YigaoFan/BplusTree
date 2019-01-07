@@ -22,8 +22,10 @@ public:
     { return ptr_ == i.ptr_; }
     bool operator!=(const NodeIter& i) const
     { return ptr_ != i.ptr_; }
-
-
+    size_t operator-(NodeIter& i) const
+    { return ptr_ - i.ptr_; }
+    NodeIter operator-(size_t distance) const
+    { return NodeIter(ptr_ - distance); }
 };
 
 //template <typename I>
