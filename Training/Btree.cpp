@@ -9,8 +9,8 @@ using std::sort;
 using std::shared_ptr;
 using std::vector;
 // seem like the template-type-para is not useful in this file
-#define BTREE_TEMPLATE_DECLARATION template <typename Key, typename Value, typename Compare, unsigned BtreeOrder>
-#define BTREE_INSTANCE Btree<Key, Value, Compare, BtreeOrder>
+#define BTREE_TEMPLATE_DECLARATION template <typename Key, typename Value, unsigned BtreeOrder, typename Compare>
+#define BTREE_INSTANCE Btree<Key, Value, BtreeOrder, Compare>
 
 // public method part:
 
@@ -19,8 +19,8 @@ BTREE_INSTANCE::Btree(Compare& compare_function,
         const initializer_list<pair<Key, Value>>& pair_list)
 : compare_function_(compare_function)
 {
-	for (auto& pair : pair_list) {
-        this->add(pair);
+	for (auto& p : pair_list) {
+        this->add(p);
 	}
 }
 
@@ -35,7 +35,7 @@ Value
 BTREE_INSTANCE::search(const Key& key)
 {
     shared_ptr<node_instance_type> node = this->check_out(key);
-    if (node->is_leaf()) {
+    if (node->middle) {
         // should ensure copy, not reference
         // but (*node)[key] is reference
         shared_ptr<typename node_instance_type::ele_instance_type> temp = (*node)[key];
@@ -97,12 +97,6 @@ BTREE_INSTANCE::remove(const Key& key)
 // private method part:
 // todo: private method should declare its use 
 
-//BTREE_TEMPLATE_DECLARATION
-//void
-//BTREE_INSTANCE::adjust()
-//{
-//
-//}
 
 /// search the key in Btree, return the node that terminated, 
 /// find the key-corresponding one, but the related one.
@@ -124,15 +118,15 @@ BTREE_INSTANCE::check_out_recur_helper(const Key& key, const shared_ptr<node_ins
 {
     // could think how to remove the key parameter after the first call
     shared_ptr<node_instance_type> current_node = node;
-    if (current_node->is_leaf()) {
-        return current_node;
-    } else {
+    if (current_node->middle) {
         // traverse the Ele in node
         for (auto& ele : *current_node) {
             if (compare_function_(key, ele.child_value_low_bound)) {
                 return check_out_recur_helper(key, ele.child);
             }
         }
+        return current_node;
+    } else {
         return current_node;
     }
 }
@@ -161,8 +155,8 @@ BTREE_INSTANCE::get_smallest_leaf_back()
 {
     shared_ptr<node_instance_type> current_node = this->root_;
     for (;
-        (!current_node->is_leaf()) && (*current_node)[0].child != nullptr;
-        current_node = (*current_node)[0].child);
+        current_node->middle && (*current_node)[0].child != nullptr;
+        current_node = (*current_node)[0].child) { }
 
     return current_node;
 }

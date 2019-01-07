@@ -21,8 +21,6 @@ using std::pair;
 int main()
 {
     auto compare = [](const int a, const int b) { return a < b; };
-    // now is 3-order Btree
-
-    auto b = Btree<int, string, decltype(compare), 3>(compare, { {1, "a"}, {2, "b"}, {3, "c"}, });
+    auto b = Btree<int, string, 3, decltype(compare)>(compare, { {1, "a"}, {2, "b"}, {3, "c"}, });
     return 0;
 }

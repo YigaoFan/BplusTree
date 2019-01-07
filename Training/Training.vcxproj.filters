@@ -21,9 +21,6 @@
     <ClInclude Include="Node.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Ele.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="NodeIter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -39,9 +36,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Node.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Ele.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="NodeIter.cpp">

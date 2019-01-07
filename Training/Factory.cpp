@@ -3,17 +3,17 @@
 #include "Btree.h"
 
 namespace btree {
-    template<typename Key, typename Value, typename Compare, unsigned BtreeOrder>
-    Btree<Key, Value, Compare, BtreeOrder>
-        construct_a_btree(Compare& comp)
-    {
-        static Compare compare = comp;
-        // Btree definition // todo: use macro to implement?
+    //template<typename Key, typename Value, typename Compare, unsigned BtreeOrder>
+    //Btree<Key, Value, Compare, BtreeOrder>
+    //    construct_a_btree(Compare& comp)
+    //{
+    //    static Compare compare = comp;
+    //    // Btree definition // todo: use macro to implement?
 
-        // Node definition // todo: use macro to implement?
+    //    // Node definition // todo: use macro to implement?
 
-        return; // a btree object
-    }
+    //    return; // a btree object
+    //}
 }
 
 

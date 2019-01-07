@@ -1,8 +1,5 @@
 #pragma once // ensure included once
-#ifndef NODE_H
-#define NODE_H
 
-#include <vector> // for vector
 #include <array> // for array
 #include <memory> // for shared_ptr
 #include <utility> // for pair
@@ -39,69 +36,54 @@ namespace btree {
         Ele* next() { return this + 1; }
     };
 
-	template<typename Key, typename Value, unsigned BtreeOrder>
+	template<typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 	class Node {
-	private:
-		using node_category = enum { intermediate_node = 1, leaf, };
-		const node_category type_;
-
-	public:
+    private:
         using ele_instance_type = Ele<Key, Value, Node>;
-        // todo: need to add Btree* arg pointing to btree
-		explicit Node(const node_category&);
-		Node(const node_category&, const ele_instance_type&);
-	    ~Node();
-        RESULT_FLAG insert(std::shared_ptr<ele_instance_type>);
-        std::shared_ptr<Node> next_brother{ nullptr };
 
-	private:
-		std::vector<std::shared_ptr<ele_instance_type>>& get_vector_of_elements_ref();
-		// has_child will ensure the node isn't leaf and elements_count_ isn't 0
-		bool has_child() { return type_ != leaf && elements_count_ > 0; }
-		bool is_full() { return elements_count_ >= BtreeOrder; }
-		void do_insert(std::shared_ptr<ele_instance_type>);
-		void exchange_the_biggest_ele_out(std::shared_ptr<ele_instance_type>);
-
-	private:
-		std::shared_ptr<Node> father_{ nullptr };
-
-		// tool function
-		// todo: make the method below like this createNewRoot(node1, node2...);
-		static RESULT_FLAG createNewRoot(const std::shared_ptr<Node>&, const std::shared_ptr<ele_instance_type> &);
-		static std::shared_ptr<ele_instance_type> constructToMakeItFitTheFatherInsert(std::shared_ptr<ele_instance_type>);
-
-		//new refactor:
 	public:
-		// for constructing iterator
+        // Property
+        const bool middle;
+
+        // Construct
+        explicit Node(const bool&, const BtreeType*);
+        Node(const bool&, const BtreeType*, const std::pair<Key, Value>&);
+        ~Node();
+
+		// Iterator
 		NodeIter<ele_instance_type> begin();
 		NodeIter<ele_instance_type> end();
 
+        // Method
 		std::shared_ptr<ele_instance_type> operator[](Key);
-
-		// for check
-		bool is_leaf() const { return type_ == leaf; }
-
-		// add Ele or Node
         RESULT_FLAG add(const std::pair<Key, Value>&);
-
         void remove(const Key&);
 
-        void shift_back_one_ele();
-
 	private:
-		// todo: use nodeType should test not produce error
-		// todo: why here use shared_ptr<Ele>?
-		std::array<std::shared_ptr<ele_instance_type>, BtreeOrder> elements_;
-        decltype(elements_.size()) elements_count_{ 0 };
+		// Field
+		std::array<std::shared_ptr<ele_instance_type>, BtreeOrder> elements_; // todo: construct
+        decltype(elements_.size()) elements_count_{0};
+        std::shared_ptr<Node> next_brother_{nullptr};
+        std::shared_ptr<Node> father_{nullptr};
+        const BtreeType* btree_;
 
-        // method "add" helper
+        // Helper 
+        bool has_child() { return middle && elements_count_ > 0; }
+        bool is_full() { return elements_count_ >= BtreeOrder; }
+            // for add
         RESULT_FLAG leaf_full_then_add(std::pair<Key, Value>);
         RESULT_FLAG leaf_has_area_add(const std::pair<Key, Value>&);
         RESULT_FLAG intermediate_node_add(const std::pair<Key, Value>&);
-        // method "add" and "remove" helper
-        void move_Ele(const NodeIter<ele_instance_type>&,
-                      const NodeIter<ele_instance_type>&,
+            // for add and remove
+        void move_Ele(const NodeIter<ele_instance_type>&, const NodeIter<ele_instance_type>&,
                               unsigned);
+
+        // Old function
+        //RESULT_FLAG insert(std::shared_ptr<ele_instance_type>);
+        void do_insert(std::shared_ptr<ele_instance_type>);
+        void exchange_the_biggest_ele_out(std::shared_ptr<ele_instance_type>);
+        // todo: make the method below like this createNewRoot(node1, node2...);
+        static RESULT_FLAG createNewRoot(const std::shared_ptr<Node>&, const std::shared_ptr<ele_instance_type> &);
+        static std::shared_ptr<ele_instance_type> constructToMakeItFitTheFatherInsert(std::shared_ptr<ele_instance_type>);
 	};
 }
-#endif

@@ -1,116 +1,98 @@
-#include "Node.h"
-// todo: sort used?
-#include <algorithm> 
 #include <utility>
-//#include <memory.h> 
+#include "Node.h"
 
 using namespace btree;
 using std::shared_ptr;
 using std::make_shared;
-using std::vector;
 using std::pair;
-#define NODE_TEMPLATE_DECLARATION template <typename Key, typename Value, unsigned BtreeOrder>
-#define NODE_INSTANCE Node<Key, Value, BtreeOrder>
-
-
-// caller should ensure the node is not leaf node
-//shared_ptr<Node>
-//Node::giveMeTheWay(PredicateFunc func)
-//{
-//	auto eles = getVectorOfElesRef();
-//	// once encounter a node meeting the demand, return
-//	for (auto& e : eles) {
-//		if (func(e)) {
-//			return e.child;
-//		}
-//	}
-//	return nullptr;
-//}
+#define NODE_TEMPLATE_DECLARATION template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+#define NODE_INSTANCE Node<Key, Value, BtreeOrder, BtreeType>
 
 // the below function's scope is leaf
-// todo: function below could be used
-void
-Node::exchangeTheBiggestEleOut(shared_ptr<Ele> e)
-{
-	// also need to think the intermediate_node situation
-	// doesn't exist up situation todo: think it!
-    this->doInsert(e);
-    auto& eleVectorRef = this->getVectorOfElesRef();
-	*e = *eleVectorRef.back();
-	eleVectorRef.pop_back();
-}
-
-shared_ptr<Node::Ele>
-Node::constructToMakeItFitTheFatherInsert(shared_ptr<Ele> e)
-{
-	// construct Ele Pointing To Node Packaging This Ele
-	shared_ptr<Node>&& node = make_shared<Node>(intermediate_node, e);
-	return make_shared<Ele>(e->key, node);
-}
-
-// external caller should ensure the insert node is leaf
-RESULT_FLAG
-Node::insert(shared_ptr<Ele> e)
-{
-	if (!this->isFull()) {
-		// todo: do_insert need to attention to this Node is leaf or not
-		this->doInsert(e);
-		return 0;
-	} else {
-		this->exchangeTheBiggestEleOut(e);
-		if (this->nextBrother != nullptr) {
-			return this->nextBrother->insert(e);
-		} else {
-			// package this leaf to a withe
-			shared_ptr<Ele> newEle = constructToMakeItFitTheFatherInsert(e);
-			if (this->father != nullptr) {
-				// todo: usually when move to father to insert Ele,
-				// todo: it's the end of this level. Think it!
-				return this->father->insert(newEle);
-			} else {
-				// create new branch
-				return createNewRoot(this->father, newEle);
-			}
-		}
-	}
-}
-
-
-void
-Node::doInsert(shared_ptr<Ele> e)
-{
-    auto& eleVectorRef = this->getVectorOfElesRef();
-    eleVectorRef.push_back(e);
-	std::sort(eleVectorRef.begin(), eleVectorRef.end(),
-	        [] (shared_ptr<Ele> a, shared_ptr<Ele> b)
-            {
-	            return a->key < b->key;
-            });
-}
-
-// todo: how to ensure only the root 
-// todo: have and can trigger this method
-RESULT_FLAG
-Node::createNewRoot(const shared_ptr<Node>& oldRoot, const shared_ptr<Ele>& risingEle)
-{
-	// todo: maybe the argument below is wrong, the keyType, not the node_category
-	shared_ptr<Ele>&& ele = make_shared<Ele>(/*intermediate_node*/, oldRoot);
-	shared_ptr<Node>&& node = make_shared<Node>(/*intermediate_node*/, risingEle);
-
-}
+//void
+//Node::exchangeTheBiggestEleOut(shared_ptr<Ele> e)
+//{
+//	// also need to think the intermediate_node situation
+//	// doesn't exist up situation todo: think it!
+//    this->doInsert(e);
+//    auto& eleVectorRef = this->getVectorOfElesRef();
+//	*e = *eleVectorRef.back();
+//	eleVectorRef.pop_back();
+//}
+//
+//shared_ptr<Node::Ele>
+//Node::constructToMakeItFitTheFatherInsert(shared_ptr<Ele> e)
+//{
+//	// construct Ele Pointing To Node Packaging This Ele
+//	shared_ptr<Node>&& node = make_shared<Node>(intermediate_node, e);
+//	return make_shared<Ele>(e->key, node);
+//}
+//
+//// external caller should ensure the insert node is leaf
+//RESULT_FLAG
+//Node::insert(shared_ptr<Ele> e)
+//{
+//	if (!this->isFull()) {
+//		// todo: do_insert need to attention to this Node is leaf or not
+//		this->doInsert(e);
+//		return 0;
+//	} else {
+//		this->exchangeTheBiggestEleOut(e);
+//		if (this->nextBrother != nullptr) {
+//			return this->nextBrother->insert(e);
+//		} else {
+//			// package this leaf to a withe
+//			shared_ptr<Ele> newEle = constructToMakeItFitTheFatherInsert(e);
+//			if (this->father != nullptr) {
+//				// todo: usually when move to father to insert Ele,
+//				// todo: it's the end of this level. Think it!
+//				return this->father->insert(newEle);
+//			} else {
+//				// create new branch
+//				return createNewRoot(this->father, newEle);
+//			}
+//		}
+//	}
+//}
+//
+//
+//void
+//Node::doInsert(shared_ptr<Ele> e)
+//{
+//    auto& eleVectorRef = this->getVectorOfElesRef();
+//    eleVectorRef.push_back(e);
+//	std::sort(eleVectorRef.begin(), eleVectorRef.end(),
+//	        [] (shared_ptr<Ele> a, shared_ptr<Ele> b)
+//            {
+//	            return a->key < b->key;
+//            });
+//}
+//
+//// todo: how to ensure only the root 
+//// todo: have and can trigger this method
+//RESULT_FLAG
+//Node::createNewRoot(const shared_ptr<Node>& oldRoot, const shared_ptr<Ele>& risingEle)
+//{
+//	// todo: maybe the argument below is wrong, the keyType, not the bool_
+//	shared_ptr<Ele>&& ele = make_shared<Ele>(/*intermediate_node*/, oldRoot);
+//	shared_ptr<Node>&& node = make_shared<Node>(/*intermediate_node*/, risingEle);
+//
+//}
 
 // public method part:
 
 NODE_TEMPLATE_DECLARATION
-NODE_INSTANCE::Node(const node_category& type) :type_(type)
+NODE_INSTANCE::Node(const bool& middle, const BtreeType* btree) 
+:middle(middle), btree_(btree)
 {
 
 }
 
 NODE_TEMPLATE_DECLARATION
-NODE_INSTANCE::Node(const node_category& type, const ele_instance_type& e) : Node(type)
+NODE_INSTANCE::Node(const bool& middle, const BtreeType* btree, const pair<Key, Value>& pair) : Node(middle, btree)
 {
-    this->elements_.push_back(e);
+    // todo: process the pair
+    //this->elements_.push_back(e);
 }
 
 NODE_TEMPLATE_DECLARATION
@@ -141,8 +123,7 @@ NODE_INSTANCE::operator[](Key k)
 {
     for (ele_instance_type& ele : *this) {
         if (ele->key == k) {
-            // or could use return *ele directly? shared_ptr supported?
-            return make_shared<ele_instance_type>(*ele);
+            return make_shared<ele_instance_type>(ele);
         }
     }
     return nullptr;
@@ -159,15 +140,15 @@ NODE_INSTANCE::add(const pair<Key, Value>& pair)
 
     // Because only one leaf node is generated in the Btree, 
     // all the nodes are actually generated here.
-    if (this->is_leaf()) {
+    if (this->middle) {
+        return this->intermediate_node_add(pair);
+    } else {
         // add Ele, there is only one situation--
         if (this->is_full()) {
             return this->leaf_full_then_add(pair);
         } else {
             return this->leaf_has_area_add(pair);
         }
-    } else {
-        return this->intermediate_node_add(pair);
     }
 }
 
@@ -176,7 +157,11 @@ NODE_TEMPLATE_DECLARATION
 void
 NODE_INSTANCE::remove(const Key& key)
 {
-    if (this->is_leaf()) {
+    if (this->middle) {
+        // when not a leaf-node, no need to remove. 
+        // the Btree::check_out ensure the correctness.
+        return;
+    } else {
         if ((*this)[key] != nullptr) {
             // do some memory copy
             --(this->elements_count_);
@@ -185,10 +170,6 @@ NODE_INSTANCE::remove(const Key& key)
             // key isn't exist in this Node
             return;
         }
-    } else {
-        // when not a leaf-node, no need to remove. 
-        // the Btree::check_out ensure the correctness.
-        return;
     }
 }
 
