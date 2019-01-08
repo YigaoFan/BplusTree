@@ -8,58 +8,61 @@
 
 namespace btree {
 
-    //template <typename Key, typename Value, typename NodeType>
-    //struct Ele {
-    //    const bool middle;
-    //    // todo: the key type should provide a default value to make
-    //    // todo: default construct complete
-    //    union {
-    //        // <child_value_low_bound, child>
-    //        // todo: should save this, why make child type as Value type
-    //        std::pair<Key, std::shared_ptr<NodeType>> intermediate_node;
-    //        // <key, data>
-    //        std::pair<Key, Value> leaf;
-    //    };
+    template <typename Key, typename Value>
+    class Ele {
+    public:
+        // todo: complete the construct control, this and derived class
+        Ele();
+        ~Ele();
+        virtual Key& key();
+    };
 
-    //    // todo: the shared_ptr will come together with low_bound?
-    //    Ele(const std::pair<Key, std::shared_ptr<NodeType>>& p)
-    //    : intermediate_node(p), middle(true) {}
+    template <typename Key,
+        typename Value>
+        class ValueEle : public Ele<Key, Value> {
+        private:
+            std::pair<Key, Value> leaf_;
+        public:
+            Key& key() override
+            { return leaf_.first; }
+            Value& value()
+            { return leaf_.second; }
+    };
 
-    //    Ele(const std::pair<Key, Value>& p)
-    //    : leaf(p), middle(false) {}
+    template <typename Key,
+        typename Value,
+        typename NodeType,
+        typename BtreeType>
+        class PointerEle : Ele<Key, Value> {
+        private:
+            std::pair<Key, Node<Key, Value, NodeType, BtreeType>> leaf_;
+        public:
+            Key& key() override
+            { return leaf_.first; }
+            class Node; // pre-declaration
+            Node<Key, Value, NodeType, BtreeType>& value()
+            {
+                return leaf_.second;
+            }
+    };
 
-    //    // todo: need the function below?
-    //    Ele(const Ele&);
-    //    Ele &operator=(const Ele &e);
-    //    // todo: the de-constructor maybe need to update
-    //    ~Ele();
-
-    //    // related to the data structure of Ele in Node
-    //    Ele* next() { return this + 1; }
-
-    //    Key& key() const { return middle ? intermediate_node.first : leaf.first; }
-    //    // todo: below is wrong
-    //    Value& value() const { return middle ? intermediate_node.second : leaf.second; }
-    //};
-
-    using node_tag = enum { leaf = 1, middle, }; // todo: maybe one type less
+    struct leaf_type {};
+    struct middle_type {};
     // When a Node is Created, its all type is done!
 	template<typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 	class Node {
     private:
-        using ele_instance_type = Ele<Key, Value, Node>;
+        using ele_instance_type = Ele<Key, Value>;
 
 	public:
         // Property
         const bool middle;
 
         // Construct
-        explicit Node(const bool&, const BtreeType*, const Node*, const node_tag&);
-
-        // will delete:
-        // how to separately 
-
+        explicit Node(const bool&, const BtreeType*, const Node*, const leaf_type);
+        explicit Node(const bool&, const BtreeType*, const Node*, const middle_type);
         Node(const bool&, const BtreeType*, const std::pair<Key, Value>&, const Node*);
+        // todo: maybe code the up construct method in ValueEle and PointerEle way
         ~Node();
 
 		// Iterator
@@ -73,6 +76,7 @@ namespace btree {
 
 	private:
 		// Field
+        // todo: maybe change to vector
 		std::array<std::shared_ptr<ele_instance_type>, BtreeOrder> elements_; // todo: construct
         decltype(elements_.size()) elements_count_{0};
         std::shared_ptr<Node> next_node_{nullptr};  // todo: complete
@@ -80,7 +84,7 @@ namespace btree {
         Node* father_;
 
         // Helper 
-         //bool has_child() { return middle && elements_count_ > 0; }
+        //bool has_child() { return middle && elements_count_ > 0; }
         bool full() { return elements_count_ >= BtreeOrder; }
             // for add
         RESULT_FLAG no_area_add(std::pair<Key, Value>);

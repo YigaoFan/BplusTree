@@ -82,10 +82,21 @@ using std::pair;
 // public method part:
 
 NODE_TEMPLATE_DECLARATION
-NODE_INSTANCE::Node(const bool& middle, const BtreeType* btree, const Node* father) 
+NODE_INSTANCE::Node(const bool& middle, const BtreeType* btree, const Node* father, const leaf_type) 
 :middle(middle), btree_(btree), father_(father)
 {
+    // todo: like below, modify
+    shared_ptr<ValueEle<Key, Value>> one = make_shared<ValueEle<Key, Value>>();
+    elements_[0] = a;
+}
 
+NODE_TEMPLATE_DECLARATION
+NODE_INSTANCE::Node(const bool& middle, const BtreeType* btree, const Node* father, const middle_type)
+    :middle(middle), btree_(btree), father_(father)
+{
+    // todo: like below, modify
+    shared_ptr<PointerEle<Key, Value, Node, BtreeType>> one = make_shared<PointerEle<Key, Value, Node, BtreeType>>();
+    elements_[0] = one;
 }
 
 NODE_TEMPLATE_DECLARATION
