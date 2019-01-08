@@ -8,39 +8,39 @@
 
 namespace btree {
 
-    template <typename Key, typename Value, typename NodeType>
-    struct Ele {
-        const bool middle;
-        // todo: the key type should provide a default value to make
-        // todo: default construct complete
-        union {
-            // <child_value_low_bound, child>
-            // todo: should save this, why make child type as Value type
-            std::pair<Key, std::shared_ptr<NodeType>> intermediate_node;
-            // <key, data>
-            std::pair<Key, Value> leaf;
-        };
+    //template <typename Key, typename Value, typename NodeType>
+    //struct Ele {
+    //    const bool middle;
+    //    // todo: the key type should provide a default value to make
+    //    // todo: default construct complete
+    //    union {
+    //        // <child_value_low_bound, child>
+    //        // todo: should save this, why make child type as Value type
+    //        std::pair<Key, std::shared_ptr<NodeType>> intermediate_node;
+    //        // <key, data>
+    //        std::pair<Key, Value> leaf;
+    //    };
 
-        // todo: the shared_ptr will come together with low_bound?
-        Ele(const std::pair<Key, std::shared_ptr<NodeType>>& p)
-        : intermediate_node(p), middle(true) {}
+    //    // todo: the shared_ptr will come together with low_bound?
+    //    Ele(const std::pair<Key, std::shared_ptr<NodeType>>& p)
+    //    : intermediate_node(p), middle(true) {}
 
-        Ele(const std::pair<Key, Value>& p)
-        : leaf(p), middle(false) {}
+    //    Ele(const std::pair<Key, Value>& p)
+    //    : leaf(p), middle(false) {}
 
-        // todo: need the function below?
-        Ele(const Ele&);
-        Ele &operator=(const Ele &e);
-        // todo: the de-constructor maybe need to update
-        ~Ele();
+    //    // todo: need the function below?
+    //    Ele(const Ele&);
+    //    Ele &operator=(const Ele &e);
+    //    // todo: the de-constructor maybe need to update
+    //    ~Ele();
 
-        // related to the data structure of Ele in Node
-        Ele* next() { return this + 1; }
+    //    // related to the data structure of Ele in Node
+    //    Ele* next() { return this + 1; }
 
-        Key& key() const { return middle ? intermediate_node.first : leaf.first; }
-        // todo: below is wrong
-        Value& value() const { return middle ? intermediate_node.second : leaf.second; }
-    };
+    //    Key& key() const { return middle ? intermediate_node.first : leaf.first; }
+    //    // todo: below is wrong
+    //    Value& value() const { return middle ? intermediate_node.second : leaf.second; }
+    //};
 
     using node_tag = enum { leaf = 1, middle, }; // todo: maybe one type less
     // When a Node is Created, its all type is done!

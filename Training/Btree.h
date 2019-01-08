@@ -24,10 +24,10 @@ namespace btree {
     public:
         Btree(Compare&, const std::initializer_list<std::pair<Key, Value>>&);
         ~Btree();
-        Value search(const Key&);
+        Value search(const Key&) const;
         RESULT_FLAG add(const std::pair<Key, Value>&);
         RESULT_FLAG modify(const std::pair<Key, Value>&);
-        std::vector<Key> explore();
+        std::vector<Key> explore() const;
         void remove(const Key&);
 
     private:

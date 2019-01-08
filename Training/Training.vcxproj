@@ -154,11 +154,13 @@
   <ItemGroup>
     <ClInclude Include="Btree.h" />
     <ClInclude Include="CommonFlag.h" />
+    <ClInclude Include="Ele.h" />
     <ClInclude Include="Node.h" />
     <ClInclude Include="NodeIter.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Btree.cpp" />
+    <ClCompile Include="Ele.cpp" />
     <ClCompile Include="Factory.cpp" />
     <ClCompile Include="Node.cpp" />
     <ClCompile Include="NodeIter.cpp" />

@@ -71,3 +71,5 @@ BTREE_INSTANCE::check_out(const Key key)
 25. 记得搜索 detail ，这些注释的是涉及到“觉得有点不应该涉及到细节”的地方
 
 26. 当 <= 时，return true。——compare 函数
+
+27. 是否要给所有没改变 this 函数加上 const？

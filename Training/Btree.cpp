@@ -33,6 +33,7 @@ BTREE_INSTANCE::~Btree()
 BTREE_TEMPLATE_DECLARATION
 Value
 BTREE_INSTANCE::search(const Key& key)
+const
 {
     shared_ptr<node_instance_type> node = this->check_out(key);
     if (node->middle) {
@@ -71,6 +72,7 @@ BTREE_INSTANCE::modify(const pair<Key, Value>& pair)
 BTREE_TEMPLATE_DECLARATION
 vector<Key>
 BTREE_INSTANCE::explore()
+const
 {
     vector<Key> key_collection;
 
