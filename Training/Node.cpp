@@ -220,7 +220,7 @@ NODE_INSTANCE::area_add(const pair<Key, Value>& pair)
         if (btree_->compare_func_(pair.first, iter->key())) {
             this->move_Ele(iter, this->end());
             iter->key() = pair.first;
-            iter->value() = pair.second;
+            iter->__value() = pair.second;
             ++(this->elements_count_);
             return OK;
         }

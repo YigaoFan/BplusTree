@@ -15,6 +15,8 @@ namespace btree {
         Ele();
         ~Ele();
         virtual Key& key();
+    private:
+        virtual void* __value();
     };
 
     template <typename Key,
@@ -26,7 +28,10 @@ namespace btree {
             Key& key() override
             { return leaf_.first; }
             Value& value()
-            { return leaf_.second; }
+            { return *__value(); }
+        private:
+            void* __value() override
+            { return &(leaf_.second); }
     };
 
     template <typename Key,
@@ -35,15 +40,16 @@ namespace btree {
         typename BtreeType>
         class PointerEle : Ele<Key, Value> {
         private:
-            std::pair<Key, Node<Key, Value, NodeType, BtreeType>> leaf_;
+            // todo: or use shared_ptr<NodeType>
+            std::pair<Key, NodeType*>leaf_;
         public:
             Key& key() override
             { return leaf_.first; }
-            class Node; // pre-declaration
-            Node<Key, Value, NodeType, BtreeType>& value()
-            {
-                return leaf_.second;
-            }
+            NodeType* pointer()
+            { return (NodeType*)__value(); }
+        private:
+            void* __value() override
+            { return &(leaf_.second); }
     };
 
     struct leaf_type {};
