@@ -7,53 +7,6 @@
 #include "NodeIter.h" // for NodeIter
 
 namespace btree {
-
-    template <typename Key, typename Value>
-    class Ele {
-    public:
-        // todo: complete the construct control, this and derived class
-        Ele();
-        ~Ele();
-        virtual Key& key();
-    private:
-        virtual void* __value();
-    };
-
-    template <typename Key,
-        typename Value>
-        class ValueEle : public Ele<Key, Value> {
-            using value_type = Value;
-        private:
-            std::pair<Key, Value> leaf_;
-        public:
-            Key& key() override
-            { return leaf_.first; }
-            Value& value()
-            { return *__value(); }
-        private:
-            void* __value() override
-            { return &(leaf_.second); }
-    };
-
-    template <typename Key,
-        typename Value,
-        typename NodeType,
-        typename BtreeType>
-        class PointerEle : Ele<Key, Value> {
-            using value_type = NodeType*;
-        private:
-            // todo: or use shared_ptr<NodeType>
-            std::pair<Key, NodeType*>leaf_;
-        public:
-            Key& key() override
-            { return leaf_.first; }
-            NodeType* pointer()
-            { return (NodeType*)__value(); }
-        private:
-            void* __value() override
-            { return &(leaf_.second); }
-    };
-
     struct leaf_type {};
     struct middle_type {};
     // When a Node is Created, its all type is done!
@@ -70,7 +23,7 @@ namespace btree {
         explicit Node(const bool&, const BtreeType*, const Node*, const leaf_type);
         explicit Node(const bool&, const BtreeType*, const Node*, const middle_type);
         Node(const bool&, const BtreeType*, const std::pair<Key, Value>&, const Node*);
-        // todo: maybe code the up construct method in ValueEle and PointerEle way
+        // todo: maybe code the up construct method in Ele and PointerEle way
         ~Node();
 
 		// Iterator
