@@ -22,6 +22,7 @@ namespace btree {
     template <typename Key,
         typename Value>
         class ValueEle : public Ele<Key, Value> {
+            using value_type = Value;
         private:
             std::pair<Key, Value> leaf_;
         public:
@@ -39,6 +40,7 @@ namespace btree {
         typename NodeType,
         typename BtreeType>
         class PointerEle : Ele<Key, Value> {
+            using value_type = NodeType*;
         private:
             // todo: or use shared_ptr<NodeType>
             std::pair<Key, NodeType*>leaf_;
