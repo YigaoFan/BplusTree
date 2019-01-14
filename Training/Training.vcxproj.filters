@@ -27,7 +27,7 @@
     <ClInclude Include="CommonFlag.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Feign_Ele.h">
+    <ClInclude Include="Elements.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -45,6 +45,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Factory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Elements.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

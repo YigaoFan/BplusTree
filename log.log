@@ -73,3 +73,26 @@ BTREE_INSTANCE::check_out(const Key key)
 26. 当 <= 时，return true。——compare 函数
 
 27. 是否要给所有没改变 this 函数加上 const？
+
+28. 在库的内部，许多事情需要调用者自己保证，比如数量不越界
+
+19. 左值和右值的界线是不是可以使用函数模糊掉
+void
+fun(int& b)
+{
+    b += 1;
+    cout << b << endl;
+}
+
+void
+f1(int&& b)
+{
+    fun(b);
+}
+
+int main()
+{
+    f1(2);
+
+    return 0;
+}

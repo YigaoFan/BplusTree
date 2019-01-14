@@ -154,17 +154,17 @@
   <ItemGroup>
     <ClInclude Include="Btree.h" />
     <ClInclude Include="CommonFlag.h" />
-    <ClInclude Include="Ele.h" />
+    <ClInclude Include="Elements.h" />
     <ClInclude Include="Node.h" />
     <ClInclude Include="NodeIter.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Btree.cpp" />
+    <ClCompile Include="Elements.cpp" />
     <ClCompile Include="Factory.cpp" />
     <ClCompile Include="Node.cpp" />
     <ClCompile Include="NodeIter.cpp" />
     <ClCompile Include="Training.cpp" />
-    <ClInclude Include="Ele.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -82,8 +82,8 @@ using std::pair;
 // public method part:
 
 NODE_TEMPLATE_DECLARATION
-NODE_INSTANCE::Node(const bool& middle, const BtreeType* btree, const Node* father, const leaf_type) 
-:middle(middle), btree_(btree), father_(father)
+NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const leaf_type) 
+:middle(false), btree_(btree), father_(father)
 {
     // todo: like below, modify
     shared_ptr<ValueEle<Key, Value>> one = make_shared<ValueEle<Key, Value>>();
@@ -91,8 +91,8 @@ NODE_INSTANCE::Node(const bool& middle, const BtreeType* btree, const Node* fath
 }
 
 NODE_TEMPLATE_DECLARATION
-NODE_INSTANCE::Node(const bool& middle, const BtreeType* btree, const Node* father, const middle_type)
-    :middle(middle), btree_(btree), father_(father)
+NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const middle_type)
+    :middle(true), btree_(btree), father_(father)
 {
     // todo: like below, modify
     shared_ptr<PointerEle<Key, Value, Node, BtreeType>> one = make_shared<PointerEle<Key, Value, Node, BtreeType>>();
@@ -100,8 +100,8 @@ NODE_INSTANCE::Node(const bool& middle, const BtreeType* btree, const Node* fath
 }
 
 NODE_TEMPLATE_DECLARATION
-NODE_INSTANCE::Node(const bool& middle, const BtreeType* btree, const pair<Key, Value>& pair, const Node* father) 
-: Node(middle, btree, father)
+NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const pair<Key, Value>& pair)
+: Node(btree, father, leaf_type())
 {
     // todo: process the pair
     //this->elements_.push_back(e);

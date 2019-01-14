@@ -1,5 +1,6 @@
 // todo: should in implementation file includes header file? 
-#include <algorithm>
+#include <algorithm> // for sort
+#include <cmath> // for ceil
 #include "Btree.h"
 using namespace btree;
 using std::initializer_list;
@@ -8,19 +9,54 @@ using std::function;
 using std::sort;
 using std::shared_ptr;
 using std::vector;
+using std::make_shared;
+using std::ceil;
 #define BTREE_TEMPLATE_DECLARATION template <typename Key, typename Value, unsigned BtreeOrder, typename Compare>
 #define BTREE_INSTANCE Btree<Key, Value, BtreeOrder, Compare>
 
 // public method part:
 
 BTREE_TEMPLATE_DECLARATION
-BTREE_INSTANCE::Btree(Compare& compare_function,
-        const initializer_list<pair<Key, Value>>& pair_list)
-: compare_func_(compare_function)
+BTREE_INSTANCE::Btree(const Compare compare_function/* = Compare()*/, //TODO: how to use less<>
+        vector<pair<Key, Value>>& pair_vec)
+    : compare_func_(compare_function)
 {
-	for (auto& p : pair_list) {
-        this->add(p);
-	}
+    std::sort(pair_vec.begin(), pair_vec.end(), [compare_function](auto p1, auto p2)
+    {
+        return compare_function(p1.first, p2.first);
+    });
+    // sort the pair_vec first, then construct the tree
+    if (pair_vec.size() <= BtreeOrder) {
+        this->root_ = make_shared<node_instance_type>(this, nullptr, pair_vec.begin(), pair_vec.end());
+    } else {
+        std::array<shared_ptr<node_instance_type>, ceil(pair_vec.size() / BtreeOrder)> all_leaf;
+        auto i = 0;
+        decltype(pair_vec.begin()) tail;
+        auto end = pair_vec.end();
+        for (auto head = pair_vec.begin();
+            end - head > BtreeOrder;
+            head = tail) {
+            tail = head + BtreeOrder;
+            // range include head to tail is willing to construct a Node
+            shared_ptr<node_instance_type> leaf = make_shared<node_instance_type>(this, nullptr/*temporary*/, head, tail);
+            // then collect this
+            all_leaf[i] = leaf;
+            ++i;
+        }
+        auto& back = all_leaf.back();
+        back = make_shared<node_instance_type>(this, nullptr, tail, end);
+    }
+
+    // then use the all_leaf array recursive construct a tree
+    // TODO
+}
+
+BTREE_TEMPLATE_DECLARATION
+BTREE_INSTANCE::Btree(const Compare compare_function/* = Compare()*/, //TODO: how to use less<>
+    vector<pair<Key, Value>>&& pair_list)
+    : Btree(compare_function, pair_list)
+{
+    
 }
 
 BTREE_TEMPLATE_DECLARATION

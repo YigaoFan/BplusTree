@@ -13,7 +13,7 @@ namespace btree {
     template<typename Key, 
              typename Value,
              unsigned BtreeOrder,
-             typename Compare = std::function<bool(const Key&, const Key&)>>
+             typename Compare = std::less<Key>>
     class Btree {
     private:
         using node_instance_type = Node<Key, Value, BtreeOrder, Btree>;
@@ -22,7 +22,9 @@ namespace btree {
         friend node_instance_type;
 
     public:
-        Btree(Compare&, const std::initializer_list<std::pair<Key, Value>>&);
+        // will change the vector arg
+        Btree(const Compare, std::vector<std::pair<Key, Value>>&);
+        Btree(const Compare, std::vector<std::pair<Key, Value>>&&);
         ~Btree();
         Value search(const Key&) const;
         RESULT_FLAG add(const std::pair<Key, Value>&);

@@ -6,6 +6,7 @@
 #include "CommonFlag.h" // for project define marco
 #include "NodeIter.h" // for NodeIter
 #include "Elements.h"
+#include <vector>
 
 namespace btree {
     struct leaf_type {};
@@ -18,9 +19,12 @@ namespace btree {
         const bool middle;
 
         // Construct
-        explicit Node(const bool&, const BtreeType*, const Node*, const leaf_type);
-        explicit Node(const bool&, const BtreeType*, const Node*, const middle_type);
-        Node(const bool&, const BtreeType*, const std::pair<Key, Value>&, const Node*);
+        Node(const BtreeType*, const Node*, const leaf_type);
+        Node(const BtreeType*, const Node*, const middle_type);
+        Node(const BtreeType*, const Node*,
+            typename std::vector<std::pair<Key, Value>>::iterator&,
+            // below is tail of range, not included to construct Node
+            typename std::vector<std::pair<Key, Value>>::iterator&);
         // todo: maybe code the up construct method in Ele and PointerEle way
         ~Node();
 
