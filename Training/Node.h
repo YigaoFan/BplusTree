@@ -5,6 +5,7 @@
 #include <utility> // for pair
 #include "CommonFlag.h" // for project define marco
 #include "NodeIter.h" // for NodeIter
+#include "Elements.h"
 
 namespace btree {
     struct leaf_type {};
@@ -12,9 +13,6 @@ namespace btree {
     // When a Node is Created, its all type is done!
 	template<typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 	class Node {
-    private:
-        using ele_instance_type = Ele<Key, Value>;
-
 	public:
         // Property
         const bool middle;
@@ -27,8 +25,9 @@ namespace btree {
         ~Node();
 
 		// Iterator
-		NodeIter<ele_instance_type> begin();
-		NodeIter<ele_instance_type> end();
+		// TODO: maybe should belong to Elements
+		//NodeIter<ele_instance_type> begin();
+		//NodeIter<ele_instance_type> end();
 
         // Method
 		std::shared_ptr<ele_instance_type> operator[](const Key&&); // todo: can use &&
@@ -37,8 +36,7 @@ namespace btree {
 
 	private:
 		// Field
-        // todo: maybe change to vector
-		std::array<std::shared_ptr<ele_instance_type>, BtreeOrder> elements_; // todo: construct
+		Elements<Key, BtreeOrder> elements_;
         decltype(elements_.size()) elements_count_{0};
         std::shared_ptr<Node> next_node_{nullptr};  // todo: complete
         const BtreeType* btree_;
@@ -52,8 +50,7 @@ namespace btree {
         RESULT_FLAG area_add(const std::pair<Key, Value>&);
         RESULT_FLAG middle_node_add(const std::pair<Key, Value>&);
             // for add and remove
-        void move_Ele(const NodeIter<ele_instance_type>&, const NodeIter<ele_instance_type>&,
-                              unsigned=1);
+
         void adjust();
 
         // Old function

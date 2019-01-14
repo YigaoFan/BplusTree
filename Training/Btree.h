@@ -32,7 +32,7 @@ namespace btree {
 
     private:
         // Field
-        std::shared_ptr<node_instance_type> root_ = std::make_shared<node_instance_type>(false, this);
+        std::shared_ptr<node_instance_type> root_; //= std::make_shared<node_instance_type>(false, this);
         const Compare compare_func_;
 
         std::shared_ptr<node_instance_type> check_out(const Key&);

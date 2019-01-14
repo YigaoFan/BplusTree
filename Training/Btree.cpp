@@ -8,7 +8,6 @@ using std::function;
 using std::sort;
 using std::shared_ptr;
 using std::vector;
-// seem like the template-type-para is not useful in this file
 #define BTREE_TEMPLATE_DECLARATION template <typename Key, typename Value, unsigned BtreeOrder, typename Compare>
 #define BTREE_INSTANCE Btree<Key, Value, BtreeOrder, Compare>
 
@@ -157,6 +156,7 @@ BTREE_INSTANCE::smallest_leaf_back()
 {
     shared_ptr<node_instance_type> current_node = this->root_;
     for (;
+        // (*current_node)[0].child should use Node child count to judge
         current_node->middle && (*current_node)[0].child != nullptr;
         current_node = (*current_node)[0].child) { }
 
