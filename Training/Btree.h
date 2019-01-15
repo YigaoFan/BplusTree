@@ -23,8 +23,8 @@ namespace btree {
 
     public:
         // will change the vector arg
-        Btree(const Compare, std::vector<std::pair<Key, Value>>&);
-        Btree(const Compare, std::vector<std::pair<Key, Value>>&&);
+        template <unsigned NumOfArrayEle> Btree(const Compare, std::array<std::pair<Key, Value>, NumOfArrayEle>&);
+        template <unsigned NumOfArrayEle> Btree(const Compare, std::array<std::pair<Key, Value>, NumOfArrayEle>&&);
         ~Btree();
         Value search(const Key&) const;
         RESULT_FLAG add(const std::pair<Key, Value>&);
@@ -43,5 +43,6 @@ namespace btree {
         // provide some all-leaf-do operation
         std::vector<node_instance_type> traverse_leaf(const predicate&);
         std::shared_ptr<node_instance_type> smallest_leaf_back();
+        template<unsigned NodeCount> void constructUpperNode(std::array<std::shared_ptr<node_instance_type>,NodeCount>&);
     };
 }

@@ -14,6 +14,7 @@ namespace btree {
     // When a Node is Created, its all type is done!
 	template<typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 	class Node {
+		friend BtreeType;
 	public:
         // Property
         const bool middle;
@@ -21,11 +22,16 @@ namespace btree {
         // Construct
         Node(const BtreeType*, const Node*, const leaf_type);
         Node(const BtreeType*, const Node*, const middle_type);
-        Node(const BtreeType*, const Node*,
+        // not change this iterator
+        Node(const BtreeType *, const Node *, const leaf_type,
+			 std::vector<std::__1::pair<Key, Value>, std::__1::allocator<std::__1::pair<Key, Value>>>::iterator,
+				// below is tail of range, not included to construct Node
+			 std::vector<std::__1::pair<Key, Value>, std::__1::allocator<std::__1::pair<Key, Value>>>::iterator);
+        // todo: maybe code the up construct method in Ele and PointerEle way
+        Node(const BtreeType*, const Node*, const middle_type,
             typename std::vector<std::pair<Key, Value>>::iterator&,
             // below is tail of range, not included to construct Node
             typename std::vector<std::pair<Key, Value>>::iterator&);
-        // todo: maybe code the up construct method in Ele and PointerEle way
         ~Node();
 
 		// Iterator
