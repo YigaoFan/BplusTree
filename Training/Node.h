@@ -23,15 +23,18 @@ namespace btree {
         Node(const BtreeType*, const Node*, const leaf_type);
         Node(const BtreeType*, const Node*, const middle_type);
         // not change this iterator
-        Node(const BtreeType *, const Node *, const leaf_type,
-			 std::vector<std::__1::pair<Key, Value>, std::__1::allocator<std::__1::pair<Key, Value>>>::iterator,
+        template <unsigned NumOfArrayEle>
+        Node(const BtreeType *, const leaf_type,
+			 typename std::array<std::pair<Key, Value>, NumOfArrayEle>::iterator&,
 				// below is tail of range, not included to construct Node
-			 std::vector<std::__1::pair<Key, Value>, std::__1::allocator<std::__1::pair<Key, Value>>>::iterator);
-        // todo: maybe code the up construct method in Ele and PointerEle way
-        Node(const BtreeType*, const Node*, const middle_type,
-            typename std::vector<std::pair<Key, Value>>::iterator&,
+			 typename std::array<std::pair<Key, Value>, NumOfArrayEle>::iterator&,
+            const Node* = nullptr);
+        template <unsigned NumOfArrayEle>
+        Node(const BtreeType *, const middle_type,
+            typename std::array<std::pair<Key, Value>, NumOfArrayEle>::iterator&,
             // below is tail of range, not included to construct Node
-            typename std::vector<std::pair<Key, Value>>::iterator&);
+            typename std::array<std::pair<Key, Value>, NumOfArrayEle>::iterator&,
+            const Node* = nullptr);
         ~Node();
 
 		// Iterator

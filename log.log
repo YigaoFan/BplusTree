@@ -96,3 +96,7 @@ int main()
 
     return 0;
 }
+
+20. C++ 还可以这样重载运算符 operator bool() 等
+
+21. 一些 unsigned 的地方要不要换成对应的 size_t

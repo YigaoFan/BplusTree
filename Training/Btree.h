@@ -2,7 +2,6 @@
 
 #include <vector> // for vector
 #include <functional> // for lambda
-#include <initializer_list> // for initializer_list
 #include <memory> // for shared_ptr
 #include <utility> // for pair
 #include "CommonFlag.h"
@@ -34,7 +33,7 @@ namespace btree {
 
     private:
         // Field
-        std::shared_ptr<node_instance_type> root_; //= std::make_shared<node_instance_type>(false, this);
+        std::shared_ptr<node_instance_type> root_{nullptr}; //= std::make_shared<node_instance_type>(false, this);
         const Compare compare_func_;
 
         std::shared_ptr<node_instance_type> check_out(const Key&);
@@ -43,6 +42,7 @@ namespace btree {
         // provide some all-leaf-do operation
         std::vector<node_instance_type> traverse_leaf(const predicate&);
         std::shared_ptr<node_instance_type> smallest_leaf_back();
-        template<unsigned NodeCount> void constructUpperNode(std::array<std::shared_ptr<node_instance_type>,NodeCount>&);
+        template <unsigned NodeCount> void construct_upper_node(std::array<std::shared_ptr<node_instance_type>,NodeCount>&);
+        template <typename Element, unsigned NodeCount> void helper(std::array<Element, NodeCount>&);
     };
 }
