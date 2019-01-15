@@ -19,6 +19,7 @@ using std::vector;
 
 // public method part:
 
+/// recommend in constructor construct all Key-Value
 BTREE_TEMPLATE_DECLARE
 template <unsigned NumOfArrayEle>
 BTREE_INSTANCE::Btree(const Compare compare_function /* = Compare()*/,  // TODO: how to use less<>
@@ -29,6 +30,7 @@ BTREE_INSTANCE::Btree(const Compare compare_function /* = Compare()*/,  // TODO:
         return;
     }
 
+    // TODO: how to check the same Key
     // sort the pair_array first
     sort(pair_array.begin(), pair_array.end(),
         [compare_function](pair<Key, Value> p1, pair<Key, Value> p2)
@@ -36,48 +38,32 @@ BTREE_INSTANCE::Btree(const Compare compare_function /* = Compare()*/,  // TODO:
         return compare_function(p1.first, p2.first);
     });
 
-    constexpr size_t leaf_num = ceil(NumOfArrayEle / BtreeOrder);
-    // store all leaf
-    array<shared_ptr<node_instance_type>, leaf_num> all_leaf;
-
-    auto head = pair_array.begin();
-    auto end = pair_array.end();
-    auto i = 0;
-    // then construct the leaf
-    if constexpr (NumOfArrayEle > BtreeOrder) {
-        auto tail = head + BtreeOrder;
-        do {
-            // use head to tail pairs to construct a Node, then collect it
-            auto leaf =
-                make_shared<node_instance_type>(this, leaf_type(), head, tail);
-            all_leaf[i] = leaf;
-
-            // update
-            head = tail;
-            tail += BtreeOrder;
-            ++i;
-        } while (end - head > BtreeOrder);
-        // not include = to ensure have to remain a group, then below statement
-        // could be run correctly
-    }
-    all_leaf[i] = make_shared<node_instance_type>(this, nullptr, head, end);
-
-    if constexpr (leaf_num <= BtreeOrder) {
-        this->root_ = make_shared<node_instance_type>(this, nullptr, all_leaf.begin(), all_leaf.end());
+    if constexpr (NumOfArrayEle < BtreeOrder) {
+        this->root_ = make_shared<node_instance_type>(this, leaf_type(), pair_array.begin(), pair_array.end());
     } else {
-        // then use the all_leaf array recursive construct a tree
-        this->construct_upper_node(all_leaf);
+        // notice: just provide a template arg
+        this->helper<true>(pair_array);
     }
 }
 
-/// assume the arg nodes is sorted
-BTREE_TEMPLATE_DECLARE
-template <typename Element, unsigned NodeCount>
+/// tool to set Node father pointer
+template <typename T>
 void
-BTREE_INSTANCE::helper(array<Element, NodeCount>& nodes)
+set_father(typename T::iterator begin, const typename T::iterator& end, void* father)
 {
-    constexpr size_t upper_node_num = ceil(NodeCount / BtreeOrder);
-    array<shared_ptr<node_instance_type>, upper_node_num> all_leaf; // store all leaf
+    for (; begin != end; ++begin) {
+        begin->father = father;
+    }
+}
+
+/// assume the nodes arg is sorted
+BTREE_TEMPLATE_DECLARE
+template <bool FirstFlag, typename ElementType, unsigned NodeCount>
+void
+BTREE_INSTANCE::helper(array<ElementType, NodeCount>& nodes)
+{
+    constexpr size_t upper_node_num = static_cast<const size_t>(ceil(NodeCount / BtreeOrder));
+    array<ElementType, upper_node_num> all_upper_node; // store all leaf
 
     auto head = nodes.begin();
     auto end = nodes.end();
@@ -88,8 +74,15 @@ BTREE_INSTANCE::helper(array<Element, NodeCount>& nodes)
         auto tail = head + BtreeOrder;
         do {
             // use head to tail pairs to construct a Node, then collect it
-            auto leaf = make_shared<node_instance_type>(this, leaf_type(), head, tail);
-            all_leaf[i] = leaf;
+            if constexpr (FirstFlag) {
+                auto leaf = make_shared<node_instance_type>(this, leaf_type(), head, tail);
+                all_upper_node[i] = leaf;
+            } else {
+                auto middle = make_shared<node_instance_type>(this, middle_type(), head, tail);
+                all_upper_node[i] = middle;
+                // set father
+                set_father(head, tail, middle.get());
+            }
 
             // update
             head = tail;
@@ -99,51 +92,19 @@ BTREE_INSTANCE::helper(array<Element, NodeCount>& nodes)
         // not include = to ensure have to remain a group, then below statement
         // could be run correctly
     }
-    all_leaf[i] = make_shared<node_instance_type>(this, nullptr, head, end);
+    if constexpr (FirstFlag) {
+        all_upper_node[i] = make_shared<node_instance_type>(this, leaf_type(), head, end);
+    } else {
+        all_upper_node[i] = make_shared<node_instance_type>(this, middle_type(), head, end);
+    }
 
     if constexpr (upper_node_num <= BtreeOrder) {
-        this->root_ = make_shared<node_instance_type>(this, nullptr, all_leaf.begin(), all_leaf.end());
+        this->root_ = make_shared<node_instance_type>(this, middle_type(), all_upper_node.begin(), all_upper_node.end());
+        set_father(all_upper_node.begin(), all_upper_node.end(), root_.get());
     } else {
-        // then use the all_leaf array recursive construct a tree
-        this->construct_upper_node(all_leaf);
+        // construct a tree recursively
+        this->helper<false>(all_upper_node);
     }
-}
-
-template <typename T>
-void 
-set_father(typename T::iterator begin, const typename T::iterator& end, void* father)
-{
-    for (; begin != end; ++begin) {
-        begin->father = father;
-    }
-}
-
-BTREE_TEMPLATE_DECLARE
-template <unsigned NodeCount>
-void BTREE_INSTANCE::construct_upper_node(array<shared_ptr<node_instance_type>, NodeCount>& all_node) {
-    // when the count is smaller than BtreeOrder, we can start construct root_ node
-    if constexpr (NodeCount <= BtreeOrder) {
-        this->root_ = make_shared<node_instance_type>(this, nullptr, middle_type(), all_node.begin(), all_node.end());
-        set_father(all_node.begin(), all_node.end(), this->root_.get());
-        return;
-    }
-
-    // below should be a function
-    array<shared_ptr<node_instance_type>, ceil((all_node.size() / BtreeOrder))> all_upper_node;
-    auto i = 0;
-    decltype(all_node.begin()) tail;
-    auto end = all_node.end();
-    for (auto head = all_node.begin(); end - head >= BtreeOrder; head = tail) {
-        tail = head + BtreeOrder;
-
-        auto middle_node = make_shared<node_instance_type>(this, nullptr, middle_type(), head, tail);
-        all_upper_node[i] = middle_node;
-        set_father(head, tail, middle_node.get());
-        ++i;
-    }
-    auto& back = all_upper_node.back();
-    back = make_shared<node_instance_type>(this, nullptr, middle_type(), tail, end);
-    this->construct_upper_node(all_upper_node);
 }
 
 BTREE_TEMPLATE_DECLARE

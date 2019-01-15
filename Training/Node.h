@@ -23,17 +23,19 @@ namespace btree {
         Node(const BtreeType*, const Node*, const leaf_type);
         Node(const BtreeType*, const Node*, const middle_type);
         // not change this iterator
-        template <unsigned NumOfArrayEle>
+        // TODO: remember to save the biggest Key, or other way can access it
+        // sometimes the iterator below is rvalue, sometimes lvalue
+        template <typename Container>
         Node(const BtreeType *, const leaf_type,
-			 typename std::array<std::pair<Key, Value>, NumOfArrayEle>::iterator&,
+			 typename Container::iterator&,
 				// below is tail of range, not included to construct Node
-			 typename std::array<std::pair<Key, Value>, NumOfArrayEle>::iterator&,
+			 typename Container::iterator&,
             const Node* = nullptr);
-        template <unsigned NumOfArrayEle>
+        template <typename Container>
         Node(const BtreeType *, const middle_type,
-            typename std::array<std::pair<Key, Value>, NumOfArrayEle>::iterator&,
-            // below is tail of range, not included to construct Node
-            typename std::array<std::pair<Key, Value>, NumOfArrayEle>::iterator&,
+			 typename Container::iterator&,
+				// below is tail of range, not included to construct Node
+			 typename Container::iterator&,
             const Node* = nullptr);
         ~Node();
 
