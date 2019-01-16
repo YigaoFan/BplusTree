@@ -35,13 +35,15 @@ namespace btree {
         // Field
         std::shared_ptr<node_instance_type> root_{nullptr};
         const Compare compare_func_;
+        unsigned key_num_; // todo: remember to add to use
 
-        std::shared_ptr<node_instance_type> check_out(const Key&);
-        std::shared_ptr<node_instance_type> check_out_recur(const Key&, 
-            const std::shared_ptr<node_instance_type>&);
+        std::weak_ptr<node_instance_type> check_out(const Key&);
+        std::weak_ptr<node_instance_type> check_out_recur(const Key&, 
+            const std::weak_ptr<node_instance_type>&);
         // provide some all-leaf-do operation
         std::vector<node_instance_type> traverse_leaf(const predicate&);
         std::shared_ptr<node_instance_type> smallest_leaf_back();
         template <bool FirstFlag, typename Element, unsigned NodeCount> void helper(std::array<Element, NodeCount>&);
+        template <typename T> static void set_father(typename T::iterator, const typename T::iterator&, void* father);
     };
 }

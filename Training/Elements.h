@@ -1,6 +1,7 @@
 #pragma once
 #include <utility> // for pair
 #include <array> // for array
+#include <vector> // for vector
 #include <initializer_list>
 
 /// This will require Key has default constructor
@@ -23,9 +24,18 @@ public:
     // Node-caller should ensure the i is right range
     Key& key(unsigned i) const
     { return elements_[i].first; }
+    bool have(const Key&) {} // todo: try add a memory mechanism
     void*& value(unsigned i) const
     { return elements_[i].second; }
     // TODO: and other write operation
+    std::vector<Key> all_key(const unsigned& key_num) const
+    {
+        std::array<Key, key_num> res;
+        for (unsigned i = 0; i < key_num; ++i) {
+            res[i] = elements_[i].first;
+        }
+        return res; // array can convert vector directly?
+    }
 };
 // TODO: move to Elements
 void move_Ele(const NodeIter<ele_instance_type>&, const NodeIter<ele_instance_type>&,

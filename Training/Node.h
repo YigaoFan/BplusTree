@@ -20,20 +20,20 @@ namespace btree {
         const bool middle;
 
         // Construct
-        Node(const BtreeType*, const Node*, const leaf_type);
+        Node(const BtreeType*, const Node*, const leaf_type, const std::pair<Key, Value>&);
         Node(const BtreeType*, const Node*, const middle_type);
         // not change this iterator
         // TODO: remember to save the biggest Key, or other way can access it
         // sometimes the iterator below is rvalue, sometimes lvalue
         template <typename Container>
         Node(const BtreeType *, const leaf_type,
-			 typename Container::iterator&,
+			 typename Container::iterator&, // point to key-value array
 				// below is tail of range, not included to construct Node
 			 typename Container::iterator&,
             const Node* = nullptr);
         template <typename Container>
         Node(const BtreeType *, const middle_type,
-			 typename Container::iterator&,
+			 typename Container::iterator&, // point to key-ptr array
 				// below is tail of range, not included to construct Node
 			 typename Container::iterator&,
             const Node* = nullptr);
@@ -45,9 +45,12 @@ namespace btree {
 		//NodeIter<ele_instance_type> end();
 
         // Method
-		std::shared_ptr<ele_instance_type> operator[](const Key&&); // todo: can use &&
+        bool have(const Key&);
+		Value& operator[](const Key&);
         RESULT_FLAG add(const std::pair<Key, Value>&);
         void remove(const Key&);
+        std::vector<Key> all_key() 
+	    const { return elements_.all_key(key_num_); }
 
 	private:
 		// Field
@@ -56,6 +59,7 @@ namespace btree {
         std::shared_ptr<Node> next_node_{nullptr};  // todo: complete
         const BtreeType* btree_;
         Node* father_;
+        unsigned key_num_;
 
         // Helper 
         //bool has_child() { return middle && elements_count_ > 0; }

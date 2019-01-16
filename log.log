@@ -76,7 +76,7 @@ BTREE_INSTANCE::check_out(const Key key)
 
 28. 在库的内部，许多事情需要调用者自己保证，比如数量不越界
 
-19. 左值和右值的界线是不是可以使用函数模糊掉
+29. 左值和右值的界线是不是可以使用函数模糊掉
 void
 fun(int& b)
 {
@@ -97,6 +97,16 @@ int main()
     return 0;
 }
 
-20. C++ 还可以这样重载运算符 operator bool() 等
+30. C++ 还可以这样重载运算符 operator bool() 等
 
-21. 一些 unsigned 的地方要不要换成对应的 size_t
+31. 一些 unsigned 的地方要不要换成对应的 size_t
+
+32. static method call like this: BTREE_INSTANCE::set_father
+
+33. 利用 shared_ptr 或包一个 shared_ptr，这样就知道哪些地方引用了 Node，这样 Node 有变化的时候，就可以去修改相关的地方。
+
+34. 写每一个函数的时候，看一看上下引用的函数的需求。
+
+35. 尽量不要越层暴露细节，比如对于 Btree 不要暴露 Elements 的细节，这样会增加复杂度。
+
+36. Btree 不是线程安全的，因为有些东西依赖了上一步，比如 weak_ptr 往往依赖了上一步的查找，这样就不用验证存在。

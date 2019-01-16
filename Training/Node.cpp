@@ -126,17 +126,24 @@ NODE_INSTANCE::end()
     return NodeIter<ele_instance_type>(&elements_[elements_count_]);
 }
 
-/// may return nullptr when not found
 NODE_TEMPLATE_DECLARATION
-shared_ptr<typename NODE_INSTANCE::ele_instance_type>
-NODE_INSTANCE::operator[](const Key&& k)
+bool
+NODE_INSTANCE::have(const Key& k)
 {
-    for (ele_instance_type& e : *this) {
-        if (e->key == k) {
-            return make_shared<ele_instance_type>(e);
-        }
+    if (elements_.have(k)) {
+        return true;
+    } else {
+        return false;
     }
-    return nullptr;
+}
+
+/// may return Value() when not found
+NODE_TEMPLATE_DECLARATION
+Value&
+NODE_INSTANCE::operator[](const Key& k)
+{
+    // TODO: half search
+    return elements_[k];
 }
 
 NODE_TEMPLATE_DECLARATION
