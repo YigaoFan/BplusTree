@@ -19,6 +19,8 @@ using std::copy;
   template <typename Key, typename Value, unsigned BtreeOrder>
 #define BTREE_INSTANCE Btree<Key, Value, BtreeOrder>
 
+// all method in this level, 
+// when call lower level function, must ensure the Key exist
 // public method part:
 
 /// recommend in constructor construct all Key-Value
@@ -273,8 +275,7 @@ BTREE_INSTANCE::smallest_leaf() {
     node_instance_type* current_node = root_.get();
 
     while (current_node->middle) {
-        // TODO: operator[] should implement
-        current_node = static_cast<node_instance_type*>(current_node->operator[](0));
+        current_node = static_cast<node_instance_type*>(current_node->min_value());
     }
    
     return current_node;

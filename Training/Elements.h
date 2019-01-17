@@ -11,6 +11,8 @@ class Elements {
 private:
     // Not initial, just for memory space
     std::array<std::pair<Key, void*>, BtreeOrder> elements_;
+    unsigned count_;
+    unsigned cache_index_; // TODO: maybe Element.add will change this value
 public:
     // Node-caller ensure the sort and count are right
     Elements(const std::initializer_list<std::pair<Key, void*>> li)
@@ -20,15 +22,19 @@ public:
             elements_[i] = p;
             ++i;
         }
+        count_ = i;
+        cache_index_ = count_ / 2;
     }
     // Node-caller should ensure the i is right range
     Key& key(unsigned i) const
     { return elements_[i].first; }
-    bool have(const Key&) {} // todo: try add a memory mechanism
+    Key& key() const
+    { return elements_[count_ - 1].first; }
+    bool have( const Key&);
     void*& value(unsigned i) const
     { return elements_[i].second; }
     // TODO: and other write operation
-    std::vector<Key> all_key(const unsigned& key_num) const
+    std::vector<Key> all_key() const
     {
         std::vector<Key> r(key_num);
         for (unsigned i = 0; i < key_num; ++i) {

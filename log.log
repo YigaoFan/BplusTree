@@ -114,3 +114,8 @@ int main()
 37. 不完全确定是否要这样自我规定：数据成员不用加 this 调用，成员函数需要。因为我怕调用有些可能不是成员的函数
 
 38. 右值引用的实际过程
+
+39. // all method in this level,
+// when call lower level function, must ensure the Key exist
+
+40. adjust 中需要确保没有 key_num_ 为0的结点

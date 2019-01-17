@@ -49,7 +49,10 @@ namespace btree {
         RESULT_FLAG add(const std::pair<Key, Value>&);
         void remove(const Key&);
         std::vector<Key> all_key() 
-	    const { return elements_.all_key(key_num_); }
+	    const { return elements_.all_key(); }
+        // method below design for read-only, look return value
+        Key max_key() const { return elements_.key(); }
+        Value min_value() const { return elements_.value(0); } // for Btree traverse get the leftest leaf
 
 	private:
 		// Field
@@ -58,7 +61,7 @@ namespace btree {
         std::shared_ptr<Node> next_node_{nullptr};  // todo: complete
         const BtreeType* btree_;
         Node* father_;
-        unsigned key_num_;
+        //unsigned key_num_;
 
         // Helper 
         //bool has_child() { return middle && elements_count_ > 0; }
