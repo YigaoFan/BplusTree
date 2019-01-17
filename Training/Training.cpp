@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include <utility>
+#include <array>
 #include "Btree.h"
 
 using namespace btree;
@@ -17,10 +18,17 @@ using std::shared_ptr;
 using std::make_shared;
 using std::ostream;
 using std::pair;
+using std::array;
+using std::make_pair;
 
 int main()
 {
     auto compare = [](const int a, const int b) { return a < b; };
-    auto b = Btree<int, string, 3, decltype(compare)>(compare, { {1, "a"}, {2, "b"}, {3, "c"}, });
+    array<pair<int, string>, 3> key_value_array{
+        make_pair<int, string>(1, "a")/* { 1, "a" }*/, // smart compiler? 0th element must like this
+        {2, "b"},
+        {3, "c"}, 
+    };
+    auto b = Btree<int, string, 3>(compare, key_value_array);
     return 0;
 }

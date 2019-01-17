@@ -81,6 +81,8 @@ using std::pair;
 
 // public method part:
 
+NO
+
 NODE_TEMPLATE_DECLARATION
 NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const leaf_type) 
 :middle(false), btree_(btree), father_(father)

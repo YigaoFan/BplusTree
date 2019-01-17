@@ -1,8 +1,8 @@
-// todo: should in implementation file includes header file?
-#include "Btree.h"
+// should in implementation file includes header file?
 #include <algorithm>  // for sort
-#include <array>
+#include <array> // for array
 #include <cmath>  // for ceil
+#include "Btree.h"
 using namespace btree;
 using std::array;
 using std::ceil;
@@ -16,8 +16,8 @@ using std::sort;
 using std::vector;
 using std::copy;
 #define BTREE_TEMPLATE_DECLARE \
-  template <typename Key, typename Value, unsigned BtreeOrder, typename Compare>
-#define BTREE_INSTANCE Btree<Key, Value, BtreeOrder, Compare>
+  template <typename Key, typename Value, unsigned BtreeOrder>
+#define BTREE_INSTANCE Btree<Key, Value, BtreeOrder>
 
 // public method part:
 
@@ -27,14 +27,16 @@ using std::copy;
 /// When you add or modify, you can use have() function to check it
 BTREE_TEMPLATE_DECLARE
 template <unsigned NumOfArrayEle>
-BTREE_INSTANCE::Btree(const Compare compare_function /* = Compare()*/,  // TODO: how to use less<>
+BTREE_INSTANCE::Btree(const compare& compare_function,
     array<pair<Key, Value>, NumOfArrayEle>& pair_array)
     : compare_func_(compare_function) 
 {
     if constexpr (NumOfArrayEle == 0) {
         return;
     }
-    // TODO: how to check&process the same Key
+    // TODO: check&process the same Key
+    key_num_ += NumOfArrayEle;
+
     // sort the pair_array first
     sort(pair_array.begin(), pair_array.end(),
         [compare_function](pair<Key, Value> p1, pair<Key, Value> p2)
@@ -42,8 +44,9 @@ BTREE_INSTANCE::Btree(const Compare compare_function /* = Compare()*/,  // TODO:
         return compare_function(p1.first, p2.first);
     });
 
+    // TODO: set the high bound and node
     if constexpr (NumOfArrayEle < BtreeOrder) {
-        this->root_ = make_shared<node_instance_type>(this, leaf_type(), pair_array.begin(), pair_array.end());
+        root_ = make_shared<node_instance_type>(this, leaf_type(), pair_array.begin(), pair_array.end());
     } else {
         // notice: just provide a template arg
         this->helper<true>(pair_array);
@@ -102,7 +105,7 @@ BTREE_INSTANCE::helper(array<ElementType, NodeCount>& nodes)
     }
 
     if constexpr (upper_node_num <= BtreeOrder) {
-        this->root_ = make_shared<node_instance_type>(this, middle_type(), all_upper_node.begin(), all_upper_node.end());
+        root_ = make_shared<node_instance_type>(this, middle_type(), all_upper_node.begin(), all_upper_node.end());
         BTREE_INSTANCE::set_father(all_upper_node.begin(), all_upper_node.end(), root_.get());
     } else {
         // construct tree recursively
@@ -113,7 +116,7 @@ BTREE_INSTANCE::helper(array<ElementType, NodeCount>& nodes)
 BTREE_TEMPLATE_DECLARE
 template <unsigned NumOfArrayEle>
 BTREE_INSTANCE::Btree(
-    const Compare compare_function /* = Compare()*/,  // TODO: how to use less<>
+    const compare& compare_function,
     array<pair<Key, Value>, NumOfArrayEle>&& pair_array)
     : Btree(compare_function, pair_array) {}
 
@@ -124,7 +127,7 @@ BTREE_TEMPLATE_DECLARE
 Value
 BTREE_INSTANCE::search(const Key& key) const
 {
-    weak_ptr<node_instance_type> node(this->check_out(key));
+    node_instance_type*&& node = this->check_out(key);
     if (node->middle) {
         // Value type should provide default constructor to represent null
         return Value(); // undefined behavior
@@ -143,17 +146,23 @@ BTREE_INSTANCE::add(const pair<Key, Value>& pair) {
 
     auto& k = pair.first;
     auto& v = pair.second;
-    // the code below should be a function? and the code in modify
-    weak_ptr<node_instance_type> node = this->check_out(k);
+    // TODO: the code below should be a function? and the code in modify
+    node_instance_type*&& node = this->check_out(k);
     if (!node->middle) {
         if (node->have(k)) {
+            // modify
             node->operator[](k) = v;
         } else {
+            // add
             node->add(pair);
+            ++key_num_;
         }
     } else {
+        // add
+        ++key_num_;
         node->add(pair);
     }
+    return OK;
 }
 
 /// if not exist, will add
@@ -162,26 +171,30 @@ RESULT_FLAG
 BTREE_INSTANCE::modify(const pair<Key, Value>& pair) {
     Key& k = pair.first;
     Value& v = pair.second;
-    weak_ptr<node_instance_type> node(this->check_out(k));
+    node_instance_type*&& node = this->check_out(k);
     if (!node->middle) {
         if (node->have(k)) {
+            // modify
             node->operator[](k) = v;
         } else {
+            // add
             node->add(pair);
+            ++key_num_;
         }
     }
     node->add(pair);
+    ++key_num_;
+
     return OK;
 }
 
 BTREE_TEMPLATE_DECLARE
 vector<Key>
 BTREE_INSTANCE::explore() const {
-  array<Key, key_num_> k_array;
-  // TODO: the lambda arg should be what?
-  this->traverse_leaf([&k_array](weak_ptr<node_instance_type> n) {
+  vector<Key> k_array(key_num_);
+  this->traverse_leaf([&k_array](node_instance_type* n) {
       static auto iter = k_array.begin();
-      vector<Key>& ks = n->all_key();
+      vector<Key>&& ks = n->all_key();
       iter = copy(ks.begin(), ks.end(), iter);
       return false;
   });
@@ -192,15 +205,16 @@ BTREE_INSTANCE::explore() const {
 BTREE_TEMPLATE_DECLARE
 void
 BTREE_INSTANCE::remove(const Key& key) {
-  weak_ptr<node_instance_type> n(this->check_out(key));
-  n->remove(key);
+    node_instance_type*&& n = this->check_out(key);
+    n->remove(key); // TODO: whether to check if key exist
+    --key_num_;
 }
 
 BTREE_TEMPLATE_DECLARE
 bool
 BTREE_INSTANCE::have(const Key& key)
 {
-    weak_ptr<node_instance_type>&& r = this->check_out(key);
+    node_instance_type*&& r = this->check_out(key);
     if (r->middle || !r->have(key)) {
         return false;
     } else {
@@ -213,20 +227,20 @@ BTREE_INSTANCE::have(const Key& key)
 /// search the key in Btree, return the node that terminated, may be not have the key
 /// this is to save the search information
 BTREE_TEMPLATE_DECLARE
-weak_ptr<typename BTREE_INSTANCE::node_instance_type>
+typename BTREE_INSTANCE::node_instance_type*
 BTREE_INSTANCE::check_out(const Key& key) {
-  if (!(this->root_->middle)) {
-    return this->root_;
+  if (!root_->middle) {
+    return root_;
   } else {
-    return check_out_recur(key, this->root_);
+    return check_out_recur(key, root_);
   }
 }
 
 BTREE_TEMPLATE_DECLARE
-weak_ptr<typename BTREE_INSTANCE::node_instance_type>
-BTREE_INSTANCE::check_out_recur(const Key& key, const weak_ptr<node_instance_type>& node) {
+typename BTREE_INSTANCE::node_instance_type*
+BTREE_INSTANCE::check_out_recur(const Key& key, const node_instance_type* node) {
   if (node->middle) {
-      if (node.have(key)) {
+      if (node->have(key)) {
           check_out_recur(key, node->operator[](key));
       }
     return node;
@@ -237,30 +251,31 @@ BTREE_INSTANCE::check_out_recur(const Key& key, const weak_ptr<node_instance_typ
 
 /// operate on the true Node
 BTREE_TEMPLATE_DECLARE
-vector<typename BTREE_INSTANCE::node_instance_type>
+vector<typename BTREE_INSTANCE::node_instance_type*>
 BTREE_INSTANCE::traverse_leaf(const predicate& predicate) {
-    // TODO: should operate on pointer
-  vector<node_instance_type> result;
-  for (shared_ptr<node_instance_type> current_node = this->smallest_leaf_back();
-       current_node->next_brother != nullptr;
-       current_node = current_node->next_brother) {
-    // todo: how to predicate a Node? Or should use Ele
-    if (predicate(current_node)) {
-      result.push_back(current_node);
-    }
-  }
+    vector<node_instance_type*> result;
 
-  return result;
+    node_instance_type* current = this->smallest_leaf();
+    do {
+        if (predicate(current)) {
+            result.push_back(current);
+        }
+        // update
+        current = current->next_node_;
+    } while (current != nullptr);
+
+    return result;
 }
 
 BTREE_TEMPLATE_DECLARE
-shared_ptr<typename BTREE_INSTANCE::node_instance_type>
-BTREE_INSTANCE::smallest_leaf_back() {
-  shared_ptr<node_instance_type> current_node = this->root_;
-  for (;
-       // (*current_node)[0].child should use Node child count to judge
-       current_node->middle && (*current_node)[0].child != nullptr;
-       current_node = (*current_node)[0].child) {}
+typename BTREE_INSTANCE::node_instance_type*
+BTREE_INSTANCE::smallest_leaf() {
+    node_instance_type* current_node = root_.get();
 
-  return current_node;
+    while (current_node->middle) {
+        // TODO: operator[] should implement
+        current_node = static_cast<node_instance_type*>(current_node->operator[](0));
+    }
+   
+    return current_node;
 }

@@ -8,22 +8,20 @@
 #include "Node.h"
 
 namespace btree {
-    // should provide the default Compare type. Learn the less<arg>.
     template<typename Key, 
              typename Value,
-             unsigned BtreeOrder,
-             typename Compare = std::less<Key>>
+             unsigned BtreeOrder>
     class Btree {
     private:
         using node_instance_type = Node<Key, Value, BtreeOrder, Btree>;
-        using predicate = std::function<bool(std::shared_ptr<node_instance_type>)>;
-        // Friend
-        friend node_instance_type;
+        friend node_instance_type; // for Node use compare func
+        using predicate = std::function<bool(node_instance_type*)>;
 
     public:
+        using compare = std::function<bool(const Key&, const Key&)>;
         // will change the vector arg
-        template <unsigned NumOfArrayEle> Btree(const Compare, std::array<std::pair<Key, Value>, NumOfArrayEle>&);
-        template <unsigned NumOfArrayEle> Btree(const Compare, std::array<std::pair<Key, Value>, NumOfArrayEle>&&);
+        template <unsigned NumOfArrayEle> Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>&);
+        template <unsigned NumOfArrayEle> Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>&&);
         ~Btree();
         Value search(const Key&) const;
         RESULT_FLAG add(const std::pair<Key, Value>&);
@@ -35,15 +33,15 @@ namespace btree {
     private:
         // Field
         std::shared_ptr<node_instance_type> root_{nullptr};
-        const Compare compare_func_;
-        unsigned key_num_; // todo: remember to add to use
+        const compare compare_func_;
+        unsigned key_num_{0}; // todo: remember to add to use
 
-        std::weak_ptr<node_instance_type> check_out(const Key&);
-        std::weak_ptr<node_instance_type> check_out_recur(const Key&, 
-            const std::weak_ptr<node_instance_type>&);
+        node_instance_type* check_out(const Key&);
+        node_instance_type* check_out_recur(const Key&, 
+            const node_instance_type*);
         // provide some all-leaf-do operation
-        std::vector<node_instance_type> traverse_leaf(const predicate&);
-        std::shared_ptr<node_instance_type> smallest_leaf_back();
+        std::vector<node_instance_type*> traverse_leaf(const predicate&);
+        node_instance_type* smallest_leaf();
         template <bool FirstFlag, typename Element, unsigned NodeCount> void helper(std::array<Element, NodeCount>&);
         template <typename T> static void set_father(typename T::iterator, const typename T::iterator&, void* father);
     };

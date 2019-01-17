@@ -30,11 +30,11 @@ public:
     // TODO: and other write operation
     std::vector<Key> all_key(const unsigned& key_num) const
     {
-        std::array<Key, key_num> res;
+        std::vector<Key> r(key_num);
         for (unsigned i = 0; i < key_num; ++i) {
-            res[i] = elements_[i].first;
+            r[i] = elements_[i].first;
         }
-        return res; // array can convert vector directly?
+        return r;
     }
 };
 // TODO: move to Elements
