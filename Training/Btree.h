@@ -30,6 +30,7 @@ namespace btree {
         RESULT_FLAG modify(const std::pair<Key, Value>&);
         std::vector<Key> explore() const;
         void remove(const Key&);
+        bool have(const Key&);
 
     private:
         // Field

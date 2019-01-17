@@ -22,6 +22,9 @@ using std::copy;
 // public method part:
 
 /// recommend in constructor construct all Key-Value
+/// user should ensure not include the same Key-Value
+/// Because when construct a tree, you can see all Keys
+/// When you add or modify, you can use have() function to check it
 BTREE_TEMPLATE_DECLARE
 template <unsigned NumOfArrayEle>
 BTREE_INSTANCE::Btree(const Compare compare_function /* = Compare()*/,  // TODO: how to use less<>
@@ -118,11 +121,13 @@ BTREE_TEMPLATE_DECLARE
 BTREE_INSTANCE::~Btree() {}
 
 BTREE_TEMPLATE_DECLARE
-Value BTREE_INSTANCE::search(const Key& key) const {
+Value
+BTREE_INSTANCE::search(const Key& key) const
+{
     weak_ptr<node_instance_type> node(this->check_out(key));
     if (node->middle) {
         // Value type should provide default constructor to represent null
-        return Value();
+        return Value(); // undefined behavior
     }
     return node->operator[](key); 
 }
@@ -135,8 +140,11 @@ BTREE_INSTANCE::add(const pair<Key, Value>& pair) {
         root_ = make_shared<node_instance_type>(this, nullptr, leaf_type(), pair);
         return OK;
     }
+
+    auto& k = pair.first;
+    auto& v = pair.second;
     // the code below should be a function? and the code in modify
-    weak_ptr<node_instance_type> node = this->check_out(pair.first);
+    weak_ptr<node_instance_type> node = this->check_out(k);
     if (!node->middle) {
         if (node->have(k)) {
             node->operator[](k) = v;
@@ -167,24 +175,37 @@ BTREE_INSTANCE::modify(const pair<Key, Value>& pair) {
 }
 
 BTREE_TEMPLATE_DECLARE
-vector<Key> BTREE_INSTANCE::explore() const {
+vector<Key>
+BTREE_INSTANCE::explore() const {
   array<Key, key_num_> k_array;
+  // TODO: the lambda arg should be what?
   this->traverse_leaf([&k_array](weak_ptr<node_instance_type> n) {
       static auto iter = k_array.begin();
-      // TODO: collect the copy return value
       vector<Key>& ks = n->all_key();
-      copy(ks.begin(), ks.end(), iter); 
-      return false; // need this false?
+      iter = copy(ks.begin(), ks.end(), iter);
+      return false;
   });
 
   return k_array;
 }
 
 BTREE_TEMPLATE_DECLARE
-void BTREE_INSTANCE::remove(const Key& key) {
-  shared_ptr<node_instance_type> node = this->check_out(key);
-  // todo: should implement the Node method remove
-  node->remove(key);
+void
+BTREE_INSTANCE::remove(const Key& key) {
+  weak_ptr<node_instance_type> n(this->check_out(key));
+  n->remove(key);
+}
+
+BTREE_TEMPLATE_DECLARE
+bool
+BTREE_INSTANCE::have(const Key& key)
+{
+    weak_ptr<node_instance_type>&& r = this->check_out(key);
+    if (r->middle || !r->have(key)) {
+        return false;
+    } else {
+        return true;
+    }
 }
 
 // private method part:
@@ -214,10 +235,11 @@ BTREE_INSTANCE::check_out_recur(const Key& key, const weak_ptr<node_instance_typ
   }
 }
 
-/// operate on the true Node, not the copy
+/// operate on the true Node
 BTREE_TEMPLATE_DECLARE
 vector<typename BTREE_INSTANCE::node_instance_type>
 BTREE_INSTANCE::traverse_leaf(const predicate& predicate) {
+    // TODO: should operate on pointer
   vector<node_instance_type> result;
   for (shared_ptr<node_instance_type> current_node = this->smallest_leaf_back();
        current_node->next_brother != nullptr;
@@ -238,8 +260,7 @@ BTREE_INSTANCE::smallest_leaf_back() {
   for (;
        // (*current_node)[0].child should use Node child count to judge
        current_node->middle && (*current_node)[0].child != nullptr;
-       current_node = (*current_node)[0].child) {
-  }
+       current_node = (*current_node)[0].child) {}
 
   return current_node;
 }
