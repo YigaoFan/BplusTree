@@ -44,5 +44,6 @@ namespace btree {
         node_instance_type* smallest_leaf();
         template <bool FirstFlag, typename Element, unsigned NodeCount> void helper(std::array<Element, NodeCount>&);
         template <typename T> static void set_father(typename T::iterator, const typename T::iterator&, void* father);
+        template <typename T> static void set_next_node(typename T::iterator, const typename T::iterator&);
     };
 }

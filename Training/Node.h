@@ -14,15 +14,18 @@ namespace btree {
     // When a Node is Created, its all type is done!
 	template<typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 	class Node {
-		friend BtreeType; // for Btree set father
+		friend BtreeType; // for Btree set father, next_node_
+	private:
+		// common construct
+		Node(const BtreeType*, const Node*, const leaf_type);
+		Node(const BtreeType*, const Node*, const middle_type);
+
 	public:
         // Property
         const bool middle;
 
         // Construct
         Node(const BtreeType*, const Node*, const leaf_type, const std::pair<Key, Value>&);
-        Node(const BtreeType*, const Node*, const middle_type); // TODO: have using? now not implement
-        // not change this iterator
         // TODO: remember to save the biggest Key, or other way can access it
         template <typename Container>
         Node(const BtreeType *, const leaf_type,
@@ -50,36 +53,32 @@ namespace btree {
         void remove(const Key&);
         std::vector<Key> all_key() 
 	    const { return elements_.all_key(); }
-        // method below design for read-only, look return value
+        // return value means read-only
         Key max_key() const { return elements_.key(); }
         Value min_value() const { return elements_.value(0); } // for Btree traverse get the leftest leaf
 
 	private:
 		// Field
 		Elements<Key, BtreeOrder> elements_;
-        decltype(elements_.size()) elements_count_{0};
-        std::shared_ptr<Node> next_node_{nullptr};  // todo: complete
+        std::shared_ptr<Node> next_node_{nullptr};  // TODO: complete
         const BtreeType* btree_;
         Node* father_;
-        //unsigned key_num_;
 
         // Helper 
-        //bool has_child() { return middle && elements_count_ > 0; }
-        bool full() { return elements_count_ >= BtreeOrder; }
+        bool full() { return elements_.full(); }
             // for add
         RESULT_FLAG no_area_add(std::pair<Key, Value>);
         RESULT_FLAG area_add(const std::pair<Key, Value>&);
         RESULT_FLAG middle_node_add(const std::pair<Key, Value>&);
             // for add and remove
-
         void adjust();
 
         // Old function
         //RESULT_FLAG insert(std::shared_ptr<ele_instance_type>);
-        void do_insert(std::shared_ptr<ele_instance_type>);
-        void exchange_the_biggest_ele_out(std::shared_ptr<ele_instance_type>);
+//        void do_insert(std::shared_ptr<ele_instance_type>);
+//        void exchange_the_biggest_ele_out(std::shared_ptr<ele_instance_type>);
         // make the method below like this createNewRoot(node1, node2...);
-        static RESULT_FLAG createNewRoot(const std::shared_ptr<Node>&, const std::shared_ptr<ele_instance_type> &);
-        static std::shared_ptr<ele_instance_type> constructToMakeItFitTheFatherInsert(std::shared_ptr<ele_instance_type>);
+//        static RESULT_FLAG createNewRoot(const std::shared_ptr<Node>&, const std::shared_ptr<ele_instance_type> &);
+//        static std::shared_ptr<ele_instance_type> constructToMakeItFitTheFatherInsert(std::shared_ptr<ele_instance_type>);
 	};
 }

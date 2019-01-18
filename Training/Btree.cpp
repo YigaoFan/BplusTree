@@ -1,4 +1,3 @@
-// should in implementation file includes header file?
 #include <algorithm>  // for sort
 #include <array> // for array
 #include <cmath>  // for ceil
@@ -66,13 +65,24 @@ BTREE_INSTANCE::set_father(typename T::iterator begin, const typename T::iterato
     }
 }
 
+BTREE_TEMPLATE_DECLARE
+template <typename T>
+void
+BTREE_INSTANCE::set_next_node(typename T::iterator begin, const typename T::iterator& end)
+{
+    // TODO
+//        all_upper_node[i-1]->next_node_ = leaf.get();
+
+}
+// set high-bound (leaf&middle) and next node(only in leaf?)
+
 /// assume the nodes arg is sorted
 BTREE_TEMPLATE_DECLARE
 template <bool FirstFlag, typename ElementType, unsigned NodeCount>
 void
 BTREE_INSTANCE::helper(array<ElementType, NodeCount>& nodes)
 {
-    constexpr size_t upper_node_num = static_cast<const size_t>(ceil(NodeCount / BtreeOrder));
+    constexpr auto upper_node_num = static_cast<const size_t>(ceil(NodeCount / BtreeOrder));
     array<ElementType, upper_node_num> all_upper_node; // store all leaf
 
     auto head = nodes.begin();
@@ -123,7 +133,7 @@ BTREE_INSTANCE::Btree(
     : Btree(compare_function, pair_array) {}
 
 BTREE_TEMPLATE_DECLARE
-BTREE_INSTANCE::~Btree() {}
+BTREE_INSTANCE::~Btree() = default;
 
 BTREE_TEMPLATE_DECLARE
 Value

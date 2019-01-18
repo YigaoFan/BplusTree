@@ -80,8 +80,44 @@ using std::pair;
 //}
 
 // public method part:
+NODE_TEMPLATE_DECLARATION
+NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const leaf_type)
+: btree_(btree), father_(father), middle(false)
+{
+    // null
+}
 
-NO
+NODE_TEMPLATE_DECLARATION
+NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const middle_type)
+: btree_(btree), father_(father), middle(true)
+{
+    // null
+}
+
+NODE_TEMPLATE_DECLARATION
+NODE_INSTANCE::Node(const BtreeType* btree, const Node* father,const leaf_type nul, const pair<Key, Value>& pair)
+: Node(btree, father, nul)
+{
+    elements_.add(pair);
+}
+
+NODE_TEMPLATE_DECLARATION
+template <typename Container>
+NODE_INSTANCE::Node(const BtreeType* btree, const leaf_type nul,
+        typename Container::iterator begin, typename Container::iterator,const Node* father)
+        : Node(btree, father, nul)
+        {
+    // TODO
+}
+
+NODE_TEMPLATE_DECLARATION
+template <typename Container>
+NODE_INSTANCE::Node(const BtreeType* btree, const middle_type nul,
+        typename Container::iterator begin, typename Container::iterator,const Node* father)
+        : Node(btree, father, nul)
+        {
+    // TODO
+}
 
 NODE_TEMPLATE_DECLARATION
 NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const leaf_type) 
@@ -110,9 +146,8 @@ NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const pair<Key, 
 }
 
 NODE_TEMPLATE_DECLARATION
-NODE_INSTANCE::~Node()
-{
-}
+NODE_INSTANCE::~Node() = default;
+
 
 NODE_TEMPLATE_DECLARATION
 NodeIter<typename NODE_INSTANCE::ele_instance_type>
@@ -132,11 +167,7 @@ NODE_TEMPLATE_DECLARATION
 bool
 NODE_INSTANCE::have(const Key& k)
 {
-    if (elements_.have(k)) {
-        return true;
-    } else {
-        return false;
-    }
+    return elements_.have(k);
 }
 
 /// may return Value() when not found
