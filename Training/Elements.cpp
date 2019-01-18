@@ -1,7 +1,9 @@
 #include "Elements.h"
-template <typename Key, unsigned BtreeOrder>
+#define ELEMENT_TEMPLATE_DECLARE template <typename Key, unsigned BtreeOrder>
+#define ELEMENT_INSTANCE Elements<Key, BtreeOrder>
+ELEMENT_TEMPLATE_DECLARE
 bool
-Elements<Key, BtreeOrder>::have(const Key& key)
+ELEMENT_INSTANCE::have(const Key& key)
 {
     // version 1:
 //    auto& cache = elements_[cache_index_];
@@ -26,5 +28,19 @@ Elements<Key, BtreeOrder>::have(const Key& key)
         } else {
             return false;
         }
+    }
+}
+
+ELEMENT_TEMPLATE_DECLARE
+void*&
+ELEMENT_INSTANCE::operator[](const Key& key)
+{
+    auto& cache_k = elements_[cache_index_].first;
+    auto& cache_v = elements_[cache_index_].second;
+
+    if (key == cache_k) {
+        return cache_v;
+    } else if (key < cache_k) {
+
     }
 }

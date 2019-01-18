@@ -23,7 +23,7 @@ public:
             ++i;
         }
         count_ = i;
-        cache_index_ = count_ / 2;
+        this->reset();
     }
     //Elements() = default; TODO: will useful
     // Node-caller should ensure the i is right range
@@ -46,8 +46,12 @@ public:
     template <typename Value>
     void add(const std::pair<Key, Value>&);
     template <typename Value>
-    void add(const std::pair<Key, Value*>*);
+    void add(const std::pair<Key, Value*>&);
+    void*& operator[](const Key&);
+
+private:
+    void reset() { cache_index_ = count_ / 2; }
 };
 // TODO: move to Elements
-void move_Ele(const NodeIter<ele_instance_type>&, const NodeIter<ele_instance_type>&,
-              unsigned=1);
+//void move_Ele(const NodeIter<ele_instance_type>&, const NodeIter<ele_instance_type>&,
+//              unsigned=1);
