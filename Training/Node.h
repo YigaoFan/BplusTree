@@ -25,11 +25,11 @@ namespace btree {
         const bool middle;
 
         // Construct
-        Node(const BtreeType*, const Node*, const leaf_type, const std::pair<Key, Value>&);
+        Node(const BtreeType*, const Node*, const leaf_type, const std::pair<Key, Value>&); // for Btree add
         // TODO: remember to save the biggest Key, or other way can access it
         template <typename Container>
         Node(const BtreeType *, const leaf_type,
-			 typename Container::iterator, // point to key-value array
+			 typename Container::iterator, // point to key-min_value array
 				// below is tail of range, not included to construct Node
 			 typename Container::iterator,
             const Node* = nullptr);
@@ -53,14 +53,14 @@ namespace btree {
         void remove(const Key&);
         std::vector<Key> all_key() 
 	    const { return elements_.all_key(); }
-        // return value means read-only
-        Key max_key() const { return elements_.key(); }
-        Value min_value() const { return elements_.value(0); } // for Btree traverse get the leftest leaf
+        // return min_value means read-only
+        Key max_key() const { return elements_.max_key(); }
+        Value min_value() const { return elements_.min_value(); } // for Btree traverse get the leftest leaf
 
 	private:
 		// Field
 		Elements<Key, BtreeOrder> elements_;
-        std::shared_ptr<Node> next_node_{nullptr};  // TODO: complete
+        Node next_node_{nullptr};  // TODO: complete
         const BtreeType* btree_;
         Node* father_;
 

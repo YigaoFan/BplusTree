@@ -45,7 +45,7 @@ BTREE_INSTANCE::Btree(const compare& compare_function,
         return compare_function(p1.first, p2.first);
     });
 
-    // TODO: set the high bound and node
+    // TODO: set the high bound and next node
     if constexpr (NumOfArrayEle < BtreeOrder) {
         root_ = make_shared<node_instance_type>(this, leaf_type(), pair_array.begin(), pair_array.end());
     } else {
@@ -55,26 +55,17 @@ BTREE_INSTANCE::Btree(const compare& compare_function,
 }
 
 /// tool to set Node father pointer
-BTREE_TEMPLATE_DECLARE
-template <typename T>
-void
-BTREE_INSTANCE::set_father(typename T::iterator begin, const typename T::iterator& end, void* father)
-{
-    for (; begin != end; ++begin) {
-        begin->father = father;
-    }
-}
+//BTREE_TEMPLATE_DECLARE
+//template <typename T>
+//void
+//BTREE_INSTANCE::set_father(typename T::iterator begin, const typename T::iterator& end, void* father)
+//{
+//    for (; begin != end; ++begin) {
+//        begin->father = father;
+//    }
+//}
 
-BTREE_TEMPLATE_DECLARE
-template <typename T>
-void
-BTREE_INSTANCE::set_next_node(typename T::iterator begin, const typename T::iterator& end)
-{
-    // TODO
-//        all_upper_node[i-1]->next_node_ = leaf.get();
-
-}
-// set high-bound (leaf&middle) and next node(only in leaf?)
+// set high-bound (leaf&middle) in Node constructor
 
 /// assume the nodes arg is sorted
 BTREE_TEMPLATE_DECLARE
@@ -89,38 +80,39 @@ BTREE_INSTANCE::helper(array<ElementType, NodeCount>& nodes)
     auto end = nodes.end();
     auto i = 0;
 
-    if constexpr (NodeCount > BtreeOrder) {
-        auto tail = head + BtreeOrder;
-        do {
-            // use head to tail to construct a upper Node, then collect it
-            if constexpr (FirstFlag) {
-                auto leaf = make_shared<node_instance_type>(this, leaf_type(), head, tail);
-                all_upper_node[i] = leaf;
+    auto tail = head + BtreeOrder;
+    bool not_first_of_arr = false;
+    do {
+        // use head to tail to construct a upper Node, then collect it
+        if constexpr (FirstFlag) {
+            auto leaf = make_shared<node_instance_type>(this, leaf_type(), head, tail);
+            all_upper_node[i] = leaf;
+        } else {
+            // may not create shared_ptr here, can delay the place
+            // shared_ptr should be saved in Elements' Value, then when Elements delete it
+            // all will go automatically
+            auto middle = make_shared<node_instance_type>(this, middle_type(), head, tail);
+            all_upper_node[i] = middle;
+            // set Node.next_node_
+            if (not_first_of_arr) {
+                all_upper_node[i]->next_node_ = all_upper_node[i-1];
             } else {
-                auto middle = make_shared<node_instance_type>(this, middle_type(), head, tail);
-                all_upper_node[i] = middle;
-                BTREE_INSTANCE::set_father(head, tail, middle.get());
+                not_first_of_arr = true;
             }
+        }
 
-            // update
-            head = tail;
-            tail += BtreeOrder;
-            ++i;
-        } while (end - head > BtreeOrder);
-        // not include = to ensure have to remain a group, then below statement
-        // could be run correctly
-    }
-    if constexpr (FirstFlag) {
-        all_upper_node[i] = make_shared<node_instance_type>(this, leaf_type(), head, end);
-    } else {
-        all_upper_node[i] = make_shared<node_instance_type>(this, middle_type(), head, end);
-    }
+        // update
+        head = tail;
+        tail += BtreeOrder;
+        ++i;
+    } while (end - head > 0);
+    // not include = to ensure have to remain a group, then below statement
+    // could be run correctly
 
     if constexpr (upper_node_num <= BtreeOrder) {
         root_ = make_shared<node_instance_type>(this, middle_type(), all_upper_node.begin(), all_upper_node.end());
-        BTREE_INSTANCE::set_father(all_upper_node.begin(), all_upper_node.end(), root_.get());
     } else {
-        // construct tree recursively
+        // construct recursively
         this->helper<false>(all_upper_node);
     }
 }

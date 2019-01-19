@@ -120,6 +120,7 @@ NODE_INSTANCE::Node(const BtreeType* btree, const middle_type nul,
         {
     for (; begin != end; ++begin) {
         elements_.add(*begin);
+        begin->father = this;
     }
 }
 
