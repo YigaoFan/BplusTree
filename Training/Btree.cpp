@@ -177,6 +177,7 @@ BTREE_INSTANCE::modify(const pair<Key, Value>& pair) {
     Value& v = pair.second;
     node_instance_type*&& node = this->check_out(k);
     if (!node->middle) {
+        // TODO: should think let the if logic below work by Node-self
         if (node->have(k)) {
             // modify
             node->operator[](k) = v;
@@ -219,11 +220,7 @@ bool
 BTREE_INSTANCE::have(const Key& key)
 {
     node_instance_type*&& r = this->check_out(key);
-    if (r->middle || !r->have(key)) {
-        return false;
-    } else {
-        return true;
-    }
+    return !(r->middle || !r->have(key));
 }
 
 // private method part:

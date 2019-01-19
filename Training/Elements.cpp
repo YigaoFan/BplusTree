@@ -128,8 +128,50 @@ ELEMENTS_INSTANCE::reset()
     cache_index_ = count_ / 2;
 }
 
+#include <memory>
+using std::shared_ptr;
 // Btree construct lots of Node instance, need to construct upper Node
 // Elements through the Node constructor get these Node* and Value
 // 1, Value must be saved a copy, Node* just need to save it
 // 2, We need to make two of them are fit in Elements
 // 3, how to do?
+// middle = false, elements.add(pair<Key, Value>)
+// middle = true, elements.add(Node*)
+{
+    template <typename Key, typename Value>
+    void
+    add(pair<Key, Value> pair)
+    {
+        // Change the elements.key&value
+        array<pair<Key, shared_ptr<Value>>
+    }
+
+    template <typename T>
+    void
+    add(T* node_ptr)
+    {
+        // Change the elements.key&value
+        auto k = node_ptr->max_key();
+        array<pair<Key, shared_ptr<T>>;
+
+    }
+
+    template <typename Key>
+    class Base {
+        virtual Key& key() const=0;
+        template <typename T>
+        virtual T* value() const=0;
+        virtual ~Base();
+    };
+
+    template <typename Key, typename Value>
+    class Son : Base<Key> {
+        Son(pair);
+        pair<Key, shared_ptr<Value>> p;
+        Key& key() override;
+        template <typename T>
+        T* value() override;
+        ~Son() override;
+    };
+}
+
