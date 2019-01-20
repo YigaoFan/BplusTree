@@ -5,7 +5,8 @@ using namespace btree;
 using std::shared_ptr;
 using std::make_shared;
 using std::pair;
-#define NODE_TEMPLATE_DECLARE template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+using std::make_pair;
+#define NODE_TEMPLATE template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 #define NODE_INSTANCE Node<Key, Value, BtreeOrder, BtreeType>
 
 // the below function's scope is leaf
@@ -80,28 +81,28 @@ using std::pair;
 //}
 
 // public method part:
-NODE_TEMPLATE_DECLARE
+NODE_TEMPLATE
 NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const leaf_type)
 : middle(false), btree_(btree), father_(father)
 {
     // null
 }
 
-NODE_TEMPLATE_DECLARE
+NODE_TEMPLATE
 NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const middle_type)
 : middle(true), btree_(btree), father_(father)
 {
     // null
 }
 
-NODE_TEMPLATE_DECLARE
+NODE_TEMPLATE
 NODE_INSTANCE::Node(const BtreeType* btree, const Node* father,const leaf_type nul, const pair<Key, Value>& pair)
 : Node(btree, father, nul)
 {
     elements_.add(pair);
 }
 
-NODE_TEMPLATE_DECLARE
+NODE_TEMPLATE
 template <typename Container>
 NODE_INSTANCE::Node(const BtreeType* btree, const leaf_type nul,
         typename Container::iterator begin, typename Container::iterator end,const Node* father)
@@ -112,19 +113,19 @@ NODE_INSTANCE::Node(const BtreeType* btree, const leaf_type nul,
     }
 }
 
-NODE_TEMPLATE_DECLARE
+NODE_TEMPLATE
 template <typename Container>
 NODE_INSTANCE::Node(const BtreeType* btree, const middle_type nul,
         typename Container::iterator begin, typename Container::iterator end,const Node* father)
         : Node(btree, father, nul)
         {
     for (; begin != end; ++begin) {
-        elements_.add(*begin);
+        elements_.add(make_pair<Key, Node*>(begin->max_key(), *begin));
         begin->father = this;
     }
 }
 
-NODE_TEMPLATE_DECLARE
+NODE_TEMPLATE
 bool
 NODE_INSTANCE::have(const Key& k)
 {
@@ -132,14 +133,14 @@ NODE_INSTANCE::have(const Key& k)
 }
 
 /// Btree should use have() check or other me to ensure existing
-NODE_TEMPLATE_DECLARE
+NODE_TEMPLATE
 Value&
 NODE_INSTANCE::operator[](const Key& k)
 {
     return elements_[k];
 }
 
-NODE_TEMPLATE_DECLARE
+NODE_TEMPLATE
 RESULT_FLAG
 NODE_INSTANCE::add(const pair<Key, Value>& pair)
 {
@@ -171,7 +172,7 @@ NODE_INSTANCE::add(const pair<Key, Value>& pair)
 }
 
 /// for the upper level Btree::remove, so
-NODE_TEMPLATE_DECLARE
+NODE_TEMPLATE
 void
 NODE_INSTANCE::remove(const Key& key)
 {
@@ -193,7 +194,7 @@ NODE_INSTANCE::remove(const Key& key)
 
 // private method part:
 
-NODE_TEMPLATE_DECLARE
+NODE_TEMPLATE
 RESULT_FLAG
 NODE_INSTANCE::no_area_add(pair<Key, Value> pair)
 {
@@ -209,7 +210,7 @@ NODE_INSTANCE::no_area_add(pair<Key, Value> pair)
     }
 }
 
-NODE_TEMPLATE_DECLARE
+NODE_TEMPLATE
 RESULT_FLAG
 NODE_INSTANCE::area_add(const pair<Key, Value>& pair)
 {
@@ -227,14 +228,14 @@ NODE_INSTANCE::area_add(const pair<Key, Value>& pair)
     }
 }
 
-NODE_TEMPLATE_DECLARE
+NODE_TEMPLATE
 RESULT_FLAG
 NODE_INSTANCE::middle_node_add(const pair<Key, Value>& pair)
 {
     
 }
 
-NODE_TEMPLATE_DECLARE
+NODE_TEMPLATE
 void
 NODE_INSTANCE::move_Ele(const NodeIter<ele_instance_type>& begin,
 const NodeIter<ele_instance_type>& end, unsigned distance)
@@ -246,7 +247,7 @@ const NodeIter<ele_instance_type>& end, unsigned distance)
     memcpy(src + distance, src, len);
 }
 
-NODE_TEMPLATE_DECLARE
+NODE_TEMPLATE
 void
 NODE_INSTANCE::adjust()
 {

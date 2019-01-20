@@ -3,13 +3,14 @@
 #include <array> // for array
 #include <vector> // for vector
 #include <initializer_list>
+#include "Pair.h"
 
 namespace btree {
     /// This will require Key has default constructor
 template <typename Key, unsigned BtreeOrder>
 class Elements {
 private:
-    std::array<std::pair<Key, void*>, BtreeOrder> elements_;
+    std::array<Pair<Key>, BtreeOrder> elements_;
     unsigned count_{0};
     unsigned cache_index_{0}; // TODO: maybe Element.add will change this min_value
 public:

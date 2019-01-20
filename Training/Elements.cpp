@@ -4,12 +4,12 @@ using std::initializer_list;
 using std::pair;
 using std::vector;
 
-#define ELEMENTS_TEMPLATE_DECLARE template <typename Key, unsigned BtreeOrder>
+#define ELEMENTS_TEMPLATE template <typename Key, unsigned BtreeOrder>
 #define ELEMENTS_INSTANCE Elements<Key, BtreeOrder>
 
 // public method part:
 
-//ELEMENTS_TEMPLATE_DECLARE
+//ELEMENTS_TEMPLATE
 //ELEMENTS_INSTANCE::Elements(const initializer_list<pair<Key, void*>> li)
 //{
 //    unsigned i = 0;
@@ -20,14 +20,14 @@ using std::vector;
 //    count_ = i;
 //    this->reset();
 //}
-ELEMENTS_TEMPLATE_DECLARE
+ELEMENTS_TEMPLATE
 Key&
 ELEMENTS_INSTANCE::max_key() const
 {
     return elements_[count_ - 1].first;
 }
 
-ELEMENTS_TEMPLATE_DECLARE
+ELEMENTS_TEMPLATE
 bool
 ELEMENTS_INSTANCE::have(const Key& key)
 {
@@ -56,14 +56,14 @@ ELEMENTS_INSTANCE::have(const Key& key)
     return false;
 }
 
-ELEMENTS_TEMPLATE_DECLARE
+ELEMENTS_TEMPLATE
 void *&
 ELEMENTS_INSTANCE::min_value() const
 {
     return elements_[0].second;
 }
 
-ELEMENTS_TEMPLATE_DECLARE
+ELEMENTS_TEMPLATE
 vector<Key>
 ELEMENTS_INSTANCE::all_key() const {
     vector<Key> r(count_);
@@ -73,22 +73,25 @@ ELEMENTS_INSTANCE::all_key() const {
     return r;
 }
 
-ELEMENTS_TEMPLATE_DECLARE
+ELEMENTS_TEMPLATE
 bool
 ELEMENTS_INSTANCE::full() const
 {
     return count_ >= BtreeOrder;
 }
 
-ELEMENTS_TEMPLATE_DECLARE
+ELEMENTS_TEMPLATE
 template <typename Value>
 void
 ELEMENTS_INSTANCE::add(const pair<Key, Value>& pair)
 {
-    // todo
+    // todo: malloc a manual memory
+    // Node will think first of full situation
+    Value* v = new Value(pair.second);
+    elements_[count_];// = make_real_pair;
 }
 
-ELEMENTS_TEMPLATE_DECLARE
+ELEMENTS_TEMPLATE
 template <typename Value>
 void
 ELEMENTS_INSTANCE::add(const pair<Key, Value*>& pair)
@@ -96,7 +99,7 @@ ELEMENTS_INSTANCE::add(const pair<Key, Value*>& pair)
     // todo
 }
 
-ELEMENTS_TEMPLATE_DECLARE
+ELEMENTS_TEMPLATE
 void*&
 ELEMENTS_INSTANCE::operator[](const Key& key)
 {
@@ -121,7 +124,7 @@ ELEMENTS_INSTANCE::operator[](const Key& key)
 }
 
 // private method part:
-ELEMENTS_TEMPLATE_DECLARE
+ELEMENTS_TEMPLATE
 void
 ELEMENTS_INSTANCE::reset()
 {
@@ -156,22 +159,8 @@ using std::shared_ptr;
 
     }
 
-    template <typename Key>
-    class Base {
-        virtual Key& key() const=0;
-        template <typename T>
-        virtual T* value() const=0;
-        virtual ~Base();
-    };
 
-    template <typename Key, typename Value>
-    class Son : Base<Key> {
-        Son(pair);
-        pair<Key, shared_ptr<Value>> p;
-        Key& key() override;
-        template <typename T>
-        T* value() override;
-        ~Son() override;
-    };
+
+
 }
 

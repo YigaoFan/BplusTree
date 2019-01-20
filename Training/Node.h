@@ -30,13 +30,11 @@ namespace btree {
         template <typename Container>
         Node(const BtreeType *, const leaf_type,
 			 typename Container::iterator, // point to key-min_value array
-				// below is tail of range, not included to construct Node
 			 typename Container::iterator,
             const Node* = nullptr);
         template <typename Container>
         Node(const BtreeType *, const middle_type,
-			 typename Container::iterator, // point to key-ptr array
-				// below is tail of range, not included to construct Node
+			 typename Container::iterator, // point to ptr array
 			 typename Container::iterator,
             const Node* = nullptr);
         ~Node();

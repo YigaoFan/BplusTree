@@ -14,7 +14,7 @@ using std::weak_ptr;
 using std::sort;
 using std::vector;
 using std::copy;
-#define BTREE_TEMPLATE_DECLARE \
+#define BTREE_TEMPLATE \
   template <typename Key, typename Value, unsigned BtreeOrder>
 #define BTREE_INSTANCE Btree<Key, Value, BtreeOrder>
 
@@ -26,7 +26,7 @@ using std::copy;
 /// user should ensure not include the same Key-Value
 /// Because when construct a tree, you can see all Keys
 /// When you add or modify, you can use have() function to check it
-BTREE_TEMPLATE_DECLARE
+BTREE_TEMPLATE
 template <unsigned NumOfArrayEle>
 BTREE_INSTANCE::Btree(const compare& compare_function,
     array<pair<Key, Value>, NumOfArrayEle>& pair_array)
@@ -55,7 +55,7 @@ BTREE_INSTANCE::Btree(const compare& compare_function,
 }
 
 /// tool to set Node father pointer
-//BTREE_TEMPLATE_DECLARE
+//BTREE_TEMPLATE
 //template <typename T>
 //void
 //BTREE_INSTANCE::set_father(typename T::iterator begin, const typename T::iterator& end, void* father)
@@ -68,13 +68,13 @@ BTREE_INSTANCE::Btree(const compare& compare_function,
 // set high-bound (leaf&middle) in Node constructor
 
 /// assume the nodes arg is sorted
-BTREE_TEMPLATE_DECLARE
+BTREE_TEMPLATE
 template <bool FirstFlag, typename ElementType, unsigned NodeCount>
 void
 BTREE_INSTANCE::helper(array<ElementType, NodeCount>& nodes)
 {
     constexpr auto upper_node_num = static_cast<const size_t>(ceil(NodeCount / BtreeOrder));
-    array<ElementType, upper_node_num> all_upper_node; // store all leaf
+    array<node_instance_type*, upper_node_num> all_upper_node; // store all leaf
 
     auto head = nodes.begin();
     auto end = nodes.end();
@@ -85,13 +85,13 @@ BTREE_INSTANCE::helper(array<ElementType, NodeCount>& nodes)
     do {
         // use head to tail to construct a upper Node, then collect it
         if constexpr (FirstFlag) {
-            auto leaf = make_shared<node_instance_type>(this, leaf_type(), head, tail);
+            auto leaf = new node_instance_type(this, leaf_type(), head, tail);
             all_upper_node[i] = leaf;
         } else {
             // may not create shared_ptr here, can delay the place
             // shared_ptr should be saved in Elements' Value, then when Elements delete it
             // all will go automatically
-            auto middle = make_shared<node_instance_type>(this, middle_type(), head, tail);
+            auto middle = new node_instance_type(this, middle_type(), head, tail);
             all_upper_node[i] = middle;
             // set Node.next_node_
             if (not_first_of_arr) {
@@ -117,17 +117,17 @@ BTREE_INSTANCE::helper(array<ElementType, NodeCount>& nodes)
     }
 }
 
-BTREE_TEMPLATE_DECLARE
+BTREE_TEMPLATE
 template <unsigned NumOfArrayEle>
 BTREE_INSTANCE::Btree(
     const compare& compare_function,
     array<pair<Key, Value>, NumOfArrayEle>&& pair_array)
     : Btree(compare_function, pair_array) {}
 
-BTREE_TEMPLATE_DECLARE
+BTREE_TEMPLATE
 BTREE_INSTANCE::~Btree() = default;
 
-BTREE_TEMPLATE_DECLARE
+BTREE_TEMPLATE
 Value
 BTREE_INSTANCE::search(const Key& key) const
 {
@@ -140,7 +140,7 @@ BTREE_INSTANCE::search(const Key& key) const
 }
 
 /// if exist, will modify
-BTREE_TEMPLATE_DECLARE
+BTREE_TEMPLATE
 RESULT_FLAG
 BTREE_INSTANCE::add(const pair<Key, Value>& pair) {
     if (root_ == nullptr) {
@@ -170,7 +170,7 @@ BTREE_INSTANCE::add(const pair<Key, Value>& pair) {
 }
 
 /// if not exist, will add
-BTREE_TEMPLATE_DECLARE
+BTREE_TEMPLATE
 RESULT_FLAG
 BTREE_INSTANCE::modify(const pair<Key, Value>& pair) {
     Key& k = pair.first;
@@ -193,7 +193,7 @@ BTREE_INSTANCE::modify(const pair<Key, Value>& pair) {
     return OK;
 }
 
-BTREE_TEMPLATE_DECLARE
+BTREE_TEMPLATE
 vector<Key>
 BTREE_INSTANCE::explore() const {
   vector<Key> k_array(key_num_);
@@ -207,7 +207,7 @@ BTREE_INSTANCE::explore() const {
   return k_array;
 }
 
-BTREE_TEMPLATE_DECLARE
+BTREE_TEMPLATE
 void
 BTREE_INSTANCE::remove(const Key& key) {
     node_instance_type*&& n = this->check_out(key);
@@ -215,7 +215,7 @@ BTREE_INSTANCE::remove(const Key& key) {
     --key_num_;
 }
 
-BTREE_TEMPLATE_DECLARE
+BTREE_TEMPLATE
 bool
 BTREE_INSTANCE::have(const Key& key)
 {
@@ -227,7 +227,7 @@ BTREE_INSTANCE::have(const Key& key)
 
 /// search the key in Btree, return the node that terminated, may be not have the key
 /// this is to save the search information
-BTREE_TEMPLATE_DECLARE
+BTREE_TEMPLATE
 typename BTREE_INSTANCE::node_instance_type*
 BTREE_INSTANCE::check_out(const Key& key) {
   if (!root_->middle) {
@@ -237,7 +237,7 @@ BTREE_INSTANCE::check_out(const Key& key) {
   }
 }
 
-BTREE_TEMPLATE_DECLARE
+BTREE_TEMPLATE
 typename BTREE_INSTANCE::node_instance_type*
 BTREE_INSTANCE::check_out_recur(const Key& key, const node_instance_type* node) {
   if (node->middle) {
@@ -251,7 +251,7 @@ BTREE_INSTANCE::check_out_recur(const Key& key, const node_instance_type* node) 
 }
 
 /// operate on the true Node
-BTREE_TEMPLATE_DECLARE
+BTREE_TEMPLATE
 vector<typename BTREE_INSTANCE::node_instance_type*>
 BTREE_INSTANCE::traverse_leaf(const predicate& predicate) {
     vector<node_instance_type*> result;
@@ -268,7 +268,7 @@ BTREE_INSTANCE::traverse_leaf(const predicate& predicate) {
     return result;
 }
 
-BTREE_TEMPLATE_DECLARE
+BTREE_TEMPLATE
 typename BTREE_INSTANCE::node_instance_type*
 BTREE_INSTANCE::smallest_leaf() {
     node_instance_type* current_node = root_.get();
