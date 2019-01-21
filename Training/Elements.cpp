@@ -1,11 +1,12 @@
 #include "Elements.h"
+#include "LeafMemory.h"
 using namespace btree;
 using std::initializer_list;
 using std::pair;
 using std::vector;
 
-#define ELEMENTS_TEMPLATE template <typename Key, unsigned BtreeOrder>
-#define ELEMENTS_INSTANCE Elements<Key, BtreeOrder>
+#define ELEMENTS_TEMPLATE template <typename Key, typename MemoryAllocator, unsigned BtreeOrder>
+#define ELEMENTS_INSTANCE Elements<Key, MemoryAllocator, BtreeOrder>
 
 // public method part:
 
@@ -20,6 +21,15 @@ using std::vector;
 //    count_ = i;
 //    this->reset();
 //}
+
+
+ELEMENTS_TEMPLATE
+ELEMENTS_INSTANCE::Elements(MemoryAllocator* mem_alloc)
+    :mem_alloc_(mem_alloc)
+{
+    // null
+}
+
 ELEMENTS_TEMPLATE
 Key&
 ELEMENTS_INSTANCE::max_key() const
@@ -87,8 +97,10 @@ ELEMENTS_INSTANCE::add(const pair<Key, Value>& pair)
 {
     // todo: malloc a manual memory
     // Node will think first of full situation
-    Value* v = new Value(pair.second);
-    elements_[count_];// = make_real_pair;
+    RealData<Key, Value>* v_p = mem_alloc_.leaf_data_allocate(pair);
+    elements_[count_].first = pair.first;
+    // attention code below
+    elements_[count_].second->change_value(v_p);
 }
 
 ELEMENTS_TEMPLATE
@@ -131,8 +143,6 @@ ELEMENTS_INSTANCE::reset()
     cache_index_ = count_ / 2;
 }
 
-#include <memory>
-using std::shared_ptr;
 // Btree construct lots of Node instance, need to construct upper Node
 // Elements through the Node constructor get these Node* and Value
 // 1, Value must be saved a copy, Node* just need to save it

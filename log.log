@@ -119,3 +119,7 @@ int main()
 // when call lower level function, must ensure the Key exist
 
 40. adjust 中需要确保没有 key_num_ 为0的结点
+
+41. 为什么要有工厂模式？
+
+42. Node 里有些是通过成员变量是通过构造函数列表初始化的，有些是类初始值，但是是依赖列表初始化的量，这样会有问题吗？

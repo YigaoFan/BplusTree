@@ -21,6 +21,7 @@ using std::pair;
 using std::array;
 using std::make_pair;
 
+//#define NDEBUG
 int main()
 {
     auto compare = [](const int a, const int b) { return a < b; };

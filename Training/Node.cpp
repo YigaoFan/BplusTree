@@ -82,20 +82,6 @@ using std::make_pair;
 
 // public method part:
 NODE_TEMPLATE
-NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const leaf_type)
-: middle(false), btree_(btree), father_(father)
-{
-    // null
-}
-
-NODE_TEMPLATE
-NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const middle_type)
-: middle(true), btree_(btree), father_(father)
-{
-    // null
-}
-
-NODE_TEMPLATE
 NODE_INSTANCE::Node(const BtreeType* btree, const Node* father,const leaf_type nul, const pair<Key, Value>& pair)
 : Node(btree, father, nul)
 {
@@ -193,6 +179,20 @@ NODE_INSTANCE::remove(const Key& key)
 }
 
 // private method part:
+
+NODE_TEMPLATE
+NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const leaf_type)
+    : middle(false), btree_(btree), father_(father)
+{
+    // null
+}
+
+NODE_TEMPLATE
+NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const middle_type)
+    : middle(true), btree_(btree), father_(father)
+{
+    // null
+}
 
 NODE_TEMPLATE
 RESULT_FLAG

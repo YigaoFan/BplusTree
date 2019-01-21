@@ -8,8 +8,8 @@
 #include <vector>
 
 namespace btree {
-    struct leaf_type {};
-    struct middle_type {};
+    struct leaf_type final {};
+    struct middle_type final {};
 
     // When a Node is Created, its all type is done!
 	template<typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
@@ -57,10 +57,10 @@ namespace btree {
 
 	private:
 		// Field
-		Elements<Key, BtreeOrder> elements_;
         Node next_node_{nullptr};  // TODO: complete
         const BtreeType* btree_;
         Node* father_;
+        Elements<Key, decltype(btree_->leaf_block_), BtreeOrder> elements_{btree_->leaf_block_ };
 
         // Helper 
         bool full() { return elements_.full(); }

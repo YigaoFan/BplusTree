@@ -1,16 +1,14 @@
 #include <algorithm>  // for sort
 #include <array> // for array
 #include <cmath>  // for ceil
+#include <cassert>
 #include "Btree.h"
 using namespace btree;
 using std::array;
 using std::ceil;
 using std::function;
-using std::initializer_list;
 using std::make_shared;
 using std::pair;
-using std::shared_ptr;
-using std::weak_ptr;
 using std::sort;
 using std::vector;
 using std::copy;
@@ -30,11 +28,14 @@ BTREE_TEMPLATE
 template <unsigned NumOfArrayEle>
 BTREE_INSTANCE::Btree(const compare& compare_function,
     array<pair<Key, Value>, NumOfArrayEle>& pair_array)
-    : compare_func_(compare_function) 
+    : compare_func_(compare_function),
+    // Prepare memory
+    leaf_block_(LeafMemory<Key, Value>::produce_leaf_memory(NumOfArrayEle))
 {
     if constexpr (NumOfArrayEle == 0) {
         return;
     }
+
     // TODO: check&process the same Key
     key_num_ += NumOfArrayEle;
 
@@ -86,6 +87,10 @@ BTREE_INSTANCE::helper(array<ElementType, NodeCount>& nodes)
         // use head to tail to construct a upper Node, then collect it
         if constexpr (FirstFlag) {
             auto leaf = new node_instance_type(this, leaf_type(), head, tail);
+
+            // todo: complete
+            assert(i < upper_node_num);
+
             all_upper_node[i] = leaf;
         } else {
             // may not create shared_ptr here, can delay the place

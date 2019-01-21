@@ -2,21 +2,23 @@
 #include <utility> // for pair
 #include <array> // for array
 #include <vector> // for vector
-#include <initializer_list>
-#include "Pair.h"
+#include "Data.h"
+#include "LeafMemory.h"
 
 namespace btree {
     /// This will require Key has default constructor
-template <typename Key, unsigned BtreeOrder>
+template <typename Key, typename MemoryAllocator, unsigned BtreeOrder>
 class Elements {
 private:
-    std::array<Pair<Key>, BtreeOrder> elements_;
+    const MemoryAllocator* mem_alloc_;
+    std::array<std::pair<Key, std::unique_ptr<Data>>, BtreeOrder> elements_;
     unsigned count_{0};
     unsigned cache_index_{0}; // TODO: maybe Element.add will change this min_value
 public:
     // Node-caller ensure the sort and count are right
 //    Elements(const std::initializer_list<std::pair<Key, void*>>); // TODO: wait for usage
     Elements() = default;
+    explicit Elements(MemoryAllocator*);
     ~Elements() = default;
     Key& max_key() const; // for Node get max_key
     bool have(const Key&);
@@ -32,7 +34,9 @@ public:
 private:
     inline void reset();
 };
-// TODO: move to Elements
+
+
+    // TODO: move to Elements
 //void move_Ele(const NodeIter<ele_instance_type>&, const NodeIter<ele_instance_type>&,
 //              unsigned=1);
 }

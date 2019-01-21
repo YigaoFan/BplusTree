@@ -6,6 +6,7 @@
 #include <utility> // for pair
 #include "CommonFlag.h"
 #include "Node.h"
+#include "LeafMemory.h"
 
 namespace btree {
     template<typename Key, 
@@ -14,7 +15,7 @@ namespace btree {
     class Btree {
     private:
         using node_instance_type = Node<Key, Value, BtreeOrder, Btree>;
-        friend node_instance_type; // for Node use compare func
+        friend node_instance_type; // for Node use compare func, leaf_block_
         using predicate = std::function<bool(node_instance_type*)>;
 
     public:
@@ -34,7 +35,8 @@ namespace btree {
         // Field
         std::shared_ptr<node_instance_type> root_{nullptr};
         const compare compare_func_;
-        unsigned key_num_{0}; // todo: remember to add to use
+        unsigned key_num_{0}; // remember to add to use
+        const LeafMemory<Key, Value>* leaf_block_;
 
         node_instance_type* check_out(const Key&);
         node_instance_type* check_out_recur(const Key&, 
@@ -43,7 +45,7 @@ namespace btree {
         std::vector<node_instance_type*> traverse_leaf(const predicate&);
         node_instance_type* smallest_leaf();
         template <bool FirstFlag, typename Element, unsigned NodeCount> void helper(std::array<Element, NodeCount>&);
-        template <typename T> static void set_father(typename T::iterator, const typename T::iterator&, void* father);
-        template <typename T> static void set_next_node(typename T::iterator, const typename T::iterator&);
+        //template <typename T> static void set_father(typename T::iterator, const typename T::iterator&, void* father);
+        //template <typename T> static void set_next_node(typename T::iterator, const typename T::iterator&);
     };
 }
