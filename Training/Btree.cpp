@@ -30,7 +30,7 @@ BTREE_INSTANCE::Btree(const compare& compare_function,
     array<pair<Key, Value>, NumOfArrayEle>& pair_array)
     : compare_func_(compare_function),
     // Prepare memory
-    leaf_block_(LeafMemory<Key, Value>::produce_leaf_memory(NumOfArrayEle))
+    leaf_block_(LeafMemory<Key, Value, 2>::produce_leaf_memory(NumOfArrayEle))
 {
     if constexpr (NumOfArrayEle == 0) {
         return;

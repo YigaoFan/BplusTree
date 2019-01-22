@@ -12,6 +12,13 @@ REALDATA_INSTANCE::RealData(const Value& value)
 }
 
 REALDATA_TEMPLATE
+void
+REALDATA_INSTANCE::operator=(const std::pair<Key, Value>& pair)
+{
+    pair_ = pair;
+}
+
+REALDATA_TEMPLATE
 void*
 REALDATA_INSTANCE::value() const
 {
@@ -24,5 +31,5 @@ REALDATA_INSTANCE::change_value(void* ptr)
 {
     // maybe construct directly not change
     // TODO: how to delete needless memory
-    pair_.reset(ptr);
+    pair_.second = *static_cast<Value*>(ptr);
 }

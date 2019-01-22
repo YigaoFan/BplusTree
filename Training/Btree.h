@@ -36,7 +36,7 @@ namespace btree {
         std::shared_ptr<node_instance_type> root_{nullptr};
         const compare compare_func_;
         unsigned key_num_{0}; // remember to add to use
-        const LeafMemory<Key, Value>* leaf_block_;
+        const LeafMemory<Key, Value, 2>* leaf_block_;
 
         node_instance_type* check_out(const Key&);
         node_instance_type* check_out_recur(const Key&, 
