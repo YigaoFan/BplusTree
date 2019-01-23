@@ -46,11 +46,10 @@ BTREE_INSTANCE::Btree(const compare& compare_function,
         return compare_function(p1.first, p2.first);
     });
 
-    // TODO: set the high bound and next node
+    // TODO: set the high bound
     if constexpr (NumOfArrayEle < BtreeOrder) {
         root_ = make_shared<node_instance_type>(this, leaf_type(), pair_array.begin(), pair_array.end());
     } else {
-        // notice: just provide a template arg
         this->helper<true>(pair_array);
     }
 }

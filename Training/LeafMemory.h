@@ -16,18 +16,25 @@ namespace btree {
     public:
         // Factory
         static LeafMemory* produce_leaf_memory(const size_t&);
-
+        // Method
         data_type* leaf_data_allocate(const std::pair<Key, Value>&);
 
     private:
+        template <bool First>
+        static size_t num_of_new(const size_t&, const float&);
+
+        // Field
         std::vector<std::unique_ptr<std::vector<data_type>>> leaf_memo_{1/*count*/};
         std::vector<bool> used_mark_;
         const float growth_rate_;
+        
+        // Helper
         explicit LeafMemory(const size_t&);
         ~LeafMemory();
-        void new_memo();
-        size_t leaf_num();
+        data_type* new_memo(); // memo represent memory
+        size_t leaf_num() const;
+        data_type* usable_memo();
+        data_type* correspond_memo(const size_t&) const;
 
-        static size_t num_of_new(const bool, const size_t&, const float&);
     };
 }

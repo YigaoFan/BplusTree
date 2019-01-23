@@ -95,12 +95,10 @@ template <typename Value>
 void
 ELEMENTS_INSTANCE::add(const pair<Key, Value>& pair)
 {
-    // todo: malloc a manual memory
-    // Node will think first of full situation
-    RealData<Key, Value>* v_p = mem_alloc_.leaf_data_allocate(pair);
+    // Node think first of full situation
+    Data* v_p = mem_alloc_->leaf_data_allocate(pair);
     elements_[count_].first = pair.first;
-    // attention code below
-    elements_[count_].second->change_value(v_p);
+    elements_[count_].second.reset(v_p);
 }
 
 ELEMENTS_TEMPLATE

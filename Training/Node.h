@@ -57,10 +57,10 @@ namespace btree {
 
 	private:
 		// Field
-        Node next_node_{nullptr};  // TODO: complete
+        Node next_node_{nullptr};
         const BtreeType* btree_;
         Node* father_;
-        Elements<Key, decltype(btree_->leaf_block_), BtreeOrder> elements_{btree_->leaf_block_ };
+        Elements<Key, decltype(btree_->leaf_block_), BtreeOrder> elements_{btree_->leaf_block_ }; // maybe not correct in this construct way
 
         // Helper 
         bool full() { return elements_.full(); }
