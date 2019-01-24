@@ -1,12 +1,11 @@
 #include "Elements.h"
-#include "LeafMemory.h"
 using namespace btree;
 using std::initializer_list;
 using std::pair;
 using std::vector;
 
-#define ELEMENTS_TEMPLATE template <typename Key, typename MemoryAllocator, unsigned BtreeOrder>
-#define ELEMENTS_INSTANCE Elements<Key, MemoryAllocator, BtreeOrder>
+#define NODE_TEMPLATE template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+#define NODE_INSTANCE Node<Key, Value, BtreeOrder, BtreeType>
 
 // public method part:
 
@@ -22,24 +21,22 @@ using std::vector;
 //    this->reset();
 //}
 
-
-ELEMENTS_TEMPLATE
-ELEMENTS_INSTANCE::Elements(MemoryAllocator* mem_alloc)
-    :mem_alloc_(mem_alloc)
+NODE_TEMPLATE
+NODE_INSTANCE::Elements::Elements()
 {
     // null
 }
 
-ELEMENTS_TEMPLATE
-Key&
-ELEMENTS_INSTANCE::max_key() const
+NODE_TEMPLATE
+Key
+NODE_INSTANCE::Elements::max_key() const
 {
     return elements_[count_ - 1].first;
 }
 
-ELEMENTS_TEMPLATE
+NODE_TEMPLATE
 bool
-ELEMENTS_INSTANCE::have(const Key& key)
+NODE_INSTANCE::Elements::have(const Key& key) const
 {
     // version 1:
 //    auto& cache = elements_[cache_index_];
@@ -66,16 +63,16 @@ ELEMENTS_INSTANCE::have(const Key& key)
     return false;
 }
 
-ELEMENTS_TEMPLATE
-void *&
-ELEMENTS_INSTANCE::min_value() const
+NODE_TEMPLATE
+NODE_INSTANCE*
+NODE_INSTANCE::Elements::min_value() const
 {
     return elements_[0].second;
 }
 
-ELEMENTS_TEMPLATE
+NODE_TEMPLATE
 vector<Key>
-ELEMENTS_INSTANCE::all_key() const {
+NODE_INSTANCE::Elements::all_key() const {
     vector<Key> r(count_);
     for (unsigned i = 0; i < count_; ++i) {
         r[i] = elements_[i].first;
@@ -83,28 +80,27 @@ ELEMENTS_INSTANCE::all_key() const {
     return r;
 }
 
-ELEMENTS_TEMPLATE
+NODE_TEMPLATE
 bool
-ELEMENTS_INSTANCE::full() const
+NODE_INSTANCE::Elements::full() const
 {
     return count_ >= BtreeOrder;
 }
 
-ELEMENTS_TEMPLATE
-template <typename Value>
+NODE_TEMPLATE
+template <typename T>
 void
-ELEMENTS_INSTANCE::add(const pair<Key, Value>& pair)
+NODE_INSTANCE::Elements::add(const pair<Key, T>& pair)
 {
     // Node think first of full situation
     Data* v_p = mem_alloc_->leaf_data_allocate(pair);
     elements_[count_].first = pair.first;
     elements_[count_].second.reset(v_p);
 }
-
-ELEMENTS_TEMPLATE
-template <typename Value>
+NODE_TEMPLATE
+template <typename T>
 void
-ELEMENTS_INSTANCE::add(const pair<Key, Value*>& pair)
+NODE_INSTANCE::Elements::add(const pair<Key, T*>& pair)
 {
     // todo
 }

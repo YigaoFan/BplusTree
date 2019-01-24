@@ -2,10 +2,12 @@
 
 #include <memory> // for shared_ptr
 #include <utility> // for pair
+#include <vector> // for vector
+#include <variant> // for variant
+#include <utility> // for pair
 #include "CommonFlag.h" // for project define marco
 #include "NodeIter.h" // for NodeIter
-#include "Elements.h"
-#include <vector>
+//#include "Elements.h"
 
 namespace btree {
     struct leaf_type final {};
@@ -15,6 +17,7 @@ namespace btree {
 	template<typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 	class Node {
 		friend BtreeType; // for Btree set father, next_node_
+		class Elements;
 	private:
 		// common construct
 		Node(const BtreeType*, const Node*, const leaf_type);
@@ -53,14 +56,15 @@ namespace btree {
 	    const { return elements_.all_key(); }
         // return min_value means read-only
         Key max_key() const { return elements_.max_key(); }
-        Value min_value() const { return elements_.min_value(); } // for Btree traverse get the leftest leaf
+        Node* min_value() const { return elements_.min_value(); } // for Btree traverse get the leftest leaf
 
 	private:
 		// Field
         Node next_node_{nullptr};
         const BtreeType* btree_;
         Node* father_;
-        Elements<Key, decltype(btree_->leaf_block_), BtreeOrder> elements_{btree_->leaf_block_ }; // maybe not correct in this construct way
+
+        Elements elements_; // TODO can construct in Node constructor using indefinite para
 
         // Helper 
         bool full() { return elements_.full(); }

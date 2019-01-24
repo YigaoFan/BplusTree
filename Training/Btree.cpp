@@ -28,9 +28,9 @@ BTREE_TEMPLATE
 template <unsigned NumOfArrayEle>
 BTREE_INSTANCE::Btree(const compare& compare_function,
     array<pair<Key, Value>, NumOfArrayEle>& pair_array)
-    : compare_func_(compare_function),
+    : compare_func_(compare_function)
     // Prepare memory
-    leaf_block_(LeafMemory<Key, Value, 2>::produce_leaf_memory(NumOfArrayEle))
+//    leaf_block_(LeafMemory<Key, Value, 2>::produce_leaf_memory(NumOfArrayEle))
 {
     if constexpr (NumOfArrayEle == 0) {
         return;
@@ -278,7 +278,7 @@ BTREE_INSTANCE::smallest_leaf() {
     node_instance_type* current_node = root_.get();
 
     while (current_node->middle) {
-        current_node = static_cast<node_instance_type*>(current_node->min_value());
+        current_node = current_node->min_value();
     }
    
     return current_node;

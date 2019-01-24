@@ -1,8 +1,13 @@
 #pragma once
 
-#define RESULT_FLAG int
-#define OK 0
-#define NOT_OK 1
+#include "Node.h"
+
+namespace btree {
+    // Result related:
+    using RESULT_FLAG = int;
+    constexpr int OK = 0;
+    constexpr int NOT_OK = 1;
+}
 
 
 
