@@ -148,7 +148,7 @@ BTREE_TEMPLATE
 RESULT_FLAG
 BTREE_INSTANCE::add(const pair<Key, Value>& pair) {
     if (root_ == nullptr) {
-        root_ = make_shared<node_instance_type>(this, nullptr, leaf_type(), pair);
+        root_ = make_shared<node_instance_type>(this, nullptr, leaf_type(), &pair, &pair+1);
         return OK;
     }
 
@@ -278,7 +278,7 @@ BTREE_INSTANCE::smallest_leaf() {
     node_instance_type* current_node = root_.get();
 
     while (current_node->middle) {
-        current_node = current_node->min_value();
+        current_node = current_node->ptr_of_min();
     }
    
     return current_node;

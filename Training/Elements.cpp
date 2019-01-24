@@ -9,22 +9,57 @@ using std::vector;
 
 // public method part:
 
-//ELEMENTS_TEMPLATE
-//ELEMENTS_INSTANCE::Elements(const initializer_list<pair<Key, void*>> li)
+// Common:
+// some methods are for middle, some for leaf
+
+//NODE_TEMPLATE
+//template <typename T>
+//NODE_INSTANCE::Elements::Elements(const initializer_list<pair<Key, T>> li)
+//    :count_(li.size()), cache_index_(this->reset_cache()), elements_{li}
 //{
-//    unsigned i = 0;
-//    for (std::pair<Key, void*>& p : li) {
-//        elements_[i] = p;
+//    // null
+//}
+//
+//NODE_TEMPLATE
+//template <typename T>
+//NODE_INSTANCE::Elements::Elements(const initializer_list<pair<Key, T*>> li)
+//    :count_(li.size()), cache_index_(this->reset_cache())
+//{
+//    auto i = 0;
+//    for (auto& e : li) {
+//        elements_[i].first = e.first;
+//        elements_[i].second = unique_ptr<Node>(e.second);
 //        ++i;
 //    }
-//    count_ = i;
-//    this->reset();
 //}
 
 NODE_TEMPLATE
-NODE_INSTANCE::Elements::Elements()
+template <typename Iterator>
+NODE_INSTANCE::Elements::Elements(const leaf_type, Iterator begin, Iterator end)
 {
-    // null
+    count_ = 0;
+    do {
+        elements_[count_] = *begin;
+
+        ++count_;
+        ++begin;
+    } while (begin != end);
+    this->reset_cache();
+}
+
+NODE_TEMPLATE
+template <typename Iterator>
+NODE_INSTANCE::Elements::Elements(const middle_type, Iterator begin, Iterator end)
+{
+    count_ = 0;
+    do {
+        elements_[count_].first = begin->first;
+        elements_[count_].second = unique_ptr<Node>(begin->second);
+
+        ++count_;
+        ++begin;
+    } while (begin != end);
+    this->reset_cache();
 }
 
 NODE_TEMPLATE
@@ -36,7 +71,7 @@ NODE_INSTANCE::Elements::max_key() const
 
 NODE_TEMPLATE
 bool
-NODE_INSTANCE::Elements::have(const Key& key) const
+NODE_INSTANCE::Elements::have(const Key& key)
 {
     // version 1:
 //    auto& cache = elements_[cache_index_];
@@ -53,7 +88,7 @@ NODE_INSTANCE::Elements::have(const Key& key) const
 //    }
 
     // version 2:
-    for (unsigned i = 0; i < count_; ++i)
+    for (auto i = 0; i < count_; ++i)
     {
         if (elements_[i].first == key) {
             cache_index_ = i;
@@ -64,17 +99,10 @@ NODE_INSTANCE::Elements::have(const Key& key) const
 }
 
 NODE_TEMPLATE
-NODE_INSTANCE*
-NODE_INSTANCE::Elements::min_value() const
-{
-    return elements_[0].second;
-}
-
-NODE_TEMPLATE
 vector<Key>
 NODE_INSTANCE::Elements::all_key() const {
     vector<Key> r(count_);
-    for (unsigned i = 0; i < count_; ++i) {
+    for (size_t i = 0; i < count_; ++i) {
         r[i] = elements_[i].first;
     }
     return r;
@@ -87,52 +115,80 @@ NODE_INSTANCE::Elements::full() const
     return count_ >= BtreeOrder;
 }
 
+// for Value
 NODE_TEMPLATE
-template <typename T>
-void
-NODE_INSTANCE::Elements::add(const pair<Key, T>& pair)
-{
-    // Node think first of full situation
-    Data* v_p = mem_alloc_->leaf_data_allocate(pair);
-    elements_[count_].first = pair.first;
-    elements_[count_].second.reset(v_p);
-}
-NODE_TEMPLATE
-template <typename T>
-void
-NODE_INSTANCE::Elements::add(const pair<Key, T*>& pair)
-{
-    // todo
-}
-
-ELEMENTS_TEMPLATE
-void*&
-ELEMENTS_INSTANCE::operator[](const Key& key)
+Value&
+NODE_INSTANCE::Elements::operator[](const Key& key)
 {
     auto& cache_k = elements_[cache_index_].first;
-    auto& cache_v = elements_[cache_index_].second;
+    auto& cache_v = this->value(elements_[cache_index_].second);
 
     if (key == cache_k) {
+        this->reset_cache();
         return cache_v;
     } else if (key < cache_k) {
-        for (int i = 0; i < cache_index_; ++i) {
+        for (auto i = 0; i < cache_index_; ++i) {
             if (key == elements_[i].first) {
-                return elements_[i].second;
+                return this->value(elements_[i].second);
             }
         }
     } else {
         for (int i = cache_k; i < count_; ++i) {
             if (key == elements_[i].first) {
-                return elements_[i].second;
+                return this->value(elements_[i].second);
             }
         }
     }
 }
 
-// private method part:
-ELEMENTS_TEMPLATE
+// Node think first of full situation
+NODE_TEMPLATE
+template <typename T>
 void
-ELEMENTS_INSTANCE::reset()
+NODE_INSTANCE::Elements::append(const pair<Key, T>& pair)
+{
+    elements_[count_] = pair;/*.first;
+    elements_[count_].second = pair.second;*/
+    ++count_;
+}
+
+// for ptr
+NODE_TEMPLATE
+NODE_INSTANCE*
+NODE_INSTANCE::Elements::ptr_of_min() const
+{
+    return this->ptr(elements_[0].second);
+}
+
+NODE_TEMPLATE
+template <typename T>
+void
+NODE_INSTANCE::Elements::append(const pair<Key, T*>& pair)
+{
+    elements_[count_].first = pair.first;
+    elements_[count_].second.reset(pair.second);
+    ++count_;
+}
+// private method part:
+
+NODE_TEMPLATE
+Value 
+NODE_INSTANCE::Elements::value(const std::variant<Value, std::unique_ptr<Node>>& v) const
+{
+    return std::get<Value>(v);
+}
+
+NODE_TEMPLATE
+NODE_INSTANCE*
+NODE_INSTANCE::Elements::ptr(const std::variant<Value, std::unique_ptr<Node>>& v) const
+{
+    return std::get<std::unique_ptr<Node>>(v).get();
+}
+
+
+NODE_TEMPLATE
+void
+NODE_INSTANCE::Elements::reset_cache()
 {
     cache_index_ = count_ / 2;
 }
@@ -142,29 +198,7 @@ ELEMENTS_INSTANCE::reset()
 // 1, Value must be saved a copy, Node* just need to save it
 // 2, We need to make two of them are fit in Elements
 // 3, how to do?
-// middle = false, elements.add(pair<Key, Value>)
-// middle = true, elements.add(Node*)
-{
-    template <typename Key, typename Value>
-    void
-    add(pair<Key, Value> pair)
-    {
-        // Change the elements.key&value
-        array<pair<Key, shared_ptr<Value>>
-    }
+// middle = false, elements.append(pair<Key, Value>)
+// middle = true, elements.append(Node*)
 
-    template <typename T>
-    void
-    add(T* node_ptr)
-    {
-        // Change the elements.key&value
-        auto k = node_ptr->max_key();
-        array<pair<Key, shared_ptr<T>>;
-
-    }
-
-
-
-
-}
 

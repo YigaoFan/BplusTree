@@ -1,12 +1,8 @@
 #pragma once 
 
-#include <memory> // for shared_ptr
 #include <utility> // for pair
 #include <vector> // for vector
-#include <variant> // for variant
-#include <utility> // for pair
-#include "CommonFlag.h" // for project define marco
-#include "NodeIter.h" // for NodeIter
+#include "CommonFlag.h" // for project define flag
 //#include "Elements.h"
 
 namespace btree {
@@ -16,30 +12,21 @@ namespace btree {
     // When a Node is Created, its all type is done!
 	template<typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 	class Node {
-		friend BtreeType; // for Btree set father, next_node_
+		friend BtreeType; // for Btree set next_node_
 		class Elements;
-	private:
-		// common construct
-		Node(const BtreeType*, const Node*, const leaf_type);
-		Node(const BtreeType*, const Node*, const middle_type);
-
 	public:
         // Property
         const bool middle;
 
         // Construct
-        Node(const BtreeType*, const Node*, const leaf_type, const std::pair<Key, Value>&); // for Btree add
+        //Node(const BtreeType*, const Node*, const leaf_type, const std::pair<Key, Value>&); // for Btree add
         // TODO: remember to save the biggest Key, or other way can access it
-        template <typename Container>
-        Node(const BtreeType *, const leaf_type,
-			 typename Container::iterator, // point to key-min_value array
-			 typename Container::iterator,
-            const Node* = nullptr);
-        template <typename Container>
-        Node(const BtreeType *, const middle_type,
-			 typename Container::iterator, // point to ptr array
-			 typename Container::iterator,
-            const Node* = nullptr);
+        template <typename Iterator>
+        // point to key-value array
+        Node(const BtreeType *, const leaf_type, Iterator, Iterator, const Node* = nullptr);
+        template <typename Iterator>
+        // point to ptr array
+        Node(const BtreeType *, const middle_type, Iterator, Iterator, const Node* = nullptr);
         ~Node();
 
 		// Iterator
@@ -52,11 +39,9 @@ namespace btree {
 		Value& operator[](const Key&);
         RESULT_FLAG add(const std::pair<Key, Value>&);
         void remove(const Key&);
-        std::vector<Key> all_key() 
-	    const { return elements_.all_key(); }
-        // return min_value means read-only
-        Key max_key() const { return elements_.max_key(); }
-        Node* min_value() const { return elements_.min_value(); } // for Btree traverse get the leftest leaf
+        std::vector<Key> all_key() const;
+        
+        Node* min_value() const; // for Btree traverse get the leftest leaf
 
 	private:
 		// Field
@@ -67,7 +52,8 @@ namespace btree {
         Elements elements_; // TODO can construct in Node constructor using indefinite para
 
         // Helper 
-        bool full() { return elements_.full(); }
+        bool full();
+        Key max_key() const;
             // for add
         RESULT_FLAG no_area_add(std::pair<Key, Value>);
         RESULT_FLAG area_add(const std::pair<Key, Value>&);

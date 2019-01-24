@@ -1,11 +1,9 @@
 #include <utility>
 #include "Node.h"
-
 using namespace btree;
-using std::shared_ptr;
-using std::make_shared;
 using std::pair;
 using std::make_pair;
+using std::vector;
 #define NODE_TEMPLATE template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 #define NODE_INSTANCE Node<Key, Value, BtreeOrder, BtreeType>
 
@@ -80,35 +78,20 @@ using std::make_pair;
 //
 //}
 
-// public method part:
 NODE_TEMPLATE
-NODE_INSTANCE::Node(const BtreeType* btree, const Node* father,const leaf_type nul, const pair<Key, Value>& pair)
-: Node(btree, father, nul)
+template <typename Iterator>
+NODE_INSTANCE::Node(const BtreeType* btree, const leaf_type nul, Iterator begin, Iterator end,const Node* father)
+    : middle(false), btree_(btree), father_(father), elements_(nul, begin, end)
 {
-    elements_.add(pair);
+    // null
 }
 
 NODE_TEMPLATE
-template <typename Container>
-NODE_INSTANCE::Node(const BtreeType* btree, const leaf_type nul,
-        typename Container::iterator begin, typename Container::iterator end,const Node* father)
-        : Node(btree, father, nul)
-        {
-    for (; begin != end; ++begin) {
-        elements_.add(*begin);
-    }
-}
-
-NODE_TEMPLATE
-template <typename Container>
-NODE_INSTANCE::Node(const BtreeType* btree, const middle_type nul,
-        typename Container::iterator begin, typename Container::iterator end,const Node* father)
-        : Node(btree, father, nul)
-        {
-    for (; begin != end; ++begin) {
-        elements_.add(make_pair<Key, Node*>(begin->max_key(), *begin));
-        begin->father = this;
-    }
+template <typename Iterator>
+NODE_INSTANCE::Node(const BtreeType* btree, const middle_type nul, Iterator begin, Iterator end,const Node* father)
+        : middle(true), btree_(btree), father_(father), elements_(nul, begin, end)
+{
+    // null
 }
 
 NODE_TEMPLATE
@@ -130,7 +113,7 @@ NODE_TEMPLATE
 RESULT_FLAG
 NODE_INSTANCE::add(const pair<Key, Value>& pair)
 {
-    // if node is a leaf, then add into leaf
+    // if node is a leaf, then append into leaf
     // or it's a intermediate node, basically you can
     // be sure to create a new node
     // Fan said: We focus the operation of so many data structure on one abstract data structure
@@ -178,20 +161,34 @@ NODE_INSTANCE::remove(const Key& key)
     }
 }
 
-// private method part:
-
 NODE_TEMPLATE
-NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const leaf_type)
-    : middle(false), btree_(btree), father_(father)
+vector<Key> 
+NODE_INSTANCE::all_key() const
 {
-    // null
+    return elements_.all_key();
 }
 
 NODE_TEMPLATE
-NODE_INSTANCE::Node(const BtreeType* btree, const Node* father, const middle_type)
-    : middle(true), btree_(btree), father_(father)
+Key 
+NODE_INSTANCE::max_key() const
 {
-    // null
+    return elements_.max_key();
+}
+
+NODE_TEMPLATE
+NODE_INSTANCE*
+NODE_INSTANCE::min_value() const
+{
+    return elements_.ptr_of_min();
+}
+
+// private method part:
+
+NODE_TEMPLATE
+bool 
+NODE_INSTANCE::full()
+{
+    return elements_.full();
 }
 
 NODE_TEMPLATE
