@@ -20,19 +20,13 @@ namespace btree {
 
         // Construct
         //Node(const BtreeType*, const Node*, const leaf_type, const std::pair<Key, Value>&); // for Btree add
-        // TODO: remember to save the biggest Key, or other way can access it
         template <typename Iterator>
         // point to key-value array
         Node(const BtreeType *, const leaf_type, Iterator, Iterator, const Node* = nullptr);
         template <typename Iterator>
-        // point to ptr array
+        // point to key-ptr array
         Node(const BtreeType *, const middle_type, Iterator, Iterator, const Node* = nullptr);
         ~Node();
-
-		// Iterator
-		// TODO: maybe should belong to Elements
-		//NodeIter<ele_instance_type> begin();
-		//NodeIter<ele_instance_type> end();
 
         // Method
         bool have(const Key&);
@@ -40,7 +34,7 @@ namespace btree {
         RESULT_FLAG add(const std::pair<Key, Value>&);
         void remove(const Key&);
         std::vector<Key> all_key() const;
-        
+        Key max_key() const;
         Node* min_value() const; // for Btree traverse get the leftest leaf
 
 	private:
@@ -49,15 +43,14 @@ namespace btree {
         const BtreeType* btree_;
         Node* father_;
 
-        Elements elements_; // TODO can construct in Node constructor using indefinite para
+        Elements elements_;
 
         // Helper 
-        bool full();
-        Key max_key() const;
+        bool full(); // maybe no using
             // for add
         RESULT_FLAG no_area_add(std::pair<Key, Value>);
         RESULT_FLAG area_add(const std::pair<Key, Value>&);
-        RESULT_FLAG middle_node_add(const std::pair<Key, Value>&);
+        RESULT_FLAG middle_add(const std::pair<Key, Value>&);
             // for add and remove
         void adjust();
 

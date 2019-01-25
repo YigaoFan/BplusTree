@@ -3,7 +3,7 @@ using namespace btree;
 using std::initializer_list;
 using std::pair;
 using std::vector;
-
+using std::unique_ptr;
 #define NODE_TEMPLATE template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 #define NODE_INSTANCE Node<Key, Value, BtreeOrder, BtreeType>
 
@@ -35,26 +35,11 @@ using std::vector;
 
 NODE_TEMPLATE
 template <typename Iterator>
-NODE_INSTANCE::Elements::Elements(const leaf_type, Iterator begin, Iterator end)
+NODE_INSTANCE::Elements::Elements(Node* belong_node, Iterator begin, Iterator end)
+    : belong_node_(belong_node), count_(0)
 {
-    count_ = 0;
     do {
         elements_[count_] = *begin;
-
-        ++count_;
-        ++begin;
-    } while (begin != end);
-    this->reset_cache();
-}
-
-NODE_TEMPLATE
-template <typename Iterator>
-NODE_INSTANCE::Elements::Elements(const middle_type, Iterator begin, Iterator end)
-{
-    count_ = 0;
-    do {
-        elements_[count_].first = begin->first;
-        elements_[count_].second = unique_ptr<Node>(begin->second);
 
         ++count_;
         ++begin;
@@ -115,13 +100,22 @@ NODE_INSTANCE::Elements::full() const
     return count_ >= BtreeOrder;
 }
 
+NODE_TEMPLATE
+void 
+NODE_INSTANCE::Elements::remove(const Key&)
+{
+    // TODO
+    // may need to distinguish middle or not
+    // if change the max_value or balance, call the BtreeHelper
+}
+
 // for Value
 NODE_TEMPLATE
 Value&
 NODE_INSTANCE::Elements::operator[](const Key& key)
 {
     auto& cache_k = elements_[cache_index_].first;
-    auto& cache_v = this->value(elements_[cache_index_].second);
+    auto& cache_v = Elements::value(elements_[cache_index_].second);
 
     if (key == cache_k) {
         this->reset_cache();
@@ -129,13 +123,13 @@ NODE_INSTANCE::Elements::operator[](const Key& key)
     } else if (key < cache_k) {
         for (auto i = 0; i < cache_index_; ++i) {
             if (key == elements_[i].first) {
-                return this->value(elements_[i].second);
+                return Elements::value(elements_[i].second);
             }
         }
     } else {
         for (int i = cache_k; i < count_; ++i) {
             if (key == elements_[i].first) {
-                return this->value(elements_[i].second);
+                return Elements::value(elements_[i].second);
             }
         }
     }
@@ -147,9 +141,16 @@ template <typename T>
 void
 NODE_INSTANCE::Elements::append(const pair<Key, T>& pair)
 {
-    elements_[count_] = pair;/*.first;
-    elements_[count_].second = pair.second;*/
-    ++count_;
+    // TODO
+    if (this->full()) {
+
+    } else {
+
+    }
+    // when is full, need to call wide Node method
+    //elements_[count_] = pair;/*.first;
+    //elements_[count_].second = pair.second;*/
+    //++count_;
 }
 
 // for ptr
@@ -157,32 +158,33 @@ NODE_TEMPLATE
 NODE_INSTANCE*
 NODE_INSTANCE::Elements::ptr_of_min() const
 {
-    return this->ptr(elements_[0].second);
+    return Elements::ptr(elements_[0].second);
 }
 
-NODE_TEMPLATE
-template <typename T>
-void
-NODE_INSTANCE::Elements::append(const pair<Key, T*>& pair)
-{
-    elements_[count_].first = pair.first;
-    elements_[count_].second.reset(pair.second);
-    ++count_;
-}
+
+//NODE_TEMPLATE
+//template <typename T>
+//void
+//NODE_INSTANCE::Elements::append(const pair<Key, T*>& pair)
+//{
+//    elements_[count_].first = pair.first;
+//    elements_[count_].second.reset(pair.second);
+//    ++count_;
+//}
 // private method part:
 
 NODE_TEMPLATE
 Value 
-NODE_INSTANCE::Elements::value(const std::variant<Value, std::unique_ptr<Node>>& v) const
+NODE_INSTANCE::Elements::value(const std::variant<Value, std::unique_ptr<Node>>& v)
 {
     return std::get<Value>(v);
 }
 
 NODE_TEMPLATE
 NODE_INSTANCE*
-NODE_INSTANCE::Elements::ptr(const std::variant<Value, std::unique_ptr<Node>>& v) const
+NODE_INSTANCE::Elements::ptr(const std::variant<Value, std::unique_ptr<Node>>& v)
 {
-    return std::get<std::unique_ptr<Node>>(v).get();
+    return std::get<unique_ptr<Node>>(v).get();
 }
 
 

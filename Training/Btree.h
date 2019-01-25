@@ -33,7 +33,7 @@ namespace btree {
 
     private:
         // Field
-        std::shared_ptr<node_instance_type> root_{nullptr};
+        std::unique_ptr<node_instance_type> root_{nullptr};
         const compare compare_func_;
         unsigned key_num_{0}; // remember to add to use
 //        const LeafMemory<Key, Value, 2>* leaf_block_;
@@ -44,7 +44,7 @@ namespace btree {
         // provide some all-leaf-do operation
         std::vector<node_instance_type*> traverse_leaf(const predicate&);
         node_instance_type* smallest_leaf();
-        template <bool FirstFlag, typename Element, unsigned NodeCount> void helper(std::array<Element, NodeCount>&);
+        template <bool FirstFlag, typename Element, unsigned NodeCount> void helper(const std::array<Element, NodeCount>&);
         //template <typename T> static void set_father(typename T::iterator, const typename T::iterator&, void* father);
         //template <typename T> static void set_next_node(typename T::iterator, const typename T::iterator&);
     };

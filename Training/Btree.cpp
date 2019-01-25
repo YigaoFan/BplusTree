@@ -7,11 +7,11 @@ using namespace btree;
 using std::array;
 using std::ceil;
 using std::function;
-using std::make_shared;
 using std::pair;
 using std::sort;
 using std::vector;
 using std::copy;
+using std::unique_ptr;
 #define BTREE_TEMPLATE \
   template <typename Key, typename Value, unsigned BtreeOrder>
 #define BTREE_INSTANCE Btree<Key, Value, BtreeOrder>
@@ -36,70 +36,54 @@ BTREE_INSTANCE::Btree(const compare& compare_function,
         return;
     }
 
-    // TODO: check&process the same Key
+    // TODO check&process the same Key
     key_num_ += NumOfArrayEle;
 
-    // sort the pair_array first
+    // sort the pair_array
     sort(pair_array.begin(), pair_array.end(),
         [compare_function](pair<Key, Value> p1, pair<Key, Value> p2)
     {
         return compare_function(p1.first, p2.first);
     });
 
-    // TODO: set the high bound
     if constexpr (NumOfArrayEle < BtreeOrder) {
-        root_ = make_shared<node_instance_type>(this, leaf_type(), pair_array.begin(), pair_array.end());
+        root_.reset(new node_instance_type(this, leaf_type(), pair_array.begin(), pair_array.end()));
     } else {
         this->helper<true>(pair_array);
     }
 }
 
-/// tool to set Node father pointer
-//BTREE_TEMPLATE
-//template <typename T>
-//void
-//BTREE_INSTANCE::set_father(typename T::iterator begin, const typename T::iterator& end, void* father)
-//{
-//    for (; begin != end; ++begin) {
-//        begin->father = father;
-//    }
-//}
-
-// set high-bound (leaf&middle) in Node constructor
-
 /// assume the nodes arg is sorted
 BTREE_TEMPLATE
 template <bool FirstFlag, typename ElementType, unsigned NodeCount>
 void
-BTREE_INSTANCE::helper(array<ElementType, NodeCount>& nodes)
+BTREE_INSTANCE::helper(const array<ElementType, NodeCount>& nodes)
 {
+    // ceil is for double, maybe need to be changed to int
     constexpr auto upper_node_num = static_cast<const size_t>(ceil(NodeCount / BtreeOrder));
-    array<node_instance_type*, upper_node_num> all_upper_node; // store all leaf
+    array<pair<Key, unique_ptr<node_instance_type>>, upper_node_num> all_upper_node; // store all leaf
 
     auto head = nodes.begin();
     auto end = nodes.end();
     auto i = 0;
-
     auto tail = head + BtreeOrder;
-    bool not_first_of_arr = false;
+    auto not_first_of_arr = false;
+
     do {
         // use head to tail to construct a upper Node, then collect it
         if constexpr (FirstFlag) {
             auto leaf = new node_instance_type(this, leaf_type(), head, tail);
 
-            // todo: complete
+            // TODO complete
             assert(i < upper_node_num);
 
-            all_upper_node[i] = leaf;
+            all_upper_node[i] = { leaf->max_key(), unique_ptr<node_instance_type>(leaf) };
         } else {
-            // may not create shared_ptr here, can delay the place
-            // shared_ptr should be saved in Elements' Value, then when Elements delete it
-            // all will go automatically
             auto middle = new node_instance_type(this, middle_type(), head, tail);
-            all_upper_node[i] = middle;
+            all_upper_node[i] = { middle->max_key(), unique_ptr<node_instance_type>(middle) };
             // set Node.next_node_
             if (not_first_of_arr) {
-                all_upper_node[i]->next_node_ = all_upper_node[i-1];
+                all_upper_node[i].second->next_node_ = all_upper_node[i-1].second.get();
             } else {
                 not_first_of_arr = true;
             }
@@ -110,11 +94,9 @@ BTREE_INSTANCE::helper(array<ElementType, NodeCount>& nodes)
         tail += BtreeOrder;
         ++i;
     } while (end - head > 0);
-    // not include = to ensure have to remain a group, then below statement
-    // could be run correctly
 
     if constexpr (upper_node_num <= BtreeOrder) {
-        root_ = make_shared<node_instance_type>(this, middle_type(), all_upper_node.begin(), all_upper_node.end());
+        root_.reset(new node_instance_type(this, middle_type(), all_upper_node.begin(), all_upper_node.end()));
     } else {
         // construct recursively
         this->helper<false>(all_upper_node);

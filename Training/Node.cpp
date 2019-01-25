@@ -81,7 +81,7 @@ using std::vector;
 NODE_TEMPLATE
 template <typename Iterator>
 NODE_INSTANCE::Node(const BtreeType* btree, const leaf_type nul, Iterator begin, Iterator end,const Node* father)
-    : middle(false), btree_(btree), father_(father), elements_(nul, begin, end)
+    : middle(false), btree_(btree), father_(father), elements_(this, begin, end)
 {
     // null
 }
@@ -89,10 +89,13 @@ NODE_INSTANCE::Node(const BtreeType* btree, const leaf_type nul, Iterator begin,
 NODE_TEMPLATE
 template <typename Iterator>
 NODE_INSTANCE::Node(const BtreeType* btree, const middle_type nul, Iterator begin, Iterator end,const Node* father)
-        : middle(true), btree_(btree), father_(father), elements_(nul, begin, end)
+        : middle(true), btree_(btree), father_(father), elements_(this, begin, end)
 {
     // null
 }
+
+NODE_TEMPLATE
+NODE_INSTANCE::~Node() = default;
 
 NODE_TEMPLATE
 bool
@@ -117,25 +120,19 @@ NODE_INSTANCE::add(const pair<Key, Value>& pair)
     // or it's a intermediate node, basically you can
     // be sure to create a new node
     // Fan said: We focus the operation of so many data structure on one abstract data structure
-    // all the nodes are actually generated here.
 
-    if (this->middle) {
-        return this->middle_node_add(pair);
+    if (middle) {
+        return this->middle_add(pair);
     } else {
-        shared_ptr<ele_instance_type> tmp = this->operator[](pair.first);
-        // check existed
-        if (tmp != nullptr) {
-            // involve Ele detail, but the pair has meant detail info
-            tmp->leaf.second = pair.second;
-            return OK;
+        elements_.append(pair);
+        return OK;
+        // so key is smaller than all Node's keys certainly
+        if (this->full()) {
+            return this->no_area_add(pair);
         } else {
-            // so key is smaller than all Node's keys certainly
-            if (this->full()) {
-                return this->no_area_add(pair);
-            } else {
-                return this->area_add(pair);
-            }
+            return this->area_add(pair);
         }
+
         
     }
 }
@@ -145,20 +142,10 @@ NODE_TEMPLATE
 void
 NODE_INSTANCE::remove(const Key& key)
 {
-    if (this->middle) {
-        // when not a leaf-node, no need to remove. 
-        // the Btree::check_out ensure the correctness.
-        return;
-    } else {
-        if (this->operator[](key) != nullptr) {
-            // do some memory copy
-            --(this->elements_count_);
-            return;
-        } else {
-            // key isn't exist in this Node
-            return;
-        }
+    if (!middle) {
+        elements_.remove(key);
     }
+    // when not a leaf-node, no need to remove. 
 }
 
 NODE_TEMPLATE
@@ -227,22 +214,22 @@ NODE_INSTANCE::area_add(const pair<Key, Value>& pair)
 
 NODE_TEMPLATE
 RESULT_FLAG
-NODE_INSTANCE::middle_node_add(const pair<Key, Value>& pair)
+NODE_INSTANCE::middle_add(const pair<Key, Value>& pair)
 {
     
 }
 
-NODE_TEMPLATE
-void
-NODE_INSTANCE::move_Ele(const NodeIter<ele_instance_type>& begin,
-const NodeIter<ele_instance_type>& end, unsigned distance)
-{
-    //  memory back shift, there may be problems
-    // , because relate to object function pointer address maybe not correct
-    ele_instance_type* src = begin.operator->();
-    const size_t len = (end - begin) * sizeof(NodeIter<ele_instance_type>::value_type);
-    memcpy(src + distance, src, len);
-}
+//NODE_TEMPLATE
+//void
+//NODE_INSTANCE::move_Ele(const NodeIter<ele_instance_type>& begin,
+//const NodeIter<ele_instance_type>& end, unsigned distance)
+//{
+//    //  memory back shift, there may be problems
+//    // , because relate to object function pointer address maybe not correct
+//    ele_instance_type* src = begin.operator->();
+//    const size_t len = (end - begin) * sizeof(NodeIter<ele_instance_type>::value_type);
+//    memcpy(src + distance, src, len);
+//}
 
 NODE_TEMPLATE
 void

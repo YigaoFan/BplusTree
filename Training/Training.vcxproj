@@ -153,22 +153,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Btree.h" />
+    <ClInclude Include="BtreeHelper.h" />
     <ClInclude Include="CommonFlag.h" />
     <ClInclude Include="Elements.h" />
-    <ClInclude Include="LeafMemory.h" />
     <ClInclude Include="Node.h" />
-    <ClInclude Include="NodeIter.h" />
-    <ClInclude Include="Data.h" />
-    <ClInclude Include="RealData.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Btree.cpp" />
+    <ClCompile Include="BtreeHelper.cpp" />
     <ClCompile Include="Elements.cpp" />
     <ClCompile Include="Factory.cpp" />
-    <ClCompile Include="LeafMemory.cpp" />
     <ClCompile Include="Node.cpp" />
-    <ClCompile Include="NodeIter.cpp" />
-    <ClCompile Include="RealData.cpp" />
     <ClCompile Include="Training.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
