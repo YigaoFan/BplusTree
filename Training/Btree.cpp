@@ -28,7 +28,7 @@ BTREE_TEMPLATE
 template <unsigned NumOfArrayEle>
 BTREE_INSTANCE::Btree(const compare& compare_function,
     array<pair<Key, Value>, NumOfArrayEle>& pair_array)
-    : compare_func_(compare_function)
+    : compare_func_(compare_function), key_num_(NumOfArrayEle) // TODO assume all keys are different
     // Prepare memory
 //    leaf_block_(LeafMemory<Key, Value, 2>::produce_leaf_memory(NumOfArrayEle))
 {
@@ -37,7 +37,7 @@ BTREE_INSTANCE::Btree(const compare& compare_function,
     }
 
     // TODO check&process the same Key
-    key_num_ += NumOfArrayEle;
+    //key_num_ += NumOfArrayEle;
 
     // sort the pair_array
     sort(pair_array.begin(), pair_array.end(),
@@ -130,10 +130,15 @@ BTREE_TEMPLATE
 RESULT_FLAG
 BTREE_INSTANCE::add(const pair<Key, Value>& pair) {
     if (root_ == nullptr) {
-        root_ = make_shared<node_instance_type>(this, nullptr, leaf_type(), &pair, &pair+1);
+        root_ = unique_ptr<node_instance_type>(new node_instance_type(this, nullptr, leaf_type(), &pair, &pair+1));
+        ++key_num_;
         return OK;
     }
 
+    /*if (this->all_leaf_full())
+    {
+        
+    }*/
     auto& k = pair.first;
     auto& v = pair.second;
     // TODO: the code below should be a function? and the code in modify
@@ -149,8 +154,8 @@ BTREE_INSTANCE::add(const pair<Key, Value>& pair) {
         }
     } else {
         // add
-        ++key_num_;
         node->add(pair);
+        ++key_num_;
     }
     return OK;
 }
@@ -210,6 +215,17 @@ BTREE_INSTANCE::have(const Key& key)
 }
 
 // private method part:
+
+BTREE_TEMPLATE
+bool
+BTREE_INSTANCE::all_leaf_full() const
+{
+    if ((key_num_ % BtreeOrder) == 0) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 /// search the key in Btree, return the node that terminated, may be not have the key
 /// this is to save the search information

@@ -1,9 +1,11 @@
+#include <cstring>
 #include "Elements.h"
 using namespace btree;
 using std::initializer_list;
 using std::pair;
 using std::vector;
 using std::unique_ptr;
+using std::memcpy;
 #define NODE_TEMPLATE template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 #define NODE_INSTANCE Node<Key, Value, BtreeOrder, BtreeType>
 
@@ -73,14 +75,18 @@ NODE_INSTANCE::Elements::have(const Key& key)
 //    }
 
     // version 2:
-    for (auto i = 0; i < count_; ++i)
-    {
+    cache_key_ = key;
+    for (auto i = count_ - 1; i >= 0; --i) {
         if (elements_[i].first == key) {
             cache_index_ = i;
             return true;
+        } else if (key > elements_[i].first) {
+            cache_index_ = i;
+            return false;
         }
     }
-    return false;
+    // TODO here could arrange a static_assert
+    //return false;
 }
 
 NODE_TEMPLATE
@@ -142,10 +148,34 @@ void
 NODE_INSTANCE::Elements::append(const pair<Key, T>& pair)
 {
     // TODO
+    // maybe only leaf add logic use this Elements method
+    // middle add logic is in middle Node self
+    auto& k = pair.first;
+    auto& v = pair.second;
     if (this->full()) {
-
+        // exchange the max pair out, then insert this pair to next Node
     } else {
-
+        if (k == cache_key_) {
+            auto& des = Elements::move_element(&elements_[cache_index_ + 1], 1);
+            des = pair;
+        } else if (k > cache_key_) {
+            // TODO maybe cache_key_ and cache_index_ is not correspond
+            for (auto i = cache_index_ + 1; i < count_; ++i) {
+                if (k == elements_[i].first)
+                {
+                    // TODO think of dichotomy to get the index
+                    auto& des = Elements::move_element(elements_[i], 1);
+                    des = pair;
+                }
+            }
+        } else {
+            for (auto i = 0; i < cache_index_; ++i) {
+                if (k == elements_[i].first) {
+                    auto& des = Elements::move_element(elements_[i], 1);
+                    des = pair;
+                }
+            }
+        }
     }
     // when is full, need to call wide Node method
     //elements_[count_] = pair;/*.first;
@@ -185,6 +215,17 @@ NODE_INSTANCE*
 NODE_INSTANCE::Elements::ptr(const std::variant<Value, std::unique_ptr<Node>>& v)
 {
     return std::get<unique_ptr<Node>>(v).get();
+}
+
+NODE_TEMPLATE
+typename NODE_INSTANCE::Elements::content_type& 
+NODE_INSTANCE::Elements::move_element(content_type* begin, const char direction)
+{
+    // return the begin reference
+    // default content_type* end
+    auto end = &elements_[count_ - 1];
+    memcpy(begin + direction, begin, end - begin);
+    return *begin;
 }
 
 

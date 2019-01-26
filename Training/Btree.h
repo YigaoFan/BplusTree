@@ -6,7 +6,6 @@
 #include <utility> // for pair
 #include "CommonFlag.h"
 #include "Node.h"
-#include "LeafMemory.h"
 
 namespace btree {
     template<typename Key, 
@@ -35,9 +34,13 @@ namespace btree {
         // Field
         std::unique_ptr<node_instance_type> root_{nullptr};
         const compare compare_func_;
-        unsigned key_num_{0}; // remember to add to use
-//        const LeafMemory<Key, Value, 2>* leaf_block_;
 
+        // key info
+        unsigned key_num_; // TODO remember to add to Btree function
+        /*Key min_key_;
+        Key max_key_;*/
+
+        bool all_leaf_full() const; // TODO maybe no using
         node_instance_type* check_out(const Key&);
         node_instance_type* check_out_recur(const Key&, 
             const node_instance_type*);

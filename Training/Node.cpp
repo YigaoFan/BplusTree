@@ -122,10 +122,12 @@ NODE_INSTANCE::add(const pair<Key, Value>& pair)
     // Fan said: We focus the operation of so many data structure on one abstract data structure
 
     if (middle) {
+        // means here root_ add
         return this->middle_add(pair);
     } else {
         elements_.append(pair);
         return OK;
+        // should distinguish full or not full?
         // so key is smaller than all Node's keys certainly
         if (this->full()) {
             return this->no_area_add(pair);

@@ -18,7 +18,6 @@ namespace btree {
         Key max_key() const;
         bool have(const Key&);
         std::vector<Key> all_key() const;
-        bool full() const;
         void remove(const Key&);
 
         // for Value
@@ -31,15 +30,20 @@ namespace btree {
         Node* ptr_of_min() const; // for Node for Btree traverse all leaf
 
     private:
+        using content_type = std::pair<Key, std::variant<Value, std::unique_ptr<Node>>>;
         // Field
         Node* belong_node_;
-        size_t count_;
-        size_t cache_index_{0};
-        std::array<std::pair<Key, std::variant<Value, std::unique_ptr<Node>>>, BtreeOrder> elements_;
+        char count_;
+        char cache_index_{0};
+        Key cache_key_;
+        std::array<content_type, BtreeOrder> elements_;
+
+        void reset_cache();
+        bool full() const;
 
         static Value value(const std::variant<Value, std::unique_ptr<Node>>&);
         static Node* ptr(const std::variant<Value, std::unique_ptr<Node>>&);
-        void reset_cache();
+        content_type& move_element(content_type*, const char);
     };
 };
 
