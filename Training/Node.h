@@ -31,11 +31,12 @@ namespace btree {
         // Method
         bool have(const Key&);
 		Value& operator[](const Key&);
-        RESULT_FLAG add(const std::pair<Key, Value>&);
+        void add(const std::pair<Key, Value>&);
         void remove(const Key&);
         std::vector<Key> all_key() const;
         Key max_key() const;
-        Node* min_value() const; // for Btree traverse get the leftest leaf
+        Node* min_leaf() const; // for Btree traverse get the leftest leaf
+        Node* max_leaf() const; // for Btree traverse get the rightest leaf
 
 	private:
 		// Field
@@ -46,11 +47,13 @@ namespace btree {
         Elements elements_;
 
         // Helper 
-        bool full(); // maybe no using
+        bool full() const;
             // for add
-        RESULT_FLAG no_area_add(std::pair<Key, Value>);
-        RESULT_FLAG area_add(const std::pair<Key, Value>&);
-        RESULT_FLAG middle_add(const std::pair<Key, Value>&);
+        /*RESULT_FLAG no_area_add(std::pair<Key, Value>);
+        RESULT_FLAG area_add(const std::pair<Key, Value>&);*/
+
+        void element_add(const std::pair<Key, Value>&);
+        void middle_add(const std::pair<Key, Value>&);
             // for add and remove
         void adjust();
 

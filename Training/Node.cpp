@@ -81,7 +81,7 @@ using std::vector;
 NODE_TEMPLATE
 template <typename Iterator>
 NODE_INSTANCE::Node(const BtreeType* btree, const leaf_type nul, Iterator begin, Iterator end,const Node* father)
-    : middle(false), btree_(btree), father_(father), elements_(this, begin, end)
+    : middle(false), btree_(btree), father_(father), elements_(begin, end)
 {
     // null
 }
@@ -89,7 +89,7 @@ NODE_INSTANCE::Node(const BtreeType* btree, const leaf_type nul, Iterator begin,
 NODE_TEMPLATE
 template <typename Iterator>
 NODE_INSTANCE::Node(const BtreeType* btree, const middle_type nul, Iterator begin, Iterator end,const Node* father)
-        : middle(true), btree_(btree), father_(father), elements_(this, begin, end)
+        : middle(true), btree_(btree), father_(father), elements_(begin, end)
 {
     // null
 }
@@ -113,29 +113,17 @@ NODE_INSTANCE::operator[](const Key& k)
 }
 
 NODE_TEMPLATE
-RESULT_FLAG
+void
 NODE_INSTANCE::add(const pair<Key, Value>& pair)
 {
-    // if node is a leaf, then append into leaf
-    // or it's a intermediate node, basically you can
-    // be sure to create a new node
-    // Fan said: We focus the operation of so many data structure on one abstract data structure
-
+    // TODO 
+    // the logic maybe not need to like this
+    // because the Btree has process a lot of thing
     if (middle) {
         // means here root_ add
-        return this->middle_add(pair);
+        this->middle_add(pair); // need to process the return value
     } else {
-        elements_.append(pair);
-        return OK;
-        // should distinguish full or not full?
-        // so key is smaller than all Node's keys certainly
-        if (this->full()) {
-            return this->no_area_add(pair);
-        } else {
-            return this->area_add(pair);
-        }
-
-        
+        this->element_add(pair);
     }
 }
 
@@ -166,59 +154,87 @@ NODE_INSTANCE::max_key() const
 
 NODE_TEMPLATE
 NODE_INSTANCE*
-NODE_INSTANCE::min_value() const
+NODE_INSTANCE::min_leaf() const
 {
     return elements_.ptr_of_min();
+}
+
+NODE_TEMPLATE
+NODE_INSTANCE*
+NODE_INSTANCE::max_leaf() const
+{
+    return elements_.ptr_of_max();
 }
 
 // private method part:
 
 NODE_TEMPLATE
 bool 
-NODE_INSTANCE::full()
+NODE_INSTANCE::full() const
 {
     return elements_.full();
 }
 
+//NODE_TEMPLATE
+//RESULT_FLAG
+//NODE_INSTANCE::no_area_add(pair<Key, Value> pair)
+//{
+//    NodeIter<ele_instance_type> end = this->end();
+//    // todo: care here is rvalue reference and modify other place
+//    for (NodeIter<ele_instance_type>&& iter = this->begin(); iter != end; ++iter) {
+//        if (btree_->compare_func_(pair.first, iter->key())) {
+//            ele_instance_type copy = *end;
+//            this->move_Ele(iter, end - 1);
+//            iter->leaf = pair;
+//            // todo: call another way to process the temp ele_instance_type
+//        }
+//    }
+//}
+//
+//NODE_TEMPLATE
+//RESULT_FLAG
+//NODE_INSTANCE::area_add(const pair<Key, Value>& pair)
+//{
+//    NodeIter<ele_instance_type> end = this->end();
+//
+//    for (NodeIter<ele_instance_type> iter = this->begin(); iter != end; ++iter) {
+//        // once the pair.key < e.key, arrive the insert position
+//        if (btree_->compare_func_(pair.first, iter->key())) {
+//            this->move_Ele(iter, this->end());
+//            iter->key() = pair.first;
+//            iter->__value() = pair.second;
+//            ++(this->elements_count_);
+//            return OK;
+//        }
+//    }
+//}
+
 NODE_TEMPLATE
-RESULT_FLAG
-NODE_INSTANCE::no_area_add(pair<Key, Value> pair)
+void 
+NODE_INSTANCE::element_add(const std::pair<Key, Value>&  pair)
 {
-    NodeIter<ele_instance_type> end = this->end();
-    // todo: care here is rvalue reference and modify other place
-    for (NodeIter<ele_instance_type>&& iter = this->begin(); iter != end; ++iter) {
-        if (btree_->compare_func_(pair.first, iter->key())) {
-            ele_instance_type copy = *end;
-            this->move_Ele(iter, end - 1);
-            iter->leaf = pair;
-            // todo: call another way to process the temp ele_instance_type
+    if (elements_.full()) {
+        auto p = elements_.exchange_max_out(pair);
+        // TODO not very clear to the adjust first, or process other related Node first
+        // I don't think different Node will affect each other
+        btree_->change_bound_upwards(this, this->max_key());
+        // next node add
+        if (next_node_ != nullptr) {
+            next_node_.element_add(p);
+        }
+    } else {
+        auto max_change = elements_.append(pair);
+        if (max_change == true) {
+            btree_->change_bound_upwards(this, this->max_key());
         }
     }
 }
 
 NODE_TEMPLATE
-RESULT_FLAG
-NODE_INSTANCE::area_add(const pair<Key, Value>& pair)
-{
-    NodeIter<ele_instance_type> end = this->end();
-
-    for (NodeIter<ele_instance_type> iter = this->begin(); iter != end; ++iter) {
-        // once the pair.key < e.key, arrive the insert position
-        if (btree_->compare_func_(pair.first, iter->key())) {
-            this->move_Ele(iter, this->end());
-            iter->key() = pair.first;
-            iter->__value() = pair.second;
-            ++(this->elements_count_);
-            return OK;
-        }
-    }
-}
-
-NODE_TEMPLATE
-RESULT_FLAG
+void
 NODE_INSTANCE::middle_add(const pair<Key, Value>& pair)
 {
-    
+    // TODO wait to use
 }
 
 //NODE_TEMPLATE

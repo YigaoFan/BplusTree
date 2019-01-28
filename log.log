@@ -127,3 +127,5 @@ int main()
 43. 对一些小参数比如 int 或 size_t 之类的，是否有必要使用引用呢？毕竟引用也有开销不是？其实就是指针的开销。
 
 44. 等到 B+ 树的代码全部写完了，可以加一些防御性的代码（来帮助 debug ？）
+
+45.     // the adjust logic should be leaved for Node

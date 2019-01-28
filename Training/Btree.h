@@ -6,12 +6,13 @@
 #include <utility> // for pair
 #include "CommonFlag.h"
 #include "Node.h"
+#include "BtreeHelper.h"
 
 namespace btree {
     template<typename Key, 
              typename Value,
              unsigned BtreeOrder>
-    class Btree {
+    class Btree : private BtreeHelper{
     private:
         using node_instance_type = Node<Key, Value, BtreeOrder, Btree>;
         friend node_instance_type; // for Node use compare func, leaf_block_
@@ -37,18 +38,20 @@ namespace btree {
 
         // key info
         unsigned key_num_; // TODO remember to add to Btree function
-        /*Key min_key_;
-        Key max_key_;*/
 
-        bool all_leaf_full() const; // TODO maybe no using
+        bool all_leaf_full() const;
         node_instance_type* check_out(const Key&);
-        node_instance_type* check_out_recur(const Key&, 
-            const node_instance_type*);
+        node_instance_type* check_out_recur(const Key&, const node_instance_type*);
         // provide some all-leaf-do operation
         std::vector<node_instance_type*> traverse_leaf(const predicate&);
         node_instance_type* smallest_leaf();
-        template <bool FirstFlag, typename Element, unsigned NodeCount> void helper(const std::array<Element, NodeCount>&);
-        //template <typename T> static void set_father(typename T::iterator, const typename T::iterator&, void* father);
-        //template <typename T> static void set_next_node(typename T::iterator, const typename T::iterator&);
+        node_instance_type* biggest_leaf();
+
+        template <bool FirstFlag, typename Element, unsigned NodeCount> 
+        void helper(const std::array<Element, NodeCount>&);
+
+        void root_add(const node_instance_type*, const std::pair<Key, Value>&);
+        void create_new_branch(const node_instance_type*, const std::pair<Key, Value>&);
+        void create_new_root(const node_instance_type*, const std::pair<Key, Value>&);
     };
 }

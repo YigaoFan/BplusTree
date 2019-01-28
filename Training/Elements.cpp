@@ -37,8 +37,8 @@ using std::memcpy;
 
 NODE_TEMPLATE
 template <typename Iterator>
-NODE_INSTANCE::Elements::Elements(Node* belong_node, Iterator begin, Iterator end)
-    : belong_node_(belong_node), count_(0)
+NODE_INSTANCE::Elements::Elements(Iterator begin, Iterator end)
+    : count_(0)
 {
     do {
         elements_[count_] = *begin;
@@ -144,10 +144,10 @@ NODE_INSTANCE::Elements::operator[](const Key& key)
 // Node think first of full situation
 NODE_TEMPLATE
 template <typename T>
-void
+bool
 NODE_INSTANCE::Elements::append(const pair<Key, T>& pair)
 {
-    // TODO
+    // TODO change to return bool
     // maybe only leaf add logic use this Elements method
     // middle add logic is in middle Node self
     auto& k = pair.first;
@@ -156,7 +156,7 @@ NODE_INSTANCE::Elements::append(const pair<Key, T>& pair)
         // exchange the max pair out, then insert this pair to next Node
     } else {
         if (k == cache_key_) {
-            auto& des = Elements::move_element(&elements_[cache_index_ + 1], 1);
+            auto& des = this->up_to_end_move(1, &elements_[cache_index_ + 1]);
             des = pair;
         } else if (k > cache_key_) {
             // TODO maybe cache_key_ and cache_index_ is not correspond
@@ -164,14 +164,14 @@ NODE_INSTANCE::Elements::append(const pair<Key, T>& pair)
                 if (k == elements_[i].first)
                 {
                     // TODO think of dichotomy to get the index
-                    auto& des = Elements::move_element(elements_[i], 1);
+                    auto& des = this->up_to_end_move(elements_[i], 1);
                     des = pair;
                 }
             }
         } else {
             for (auto i = 0; i < cache_index_; ++i) {
                 if (k == elements_[i].first) {
-                    auto& des = Elements::move_element(elements_[i], 1);
+                    auto& des = this->up_to_end_move(elements_[i], 1);
                     des = pair;
                 }
             }
@@ -183,12 +183,34 @@ NODE_INSTANCE::Elements::append(const pair<Key, T>& pair)
     //++count_;
 }
 
+NODE_TEMPLATE
+pair<Key, Value> 
+NODE_INSTANCE::Elements::exchange_max_out(const pair<Key, Value>& p)
+{
+    pair<Key, Value> max{elements_[count_ - 1].first, Elements::value(elements_[count_ - 1].second)};
+    for (auto& e : elements_) {
+        if (p.first <= e.first) {
+            auto pos = Elements::move_element(1, &e, &elements_[count_ - 2]);
+            pos = p;
+            return max;
+        }
+    }
+    // TODO assert not arrive here
+}
+
 // for ptr
 NODE_TEMPLATE
 NODE_INSTANCE*
 NODE_INSTANCE::Elements::ptr_of_min() const
 {
     return Elements::ptr(elements_[0].second);
+}
+
+NODE_TEMPLATE
+NODE_INSTANCE*
+NODE_INSTANCE::Elements::ptr_of_max() const
+{
+    return Elements::ptr(elements_[count_ - 1].second);
 }
 
 
@@ -219,13 +241,19 @@ NODE_INSTANCE::Elements::ptr(const std::variant<Value, std::unique_ptr<Node>>& v
 
 NODE_TEMPLATE
 typename NODE_INSTANCE::Elements::content_type& 
-NODE_INSTANCE::Elements::move_element(content_type* begin, const char direction)
+NODE_INSTANCE::Elements::move_element(const char direction, content_type* begin, content_type* end)
 {
-    // return the begin reference
-    // default content_type* end
-    auto end = &elements_[count_ - 1];
     memcpy(begin + direction, begin, end - begin);
     return *begin;
+}
+
+NODE_TEMPLATE
+typename NODE_INSTANCE::Elements::content_type& 
+NODE_INSTANCE::Elements::up_to_end_move(const char direction, content_type* begin)
+{
+    // default content_type* end
+    auto end = &elements_[count_ - 1];
+    return this->move_element(direction, begin, end);
 }
 
 

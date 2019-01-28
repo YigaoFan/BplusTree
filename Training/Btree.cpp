@@ -28,7 +28,7 @@ BTREE_TEMPLATE
 template <unsigned NumOfArrayEle>
 BTREE_INSTANCE::Btree(const compare& compare_function,
     array<pair<Key, Value>, NumOfArrayEle>& pair_array)
-    : compare_func_(compare_function), key_num_(NumOfArrayEle) // TODO assume all keys are different
+    : BtreeHelper(), compare_func_(compare_function), key_num_(NumOfArrayEle) // TODO assume all keys are different
     // Prepare memory
 //    leaf_block_(LeafMemory<Key, Value, 2>::produce_leaf_memory(NumOfArrayEle))
 {
@@ -104,6 +104,32 @@ BTREE_INSTANCE::helper(const array<ElementType, NodeCount>& nodes)
 }
 
 BTREE_TEMPLATE
+void 
+BTREE_INSTANCE::root_add(const node_instance_type* middle_node, const pair<Key, Value>& pair)
+{
+    if (middle_node->full()) {
+        this->create_new_root(middle_node, pair);
+    } else {
+        this->create_new_branch(middle_node, pair);
+    }
+}
+
+BTREE_TEMPLATE
+void
+BTREE_INSTANCE::create_new_branch(const node_instance_type* middle_node, const pair<Key, Value>& pair)
+{
+    // TODO
+}
+
+BTREE_TEMPLATE
+void
+BTREE_INSTANCE::create_new_root(const node_instance_type* middle_node, const pair<Key, Value>& pair)
+{
+    // TODO
+}
+
+
+BTREE_TEMPLATE
 template <unsigned NumOfArrayEle>
 BTREE_INSTANCE::Btree(
     const compare& compare_function,
@@ -144,6 +170,7 @@ BTREE_INSTANCE::add(const pair<Key, Value>& pair) {
     // TODO: the code below should be a function? and the code in modify
     node_instance_type*&& node = this->check_out(k);
     if (!node->middle) {
+        // leaf
         if (node->have(k)) {
             // modify
             node->operator[](k) = v;
@@ -153,8 +180,13 @@ BTREE_INSTANCE::add(const pair<Key, Value>& pair) {
             ++key_num_;
         }
     } else {
-        // add
-        node->add(pair);
+        // middle add
+        if (this->all_leaf_full()) {
+            this->root_add(node, pair);
+        } else {
+            auto leaf = this->biggest_leaf();
+            leaf->add(pair);
+        }
         ++key_num_;
     }
     return OK;
@@ -276,8 +308,20 @@ BTREE_INSTANCE::smallest_leaf() {
     node_instance_type* current_node = root_.get();
 
     while (current_node->middle) {
-        current_node = current_node->ptr_of_min();
+        current_node = current_node->min_leaf();
     }
    
+    return current_node;
+}
+
+BTREE_TEMPLATE
+typename BTREE_INSTANCE::node_instance_type*
+BTREE_INSTANCE::biggest_leaf() {
+    node_instance_type* current_node = root_.get();
+
+    while (current_node->middle) {
+        current_node = current_node->max_leaf();
+    }
+
     return current_node;
 }
