@@ -40,13 +40,17 @@ template <typename Iterator>
 NODE_INSTANCE::Elements::Elements(Iterator begin, Iterator end)
     : count_(0)
 {
-    do {
-        elements_[count_] = *begin;
+    if (begin == end) {
 
-        ++count_;
-        ++begin;
-    } while (begin != end);
-    this->reset_cache();
+    } else {
+        do {
+            elements_[count_] = *begin;
+
+            ++count_;
+            ++begin;
+        } while (begin != end);
+        this->reset_cache();
+    }
 }
 
 NODE_TEMPLATE
@@ -120,6 +124,8 @@ NODE_TEMPLATE
 Value&
 NODE_INSTANCE::Elements::operator[](const Key& key)
 {
+    // TODO 
+    // 1. should return ptr, check_out_digging need
     auto& cache_k = elements_[cache_index_].first;
     auto& cache_v = Elements::value(elements_[cache_index_].second);
 
@@ -142,45 +148,49 @@ NODE_INSTANCE::Elements::operator[](const Key& key)
 }
 
 // Node think first of full situation
+// return value indicate the the max-key is changed or not
 NODE_TEMPLATE
 template <typename T>
 bool
-NODE_INSTANCE::Elements::append(const pair<Key, T>& pair)
+NODE_INSTANCE::Elements::add(const pair<Key, T>& pair)
 {
     // TODO change to return bool
     // maybe only leaf add logic use this Elements method
     // middle add logic is in middle Node self
     auto& k = pair.first;
     auto& v = pair.second;
-    if (this->full()) {
-        // exchange the max pair out, then insert this pair to next Node
-    } else {
-        if (k == cache_key_) {
-            auto& des = this->up_to_end_move(1, &elements_[cache_index_ + 1]);
-            des = pair;
-        } else if (k > cache_key_) {
-            // TODO maybe cache_key_ and cache_index_ is not correspond
-            for (auto i = cache_index_ + 1; i < count_; ++i) {
-                if (k == elements_[i].first)
-                {
-                    // TODO think of dichotomy to get the index
-                    auto& des = this->up_to_end_move(elements_[i], 1);
-                    des = pair;
-                }
+
+    if (k == cache_key_) {
+        auto& des = this->up_to_end_move(1, &elements_[cache_index_ + 1]);
+        des = pair;
+    } else if (k > cache_key_) {
+        // TODO maybe cache_key_ and cache_index_ is not correspond
+        for (auto i = cache_index_ + 1; i < count_; ++i) {
+            if (k == elements_[i].first) {
+                // TODO think of dichotomy to get the index
+                auto& des = this->up_to_end_move(elements_[i], 1);
+                des = pair;
             }
-        } else {
-            for (auto i = 0; i < cache_index_; ++i) {
-                if (k == elements_[i].first) {
-                    auto& des = this->up_to_end_move(elements_[i], 1);
-                    des = pair;
-                }
+        }
+    } else {
+        for (auto i = 0; i < cache_index_; ++i) {
+            if (k == elements_[i].first) {
+                auto& des = this->up_to_end_move(elements_[i], 1);
+                des = pair;
             }
         }
     }
-    // when is full, need to call wide Node method
-    //elements_[count_] = pair;/*.first;
-    //elements_[count_].second = pair.second;*/
-    //++count_;
+    ++count_;
+}
+
+NODE_TEMPLATE
+template <typename T>
+bool
+NODE_INSTANCE::Elements::append(const pair<Key, T>& pair)
+{
+    elements_[count_] = pair;
+    ++count_;
+    return true;
 }
 
 NODE_TEMPLATE
@@ -217,7 +227,7 @@ NODE_INSTANCE::Elements::ptr_of_max() const
 //NODE_TEMPLATE
 //template <typename T>
 //void
-//NODE_INSTANCE::Elements::append(const pair<Key, T*>& pair)
+//NODE_INSTANCE::Elements::add(const pair<Key, T*>& pair)
 //{
 //    elements_[count_].first = pair.first;
 //    elements_[count_].second.reset(pair.second);
@@ -269,7 +279,7 @@ NODE_INSTANCE::Elements::reset_cache()
 // 1, Value must be saved a copy, Node* just need to save it
 // 2, We need to make two of them are fit in Elements
 // 3, how to do?
-// middle = false, elements.append(pair<Key, Value>)
-// middle = true, elements.append(Node*)
+// middle = false, elements.add(pair<Key, Value>)
+// middle = true, elements.add(Node*)
 
 

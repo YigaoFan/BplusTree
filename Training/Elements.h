@@ -24,21 +24,24 @@ namespace btree {
         std::vector<Key> all_key() const;
         bool full() const;
         void remove(const Key&);
+        template <typename T> // use T to not limit to key-value
+        bool add(const std::pair<Key, T>&);
+        template <typename T>
+        bool append(const std::pair<Key, T>&);
+
 
         // for Value
         Value& operator[](const Key&);
-        template <typename T> // use T to not limit to key-value
-        bool append(const std::pair<Key, T>&); // return value indicate the the max-key is changed or not
+        
         std::pair<Key, Value> exchange_max_out(const std::pair<Key, Value>&); // when full call this function
         // for ptr
-        //template <typename T>
-        //void append(const std::pair<Key, T*>&);
         Node* ptr_of_min() const; // for Node for Btree traverse all leaf
         Node* ptr_of_max() const; // for add the key beyond the max bound
 
     private:
+        Elements() = default; // for construct null middle_type Node
         // Field
-        char count_{0};
+        char count_;
         char cache_index_{0};
         Key cache_key_;
         std::array<content_type, BtreeOrder> elements_;

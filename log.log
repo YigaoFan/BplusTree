@@ -129,3 +129,5 @@ int main()
 44. 等到 B+ 树的代码全部写完了，可以加一些防御性的代码（来帮助 debug ？）
 
 45.     // the adjust logic should be leaved for Node
+
+46. unique_ptr 的资源进行一些变更操作的时候注意资源是否被释放

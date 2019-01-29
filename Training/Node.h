@@ -25,13 +25,14 @@ namespace btree {
         Node(const BtreeType *, const leaf_type, Iterator, Iterator, const Node* = nullptr);
         template <typename Iterator>
         // point to key-ptr array
-        Node(const BtreeType *, const middle_type, Iterator, Iterator, const Node* = nullptr);
+        Node(const BtreeType *, const middle_type, Iterator = nullptr, Iterator = nullptr, const Node* = nullptr);
         ~Node();
 
         // Method
         bool have(const Key&);
 		Value& operator[](const Key&);
         void add(const std::pair<Key, Value>&);
+        void append(const std::pair<Key, Node*>&);
         void remove(const Key&);
         std::vector<Key> all_key() const;
         Key max_key() const;

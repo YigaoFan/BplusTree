@@ -41,7 +41,7 @@ namespace btree {
 
         bool all_leaf_full() const;
         node_instance_type* check_out(const Key&);
-        node_instance_type* check_out_recur(const Key&, const node_instance_type*);
+        static node_instance_type* check_out_digging(const Key&, node_instance_type*);
         // provide some all-leaf-do operation
         std::vector<node_instance_type*> traverse_leaf(const predicate&);
         node_instance_type* smallest_leaf();

@@ -127,6 +127,13 @@ NODE_INSTANCE::add(const pair<Key, Value>& pair)
     }
 }
 
+NODE_TEMPLATE
+void
+NODE_INSTANCE::append(const pair<Key, Node*>& pair)
+{
+    elements_.append(pair);
+}
+
 /// for the upper level Btree::remove, so
 NODE_TEMPLATE
 void
@@ -223,7 +230,7 @@ NODE_INSTANCE::element_add(const std::pair<Key, Value>&  pair)
             next_node_.element_add(p);
         }
     } else {
-        auto max_change = elements_.append(pair);
+        auto max_change = elements_.add(pair);
         if (max_change == true) {
             btree_->change_bound_upwards(this, this->max_key());
         }

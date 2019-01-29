@@ -12,6 +12,7 @@ using std::sort;
 using std::vector;
 using std::copy;
 using std::unique_ptr;
+using std::make_pair;
 #define BTREE_TEMPLATE \
   template <typename Key, typename Value, unsigned BtreeOrder>
 #define BTREE_INSTANCE Btree<Key, Value, BtreeOrder>
@@ -118,16 +119,35 @@ BTREE_TEMPLATE
 void
 BTREE_INSTANCE::create_new_branch(const node_instance_type* middle_node, const pair<Key, Value>& pair)
 {
-    // TODO
+    auto up = middle_node;
+
+    do {
+        auto middle = new node_instance_type(this, middle_type());
+        auto max = middle_node->max_leaf();
+        
+        up->append({ pair.first, middle });
+        max->next_node_ = middle;
+
+        up = middle;
+        middle_node = max;
+    } while (!middle_node->middle);
+
+    auto leaf = new node_instance_type(this, leaf_type(), &pair, &pair + 1);
+    up->append({ pair.first, leaf });
+    middle_node->next_node_ = leaf;
 }
 
 BTREE_TEMPLATE
 void
 BTREE_INSTANCE::create_new_root(const node_instance_type* middle_node, const pair<Key, Value>& pair)
 {
-    // TODO
-}
+    auto p = make_pair<Key, unique_ptr<node_instance_type>>(root_->max_key(), root_.get());
+    node_instance_type* new_root(new node_instance_type(this, middle_type(), &p, &p + 1));
 
+    this->create_new_branch(new_root, pair);
+    root_.release();
+    root_.reset(new_root);
+}
 
 BTREE_TEMPLATE
 template <unsigned NumOfArrayEle>
@@ -161,10 +181,6 @@ BTREE_INSTANCE::add(const pair<Key, Value>& pair) {
         return OK;
     }
 
-    /*if (this->all_leaf_full())
-    {
-        
-    }*/
     auto& k = pair.first;
     auto& v = pair.second;
     // TODO: the code below should be a function? and the code in modify
@@ -180,7 +196,7 @@ BTREE_INSTANCE::add(const pair<Key, Value>& pair) {
             ++key_num_;
         }
     } else {
-        // middle add
+        // middle add is root add
         if (this->all_leaf_full()) {
             this->root_add(node, pair);
         } else {
@@ -200,7 +216,7 @@ BTREE_INSTANCE::modify(const pair<Key, Value>& pair) {
     Value& v = pair.second;
     node_instance_type*&& node = this->check_out(k);
     if (!node->middle) {
-        // TODO: should think let the if logic below work by Node-self
+        // TODO should think let the if logic below work by Node-self
         if (node->have(k)) {
             // modify
             node->operator[](k) = v;
@@ -267,21 +283,22 @@ BTREE_INSTANCE::check_out(const Key& key) {
   if (!root_->middle) {
     return root_;
   } else {
-    return check_out_recur(key, root_);
+    return check_out_digging(key, root_);
   }
 }
 
 BTREE_TEMPLATE
 typename BTREE_INSTANCE::node_instance_type*
-BTREE_INSTANCE::check_out_recur(const Key& key, const node_instance_type* node) {
-  if (node->middle) {
-      if (node->have(key)) {
-          check_out_recur(key, node->operator[](key));
-      }
+BTREE_INSTANCE::check_out_digging(const Key& key, node_instance_type* node) {
+    do {
+        if (node->have(key)) {
+            node = node->operator[](key);
+        } else {
+            return node;
+        }
+    } while (node->middle);
+
     return node;
-  } else {
-    return node;
-  }
 }
 
 /// operate on the true Node
