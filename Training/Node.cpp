@@ -2,8 +2,8 @@
 #include "Node.h"
 using namespace btree;
 using std::pair;
-using std::make_pair;
 using std::vector;
+using std::unique_ptr;
 #define NODE_TEMPLATE template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 #define NODE_INSTANCE Node<Key, Value, BtreeOrder, BtreeType>
 
@@ -119,19 +119,40 @@ NODE_INSTANCE::add(const pair<Key, Value>& pair)
     // TODO 
     // the logic maybe not need to like this
     // because the Btree has process a lot of thing
-    if (middle) {
-        // means here root_ add
-        this->middle_add(pair); // need to process the return value
-    } else {
+    //if (middle) {
+    //    // means here root_ add
+    //    this->middle_add(pair); // need to process the return value
+    //} else {
         this->element_add(pair);
-    }
+    //}
 }
 
+// append for middle node
 NODE_TEMPLATE
 void
-NODE_INSTANCE::append(const pair<Key, Node*>& pair)
+NODE_INSTANCE::middle_append(const pair<Key, unique_ptr<Node>>& pair, const bool need_check_full)
 {
-    elements_.append(pair);
+    if (!need_check_full || !this->full()) {
+        elements_.append(pair); // for Btree add
+    } else {
+        // TODO maybe need to set father and other related place
+        auto n = new Node(this, middle_type(), &pair, &pair + 1);
+        next_node_ = n;
+
+        if (father_ == nullptr) {
+            vector<std::pair<Key, unique_ptr<Node>>> sons{
+                {btree_->root_->max_key(),btree_->root_},
+                { pair.first, n},
+            };
+
+            // below is not very nice, because these operations are included by Btree
+            auto new_root = new Node(btree_, sons.begin(), sons.end());
+            btree_->root_ = nullptr;
+            btree_->root_.reset(new_root);
+        } else {
+            father_->middle_append({ pair.first, n });
+        }
+    }
 }
 
 /// for the upper level Btree::remove, so
@@ -221,44 +242,37 @@ void
 NODE_INSTANCE::element_add(const std::pair<Key, Value>&  pair)
 {
     if (elements_.full()) {
+        // add
         auto p = elements_.exchange_max_out(pair);
         // TODO not very clear to the adjust first, or process other related Node first
-        // I don't think different Node will affect each other
         btree_->change_bound_upwards(this, this->max_key());
         // next node add
         if (next_node_ != nullptr) {
             next_node_.element_add(p);
+        } else {
+            this->father_add(p);
         }
     } else {
         auto max_change = elements_.add(pair);
         if (max_change == true) {
+            // call BtreeHelper
             btree_->change_bound_upwards(this, this->max_key());
         }
     }
 }
 
 NODE_TEMPLATE
-void
-NODE_INSTANCE::middle_add(const pair<Key, Value>& pair)
+void 
+NODE_INSTANCE::father_add(const pair<Key, Value>& pair)
 {
-    // TODO wait to use
-}
+    if (father_ == nullptr) {
 
-//NODE_TEMPLATE
-//void
-//NODE_INSTANCE::move_Ele(const NodeIter<ele_instance_type>& begin,
-//const NodeIter<ele_instance_type>& end, unsigned distance)
-//{
-//    //  memory back shift, there may be problems
-//    // , because relate to object function pointer address maybe not correct
-//    ele_instance_type* src = begin.operator->();
-//    const size_t len = (end - begin) * sizeof(NodeIter<ele_instance_type>::value_type);
-//    memcpy(src + distance, src, len);
-//}
-
-NODE_TEMPLATE
-void
-NODE_INSTANCE::adjust()
-{
-    
+    } else {
+        // create new leaf
+        auto n = new Node(this, leaf_type(), &pair, &pair + 1);
+        // set next_node_
+        next_node_ = n;
+        // let father add
+        father_->middle_append({ pair.first, n }, true);
+    }
 }

@@ -41,7 +41,7 @@ NODE_INSTANCE::Elements::Elements(Iterator begin, Iterator end)
     : count_(0)
 {
     if (begin == end) {
-
+        return;
     } else {
         do {
             elements_[count_] = *begin;

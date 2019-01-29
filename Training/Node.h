@@ -2,6 +2,7 @@
 
 #include <utility> // for pair
 #include <vector> // for vector
+#include <memory> // for unique_ptr
 #include "CommonFlag.h" // for project define flag
 //#include "Elements.h"
 
@@ -32,7 +33,7 @@ namespace btree {
         bool have(const Key&);
 		Value& operator[](const Key&);
         void add(const std::pair<Key, Value>&);
-        void append(const std::pair<Key, Node*>&);
+        void middle_append(const std::pair<Key, std::unique_ptr<Node>>&, const bool=false);
         void remove(const Key&);
         std::vector<Key> all_key() const;
         Key max_key() const;
@@ -54,9 +55,7 @@ namespace btree {
         RESULT_FLAG area_add(const std::pair<Key, Value>&);*/
 
         void element_add(const std::pair<Key, Value>&);
-        void middle_add(const std::pair<Key, Value>&);
-            // for add and remove
-        void adjust();
+        void father_add(const std::pair<Key, Value>&);
 
         // Old function
         //RESULT_FLAG insert(std::shared_ptr<ele_instance_type>);

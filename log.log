@@ -131,3 +131,12 @@ int main()
 45.     // the adjust logic should be leaved for Node
 
 46. unique_ptr 的资源进行一些变更操作的时候注意资源是否被释放
+
+47. 函数参数初始化的 unique_ptr 可以这么，pair<int, unique_ptr<char>> a{1, new char('a')};
+
+48. add 超出最高范围的，和插在范围之中但是最终引起创建新 root 有相似之处
+
+49. 想一想各个友元之间的依赖
+
+TODO 整理 Btree 层对 operator[] 的使用
+1. 需要 ptr

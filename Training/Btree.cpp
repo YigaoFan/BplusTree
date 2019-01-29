@@ -117,24 +117,24 @@ BTREE_INSTANCE::root_add(const node_instance_type* middle_node, const pair<Key, 
 
 BTREE_TEMPLATE
 void
-BTREE_INSTANCE::create_new_branch(const node_instance_type* middle_node, const pair<Key, Value>& pair)
+BTREE_INSTANCE::create_new_branch(const node_instance_type* node, const pair<Key, Value>& pair)
 {
-    auto up = middle_node;
+    auto up = node;
 
     do {
         auto middle = new node_instance_type(this, middle_type());
-        auto max = middle_node->max_leaf();
+        auto max = node->max_leaf();
         
-        up->append({ pair.first, middle });
+        up->middle_append({ pair.first, middle });
         max->next_node_ = middle;
 
         up = middle;
-        middle_node = max;
-    } while (!middle_node->middle);
+        node = max;
+    } while (!node->middle);
 
     auto leaf = new node_instance_type(this, leaf_type(), &pair, &pair + 1);
-    up->append({ pair.first, leaf });
-    middle_node->next_node_ = leaf;
+    up->middle_append({ pair.first, leaf });
+    node->next_node_ = leaf;
 }
 
 BTREE_TEMPLATE
@@ -145,7 +145,7 @@ BTREE_INSTANCE::create_new_root(const node_instance_type* middle_node, const pai
     node_instance_type* new_root(new node_instance_type(this, middle_type(), &p, &p + 1));
 
     this->create_new_branch(new_root, pair);
-    root_.release();
+    root_ = nullptr;
     root_.reset(new_root);
 }
 
@@ -199,6 +199,10 @@ BTREE_INSTANCE::add(const pair<Key, Value>& pair) {
         // middle add is root add
         if (this->all_leaf_full()) {
             this->root_add(node, pair);
+            // TODO could like below
+            auto leaf = this->biggest_leaf();
+            leaf->add(pair);
+            // also work
         } else {
             auto leaf = this->biggest_leaf();
             leaf->add(pair);
