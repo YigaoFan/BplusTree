@@ -218,9 +218,11 @@ BTREE_INSTANCE::merge_branch(const Key max_key, const node_instance_type* node)
 /// if not exist, will add
 BTREE_TEMPLATE
 RESULT_FLAG
-BTREE_INSTANCE::modify(const pair<Key, Value>& pair) {
-    Key& k = pair.first;
-    Value& v = pair.second;
+BTREE_INSTANCE::modify(const pair<Key, Value>& pair) 
+{
+    auto& k = pair.first;
+    auto& v = pair.second;
+    
     node_instance_type*&& node = this->check_out(k);
     if (!node->middle) {
         // TODO should think let the if logic below work by Node-self
@@ -256,8 +258,12 @@ BTREE_INSTANCE::explore() const {
 BTREE_TEMPLATE
 void
 BTREE_INSTANCE::remove(const Key& key) {
+
     node_instance_type*&& n = this->check_out(key);
-    n->remove(key); // TODO: whether to check if key exist
+    if (!n->have(key)) {
+        return;
+    }
+    n->remove(key); 
     --key_num_;
 }
 

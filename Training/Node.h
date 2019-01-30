@@ -16,10 +16,8 @@ namespace btree {
 		friend BtreeType; // for Btree set next_node_
 		class Elements;
 	public:
-        // Property
         const bool middle;
 
-        // Construct
         template <typename Iterator>
         // point to key-value array
         Node(const BtreeType *, const leaf_type, Iterator, Iterator, const Node* = nullptr);
@@ -28,7 +26,6 @@ namespace btree {
         Node(const BtreeType *, const middle_type, Iterator = nullptr, Iterator = nullptr, const Node* = nullptr);
         ~Node();
 
-        // Method
         bool have(const Key&);
 		Value& operator[](const Key&);
         void add(const std::pair<Key, Value>&);
@@ -38,6 +35,7 @@ namespace btree {
         Key max_key() const;
         Node* min_leaf() const; // for Btree traverse get the leftest leaf
         Node* max_leaf() const; // for Btree get the rightest leaf
+        void change_key(const Key&, const Key&);
 
 	private:
 		// Field

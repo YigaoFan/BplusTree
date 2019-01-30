@@ -30,7 +30,12 @@ NODE_TEMPLATE
 bool
 NODE_INSTANCE::have(const Key& k)
 {
-    return elements_.have(k);
+    if (middle) {
+        return false;
+    } else {
+        return elements_.have(k);
+    }
+    
 }
 
 /// Btree should use have() check or other me to ensure existing
@@ -75,15 +80,16 @@ NODE_INSTANCE::middle_append(const pair<Key, unique_ptr<Node>>& pair, const bool
     }
 }
 
-/// for the upper level Btree::remove, so
+// Btree has ensured the key must exist
 NODE_TEMPLATE
 void
 NODE_INSTANCE::remove(const Key& key)
 {
-    if (!middle) {
-        elements_.remove(key);
+    auto save_key = this->max_key();
+    if (elements_.remove(key)) {
+        btree_->change_bound_upwards(this, save_key, this->max_key());
     }
-    // when not a leaf-node, no need to remove. 
+    // TODO maybe need merge sibling
 }
 
 NODE_TEMPLATE
@@ -112,6 +118,16 @@ NODE_INSTANCE*
 NODE_INSTANCE::max_leaf() const
 {
     return elements_.ptr_of_max();
+}
+
+NODE_TEMPLATE
+void
+NODE_INSTANCE::change_key(const Key& old_key, const Key& new_key)
+{
+    auto save_key = this->max_key();
+    if (elements_.change_key(old_key, new_key)) {
+        btree_->change_bound_upwards(this, old_key, this->max_key());
+    }
 }
 
 // private method part:
@@ -165,7 +181,8 @@ NODE_INSTANCE::element_add(const std::pair<Key, Value>&  pair)
         // add
         auto p = elements_.exchange_max_out(pair);
         // TODO not very clear to the adjust first, or process other related Node first
-        btree_->change_bound_upwards(this, this->max_key());
+        auto save_key = this->max_key();
+        btree_->change_bound_upwards(this, save_key, this->max_key());
         // next node add
         if (next_node_ != nullptr) {
             next_node_.element_add(p);
@@ -173,10 +190,11 @@ NODE_INSTANCE::element_add(const std::pair<Key, Value>&  pair)
             this->father_add(p);
         }
     } else {
-        auto max_change = elements_.add(pair);
-        if (max_change == true) {
+        auto save_key = this->max_key();
+        
+        if (elements_.add(pair)) { // if max_key changed
             // call BtreeHelper
-            btree_->change_bound_upwards(this, this->max_key());
+            btree_->change_bound_upwards(this, save_key, this->max_key());
         }
     }
 }

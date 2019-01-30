@@ -90,12 +90,16 @@ NODE_INSTANCE::Elements::full() const
 }
 
 NODE_TEMPLATE
-void 
-NODE_INSTANCE::Elements::remove(const Key&)
+bool 
+NODE_INSTANCE::Elements::remove(const Key& key)
 {
-    // TODO
-    // may need to distinguish middle or not
-    // if change the max_value or balance, call the BtreeHelper
+    auto& e = this->related_position(key);
+    auto bound_changed(false);
+    if (&e == &elements_[count_ - 1]) {
+        bound_changed = true;
+    }
+    this->to_end_move(-1, &e + 1);
+    return bound_changed;
 }
 
 // for Value
@@ -140,21 +144,21 @@ NODE_INSTANCE::Elements::add(const pair<Key, T>& pair)
     auto& v = pair.second;
 
     if (k == cache_key_) {
-        auto& des = this->up_to_end_move(1, &elements_[cache_index_ + 1]);
+        auto& des = this->to_end_move(1, &elements_[cache_index_ + 1]);
         des = pair;
     } else if (k > cache_key_) {
         // TODO maybe cache_key_ and cache_index_ is not correspond
         for (auto i = cache_index_ + 1; i < count_; ++i) {
             if (k == elements_[i].first) {
                 // TODO think of dichotomy to get the index
-                auto& des = this->up_to_end_move(elements_[i], 1);
+                auto& des = this->to_end_move(elements_[i], 1);
                 des = pair;
             }
         }
     } else {
         for (auto i = 0; i < cache_index_; ++i) {
             if (k == elements_[i].first) {
-                auto& des = this->up_to_end_move(elements_[i], 1);
+                auto& des = this->to_end_move(elements_[i], 1);
                 des = pair;
             }
         }
@@ -202,6 +206,11 @@ NODE_INSTANCE::Elements::ptr_of_max() const
     return Elements::ptr(elements_[count_ - 1].second);
 }
 
+NODE_TEMPLATE
+bool
+NODE_INSTANCE::Elements::change_key(const Key& old_key, const Key& new_key)
+{
+}
 
 //NODE_TEMPLATE
 //template <typename T>
@@ -238,11 +247,25 @@ NODE_INSTANCE::Elements::move_element(const char direction, content_type* begin,
 
 NODE_TEMPLATE
 typename NODE_INSTANCE::Elements::content_type& 
-NODE_INSTANCE::Elements::up_to_end_move(const char direction, content_type* begin)
+NODE_INSTANCE::Elements::to_end_move(const char direction, content_type* begin)
 {
     // default content_type* end
     auto end = &elements_[count_ - 1];
     return this->move_element(direction, begin, end);
+}
+
+// caller should ensure the key must exist
+NODE_TEMPLATE
+typename NODE_INSTANCE::Elements::content_type& 
+NODE_INSTANCE::Elements::related_position(const Key& key)
+{
+    // in the future, could use half search
+    for (auto& e : elements_)
+    {
+        if (e.first == key) {
+            return e;
+        }
+    }
 }
 
 

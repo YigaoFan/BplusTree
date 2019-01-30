@@ -23,12 +23,13 @@ namespace btree {
         bool have(const Key&);
         std::vector<Key> all_key() const;
         bool full() const;
-        void remove(const Key&);
+        bool remove(const Key&);
         template <typename T> // use T to not limit to key-value
         bool add(const std::pair<Key, T>&);
         template <typename T>
         bool append(const std::pair<Key, T>&);
 
+        // all here bool means change
 
         // for Value
         Value& operator[](const Key&);
@@ -37,6 +38,7 @@ namespace btree {
         // for ptr
         Node* ptr_of_min() const; // for Node for Btree traverse all leaf
         Node* ptr_of_max() const; // for add the key beyond the max bound
+        bool change_key(const Key&, const Key&);
 
     private:
         Elements() = default; // for construct null middle_type Node
@@ -51,8 +53,8 @@ namespace btree {
         static Value value(const std::variant<Value, std::unique_ptr<Node>>&);
         static Node* ptr(const std::variant<Value, std::unique_ptr<Node>>&);
         static content_type& move_element(const char, content_type*, content_type*);
-        content_type& up_to_end_move(const char, content_type*);
-
+        content_type& to_end_move(const char, content_type*);
+        content_type& related_position(const Key&);
     };
 };
 
