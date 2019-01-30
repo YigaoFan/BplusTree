@@ -138,5 +138,6 @@ int main()
 
 49. 想一想各个友元之间的依赖
 
+50. 凡是创建 Node 的地方都要注意设置 next_node_
 TODO 整理 Btree 层对 operator[] 的使用
 1. 需要 ptr

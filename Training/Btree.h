@@ -39,7 +39,7 @@ namespace btree {
         // key info
         unsigned key_num_; // TODO remember to add to Btree function
 
-        bool all_leaf_full() const;
+        //bool all_leaf_full() const;
         node_instance_type* check_out(const Key&);
         static node_instance_type* check_out_digging(const Key&, node_instance_type*);
         // provide some all-leaf-do operation
@@ -50,8 +50,9 @@ namespace btree {
         template <bool FirstFlag, typename Element, unsigned NodeCount> 
         void helper(const std::array<Element, NodeCount>&);
 
-        void root_add(const node_instance_type*, const std::pair<Key, Value>&);
-        void create_new_branch(const node_instance_type*, const std::pair<Key, Value>&);
-        void create_new_root(const node_instance_type*, const std::pair<Key, Value>&);
+        //void root_add(const node_instance_type*, const std::pair<Key, Value>&);
+        //void create_new_branch(const node_instance_type*, const std::pair<Key, Value>&);
+        //void create_new_root(const node_instance_type*, const std::pair<Key, Value>&);
+        void merge_branch(const Key, const node_instance_type*); // for Node merge a branch
     };
 }

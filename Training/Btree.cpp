@@ -1,7 +1,7 @@
 #include <algorithm>  // for sort
 #include <array> // for array
 #include <cmath>  // for ceil
-#include <cassert>
+#include <cassert> // for assert
 #include "Btree.h"
 using namespace btree;
 using std::array;
@@ -27,8 +27,7 @@ using std::make_pair;
 /// When you add or modify, you can use have() function to check it
 BTREE_TEMPLATE
 template <unsigned NumOfArrayEle>
-BTREE_INSTANCE::Btree(const compare& compare_function,
-    array<pair<Key, Value>, NumOfArrayEle>& pair_array)
+BTREE_INSTANCE::Btree(const compare& compare_function, array<pair<Key, Value>, NumOfArrayEle>& pair_array)
     : BtreeHelper(), compare_func_(compare_function), key_num_(NumOfArrayEle) // TODO assume all keys are different
     // Prepare memory
 //    leaf_block_(LeafMemory<Key, Value, 2>::produce_leaf_memory(NumOfArrayEle))
@@ -38,7 +37,7 @@ BTREE_INSTANCE::Btree(const compare& compare_function,
     }
 
     // TODO check&process the same Key
-    //key_num_ += NumOfArrayEle;
+    key_num_ += NumOfArrayEle;
 
     // sort the pair_array
     sort(pair_array.begin(), pair_array.end(),
@@ -104,56 +103,11 @@ BTREE_INSTANCE::helper(const array<ElementType, NodeCount>& nodes)
     }
 }
 
-BTREE_TEMPLATE
-void 
-BTREE_INSTANCE::root_add(const node_instance_type* middle_node, const pair<Key, Value>& pair)
-{
-    if (middle_node->full()) {
-        this->create_new_root(middle_node, pair);
-    } else {
-        this->create_new_branch(middle_node, pair);
-    }
-}
 
-BTREE_TEMPLATE
-void
-BTREE_INSTANCE::create_new_branch(const node_instance_type* node, const pair<Key, Value>& pair)
-{
-    auto up = node;
-
-    do {
-        auto middle = new node_instance_type(this, middle_type());
-        auto max = node->max_leaf();
-        
-        up->middle_append({ pair.first, middle });
-        max->next_node_ = middle;
-
-        up = middle;
-        node = max;
-    } while (!node->middle);
-
-    auto leaf = new node_instance_type(this, leaf_type(), &pair, &pair + 1);
-    up->middle_append({ pair.first, leaf });
-    node->next_node_ = leaf;
-}
-
-BTREE_TEMPLATE
-void
-BTREE_INSTANCE::create_new_root(const node_instance_type* middle_node, const pair<Key, Value>& pair)
-{
-    auto p = make_pair<Key, unique_ptr<node_instance_type>>(root_->max_key(), root_.get());
-    node_instance_type* new_root(new node_instance_type(this, middle_type(), &p, &p + 1));
-
-    this->create_new_branch(new_root, pair);
-    root_ = nullptr;
-    root_.reset(new_root);
-}
 
 BTREE_TEMPLATE
 template <unsigned NumOfArrayEle>
-BTREE_INSTANCE::Btree(
-    const compare& compare_function,
-    array<pair<Key, Value>, NumOfArrayEle>&& pair_array)
+BTREE_INSTANCE::Btree(const compare& compare_function, array<pair<Key, Value>, NumOfArrayEle>&& pair_array)
     : Btree(compare_function, pair_array) {}
 
 BTREE_TEMPLATE
@@ -176,7 +130,7 @@ BTREE_TEMPLATE
 RESULT_FLAG
 BTREE_INSTANCE::add(const pair<Key, Value>& pair) {
     if (root_ == nullptr) {
-        root_ = unique_ptr<node_instance_type>(new node_instance_type(this, nullptr, leaf_type(), &pair, &pair+1));
+        root_.reset(new node_instance_type(this, nullptr, leaf_type(), &pair, &pair + 1));
         ++key_num_;
         return OK;
     }
@@ -186,30 +140,79 @@ BTREE_INSTANCE::add(const pair<Key, Value>& pair) {
     // TODO: the code below should be a function? and the code in modify
     node_instance_type*&& node = this->check_out(k);
     if (!node->middle) {
-        // leaf
         if (node->have(k)) {
-            // modify
-            node->operator[](k) = v;
+            node->operator[](k) = v; // modify
         } else {
-            // add
             node->add(pair);
             ++key_num_;
         }
-    } else {
-        // middle add is root add
-        if (this->all_leaf_full()) {
-            this->root_add(node, pair);
-            // TODO could like below
-            auto leaf = this->biggest_leaf();
-            leaf->add(pair);
-            // also work
-        } else {
-            auto leaf = this->biggest_leaf();
-            leaf->add(pair);
-        }
+    } else { 
+        auto leaf = this->biggest_leaf();
+        leaf->add(pair);
+
         ++key_num_;
     }
     return OK;
+}
+
+//BTREE_TEMPLATE
+//void
+//BTREE_INSTANCE::root_add(const node_instance_type* middle_node, const pair<Key, Value>& pair)
+//{
+//    if (middle_node->full()) {
+//        this->create_new_root(middle_node, pair);
+//    } else {
+//        this->create_new_branch(middle_node, pair);
+//    }
+//}
+
+//BTREE_TEMPLATE
+//void
+//BTREE_INSTANCE::create_new_branch(const node_instance_type* node, const pair<Key, Value>& pair)
+//{
+//    auto up = node;
+//
+//    do {
+//        auto middle = new node_instance_type(this, middle_type());
+//        auto max = node->max_leaf();
+//
+//        up->middle_append({ pair.first, middle });
+//        max->next_node_ = middle;
+//
+//        up = middle;
+//        node = max;
+//    } while (!node->middle);
+//
+//    auto leaf = new node_instance_type(this, leaf_type(), &pair, &pair + 1);
+//    up->middle_append({ pair.first, leaf });
+//    node->next_node_ = leaf;
+//}
+//
+//BTREE_TEMPLATE
+//void
+//BTREE_INSTANCE::create_new_root(const node_instance_type* middle_node, const pair<Key, Value>& pair)
+//{
+//    auto p = make_pair<Key, unique_ptr<node_instance_type>>(root_->max_key(), root_.get());
+//    node_instance_type* new_root(new node_instance_type(this, middle_type(), &p, &p + 1));
+//
+//    this->create_new_branch(new_root, pair);
+//    root_ = nullptr;
+//    root_.reset(new_root);
+//}
+
+BTREE_TEMPLATE
+void
+BTREE_INSTANCE::merge_branch(const Key max_key, const node_instance_type* node)
+{
+    array<pair<Key, unique_ptr<node_instance_type>>, 2> sons{
+        { root_->max_key(),root_ },
+        { max_key, node },
+    };
+    root_->next_node_ = node;
+    auto new_root = new Node(this, middle_type(), sons.begin(), sons.end());
+
+    root_ = nullptr;
+    root_.reset(new_root);
 }
 
 /// if not exist, will add
@@ -268,16 +271,16 @@ BTREE_INSTANCE::have(const Key& key)
 
 // private method part:
 
-BTREE_TEMPLATE
-bool
-BTREE_INSTANCE::all_leaf_full() const
-{
-    if ((key_num_ % BtreeOrder) == 0) {
-        return true;
-    } else {
-        return false;
-    }
-}
+//BTREE_TEMPLATE
+//bool
+//BTREE_INSTANCE::all_leaf_full() const
+//{
+//    if ((key_num_ % BtreeOrder) == 0) {
+//        return true;
+//    } else {
+//        return false;
+//    }
+//}
 
 /// search the key in Btree, return the node that terminated, may be not have the key
 /// this is to save the search information

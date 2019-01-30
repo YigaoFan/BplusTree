@@ -14,27 +14,6 @@ using std::memcpy;
 // Common:
 // some methods are for middle, some for leaf
 
-//NODE_TEMPLATE
-//template <typename T>
-//NODE_INSTANCE::Elements::Elements(const initializer_list<pair<Key, T>> li)
-//    :count_(li.size()), cache_index_(this->reset_cache()), elements_{li}
-//{
-//    // null
-//}
-//
-//NODE_TEMPLATE
-//template <typename T>
-//NODE_INSTANCE::Elements::Elements(const initializer_list<pair<Key, T*>> li)
-//    :count_(li.size()), cache_index_(this->reset_cache())
-//{
-//    auto i = 0;
-//    for (auto& e : li) {
-//        elements_[i].first = e.first;
-//        elements_[i].second = unique_ptr<Node>(e.second);
-//        ++i;
-//    }
-//}
-
 NODE_TEMPLATE
 template <typename Iterator>
 NODE_INSTANCE::Elements::Elements(Iterator begin, Iterator end)
@@ -273,13 +252,3 @@ NODE_INSTANCE::Elements::reset_cache()
 {
     cache_index_ = count_ / 2;
 }
-
-// Btree construct lots of Node instance, need to construct upper Node
-// Elements through the Node constructor get these Node* and Value
-// 1, Value must be saved a copy, Node* just need to save it
-// 2, We need to make two of them are fit in Elements
-// 3, how to do?
-// middle = false, elements.add(pair<Key, Value>)
-// middle = true, elements.add(Node*)
-
-

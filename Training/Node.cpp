@@ -7,77 +7,6 @@ using std::unique_ptr;
 #define NODE_TEMPLATE template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 #define NODE_INSTANCE Node<Key, Value, BtreeOrder, BtreeType>
 
-// the below function's scope is leaf
-//void
-//Node::exchangeTheBiggestEleOut(shared_ptr<Ele> e)
-//{
-//	// also need to think the intermediate_node situation
-//	// doesn't exist up situation todo: think it!
-//    this->doInsert(e);
-//    auto& eleVectorRef = this->getVectorOfElesRef();
-//	*e = *eleVectorRef.back();
-//	eleVectorRef.pop_back();
-//}
-//
-//shared_ptr<Node::Ele>
-//Node::constructToMakeItFitTheFatherInsert(shared_ptr<Ele> e)
-//{
-//	// construct Ele Pointing To Node Packaging This Ele
-//	shared_ptr<Node>&& node = make_shared<Node>(intermediate_node, e);
-//	return make_shared<Ele>(e->key, node);
-//}
-//
-//// external caller should ensure the insert node is leaf
-//RESULT_FLAG
-//Node::insert(shared_ptr<Ele> e)
-//{
-//	if (!this->isFull()) {
-//		// todo: do_insert need to attention to this Node is leaf or not
-//		this->doInsert(e);
-//		return 0;
-//	} else {
-//		this->exchangeTheBiggestEleOut(e);
-//		if (this->nextBrother != nullptr) {
-//			return this->nextBrother->insert(e);
-//		} else {
-//			// package this leaf to a withe
-//			shared_ptr<Ele> newEle = constructToMakeItFitTheFatherInsert(e);
-//			if (this->father != nullptr) {
-//				// todo: usually when move to father to insert Ele,
-//				// todo: it's the end of this level. Think it!
-//				return this->father->insert(newEle);
-//			} else {
-//				// create new branch
-//				return createNewRoot(this->father, newEle);
-//			}
-//		}
-//	}
-//}
-//
-//
-//void
-//Node::doInsert(shared_ptr<Ele> e)
-//{
-//    auto& eleVectorRef = this->getVectorOfElesRef();
-//    eleVectorRef.push_back(e);
-//	std::sort(eleVectorRef.begin(), eleVectorRef.end(),
-//	        [] (shared_ptr<Ele> a, shared_ptr<Ele> b)
-//            {
-//	            return a->key < b->key;
-//            });
-//}
-//
-//// todo: how to ensure only the root 
-//// todo: have and can trigger this method
-//RESULT_FLAG
-//Node::createNewRoot(const shared_ptr<Node>& oldRoot, const shared_ptr<Ele>& risingEle)
-//{
-//	// todo: maybe the argument below is wrong, the keyType, not the bool_
-//	shared_ptr<Ele>&& ele = make_shared<Ele>(/*intermediate_node*/, oldRoot);
-//	shared_ptr<Node>&& node = make_shared<Node>(/*intermediate_node*/, risingEle);
-//
-//}
-
 NODE_TEMPLATE
 template <typename Iterator>
 NODE_INSTANCE::Node(const BtreeType* btree, const leaf_type nul, Iterator begin, Iterator end,const Node* father)
@@ -135,20 +64,11 @@ NODE_INSTANCE::middle_append(const pair<Key, unique_ptr<Node>>& pair, const bool
     if (!need_check_full || !this->full()) {
         elements_.append(pair); // for Btree add
     } else {
-        // TODO maybe need to set father and other related place
         auto n = new Node(this, middle_type(), &pair, &pair + 1);
         next_node_ = n;
 
         if (father_ == nullptr) {
-            vector<std::pair<Key, unique_ptr<Node>>> sons{
-                {btree_->root_->max_key(),btree_->root_},
-                { pair.first, n},
-            };
-
-            // below is not very nice, because these operations are included by Btree
-            auto new_root = new Node(btree_, sons.begin(), sons.end());
-            btree_->root_ = nullptr;
-            btree_->root_.reset(new_root);
+            btree_->merge_branch(pair.first, n);
         } else {
             father_->middle_append({ pair.first, n });
         }
