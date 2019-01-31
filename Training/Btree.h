@@ -23,7 +23,7 @@ namespace btree {
         // will change the vector arg
         template <unsigned NumOfArrayEle> Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>&);
         template <unsigned NumOfArrayEle> Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>&&);
-        ~Btree();
+        ~Btree() = default;
         Value search(const Key&) const;
         RESULT_FLAG add(const std::pair<Key, Value>&);
         RESULT_FLAG modify(const std::pair<Key, Value>&);

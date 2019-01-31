@@ -110,8 +110,8 @@ template <unsigned NumOfArrayEle>
 BTREE_INSTANCE::Btree(const compare& compare_function, array<pair<Key, Value>, NumOfArrayEle>&& pair_array)
     : Btree(compare_function, pair_array) {}
 
-BTREE_TEMPLATE
-BTREE_INSTANCE::~Btree() = default;
+//BTREE_TEMPLATE
+//BTREE_INSTANCE::~Btree() = default;
 
 BTREE_TEMPLATE
 Value

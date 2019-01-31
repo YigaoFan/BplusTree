@@ -39,7 +39,7 @@ namespace btree {
 
 	private:
 		// Field
-        Node next_node_{nullptr};
+        Node* next_node_{nullptr};
         const BtreeType* btree_;
         Node* father_;
         Elements elements_;
