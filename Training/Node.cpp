@@ -185,7 +185,7 @@ NODE_INSTANCE::element_add(const std::pair<Key, Value>&  pair)
         btree_->change_bound_upwards(this, save_key, this->max_key());
         // next node add
         if (next_node_ != nullptr) {
-            next_node_.element_add(p);
+            next_node_->element_add(p);
         } else {
             this->father_add(p);
         }

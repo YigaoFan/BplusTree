@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Node.h"
-
 namespace btree {
     // Result related:
     using RESULT_FLAG = int;

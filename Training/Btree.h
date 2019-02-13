@@ -21,8 +21,8 @@ namespace btree {
     public:
         using compare = std::function<bool(const Key&, const Key&)>;
         // will change the vector arg
-        template <unsigned NumOfArrayEle> Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>&);
-        template <unsigned NumOfArrayEle> Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>&&);
+        template <unsigned long NumOfArrayEle> Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>&);
+        template <unsigned long NumOfArrayEle> Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>&&);
         ~Btree() = default;
         Value search(const Key&) const;
         RESULT_FLAG add(const std::pair<Key, Value>&);

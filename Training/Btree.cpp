@@ -26,7 +26,7 @@ using std::make_pair;
 /// Because when construct a tree, you can see all Keys
 /// When you add or modify, you can use have() function to check it
 BTREE_TEMPLATE
-template <unsigned NumOfArrayEle>
+template <unsigned long NumOfArrayEle>
 BTREE_INSTANCE::Btree(const compare& compare_function, array<pair<Key, Value>, NumOfArrayEle>& pair_array)
     : BtreeHelper(), compare_func_(compare_function), key_num_(NumOfArrayEle) // TODO assume all keys are different
     // Prepare memory
@@ -106,7 +106,7 @@ BTREE_INSTANCE::helper(const array<ElementType, NodeCount>& nodes)
 
 
 BTREE_TEMPLATE
-template <unsigned NumOfArrayEle>
+template <unsigned long NumOfArrayEle>
 BTREE_INSTANCE::Btree(const compare& compare_function, array<pair<Key, Value>, NumOfArrayEle>&& pair_array)
     : Btree(compare_function, pair_array) {}
 
@@ -211,7 +211,7 @@ BTREE_INSTANCE::merge_branch(const Key max_key, const node_instance_type* node)
     root_->next_node_ = node;
     auto new_root = new Node(this, middle_type(), sons.begin(), sons.end());
 
-    root_ = nullptr;
+    root_.release();
     root_.reset(new_root);
 }
 
