@@ -23,8 +23,8 @@ NODE_INSTANCE::Node(const BtreeType* btree, const middle_type nul, Iterator begi
     // null
 }
 
-NODE_TEMPLATE
-NODE_INSTANCE::~Node() = default;
+//NODE_TEMPLATE
+//NODE_INSTANCE::~Node() = default;
 
 NODE_TEMPLATE
 bool

@@ -3,9 +3,7 @@
 #include <utility> // for pair
 #include <vector> // for vector
 #include <memory> // for unique_ptr
-#include <variant>
-#include "CommonFlag.h" // for project define flag
-//#include "Elements.h"
+#include <variant> // for variant
 
 namespace btree {
     struct leaf_type final {};
@@ -25,7 +23,7 @@ namespace btree {
         template <typename Iterator>
         // point to key-ptr array
         Node(const BtreeType *, const middle_type, Iterator = nullptr, Iterator = nullptr, const Node* = nullptr);
-        ~Node();
+        ~Node() = default;
 
         bool have(const Key&);
 		Value& operator[](const Key&);

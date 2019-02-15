@@ -24,12 +24,10 @@ using std::make_pair;
 //#define NDEBUG
 int main()
 {
-    auto compare = [](const int a, const int b) { return a < b; };
+    auto compa = [](const int a, const int b) { return a < b; };
     array<pair<int, string>, 3> key_value_array{
         make_pair<int, string>(1, "a")/* { 1, "a" }*/, // smart compiler? 0th element must like this
-        {2, "b"},
-        {3, "c"}, 
     };
-    auto b = Btree<int, string, 3>(compare, key_value_array);
+    auto b{ Btree<int, string, 3>::Btree(compa, key_value_array) };
     return 0;
 }

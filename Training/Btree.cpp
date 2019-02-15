@@ -26,9 +26,9 @@ using std::make_pair;
 /// Because when construct a tree, you can see all Keys
 /// When you add or modify, you can use have() function to check it
 BTREE_TEMPLATE
-template <unsigned long NumOfArrayEle>
-BTREE_INSTANCE::Btree(const compare& compare_function, array<pair<Key, Value>, NumOfArrayEle>& pair_array)
-    : BtreeHelper(), compare_func_(compare_function), key_num_(NumOfArrayEle) // TODO assume all keys are different
+template <std::size_t NumOfArrayEle>
+BTREE_INSTANCE::Btree(const compare& compare_function, array<pair<Key, Value>, NumOfArrayEle> pair_array)
+    : BtreeHelper(), key_num_(NumOfArrayEle), compare_func_(compare_function) // TODO assume all keys are different
     // Prepare memory
 //    leaf_block_(LeafMemory<Key, Value, 2>::produce_leaf_memory(NumOfArrayEle))
 {
@@ -51,6 +51,15 @@ BTREE_INSTANCE::Btree(const compare& compare_function, array<pair<Key, Value>, N
     } else {
         this->helper<true>(pair_array);
     }
+}
+
+BTREE_TEMPLATE
+BTREE_INSTANCE::Btree(const Btree& that)
+    : BtreeHelper()
+{
+    this->key_num_ = that.key_num_;
+    this->root_ = that.root_;
+    this->compare_func_ = that.compare_func_;
 }
 
 /// assume the nodes arg is sorted
@@ -105,13 +114,10 @@ BTREE_INSTANCE::helper(const array<ElementType, NodeCount>& nodes)
 
 
 
-BTREE_TEMPLATE
-template <unsigned long NumOfArrayEle>
-BTREE_INSTANCE::Btree(const compare& compare_function, array<pair<Key, Value>, NumOfArrayEle>&& pair_array)
-    : Btree(compare_function, pair_array) {}
-
 //BTREE_TEMPLATE
-//BTREE_INSTANCE::~Btree() = default;
+//template <unsigned long NumOfArrayEle>
+//BTREE_INSTANCE::Btree(const compare& compare_function, array<pair<Key, Value>, NumOfArrayEle>&& pair_array)
+//    : Btree(compare_function, pair_array) {}
 
 BTREE_TEMPLATE
 Value
@@ -257,8 +263,8 @@ BTREE_INSTANCE::explore() const {
 
 BTREE_TEMPLATE
 void
-BTREE_INSTANCE::remove(const Key& key) {
-
+BTREE_INSTANCE::remove(const Key& key) 
+{
     node_instance_type*&& n = this->check_out(key);
     if (!n->have(key)) {
         return;
@@ -276,17 +282,6 @@ BTREE_INSTANCE::have(const Key& key)
 }
 
 // private method part:
-
-//BTREE_TEMPLATE
-//bool
-//BTREE_INSTANCE::all_leaf_full() const
-//{
-//    if ((key_num_ % BtreeOrder) == 0) {
-//        return true;
-//    } else {
-//        return false;
-//    }
-//}
 
 /// search the key in Btree, return the node that terminated, may be not have the key
 /// this is to save the search information
@@ -355,3 +350,15 @@ BTREE_INSTANCE::biggest_leaf() {
 
     return current_node;
 }
+
+//BTREE_TEMPLATE
+//typename BTREE_INSTANCE::node_instance_type*
+//BTREE_INSTANCE::extreme_leaf(function<node_instance_type*()> node_method) {
+//    node_instance_type* current_node = root_.get();
+//
+//    while (current_node->middle) {
+//        current_node = current_node->node_method();
+//    }
+//
+//    return current_node;
+//}

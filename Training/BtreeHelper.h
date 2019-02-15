@@ -8,4 +8,3 @@ public:
     // when a lot of place use this template argument, we should add it to class template
     void change_bound_upwards(NodeType*, const Key&, const Key&) const;
 };
-// where suitable place to call this Helper

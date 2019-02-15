@@ -12,18 +12,20 @@ namespace btree {
     template<typename Key, 
              typename Value,
              unsigned BtreeOrder>
-    class Btree : private BtreeHelper{
+    class Btree : private BtreeHelper {
     private:
         using node_instance_type = Node<Key, Value, BtreeOrder, Btree>;
         friend node_instance_type; // for Node use compare func, leaf_block_
-        using predicate = std::function<bool(node_instance_type*)>;
 
     public:
-        using compare = std::function<bool(const Key&, const Key&)>;
+        using compare = std::function<bool(const Key, const Key)>;
         // will change the vector arg
-        template <unsigned long NumOfArrayEle> Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>&);
-        template <unsigned long NumOfArrayEle> Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>&&);
-        ~Btree() = default;
+        template <std::size_t NumOfArrayEle>
+        Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>);
+        /*template <unsigned long NumOfArrayEle>
+        Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>&&);*/
+        Btree(const Btree&);
+        ~Btree() override = default;
         Value search(const Key&) const;
         RESULT_FLAG add(const std::pair<Key, Value>&);
         RESULT_FLAG modify(const std::pair<Key, Value>&);
@@ -32,20 +34,19 @@ namespace btree {
         bool have(const Key&);
 
     private:
-        // Field
+        unsigned key_num_;
+
+        using predicate = std::function<bool(node_instance_type*)>;
         std::unique_ptr<node_instance_type> root_{nullptr};
         const compare compare_func_;
 
-        // key info
-        unsigned key_num_; // TODO remember to add to Btree function
 
-        //bool all_leaf_full() const;
         node_instance_type* check_out(const Key&);
         static node_instance_type* check_out_digging(const Key&, node_instance_type*);
-        // provide some all-leaf-do operation
         std::vector<node_instance_type*> traverse_leaf(const predicate&);
         node_instance_type* smallest_leaf();
         node_instance_type* biggest_leaf();
+        //node_instance_type* extreme_leaf(std::function<node_instance_type*()>);
 
         template <bool FirstFlag, typename Element, unsigned NodeCount> 
         void helper(const std::array<Element, NodeCount>&);
