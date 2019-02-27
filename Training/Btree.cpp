@@ -2,7 +2,9 @@
 #include <array> // for array
 #include <cmath>  // for ceil
 #include <cassert> // for assert
-#include "Btree.h"
+#include "Btree.hpp"
+#include <iostream>
+
 using namespace btree;
 using std::array;
 using std::ceil;
@@ -17,7 +19,15 @@ using std::make_pair;
   template <typename Key, typename Value, unsigned BtreeOrder>
 #define BTREE_INSTANCE Btree<Key, Value, BtreeOrder>
 
-// all method in this level, 
+BTREE_TEMPLATE
+void
+BTREE_INSTANCE::ok()
+{
+    std::cout << "I am OK" << std::endl;
+}
+
+
+// all method in this level,
 // when call lower level function, must ensure the Key exist
 // public method part:
 
@@ -128,7 +138,7 @@ BTREE_INSTANCE::search(const Key& key) const
         // Value type should provide default constructor to represent null
         return Value(); // undefined behavior
     }
-    return node->operator[](key); 
+    return node->operator[](key);
 }
 
 /// if exist, will modify
@@ -152,7 +162,7 @@ BTREE_INSTANCE::add(const pair<Key, Value>& pair) {
             node->add(pair);
             ++key_num_;
         }
-    } else { 
+    } else {
         auto leaf = this->biggest_leaf();
         leaf->add(pair);
 
@@ -224,11 +234,11 @@ BTREE_INSTANCE::merge_branch(const Key max_key, const node_instance_type* node)
 /// if not exist, will add
 BTREE_TEMPLATE
 RESULT_FLAG
-BTREE_INSTANCE::modify(const pair<Key, Value>& pair) 
+BTREE_INSTANCE::modify(const pair<Key, Value>& pair)
 {
     auto& k = pair.first;
     auto& v = pair.second;
-    
+
     node_instance_type*&& node = this->check_out(k);
     if (!node->middle) {
         // TODO should think let the if logic below work by Node-self
@@ -263,13 +273,13 @@ BTREE_INSTANCE::explore() const {
 
 BTREE_TEMPLATE
 void
-BTREE_INSTANCE::remove(const Key& key) 
+BTREE_INSTANCE::remove(const Key& key)
 {
     node_instance_type*&& n = this->check_out(key);
     if (!n->have(key)) {
         return;
     }
-    n->remove(key); 
+    n->remove(key);
     --key_num_;
 }
 
@@ -335,7 +345,7 @@ BTREE_INSTANCE::smallest_leaf() {
     while (current_node->middle) {
         current_node = current_node->min_leaf();
     }
-   
+
     return current_node;
 }
 
@@ -349,6 +359,13 @@ BTREE_INSTANCE::biggest_leaf() {
     }
 
     return current_node;
+}
+
+#include <iostream>
+template<typename Key, typename Value, unsigned BtreeOrder>
+Btree<Key, Value, BtreeOrder>::Btree()
+{
+   std::cout << "OK" << std::endl;
 }
 
 //BTREE_TEMPLATE
