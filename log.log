@@ -1,4 +1,4 @@
-1. std::function<bool(Key, Key)> compare 不能随便用应该，在 function 里面估计有一个同名的东西；
+﻿1. std::function<bool(Key, Key)> compare 不能随便用应该，在 function 里面估计有一个同名的东西；
 
 2. typename 到底什么时候需要用？ typename BTREE_INSTANCE:: node_type
 
@@ -141,3 +141,5 @@ int main()
 50. 凡是创建 Node 的地方都要注意设置 next_node_
 TODO 整理 Btree 层对 operator[] 的使用
 1. 需要 ptr
+
+51. 模板类里面的嵌套类本身需要定义那些类型吗？可以不用。
