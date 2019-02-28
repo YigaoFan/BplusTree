@@ -316,6 +316,11 @@ namespace btree {
         }
     }
 
+//    template <typename T>
+//    void operator=(const unique_ptr<T> lhs, const unique_ptr<T>& rhs)
+//    {
+//        return rhs;
+//    }
 
 #include <cstring>
     using namespace btree;
@@ -342,7 +347,8 @@ namespace btree {
         } else {
             do {
                 elements_[count_].first = begin->first;
-                elements_[count_].second = begin->second;
+                // TODO code below is belong to one type, no very right
+                elements_[count_].second = begin->second.realease();
 
                 ++count_;
                 ++begin;

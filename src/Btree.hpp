@@ -4,6 +4,7 @@
 #include <functional> // for lambda & less
 #include <memory> // for shared_ptr
 #include <utility> // for pair
+#include <cstdio>
 #include "CommonFlag.hpp"
 #include "BtreeHelper.hpp"
 #include "Node.hpp"
@@ -49,7 +50,7 @@ namespace btree {
         node_instance_type* biggest_leaf();
         //node_instance_type* extreme_leaf(std::function<node_instance_type*()>);
 
-        template <bool FirstFlag, typename Element, unsigned NodeCount>
+        template <bool FirstFlag, typename Element, std::size_t NodeCount>
         void helper(const std::array<Element, NodeCount>&);
 
         //void root_add(const node_instance_type*, const std::pair<Key, Value>&);
@@ -77,7 +78,7 @@ namespace btree {
     using std::copy;
     using std::unique_ptr;
     using std::make_pair;
-    using std::exception;
+    using std::runtime_error;
 #define BTREE_TEMPLATE \
   template <typename Key, typename Value, unsigned BtreeOrder>
 #define BTREE_INSTANCE Btree<Key, Value, BtreeOrder>
@@ -110,14 +111,14 @@ namespace btree {
         auto last = pair_array[0].first;
         for (auto beg = pair_array.begin() + 1, end = pair_array.end(); beg != end; ++beg) {
             if (beg->first == last) {
-                throw exception("The input array has the duplicate key");
+                throw runtime_error("The input array has the duplicate key");
             } else {
                 last = beg->first;
             }
         }
 
         // construct
-        if constexpr (NumOfArrayEle < BtreeOrder) {
+        if constexpr (NumOfArrayEle <= BtreeOrder) {
             root_.reset(new node_instance_type(this, leaf_type(), pair_array.begin(), pair_array.end()));
         } else {
             this->helper<true>(pair_array);
@@ -135,7 +136,7 @@ namespace btree {
     }
 
     BTREE_TEMPLATE
-        template <bool FirstFlag, typename ElementType, unsigned NodeCount>
+        template <bool FirstFlag, typename ElementType, std::size_t NodeCount>
     void
         BTREE_INSTANCE::helper(const array<ElementType, NodeCount>& nodes)
     {

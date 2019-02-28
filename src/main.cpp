@@ -29,7 +29,7 @@ int main()
         make_pair<int, string>(3, "b"),
     };
 
-    auto b{ Btree<int, string, 3>::Btree(comp, key_value_array) };
+    auto b{ Btree<int, string, 3>(comp, key_value_array) };
     std::variant<int, unique_ptr<string>> a;
     auto i = 1;
     a = i;
