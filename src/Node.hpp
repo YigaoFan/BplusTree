@@ -49,10 +49,9 @@ namespace btree {
         void father_add(const std::pair<Key, Value>&);
 
         class Elements {
-        private:
+        public:
             using content_type = std::pair<Key, std::variant<Value, std::unique_ptr<Node>>>;
 
-        public:
             template <typename Iterator>
             Elements(Iterator, Iterator);
             /*template <typename T>
@@ -94,6 +93,9 @@ namespace btree {
             static content_type& move_element(const char, content_type*, content_type*);
             content_type& to_end_move(const char, content_type*);
             content_type& related_position(const Key&);
+
+            static content_type& assign(content_type&, const std::pair<Key, std::unique_ptr<Node>>&);
+            static content_type& assign(content_type&, const std::pair<Key, Value>&);
         };
     };
 }
@@ -346,9 +348,7 @@ namespace btree {
             return;
         } else {
             do {
-                elements_[count_].first = begin->first;
-                // TODO code below is belong to one type, no very right
-                elements_[count_].second = begin->second.realease();
+                Elements::assign(elements_[count_], *begin);
 
                 ++count_;
                 ++begin;
@@ -590,6 +590,23 @@ namespace btree {
                 return e;
             }
         }
+    }
+
+    NODE_TEMPLATE
+    typename NODE_INSTANCE::Elements::content_type& 
+        NODE_INSTANCE::Elements::assign(content_type& ele, const pair<Key, unique_ptr<Node>>& pair)
+    {
+        content_type tmp{ u_ptr.release() };
+        ele = tmp;
+        return ele;
+    }
+
+    NODE_TEMPLATE
+        typename NODE_INSTANCE::Elements::content_type&
+        NODE_INSTANCE::Elements::assign(content_type& ele, const pair<Key, Value>& pair)
+    {
+
+        return ele;
     }
 
 
