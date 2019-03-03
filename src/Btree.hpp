@@ -2,9 +2,8 @@
 
 #include <vector> // for vector
 #include <functional> // for lambda & less
-#include <memory> // for shared_ptr
+#include <memory> // for shared_ptr, allocator
 #include <utility> // for pair
-#include <cstdio>
 #include "CommonFlag.hpp"
 #include "BtreeHelper.hpp"
 #include "Node.hpp"
@@ -67,10 +66,13 @@ namespace btree {
 #include <exception> // for exception
 #include <iostream>
 
+#ifndef NDEBUG
+#include <cassert>
+#endif
+
 // implementation
 namespace btree {
     using std::array;
-    using std::ceil;
     using std::function;
     using std::pair;
     using std::sort;
@@ -79,6 +81,8 @@ namespace btree {
     using std::unique_ptr;
     using std::make_pair;
     using std::runtime_error;
+    using std::allocator;
+
 #define BTREE_TEMPLATE \
   template <typename Key, typename Value, unsigned BtreeOrder>
 #define BTREE_INSTANCE Btree<Key, Value, BtreeOrder>
@@ -129,44 +133,46 @@ namespace btree {
 
     BTREE_TEMPLATE
         BTREE_INSTANCE::Btree(const Btree& that)
-    // TODO may I use derived class to initial the base class? How to get the base class object
         : BtreeHelper(that), key_num_(that.key_num_), root_(that.root_), compare_func_(that.compare_func_)
-    { 
-        // null
+    {
+         // TODO need to be copy from that to make it like value type
     }
 
     BTREE_TEMPLATE
-        template <bool FirstFlag, typename ElementType, std::size_t NodeCount>
+        template <bool FirstCall, typename ElementType, std::size_t NodeCount>
     void
         BTREE_INSTANCE::helper(const array<ElementType, NodeCount>& nodes)
     {
         constexpr auto upper_node_num = (NodeCount % BtreeOrder == 0) ? (NodeCount / BtreeOrder) : (NodeCount / BtreeOrder + 1);
-
-        array<pair<Key, unique_ptr<node_instance_type>>, upper_node_num> all_upper_node; // store all leaf
+        // store all nodes
+        array<pair<Key, unique_ptr<node_instance_type>>, upper_node_num> all_upper_node;
 
         auto head = nodes.begin();
         auto end = nodes.end();
         auto i = 0;
         auto tail = head + BtreeOrder;
-        auto not_first_of_arr = false;
+        auto first = true;
 
         do {
-            // use head to tail to construct a upper Node, then collect it
-            if constexpr (FirstFlag) {
+            if constexpr (FirstCall) {
                 auto leaf = new node_instance_type(this, leaf_type(), head, tail);
 
-                // TODO complete
-                //assert(i < upper_node_num);
+                // defense code
+                assert(i < upper_node_num);
 
                 all_upper_node[i] = { leaf->max_key(), unique_ptr<node_instance_type>(leaf) };
             } else {
                 auto middle = new node_instance_type(this, middle_type(), head, tail);
+
+                //defense code
+                assert(i < upper_node_num);
+
                 all_upper_node[i] = { middle->max_key(), unique_ptr<node_instance_type>(middle) };
-                // set Node.next_node_
-                if (not_first_of_arr) {
-                    all_upper_node[i].second->next_node_ = all_upper_node[i - 1].second.get();
+                if (first) {
+                    first = false;
                 } else {
-                    not_first_of_arr = true;
+                    // set next_node of Node
+                    all_upper_node[i - 1].second->next_node(middle);
                 }
             }
 
@@ -179,8 +185,7 @@ namespace btree {
         if constexpr (upper_node_num <= BtreeOrder) {
             root_.reset(new node_instance_type(this, middle_type(), all_upper_node.begin(), all_upper_node.end()));
         } else {
-            // construct recursively
-            std::cout << "Call Helper" << std::endl;
+            // recursive
             this->helper<false>(all_upper_node);
         }
     }

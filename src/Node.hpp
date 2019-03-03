@@ -34,6 +34,7 @@ namespace btree {
         Key max_key() const;
         Node* min_leaf() const; // for Btree traverse get the leftest leaf
         Node* max_leaf() const; // for Btree get the rightest leaf
+        void next_node(const Node*);
         void change_key(const Key&, const Key&);
 
 	private:
@@ -54,8 +55,6 @@ namespace btree {
 
             template <typename Iterator>
             Elements(Iterator, Iterator);
-            /*template <typename T>
-            Elements(const std::initializer_list<std::pair<Key, T*>>);*/
             // Common
             Key max_key() const;
             bool have(const Key&);
@@ -81,10 +80,10 @@ namespace btree {
         private:
             Elements() = default; // for construct null middle_type Node
             // Field
-            char count_;
+            char count_{0};
             char cache_index_{0};
             Key cache_key_;
-            std::array<content_type, BtreeOrder> elements_{};
+            std::array<content_type, BtreeOrder> elements_;
 
             void reset_cache();
 
@@ -233,6 +232,13 @@ namespace btree {
         }
     }
 
+    NODE_TEMPLATE
+        void
+        NODE_INSTANCE::next_node(const Node* node_ptr)
+    {
+        next_node_ = node_ptr;
+    }
+
     // private method part:
 
     NODE_TEMPLATE
@@ -325,7 +331,6 @@ namespace btree {
 //    }
 
 #include <cstring>
-    using namespace btree;
     using std::initializer_list;
     using std::pair;
     using std::vector;
@@ -342,7 +347,6 @@ namespace btree {
     NODE_TEMPLATE
         template <typename Iterator>
     NODE_INSTANCE::Elements::Elements(Iterator begin, Iterator end)
-        : count_(0)
     {
         if (begin == end) {
             return;
@@ -353,7 +357,6 @@ namespace btree {
                 ++count_;
                 ++begin;
             } while (begin != end);
-            this->reset_cache();
         }
     }
 
@@ -593,11 +596,11 @@ namespace btree {
     }
 
     NODE_TEMPLATE
-    typename NODE_INSTANCE::Elements::content_type& 
+        typename NODE_INSTANCE::Elements::content_type&
         NODE_INSTANCE::Elements::assign(content_type& ele, const pair<Key, unique_ptr<Node>>& pair)
     {
-        content_type tmp{ u_ptr.release() };
-        ele = tmp;
+        ele.first = pair.first;
+        ele.second = std::move(pair.second);
         return ele;
     }
 
@@ -605,7 +608,7 @@ namespace btree {
         typename NODE_INSTANCE::Elements::content_type&
         NODE_INSTANCE::Elements::assign(content_type& ele, const pair<Key, Value>& pair)
     {
-
+        ele = pair;
         return ele;
     }
 
@@ -614,7 +617,7 @@ namespace btree {
         void
         NODE_INSTANCE::Elements::reset_cache()
     {
-        cache_index_ = count_ / 2;
+        cache_index_ = static_cast<char>(count_ / 2);
     }
 
 }
