@@ -5,6 +5,8 @@
 #include <utility>
 #include <array>
 #include <variant>
+
+#define BTREE_DEBUG
 #include "Btree.hpp"
 
 using namespace btree;
@@ -38,20 +40,41 @@ static int test_pass = 0;
 #define EXPECT_EQ_STR(expect, actual) \
     EXPECT_EQ_BASE((expect) == (actual), expect, actual)
 
-//#define NDEBUG
+array<pair<int, string>, 5> key_value_array {
+    make_pair(2, "b"),
+    make_pair(1, "a"),
+    make_pair(3, "b"),
+    make_pair(4, "d"),
+    make_pair(5, "f"),
+};
+
+bool
+comp(const int a, const int b)
+{
+    return a < b;
+}
+
+static
+void
+test()
+{
+    LOG("Debug Info: ")
+    auto b{ Btree<int, string, 3>(comp, key_value_array)};
+    LOG("Console: ")
+    for (auto& e : b.explore()) {
+        cout << e << endl;
+    }
+
+    LOG(b.have(1));
+}
 
 int
 main()
 {
-    auto comp = [](const int a, const int b) { return a < b; };
-    array<pair<int, string>, 4> key_value_array {
-        make_pair<int, string>(2, "b"),
-        make_pair<int, string>(1, "a"),
-        make_pair<int, string>(3, "b"),
-        make_pair<int, string>(4, "d"),
-    };
 
-    auto b{ Btree<int, string, 3>(comp, key_value_array) };
+    test();
+
+//    cout << b.have(3) << endl;
 //    EXPECT_EQ_STR(string("b"), b.search(2));
     return 0;
 }

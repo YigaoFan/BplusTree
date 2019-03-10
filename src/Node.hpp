@@ -12,7 +12,6 @@ namespace btree {
     // When a Node is Created, its all type is done!
 	template<typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 	class Node {
-		friend BtreeType; // for Btree set next_node_ TODO should reduce this access way
 		class Elements;
 	public:
         const bool middle;
@@ -26,7 +25,7 @@ namespace btree {
         ~Node() = default;
 
         bool have(const Key&);
-		Value& operator[](const Key&);
+		auto operator[](const Key&);
         void add(const std::pair<Key, Value>&);
         void middle_append(const std::pair<Key, std::unique_ptr<Node>>&, const bool=false);
         void remove(const Key&);
@@ -34,7 +33,9 @@ namespace btree {
         Key max_key() const;
         Node* min_leaf() const; // for Btree traverse get the leftest leaf
         Node* max_leaf() const; // for Btree get the rightest leaf
-        void next_node(const Node*);
+
+        Node* next_node();
+        void next_node(Node* const);
         void change_key(const Key&, const Key&);
 
 	private:
@@ -69,7 +70,7 @@ namespace btree {
             // all here bool means change
 
             // for Value
-            Value& operator[](const Key&);
+            std::variant<Value, std::unique_ptr<Node>>& operator[](const Key&);
 
             std::pair<Key, Value> exchange_max_out(const std::pair<Key, Value>&); // when full call this function
             // for ptr
@@ -77,6 +78,8 @@ namespace btree {
             Node* ptr_of_max() const; // for add the key beyond the max bound
             bool change_key(const Key&, const Key&);
 
+            static Value value(const std::variant<Value, std::unique_ptr<Node>>&);
+            static Node* ptr(const std::variant<Value, std::unique_ptr<Node>>&);
         private:
             Elements() = default; // for construct null middle_type Node
             // Field
@@ -87,13 +90,12 @@ namespace btree {
 
             void reset_cache();
 
-            static Value value(const std::variant<Value, std::unique_ptr<Node>>&);
-            static Node* ptr(const std::variant<Value, std::unique_ptr<Node>>&);
+
             static content_type& move_element(const char, content_type*, content_type*);
             content_type& to_end_move(const char, content_type*);
             content_type& related_position(const Key&);
 
-            static content_type& assign(content_type&, const std::pair<Key, std::unique_ptr<Node>>&);
+            static content_type& assign(content_type&, std::pair<Key, Node*>&);
             static content_type& assign(content_type&, const std::pair<Key, Value>&);
         };
     };
@@ -142,10 +144,16 @@ namespace btree {
 
     /// Btree should use have() check or other me to ensure existing
     NODE_TEMPLATE
-        Value&
+        auto
         NODE_INSTANCE::operator[](const Key& k)
     {
-        return elements_[k];
+        auto& e = elements_[k];
+        return Elements::ptr(e);
+
+//    	else {
+//    	    // TODO process
+//    	    return Elements::value(e);
+//    	}
     }
 
     NODE_TEMPLATE
@@ -231,10 +239,15 @@ namespace btree {
             btree_->change_bound_upwards(this, old_key, this->max_key());
         }
     }
-
+    NODE_TEMPLATE
+        NODE_INSTANCE*
+        NODE_INSTANCE::next_node()
+    {
+    	return next_node_;
+    }
     NODE_TEMPLATE
         void
-        NODE_INSTANCE::next_node(const Node* node_ptr)
+        NODE_INSTANCE::next_node(Node* const node_ptr)
     {
         next_node_ = node_ptr;
     }
@@ -432,30 +445,30 @@ namespace btree {
 
     // for Value
     NODE_TEMPLATE
-        Value&
+        std::variant<Value, unique_ptr<NODE_INSTANCE>>&
         NODE_INSTANCE::Elements::operator[](const Key& key)
     {
-        // TODO
+        // TODO have problem
         // 1. should return ptr, check_out_digging need
-        auto& cache_k = elements_[cache_index_].first;
-        auto& cache_v = Elements::value(elements_[cache_index_].second);
-
-        if (key == cache_k) {
-            this->reset_cache();
-            return cache_v;
-        } else if (key < cache_k) {
-            for (auto i = 0; i < cache_index_; ++i) {
-                if (key == elements_[i].first) {
-                    return Elements::value(elements_[i].second);
-                }
-            }
-        } else {
-            for (int i = cache_k; i < count_; ++i) {
-                if (key == elements_[i].first) {
-                    return Elements::value(elements_[i].second);
-                }
-            }
-        }
+//        auto&& cache_k = elements_[cache_index_].first;
+//        auto&& cache_v = Elements::value(elements_[cache_index_].second);
+//
+//        if (key == cache_k) {
+//            this->reset_cache();
+//            return cache_v;
+//        } else if (key < cache_k) {
+//            for (auto i = 0; i < cache_index_; ++i) {
+//                if (key == elements_[i].first) {
+//                    return Elements::value(elements_[i].second);
+//                }
+//            }
+//        } else {
+//            for (int i = cache_k; i < count_; ++i) {
+//                if (key == elements_[i].first) {
+//                    return Elements::value(elements_[i].second);
+//                }
+//            }
+//        }
     }
 
     // Node think first of full situation
@@ -597,10 +610,12 @@ namespace btree {
 
     NODE_TEMPLATE
         typename NODE_INSTANCE::Elements::content_type&
-        NODE_INSTANCE::Elements::assign(content_type& ele, const pair<Key, unique_ptr<Node>>& pair)
+        NODE_INSTANCE::Elements::assign(content_type& ele, pair<Key, Node*>& pair)
     {
         ele.first = pair.first;
-        ele.second = std::move(pair.second);
+        auto uni_ptr = unique_ptr<Node>(pair.second);
+        new (&(ele.second)) std::variant<Value, std::unique_ptr<Node>>(std::move(uni_ptr));
+//        ele.second = std::move(pair.second);
         return ele;
     }
 
