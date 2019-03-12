@@ -7,6 +7,7 @@
 #include "CommonFlag.hpp"
 #include "BtreeHelper.hpp"
 #include "Node.hpp"
+
 #ifdef BTREE_DEBUG
 #include <iostream>
 #include "utility.hpp"
@@ -26,11 +27,16 @@ namespace btree {
 	public:
 
 		template <std::size_t NumOfArrayEle>
-		Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>); // will change the vector arg
+		Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>);
 		template <unsigned long NumOfArrayEle>
-		Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>&&);
-		Btree(const Btree&);
+		Btree(compare&&, std::array<std::pair<Key, Value>, NumOfArrayEle>&&);
+		Btree(const Btree&); // copy constructor
+		Btree(Btree&&); // move constructor
 		~Btree() override = default;
+
+		Btree& operator=(const Btree&); // copy assign
+		Btree& operator=(Btree&&); // move assign
+
 		Value search(const Key&) const;
 		RESULT_FLAG add(const std::pair<Key, Value>&);
 		RESULT_FLAG modify(const std::pair<Key, Value>&);
@@ -109,12 +115,12 @@ namespace btree {
 
 		// sort
 		sort(pair_array.begin(), pair_array.end(),
-			[&compare_function](const pair<Key, Value>& p1, const pair<Key, Value>& p2)
+			[&](const pair<Key, Value>& p1, const pair<Key, Value>& p2)
 		{
-			return compare_function(p1.first, p2.first);
+			return compare_func_(p1.first, p2.first);
 		});
 
-		// check duplicate
+		// duplicate check
 		auto last = pair_array[0].first;
 		for (auto beg = pair_array.begin() + 1, end = pair_array.end(); beg != end; ++beg) {
 			if (beg->first == last) {
@@ -138,7 +144,28 @@ namespace btree {
 		BTREE_INSTANCE::Btree(const Btree& that)
 		: BtreeHelper(that), key_num_(that.key_num_), root_(that.root_), compare_func_(that.compare_func_)
 	{
-		 // TODO need to be copy from that to make it like value type
+
+	}
+
+	BTREE_TEMPLATE
+		BTREE_INSTANCE::Btree(Btree&& that)
+		: BtreeHelper(that), key_num_(that.key_num_), root_(that.root_), compare_func_(that.compare_func_)
+	{
+
+	}
+
+	BTREE_TEMPLATE
+	BTREE_INSTANCE&
+		BTREE_INSTANCE::operator=(const Btree& that)
+	{
+
+	}
+
+	BTREE_TEMPLATE
+	BTREE_INSTANCE&
+		BTREE_INSTANCE::operator=(Btree&& that)
+	{
+
 	}
 
 	BTREE_TEMPLATE
@@ -220,7 +247,7 @@ namespace btree {
 	// TODO wait test
 	BTREE_TEMPLATE
 	template <unsigned long NumOfArrayEle>
-	BTREE_INSTANCE::Btree(const compare& compare_function, array<pair<Key, Value>, NumOfArrayEle>&& pair_array)
+	BTREE_INSTANCE::Btree(compare&& compare_function, array<pair<Key, Value>, NumOfArrayEle>&& pair_array)
 	    : Btree(compare_function, pair_array) {}
 
 	BTREE_TEMPLATE

@@ -349,8 +349,6 @@ namespace btree {
     using std::vector;
     using std::unique_ptr;
     using std::memcpy;
-#define NODE_TEMPLATE template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
-#define NODE_INSTANCE Node<Key, Value, BtreeOrder, BtreeType>
 
     // public method part:
 
@@ -469,6 +467,12 @@ namespace btree {
 //                }
 //            }
 //        }
+        // lite version:
+        for (auto& e : elements_) {
+            if (key == e.first) {
+                return e.second;
+            }
+        }
     }
 
     // Node think first of full situation
