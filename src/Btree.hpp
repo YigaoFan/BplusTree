@@ -49,7 +49,7 @@ namespace btree {
 
 		using predicate = std::function<bool(node_instance_type*)>;
 		std::unique_ptr<node_instance_type> root_{nullptr};
-		const compare compare_func_ = nullptr;
+		const compare compare_func_;
 
 
 		node_instance_type* check_out(const Key&) const;
