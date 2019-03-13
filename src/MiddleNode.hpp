@@ -11,6 +11,7 @@ namespace btree {
 
         NodeBase* min_son() const;
         NodeBase* max_son() const;
+        NodeBase* operator[](const Key&) const;
     };
 }
 
@@ -30,11 +31,11 @@ namespace btree {
         // TODO wait complete
     }
 
-     template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
-     NodeBase<Key, Value, BtreeOrder, BtreeType>*
-     MiddleNode<Key, Value, BtreeOrder, BtreeType>::min_son() const
+    template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+    NodeBase<Key, Value, BtreeOrder, BtreeType>*
+    MiddleNode<Key, Value, BtreeOrder, BtreeType>::min_son() const
     {
-         return elements_.ptr_of_min();
+        return elements_.ptr_of_min();
     }
 
     template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
@@ -42,5 +43,13 @@ namespace btree {
     MiddleNode<Key, Value, BtreeOrder, BtreeType>::max_son() const
     {
         return elements_.ptr_of_max();
+    }
+
+    template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+    NodeBase<Key, Value, BtreeOrder, BtreeType>*
+    MiddleNode<Key, Value, BtreeOrder, BtreeType>::operator[](const Key& key) const
+    {
+    	auto& e = elements_[key];
+    	return Elements::value(e);
     }
 }

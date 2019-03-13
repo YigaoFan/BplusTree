@@ -53,6 +53,7 @@ namespace btree {
 		auto save_key = this->max_key();
 		if (elements_.remove(key)) {
 //			btree_->change_bound_upwards(this,)
+			// TODO
 		}
 	}
 }

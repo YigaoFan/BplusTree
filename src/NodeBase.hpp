@@ -83,11 +83,7 @@ namespace btree {
     bool
     NodeBase<Key, Value, BtreeOrder,BtreeType>::have(const Key& key) const
     {
-    	if (middle) {
-    	    return false;
-    	} else {
-    	    return elements_.have(key);
-    	}
+        return elements_.have(key);
     }
 
     template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>

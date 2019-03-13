@@ -465,9 +465,10 @@ namespace btree {
 	}
 
 	BTREE_TEMPLATE
-		typename BTREE_INSTANCE::node_instance_type*
-		BTREE_INSTANCE::smallest_leaf() const
+	typename BTREE_INSTANCE::node_instance_type*
+	BTREE_INSTANCE::smallest_leaf() const
 	{
+		// TODO modify
 		node_instance_type* current_node = root_.get();
 
 		while (current_node->middle) {
@@ -478,8 +479,10 @@ namespace btree {
 	}
 
 	BTREE_TEMPLATE
-		typename BTREE_INSTANCE::node_instance_type*
-		BTREE_INSTANCE::biggest_leaf() {
+	typename BTREE_INSTANCE::node_instance_type*
+	BTREE_INSTANCE::biggest_leaf()
+	{
+		// TODO modify
 		node_instance_type* current_node = root_.get();
 
 		while (current_node->middle) {
