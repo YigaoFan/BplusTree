@@ -1,56 +1,8 @@
-#pragma once 
-
-#include <utility> // for pair
-#include <vector> // for vector
-#include <memory> // for unique_ptr
-#include <variant> // for variant
+#pragma once
 
 namespace btree {
-    struct leaf_type {};
-    struct middle_type {};
-
-    // When a Node is Created, its all type is done!
-	template<typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
-	class Node {
-		class Elements;
-	public:
-        const bool middle;
-
-        template <typename Iterator>
-        // point to key-value array
-        Node(const BtreeType *, const leaf_type, Iterator, Iterator, Node* const = nullptr);
-        template <typename Iterator>
-        // point to key-ptr array
-        Node(const BtreeType *, const middle_type, Iterator = nullptr, Iterator = nullptr, Node* const = nullptr);
-        ~Node() = default;
-
-        bool have(const Key&);
-		auto operator[](const Key&);
-        void add(const std::pair<Key, Value>&);
-        void middle_append(const std::pair<Key, std::unique_ptr<Node>>&, const bool=false);
-        void remove(const Key&);
-        std::vector<Key> all_key() const;
-        Key max_key() const;
-        Node* min_leaf() const; // for Btree traverse get the leftest leaf
-        Node* max_leaf() const; // for Btree get the rightest leaf
-
-        Node* next_node();
-        void next_node(Node* const);
-        void change_key(const Key&, const Key&);
-
-	private:
-		// Field
-        Node* next_node_{nullptr};
-        const BtreeType* btree_;
-        Node* father_;
-        Elements elements_;
-
-        // Helper 
-        bool full() const;
-        void element_add(const std::pair<Key, Value>&);
-        void father_add(const std::pair<Key, Value>&);
-
-        class Elements {
+	template <typename Key, typename Value, unsigned BtreeOrder, typename NodeType>
+	class Elements {
         public:
             using content_type = std::pair<Key, std::variant<Value, std::unique_ptr<Node>>>;
 
@@ -98,252 +50,11 @@ namespace btree {
             static content_type& assign(content_type&, std::pair<Key, Node*>&);
             static content_type& assign(content_type&, const std::pair<Key, Value>&);
         };
-    };
 }
-
-#include <utility>
 
 // implementation
 namespace btree {
-    using std::pair;
-    using std::vector;
-    using std::unique_ptr;
-#define NODE_TEMPLATE template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
-#define NODE_INSTANCE Node<Key, Value, BtreeOrder, BtreeType>
-
-    NODE_TEMPLATE
-        template <typename Iterator>
-    NODE_INSTANCE::Node(const BtreeType* btree, const leaf_type, Iterator begin, Iterator end, Node* const father)
-        : middle(false), btree_(btree), father_(father), elements_(begin, end)
-    {
-        // null
-    }
-
-    NODE_TEMPLATE
-        template <typename Iterator>
-    NODE_INSTANCE::Node(const BtreeType* btree, const middle_type, Iterator begin, Iterator end, Node* const father)
-        : middle(true), btree_(btree), father_(father), elements_(begin, end)
-    {
-        // null
-    }
-
-    //NODE_TEMPLATE
-    //NODE_INSTANCE::~Node() = default;
-
-    NODE_TEMPLATE
-        bool
-        NODE_INSTANCE::have(const Key& k)
-    {
-        if (middle) {
-            return false;
-        } else {
-            return elements_.have(k);
-        }
-
-    }
-
-    /// Btree should use have() check or other me to ensure existing
-    NODE_TEMPLATE
-        auto
-        NODE_INSTANCE::operator[](const Key& k)
-    {
-        auto& e = elements_[k];
-        return Elements::ptr(e);
-
-//    	else {
-//    	    // TODO process
-//    	    return Elements::value(e);
-//    	}
-    }
-
-    NODE_TEMPLATE
-        void
-        NODE_INSTANCE::add(const pair<Key, Value>& pair)
-    {
-        // TODO
-        // the logic maybe not need to like this
-        // because the Btree has process a lot of thing
-        //if (middle) {
-        //    // means here root_ add
-        //    this->middle_add(pair); // need to process the return value
-        //} else {
-        this->element_add(pair);
-        //}
-    }
-
-    // append for middle node
-    NODE_TEMPLATE
-        void
-        NODE_INSTANCE::middle_append(const pair<Key, unique_ptr<Node>>& pair, const bool need_check_full)
-    {
-        if (!need_check_full || !this->full()) {
-            elements_.append(pair); // for Btree add
-        } else {
-            auto n = new Node(this, middle_type(), &pair, &pair + 1);
-            next_node_ = n;
-
-            if (father_ == nullptr) {
-                btree_->merge_branch(pair.first, n);
-            } else {
-                father_->middle_append({ pair.first, n });
-            }
-        }
-    }
-
-    // Btree has ensured the key must exist
-    NODE_TEMPLATE
-        void
-        NODE_INSTANCE::remove(const Key& key)
-    {
-        auto save_key = this->max_key();
-        if (elements_.remove(key)) {
-            btree_->change_bound_upwards(this, save_key, this->max_key());
-        }
-        // TODO maybe need merge sibling
-    }
-
-    NODE_TEMPLATE
-        vector<Key>
-        NODE_INSTANCE::all_key() const
-    {
-        return elements_.all_key();
-    }
-
-    NODE_TEMPLATE
-        Key
-        NODE_INSTANCE::max_key() const
-    {
-        return elements_.max_key();
-    }
-
-    NODE_TEMPLATE
-        NODE_INSTANCE*
-        NODE_INSTANCE::min_leaf() const
-    {
-        return elements_.ptr_of_min();
-    }
-
-    NODE_TEMPLATE
-        NODE_INSTANCE*
-        NODE_INSTANCE::max_leaf() const
-    {
-        return elements_.ptr_of_max();
-    }
-
-    NODE_TEMPLATE
-        void
-        NODE_INSTANCE::change_key(const Key& old_key, const Key& new_key)
-    {
-        auto save_key = this->max_key();
-        if (elements_.change_key(old_key, new_key)) {
-            btree_->change_bound_upwards(this, old_key, this->max_key());
-        }
-    }
-    NODE_TEMPLATE
-        NODE_INSTANCE*
-        NODE_INSTANCE::next_node()
-    {
-    	return next_node_;
-    }
-    NODE_TEMPLATE
-        void
-        NODE_INSTANCE::next_node(Node* const node_ptr)
-    {
-        next_node_ = node_ptr;
-    }
-
-    // private method part:
-
-    NODE_TEMPLATE
-        bool
-        NODE_INSTANCE::full() const
-    {
-        return elements_.full();
-    }
-
-    //NODE_TEMPLATE
-    //RESULT_FLAG
-    //NODE_INSTANCE::no_area_add(pair<Key, Value> pair)
-    //{
-    //    NodeIter<ele_instance_type> end = this->end();
-    //    // todo: care here is rvalue reference and modify other place
-    //    for (NodeIter<ele_instance_type>&& iter = this->begin(); iter != end; ++iter) {
-    //        if (btree_->compare_func_(pair.first, iter->key())) {
-    //            ele_instance_type copy = *end;
-    //            this->move_Ele(iter, end - 1);
-    //            iter->leaf = pair;
-    //            // todo: call another way to process the temp ele_instance_type
-    //        }
-    //    }
-    //}
-    //
-    //NODE_TEMPLATE
-    //RESULT_FLAG
-    //NODE_INSTANCE::area_add(const pair<Key, Value>& pair)
-    //{
-    //    NodeIter<ele_instance_type> end = this->end();
-    //
-    //    for (NodeIter<ele_instance_type> iter = this->begin(); iter != end; ++iter) {
-    //        // once the pair.key < e.key, arrive the insert position
-    //        if (btree_->compare_func_(pair.first, iter->key())) {
-    //            this->move_Ele(iter, this->end());
-    //            iter->key() = pair.first;
-    //            iter->__value() = pair.second;
-    //            ++(this->elements_count_);
-    //            return OK;
-    //        }
-    //    }
-    //}
-
-    NODE_TEMPLATE
-        void
-        NODE_INSTANCE::element_add(const std::pair<Key, Value>&  pair)
-    {
-        if (elements_.full()) {
-            // add
-            auto p = elements_.exchange_max_out(pair);
-            // TODO not very clear to the adjust first, or process other related Node first
-            auto save_key = this->max_key();
-            btree_->change_bound_upwards(this, save_key, this->max_key());
-            // next node add
-            if (next_node_ != nullptr) {
-                next_node_->element_add(p);
-            } else {
-                this->father_add(p);
-            }
-        } else {
-            auto save_key = this->max_key();
-
-            if (elements_.add(pair)) { // if max_key changed
-                // call BtreeHelper
-                btree_->change_bound_upwards(this, save_key, this->max_key());
-            }
-        }
-    }
-
-    NODE_TEMPLATE
-        void
-        NODE_INSTANCE::father_add(const pair<Key, Value>& pair)
-    {
-        if (father_ == nullptr) {
-
-        } else {
-            // create new leaf
-            auto n = new Node(this, leaf_type(), &pair, &pair + 1);
-            // set next_node_
-            next_node_ = n;
-            // let father add
-            father_->middle_append({ pair.first, n }, true);
-        }
-    }
-
-//    template <typename T>
-//    void operator=(const unique_ptr<T> lhs, const unique_ptr<T>& rhs)
-//    {
-//        return rhs;
-//    }
-
-//#include <cstring>
+    //#include <cstring>
     using std::initializer_list;
     using std::pair;
     using std::vector;
@@ -357,7 +68,7 @@ namespace btree {
 
     NODE_TEMPLATE
         template <typename Iterator>
-    NODE_INSTANCE::Elements::Elements(Iterator begin, Iterator end)
+    Elements::Elements(Iterator begin, Iterator end)
     {
         if (begin == end) {
             return;
@@ -638,5 +349,4 @@ namespace btree {
     {
         cache_index_ = static_cast<char>(count_ / 2);
     }
-
 }

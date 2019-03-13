@@ -7,6 +7,7 @@
 #include "CommonFlag.hpp"
 #include "BtreeHelper.hpp"
 #include "Node.hpp"
+//#include "NodeBase.hpp"
 
 #ifdef BTREE_DEBUG
 #include <iostream>
@@ -21,10 +22,10 @@ namespace btree {
 	class Btree : private BtreeHelper {
 	private:
 		using node_instance_type = Node<Key, Value, BtreeOrder, Btree>;
-		friend node_instance_type; // for Node use compare func, leaf_block_ TODO should reduce this access way
-		using compare = std::function<bool(Key, Key)>;
 
 	public:
+		using compare = std::function<bool(Key, Key)>;
+		const compare compare_func_;
 
 		template <std::size_t NumOfArrayEle>
 		Btree(const compare&, std::array<std::pair<Key, Value>, NumOfArrayEle>);
@@ -49,7 +50,6 @@ namespace btree {
 
 		using predicate = std::function<bool(node_instance_type*)>;
 		std::unique_ptr<node_instance_type> root_{nullptr};
-		const compare compare_func_;
 
 
 		node_instance_type* check_out(const Key&) const;
@@ -115,8 +115,7 @@ namespace btree {
 
 		// sort
 		sort(pair_array.begin(), pair_array.end(),
-			[&](const pair<Key, Value>& p1, const pair<Key, Value>& p2)
-		{
+			[&](const pair<Key, Value>& p1, const pair<Key, Value>& p2) {
 			return compare_func_(p1.first, p2.first);
 		});
 
