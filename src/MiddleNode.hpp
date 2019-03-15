@@ -4,14 +4,17 @@
 namespace btree {
     template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
     class MiddleNode final : public NodeBase<Key, Value, BtreeOrder, BtreeType> {
+    private:
+        using Base = NodeBase<Key, Value, BtreeOrder, BtreeType>;
+
     public:
         template <typename Iter>
         MiddleNode(BtreeType&, Iter, Iter);
         ~MiddleNode() override;
 
-        NodeBase* min_son() const;
-        NodeBase* max_son() const;
-        NodeBase* operator[](const Key&) const;
+        Base* min_son() const;
+        Base* max_son() const;
+        Base* operator[](const Key&) const;
     };
 }
 
@@ -20,7 +23,7 @@ namespace btree {
     template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
     template <typename Iter>
     MiddleNode<Key, Value, BtreeOrder, BtreeType>::MiddleNode(BtreeType& btree, Iter begin, Iter end)
-        : NodeBase(btree, middle_type(), begin, end)
+        : Base(btree, middle_type(), begin, end)
     {
         // null
     }
@@ -32,24 +35,24 @@ namespace btree {
     }
 
     template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
-    NodeBase<Key, Value, BtreeOrder, BtreeType>*
+    typename MiddleNode<Key, Value, BtreeOrder, BtreeType>::Base*
     MiddleNode<Key, Value, BtreeOrder, BtreeType>::min_son() const
     {
-        return elements_.ptr_of_min();
+        return this->elements_.ptr_of_min();
     }
 
     template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
-    NodeBase<Key, Value, BtreeOrder, BtreeType>*
+    typename MiddleNode<Key, Value, BtreeOrder, BtreeType>::Base*
     MiddleNode<Key, Value, BtreeOrder, BtreeType>::max_son() const
     {
-        return elements_.ptr_of_max();
+        return this->elements_.ptr_of_max();
     }
 
     template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
-    NodeBase<Key, Value, BtreeOrder, BtreeType>*
+    typename MiddleNode<Key, Value, BtreeOrder, BtreeType>::Base*
     MiddleNode<Key, Value, BtreeOrder, BtreeType>::operator[](const Key& key) const
     {
-    	auto& e = elements_[key];
-    	return Elements::value(e);
+    	auto& e = this->elements_[key];
+    	return this->Ele::value(e);
     }
 }

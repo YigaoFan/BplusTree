@@ -6,8 +6,10 @@
 #include <utility> // for pair
 #include "CommonFlag.hpp"
 #include "BtreeHelper.hpp"
-#include "Node.hpp"
-//#include "NodeBase.hpp"
+//#include "Node.hpp"
+#include "NodeBase.hpp"
+#include "LeafNode.hpp"
+#include "MiddleNode.hpp"
 
 #ifdef BTREE_DEBUG
 #include <iostream>
@@ -17,11 +19,14 @@
 // declaration
 namespace btree {
 	template<typename Key,
-			 typename Value,
-			 unsigned BtreeOrder>
+		typename Value,
+		unsigned BtreeOrder>
 	class Btree : private BtreeHelper {
 	private:
-		using node_instance_type = Node<Key, Value, BtreeOrder, Btree>;
+//		using node_instance = Node<Key, Value, BtreeOrder, Btree>;
+		using Node = NodeBase<Key, Value, BtreeOrder, Btree>;
+		using Leaf = LeafNode<Key, Value, BtreeOrder, Btree>;
+		using Middle = MiddleNode<Key, Value, BtreeOrder, Btree>;
 
 	public:
 		using compare = std::function<bool(Key, Key)>;
@@ -38,7 +43,7 @@ namespace btree {
 		Btree& operator=(const Btree&); // copy assign
 		Btree& operator=(Btree&&); // move assign
 
-		Value search(const Key&) const;
+		const Value* search(const Key&) const;
 		RESULT_FLAG add(const std::pair<Key, Value>&);
 		RESULT_FLAG modify(const std::pair<Key, Value>&);
 		std::vector<Key> explore() const;
@@ -47,33 +52,30 @@ namespace btree {
 
 	private:
 		unsigned key_num_ = 0;
+		using predicate = std::function<bool(Leaf*)>;
+		std::unique_ptr<Node> root_{nullptr};
 
-		using predicate = std::function<bool(node_instance_type*)>;
-		std::unique_ptr<node_instance_type> root_{nullptr};
-
-
-		node_instance_type* check_out(const Key&) const;
-		static node_instance_type* check_out_digging(const Key&, node_instance_type*);
-		std::vector<node_instance_type*> traverse_leaf(const predicate&) const;
-		node_instance_type* smallest_leaf() const;
-		node_instance_type* biggest_leaf();
-		//node_instance_type* extreme_leaf(std::function<node_instance_type*()>);
+		Node* check_out(const Key&) const;
+		static Node* check_out_digging(const Key&, Middle*);
+		std::vector<Leaf*> traverse_leaf(const predicate&) const;
+		Leaf* smallest_leaf() const;
+		Leaf* biggest_leaf() const;
+		//node_instance* extreme_leaf(std::function<node_instance*()>);
 
 		template <bool FirstFlag, typename Element, std::size_t NodeCount>
 		void helper(const std::array<Element, NodeCount>&);
 
-		//void root_add(const node_instance_type*, const std::pair<Key, Value>&);
-		//void create_new_branch(const node_instance_type*, const std::pair<Key, Value>&);
-		//void create_new_root(const node_instance_type*, const std::pair<Key, Value>&);
-		void merge_branch(const Key, const node_instance_type*); // for Node merge a branch
+		//void root_add(const node_instance*, const std::pair<Key, Value>&);
+		//void create_new_branch(const node_instance*, const std::pair<Key, Value>&);
+		//void create_new_root(const node_instance*, const std::pair<Key, Value>&);
+		void merge_branch(Key, const Node*); // for Node merge a branch
+		// 暂定为 Node 类型，以及 Key 为传值还是引用未定
 	};
 }
 
 #include <algorithm>  // for sort
 #include <array> // for array
-#include <cmath>  // for ceil
 #include <exception> // for exception
-#include <iostream>
 
 #ifdef BTREE_DEBUG
 #include <cassert>
@@ -92,8 +94,6 @@ namespace btree {
 	using std::runtime_error;
 	using std::allocator;
 
-#define BTREE_TEMPLATE \
-  template <typename Key, typename Value, unsigned BtreeOrder>
 #define BTREE_INSTANCE Btree<Key, Value, BtreeOrder>
 
 	// all method in this level,
@@ -104,9 +104,9 @@ namespace btree {
 	/// user should ensure not include the same Key-Value
 	/// Because when construct a tree, you can see all Keys
 	/// When you add or modify, you can use have() function to check it
-	BTREE_TEMPLATE
-		template <std::size_t NumOfArrayEle>
-	BTREE_INSTANCE::Btree(const compare& compare_function, array<pair<Key, Value>, NumOfArrayEle> pair_array)
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	template <std::size_t NumOfArrayEle>
+	Btree<Key, Value, BtreeOrder>::Btree(const compare& compare_function, array<pair<Key, Value>, NumOfArrayEle> pair_array)
 		: BtreeHelper(), compare_func_(compare_function)
 	{
 		if constexpr (NumOfArrayEle == 0) {
@@ -115,9 +115,9 @@ namespace btree {
 
 		// sort
 		sort(pair_array.begin(), pair_array.end(),
-			[&](const pair<Key, Value>& p1, const pair<Key, Value>& p2) {
-			return compare_func_(p1.first, p2.first);
-		});
+			 [&](const pair<Key, Value>& p1, const pair<Key, Value>& p2) {
+				 return compare_func_(p1.first, p2.first);
+			 });
 
 		// duplicate check
 		auto last = pair_array[0].first;
@@ -131,7 +131,7 @@ namespace btree {
 
 		// construct
 		if constexpr (NumOfArrayEle <= BtreeOrder) {
-			root_.reset(new node_instance_type(this, leaf_type(), pair_array.begin(), pair_array.end()));
+			root_.reset(new Leaf(*this, pair_array.begin(), pair_array.end()));
 		} else {
 			this->helper<true>(pair_array);
 		}
@@ -139,42 +139,42 @@ namespace btree {
 		key_num_ += NumOfArrayEle;
 	}
 
-	BTREE_TEMPLATE
-		BTREE_INSTANCE::Btree(const Btree& that)
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	Btree<Key, Value, BtreeOrder>::Btree(const Btree& that)
 		: BtreeHelper(that), key_num_(that.key_num_), root_(that.root_), compare_func_(that.compare_func_)
 	{
-
+		// copy constructor	TODO
 	}
 
-	BTREE_TEMPLATE
-		BTREE_INSTANCE::Btree(Btree&& that)
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	Btree<Key, Value, BtreeOrder>::Btree(Btree&& that)
 		: BtreeHelper(that), key_num_(that.key_num_), root_(that.root_), compare_func_(that.compare_func_)
 	{
-
+		// move constructor	TODO
 	}
 
-	BTREE_TEMPLATE
-	BTREE_INSTANCE&
-		BTREE_INSTANCE::operator=(const Btree& that)
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	Btree<Key, Value, BtreeOrder>&
+	Btree<Key, Value, BtreeOrder>::operator=(const Btree& that)
 	{
-
+		// copy assign TODO
 	}
 
-	BTREE_TEMPLATE
-	BTREE_INSTANCE&
-		BTREE_INSTANCE::operator=(Btree&& that)
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	Btree<Key, Value, BtreeOrder>&
+	Btree<Key, Value, BtreeOrder>::operator=(Btree&& that)
 	{
-
+		// move assign TODO
 	}
 
-	BTREE_TEMPLATE
-		template <bool FirstCall, typename ElementType, std::size_t NodeCount>
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	template <bool FirstCall, typename ElementType, std::size_t NodeCount>
 	void
-		BTREE_INSTANCE::helper(const array<ElementType, NodeCount>& nodes)
+	Btree<Key, Value, BtreeOrder>::helper(const array<ElementType, NodeCount>& nodes)
 	{
 		constexpr auto upper_node_num = (NodeCount % BtreeOrder == 0) ? (NodeCount / BtreeOrder) : (NodeCount / BtreeOrder + 1);
 		// store all nodes
-		array<pair<Key, node_instance_type*>, upper_node_num> all_upper_node;
+		array<pair<Key, Node*>, upper_node_num> all_upper_node;
 
 		auto head = nodes.begin();
 		auto end = nodes.end();
@@ -184,7 +184,7 @@ namespace btree {
 
 		do {
 			if constexpr (FirstCall) {
-				auto leaf = new node_instance_type(this, leaf_type(), head, tail);
+				auto leaf = new Leaf(*this, head, tail);
 
 #ifdef BTREE_DEBUG
 				LOG(tail - head);
@@ -206,7 +206,7 @@ namespace btree {
 					all_upper_node[i - 1].second->next_node(leaf);
 				}
 			} else {
-				auto middle = new node_instance_type(this, middle_type(), head, tail);
+				auto middle = new Middle(*this, head, tail);
 
 #ifdef BTREE_DEBUG
 				for (auto b = head; b != tail; ++b) {
@@ -236,7 +236,7 @@ namespace btree {
 		} while (end - head > 0);
 
 		if constexpr (upper_node_num <= BtreeOrder) {
-			root_.reset(new node_instance_type(this, middle_type(), all_upper_node.begin(), all_upper_node.end()));
+			root_.reset(new Middle(*this, all_upper_node.begin(), all_upper_node.end()));
 		} else {
 			// recursive
 			this->helper<false>(all_upper_node);
@@ -244,57 +244,54 @@ namespace btree {
 	}
 
 	// TODO wait test
-	BTREE_TEMPLATE
+	template <typename Key, typename Value, unsigned BtreeOrder>
 	template <unsigned long NumOfArrayEle>
-	BTREE_INSTANCE::Btree(compare&& compare_function, array<pair<Key, Value>, NumOfArrayEle>&& pair_array)
-	    : Btree(compare_function, pair_array) {}
+	Btree<Key, Value, BtreeOrder>::Btree(compare&& compare_function, array<pair<Key, Value>, NumOfArrayEle>&& pair_array)
+		: Btree(compare_function, pair_array) {}
 
-	BTREE_TEMPLATE
-		Value
-		BTREE_INSTANCE::search(const Key& key) const
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	const Value*
+	Btree<Key, Value, BtreeOrder>::search(const Key& key) const
 	{
-		node_instance_type*&& node = this->check_out(key);
+		Node* node = this->check_out(key);
 		if (node->middle) {
-			// Value type should provide default constructor to represent null
-			return Value(); // undefined behavior
+			return nullptr;
 		}
-		return node->operator[](key);
+		return static_cast<Leaf*>(node)->operator[](key);
 	}
 
-	/// if exist, will modify
-	BTREE_TEMPLATE
-		RESULT_FLAG
-		BTREE_INSTANCE::add(const pair<Key, Value>& pair)
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	RESULT_FLAG
+	Btree<Key, Value, BtreeOrder>::add(const pair<Key, Value>& pair)
 	{
 		if (root_ == nullptr) {
-			root_.reset(new node_instance_type(this, nullptr, leaf_type(), &pair, &pair + 1));
+			root_.reset(new Leaf(*this, &pair, &pair + 1));
 			++key_num_;
 			return OK;
 		}
 
 		auto& k = pair.first;
 		auto& v = pair.second;
-		// TODO: the code below should be a function? and the code in modify
-		node_instance_type*&& node = this->check_out(k);
+		Node* node = this->check_out(k);
+		// all the pair is inserted to Leaf below
 		if (!node->middle) {
 			if (node->have(k)) {
-				node->operator[](k) = v; // modify
+				throw runtime_error("The key-value has already existed, can't be added.");
 			} else {
-				node->add(pair);
+				static_cast<Leaf*>(node)->add(pair);
 				++key_num_;
 			}
 		} else {
 			auto leaf = this->biggest_leaf();
 			leaf->add(pair);
-
 			++key_num_;
 		}
 		return OK;
 	}
 
-	//BTREE_TEMPLATE
+	//template <typename Key, typename Value, unsigned BtreeOrder>
 	//void
-	//BTREE_INSTANCE::root_add(const node_instance_type* middle_node, const pair<Key, Value>& pair)
+	//Btree<Key, Value, BtreeOrder>::root_add(const node_instance* middle_node, const pair<Key, Value>& pair)
 	//{
 	//    if (middle_node->full()) {
 	//        this->create_new_root(middle_node, pair);
@@ -303,14 +300,14 @@ namespace btree {
 	//    }
 	//}
 
-	//BTREE_TEMPLATE
+	//template <typename Key, typename Value, unsigned BtreeOrder>
 	//void
-	//BTREE_INSTANCE::create_new_branch(const node_instance_type* node, const pair<Key, Value>& pair)
+	//Btree<Key, Value, BtreeOrder>::create_new_branch(const node_instance* node, const pair<Key, Value>& pair)
 	//{
 	//    auto up = node;
 	//
 	//    do {
-	//        auto middle = new node_instance_type(this, middle_type());
+	//        auto middle = new node_instance(this, middle_type());
 	//        auto max = node->max_leaf();
 	//
 	//        up->middle_append({ pair.first, middle });
@@ -320,28 +317,28 @@ namespace btree {
 	//        node = max;
 	//    } while (!node->middle);
 	//
-	//    auto leaf = new node_instance_type(this, leaf_type(), &pair, &pair + 1);
+	//    auto leaf = new node_instance(this, leaf_type(), &pair, &pair + 1);
 	//    up->middle_append({ pair.first, leaf });
 	//    node->next_node_ = leaf;
 	//}
 	//
-	//BTREE_TEMPLATE
+	//template <typename Key, typename Value, unsigned BtreeOrder>
 	//void
-	//BTREE_INSTANCE::create_new_root(const node_instance_type* middle_node, const pair<Key, Value>& pair)
+	//Btree<Key, Value, BtreeOrder>::create_new_root(const node_instance* middle_node, const pair<Key, Value>& pair)
 	//{
-	//    auto p = make_pair<Key, unique_ptr<node_instance_type>>(root_->max_key(), root_.get());
-	//    node_instance_type* new_root(new node_instance_type(this, middle_type(), &p, &p + 1));
+	//    auto p = make_pair<Key, unique_ptr<node_instance>>(root_->max_key(), root_.get());
+	//    node_instance* new_root(new node_instance(this, middle_type(), &p, &p + 1));
 	//
 	//    this->create_new_branch(new_root, pair);
 	//    root_ = nullptr;
 	//    root_.reset(new_root);
 	//}
 
-	BTREE_TEMPLATE
-		void
-		BTREE_INSTANCE::merge_branch(const Key max_key, const node_instance_type* node)
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	void
+	Btree<Key, Value, BtreeOrder>::merge_branch(Key max_key, const node_instance* node)
 	{
-		array<pair<Key, unique_ptr<node_instance_type>>, 2> sons{
+		array<pair<Key, unique_ptr<node_instance>>, 2> sons{
 			{ root_->max_key(),root_ },
 			{ max_key, node },
 		};
@@ -353,40 +350,32 @@ namespace btree {
 	}
 
 	/// if not exist, will add
-	BTREE_TEMPLATE
-		RESULT_FLAG
-		BTREE_INSTANCE::modify(const pair<Key, Value>& pair)
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	RESULT_FLAG
+	Btree<Key, Value, BtreeOrder>::modify(const pair<Key, Value>& pair)
 	{
 		auto& k = pair.first;
 		auto& v = pair.second;
 
-		node_instance_type*&& node = this->check_out(k);
+		Node* node = this->check_out(k);
 		if (!node->middle) {
-			// TODO should think let the if logic below work by Node-self
 			if (node->have(k)) {
-				// modify
-				node->operator[](k) = v;
-			} else {
-				// add
-				node->add(pair);
-				++key_num_;
+				static_cast<Leaf*>(node)->operator[](k) = v;
+				return OK;
 			}
 		}
-		node->add(pair);
-		++key_num_;
 
-		return OK;
+		throw runtime_error("Precondition is not met, the corresponding key does not exist.");
 	}
 
-	BTREE_TEMPLATE
-		vector<Key>
-		BTREE_INSTANCE::explore() const
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	vector<Key>
+	Btree<Key, Value, BtreeOrder>::explore() const
 	{
 		vector<Key> keys;
 		keys.reserve(key_num_);
-		this->traverse_leaf([&keys](node_instance_type* n)
-		{
-			for (auto&& k : n->all_key()) {
+		this->traverse_leaf([&keys](Node* n) {
+			for (auto&& k : n->all_jjkey()) {
 				keys.push_back(k);
 			}
 			return false;
@@ -395,23 +384,23 @@ namespace btree {
 		return keys;
 	}
 
-	BTREE_TEMPLATE
-		void
-		BTREE_INSTANCE::remove(const Key& key)
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	void
+	Btree<Key, Value, BtreeOrder>::remove(const Key& key)
 	{
-		node_instance_type*&& n = this->check_out(key);
+		Node* n = this->check_out(key);
 		if (!n->have(key)) {
 			return;
 		}
-		n->remove(key);
+		n->remove(key); // TODO logic may be wrong here
 		--key_num_;
 	}
 
-	BTREE_TEMPLATE
-		bool
-		BTREE_INSTANCE::have(const Key& key) const
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	bool
+	Btree<Key, Value, BtreeOrder>::have(const Key& key) const
 	{
-		node_instance_type* r = this->check_out(key);
+		Node* r = this->check_out(key);
 		return !(r->middle || !r->have(key));
 	}
 
@@ -419,9 +408,9 @@ namespace btree {
 
 	/// search the key in Btree, return the node that terminated, may be not have the key
 	/// this is to save the search information
-	BTREE_TEMPLATE
-		typename BTREE_INSTANCE::node_instance_type*
-		BTREE_INSTANCE::check_out(const Key& key) const
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	typename Btree<Key, Value, BtreeOrder>::Node*
+	Btree<Key, Value, BtreeOrder>::check_out(const Key& key) const
 	{
 		if (!root_->middle) {
 			return root_.get();
@@ -430,10 +419,11 @@ namespace btree {
 		}
 	}
 
-	BTREE_TEMPLATE
-		typename BTREE_INSTANCE::node_instance_type*
-		BTREE_INSTANCE::check_out_digging(const Key& key, node_instance_type* node)
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	typename Btree<Key, Value, BtreeOrder>::Node*
+	Btree<Key, Value, BtreeOrder>::check_out_digging(const Key& key, Middle* node)
 	{
+		// the call function check_out has ensure middle=true on the first time
 		do {
 			if (node->have(key)) {
 				node = node->operator[](key);
@@ -442,17 +432,17 @@ namespace btree {
 			}
 		} while (node->middle);
 
-		return node;
+		return node; // node is Leaf here
 	}
 
 	/// operate on the true Node
-	BTREE_TEMPLATE
-		vector<typename BTREE_INSTANCE::node_instance_type*>
-		BTREE_INSTANCE::traverse_leaf(const predicate& predicate) const
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	vector<typename Btree<Key, Value, BtreeOrder>::Leaf*>
+	Btree<Key, Value, BtreeOrder>::traverse_leaf(const predicate& predicate) const
 	{
-		vector<node_instance_type*> result;
+		vector<Leaf*> result;
 
-		node_instance_type* current = this->smallest_leaf();
+		Leaf* current = this->smallest_leaf();
 		do {
 			if (predicate(current)) {
 				result.push_back(current);
@@ -464,38 +454,36 @@ namespace btree {
 		return result;
 	}
 
-	BTREE_TEMPLATE
-	typename BTREE_INSTANCE::node_instance_type*
-	BTREE_INSTANCE::smallest_leaf() const
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	typename Btree<Key, Value, BtreeOrder>::Leaf*
+	Btree<Key, Value, BtreeOrder>::smallest_leaf() const
 	{
-		// TODO modify
-		node_instance_type* current_node = root_.get();
+		Node* current_node = root_.get();
 
 		while (current_node->middle) {
 			current_node = current_node->min_leaf();
 		}
 
-		return current_node;
+		return static_cast<Leaf*>(current_node);
 	}
 
-	BTREE_TEMPLATE
-	typename BTREE_INSTANCE::node_instance_type*
-	BTREE_INSTANCE::biggest_leaf()
+	template <typename Key, typename Value, unsigned BtreeOrder>
+	typename Btree<Key, Value, BtreeOrder>::Leaf*
+	Btree<Key, Value, BtreeOrder>::biggest_leaf() const
 	{
-		// TODO modify
-		node_instance_type* current_node = root_.get();
+		Node* current_node = root_.get();
 
 		while (current_node->middle) {
 			current_node = current_node->max_leaf();
 		}
 
-		return current_node;
+		return static_cast<Leaf*>(current_node);
 	}
 
-	//BTREE_TEMPLATE
-	//typename BTREE_INSTANCE::node_instance_type*
-	//BTREE_INSTANCE::extreme_leaf(function<node_instance_type*()> node_method) {
-	//    node_instance_type* current_node = root_.get();
+	//template <typename Key, typename Value, unsigned BtreeOrder>
+	//typename Btree<Key, Value, BtreeOrder>::node_instance*
+	//Btree<Key, Value, BtreeOrder>::extreme_leaf(function<node_instance*()> node_method) {
+	//    node_instance* current_node = root_.get();
 	//
 	//    while (current_node->middle) {
 	//        current_node = current_node->node_method();
