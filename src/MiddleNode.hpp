@@ -10,11 +10,20 @@ namespace btree {
     public:
         template <typename Iter>
         MiddleNode(BtreeType&, Iter, Iter);
+        MiddleNode* Clone(BtreeType&) const override;
         ~MiddleNode() override;
 
         Base* min_son() const;
         Base* max_son() const;
         Base* operator[](const Key&) const;
+
+    private:
+        MiddleNode(const MiddleNode&);
+
+        // put here (private) to refuse call externally
+        MiddleNode(MiddleNode&&) noexcept;
+    	MiddleNode& operator=(const MiddleNode&);
+    	MiddleNode& operator=(MiddleNode&&) noexcept;
     };
 }
 
@@ -26,6 +35,27 @@ namespace btree {
         : Base(btree, middle_type(), begin, end)
     {
         // null
+    }
+
+    template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+    MiddleNode<Key, Value, BtreeOrder, BtreeType>*
+    MiddleNode<Key, Value, BtreeOrder, BtreeType>::Clone(BtreeType& tree) const
+    {
+        // do a lot of thing, then pass to constructor
+
+//        auto m = new MiddleNode(*this);
+        //should use construct
+        auto max_leaf = tree.biggest_leaf(); // TODO need to solve this permission problem
+
+    	return m;
+    }
+
+    template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+    MiddleNode<Key, Value, BtreeOrder, BtreeType>::MiddleNode(const MiddleNode& that)
+    {
+    	// maybe wait to delete
+        // TODO
+    	// copy constructor
     }
 
     template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>

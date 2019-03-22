@@ -8,6 +8,8 @@ namespace btree {
 
         template <typename Iterator>
         Elements(Iterator, Iterator);
+
+        Elements(const Elements&);
         // Common
         Key max_key() const;
         bool have(const Key&);
@@ -37,7 +39,7 @@ namespace btree {
         // Field
         char count_{0};
         char cache_index_{0};
-        Key cache_key_;
+        Key cache_key_; // TODO check all the place related or should exist
         std::array<content_type, BtreeOrder> elements_;
 
         void reset_cache();
@@ -79,6 +81,13 @@ namespace btree {
                 ++begin;
             } while (begin != end);
         }
+    }
+
+    template <typename Key, typename Value, unsigned BtreeOrder, typename NodeType>
+    Elements<Key, Value, BtreeOrder, NodeType>::Elements(const Elements& that)
+    : count_(that.count_), elements_(that.elements_)
+    {
+        // complete copy
     }
 
     template <typename Key, typename Value, unsigned BtreeOrder, typename NodeType>

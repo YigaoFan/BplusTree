@@ -37,11 +37,11 @@ namespace btree {
 		template <unsigned long NumOfArrayEle>
 		Btree(compare&&, std::array<std::pair<Key, Value>, NumOfArrayEle>&&);
 		Btree(const Btree&); // copy constructor
-		Btree(Btree&&); // move constructor
+		Btree(Btree&&) noexcept; // move constructor
 		~Btree() override = default;
 
 		Btree& operator=(const Btree&); // copy assign
-		Btree& operator=(Btree&&); // move assign
+		Btree& operator=(Btree&&) noexcept; // move assign
 
 		const Value* search(const Key&) const;
 		RESULT_FLAG add(const std::pair<Key, Value>&);
@@ -51,8 +51,8 @@ namespace btree {
 		bool have(const Key&) const;
 
 	private:
-		unsigned key_num_ = 0;
 		using predicate = std::function<bool(Leaf*)>;
+		unsigned key_num_ = 0;
 		std::unique_ptr<Node> root_{nullptr};
 
 		Node* check_out(const Key&) const;
@@ -141,30 +141,40 @@ namespace btree {
 
 	template <typename Key, typename Value, unsigned BtreeOrder>
 	Btree<Key, Value, BtreeOrder>::Btree(const Btree& that)
-		: BtreeHelper(that), key_num_(that.key_num_), root_(that.root_), compare_func_(that.compare_func_)
+		: BtreeHelper(that), key_num_(that.key_num_), root_(that.root_->Clone(this)), compare_func_(that.compare_func_)
 	{
-		// copy constructor	TODO
+		// copy constructor deep copy
+		// TODO
 	}
 
 	template <typename Key, typename Value, unsigned BtreeOrder>
-	Btree<Key, Value, BtreeOrder>::Btree(Btree&& that)
-		: BtreeHelper(that), key_num_(that.key_num_), root_(that.root_), compare_func_(that.compare_func_)
+	Btree<Key, Value, BtreeOrder>::Btree(Btree&& that) noexcept
+		: BtreeHelper(that), key_num_(that.key_num_), root_(that.root_.release()), compare_func_(that.compare_func_)
 	{
-		// move constructor	TODO
+		// move constructor
 	}
 
 	template <typename Key, typename Value, unsigned BtreeOrder>
 	Btree<Key, Value, BtreeOrder>&
 	Btree<Key, Value, BtreeOrder>::operator=(const Btree& that)
 	{
-		// copy assign TODO
+		// copy assign deep copy
+		// TODO
+		static_cast<BtreeHelper>(*root_) = that;
+		this->key_num_ = that.key_num_;
+		this->root_.reset(that.root_->Clone());
+		this->compare_func_ = that.compare_func_;
 	}
 
 	template <typename Key, typename Value, unsigned BtreeOrder>
 	Btree<Key, Value, BtreeOrder>&
-	Btree<Key, Value, BtreeOrder>::operator=(Btree&& that)
+	Btree<Key, Value, BtreeOrder>::operator=(Btree&& that) noexcept
 	{
-		// move assign TODO
+		// move assign
+		static_cast<BtreeHelper>(*root_) = that;
+		this->key_num_ = that.key_num_;
+		this->root_.reset(that.root_.release());
+		this->compare_func_ = that.compare_func_;
 	}
 
 	template <typename Key, typename Value, unsigned BtreeOrder>
@@ -174,7 +184,7 @@ namespace btree {
 	{
 		constexpr auto upper_node_num = (NodeCount % BtreeOrder == 0) ? (NodeCount / BtreeOrder) : (NodeCount / BtreeOrder + 1);
 		// store all nodes
-		array<pair<Key, Node*>, upper_node_num> all_upper_node;
+		array<pair<Key, Leaf*>, upper_node_num> all_upper_node;
 
 		auto head = nodes.begin();
 		auto end = nodes.end();
@@ -203,7 +213,7 @@ namespace btree {
 					first = false;
 				} else {
 					// set next_node of Node
-					all_upper_node[i - 1].second->next_node(leaf);
+					static_cast<Leaf*>(all_upper_node[i - 1].second)->next_leaf(leaf);
 				}
 			} else {
 				auto middle = new Middle(*this, head, tail);
@@ -220,12 +230,6 @@ namespace btree {
 				assert(i < upper_node_num);
 
 				all_upper_node[i] = { middle->max_key(), middle };
-				if (first) {
-					first = false;
-				} else {
-					// set next_node of Node
-					all_upper_node[i - 1].second->next_node(middle);
-				}
 			}
 
 			// update
@@ -342,7 +346,7 @@ namespace btree {
 			{ root_->max_key(),root_ },
 			{ max_key, node },
 		};
-		root_->next_node_ = node;
+		root_->next_node_ = node; // need to be changed
 		auto new_root = new Node(this, middle_type(), sons.begin(), sons.end());
 
 		root_.release();
@@ -375,7 +379,7 @@ namespace btree {
 		vector<Key> keys;
 		keys.reserve(key_num_);
 		this->traverse_leaf([&keys](Node* n) {
-			for (auto&& k : n->all_jjkey()) {
+			for (auto&& k : n->all_key()) {
 				keys.push_back(k);
 			}
 			return false;
@@ -448,7 +452,7 @@ namespace btree {
 				result.push_back(current);
 			}
 			// update
-			current = current->next_node();
+			current = current->next_leaf();
 		} while (current != nullptr);
 
 		return result;
@@ -461,7 +465,7 @@ namespace btree {
 		Node* current_node = root_.get();
 
 		while (current_node->middle) {
-			current_node = current_node->min_leaf();
+			current_node = static_cast<Middle*>(current_node)->min_son();
 		}
 
 		return static_cast<Leaf*>(current_node);
@@ -474,7 +478,7 @@ namespace btree {
 		Node* current_node = root_.get();
 
 		while (current_node->middle) {
-			current_node = current_node->max_leaf();
+			current_node = static_cast<Middle*>(current_node)->max_son();
 		}
 
 		return static_cast<Leaf*>(current_node);

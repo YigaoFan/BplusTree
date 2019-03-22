@@ -8,14 +8,24 @@ namespace btree {
 	public:
         template <typename Iterator>
         LeafNode(BtreeType&, Iterator, Iterator);
+        LeafNode* Clone(BtreeType&) const override;
         ~LeafNode() override;
 
         const Value& operator[](const Key&) const;
         void add(const std::pair<Key, Value>&);
         void remove(const Key&);
+        inline LeafNode* next_leaf() const;
+        inline void next_leaf(LeafNode*);
 
 	private:
     	using Base = NodeBase<Key, Value, BtreeOrder, BtreeType>;
+		LeafNode(const LeafNode&, BtreeType&, LeafNode* next=nullptr);
+
+		LeafNode* next_{ nullptr };
+//    	put here (private) to refuse call externally
+    	LeafNode(LeafNode&&) noexcept;
+    	LeafNode& operator=(const LeafNode&);
+    	LeafNode& operator=(LeafNode&&) noexcept;
     };
 }
 
@@ -29,7 +39,23 @@ namespace btree {
 		// null
     }
 
-    template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+	template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+	LeafNode<Key, Value, BtreeOrder, BtreeType>*
+	LeafNode<Key, Value, BtreeOrder, BtreeType>::Clone(BtreeType& tree) const
+	{
+		auto l = new LeafNode(*this, tree);
+		l->father(nullptr);
+    	return l;
+	}
+
+	template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+	LeafNode<Key, Value, BtreeOrder, BtreeType>::LeafNode(const LeafNode& that, BtreeType& tree, LeafNode* next)
+		: Base(that, tree, leaf_type()), next_(next)
+	{
+		// copy constructor
+	}
+
+	template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 	LeafNode<Key, Value, BtreeOrder, BtreeType>::~LeafNode() = default;
 
     template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
@@ -80,5 +106,19 @@ namespace btree {
 //			btree_->change_bound_upwards(this,)
 			// TODO
 		}
+	}
+
+	template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+	LeafNode<Key, Value, BtreeOrder, BtreeType>*
+	LeafNode<Key, Value, BtreeOrder, BtreeType>::next_leaf() const
+	{
+		return next_;
+	}
+
+	template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+	void
+	LeafNode<Key, Value, BtreeOrder, BtreeType>::next_leaf(LeafNode* next)
+	{
+		next_ = next;
 	}
 }
