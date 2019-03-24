@@ -14,6 +14,7 @@ namespace btree {
         Key max_key() const;
         bool have(const Key&);
         std::vector<Key> all_key() const;
+        int child_count() const;
         bool full() const;
         bool remove(const Key&);
         template <typename T> // use T to not limit to key-value
@@ -37,19 +38,18 @@ namespace btree {
     private:
         Elements() = default; // for construct null middle_type Node
         // Field
-        char count_{0};
+        int count_{0};
         char cache_index_{0};
         Key cache_key_; // TODO check all the place related or should exist
         std::array<content_type, BtreeOrder> elements_;
 
         void reset_cache();
 
-
         static content_type& move_element(const char, content_type*, content_type*);
         content_type& to_end_move(const char, content_type*);
         content_type& related_position(const Key&);
 
-        static content_type& assign(content_type&, std::pair<Key, NodeType*>&);
+        static content_type& assign(content_type&, NodeType*);
         static content_type& assign(content_type&, const std::pair<Key, Value>&);
     };
 }
@@ -142,6 +142,12 @@ namespace btree {
         return r;
     }
 
+    template <typename Key, typename Value, unsigned BtreeOrder, typename NodeType>
+    int
+    Elements<Key, Value, BtreeOrder, NodeType>::child_count() const
+    {
+    	return count_;
+    }
 
     template <typename Key, typename Value, unsigned BtreeOrder, typename NodeType>
     bool
@@ -351,12 +357,11 @@ namespace btree {
 
     template <typename Key, typename Value, unsigned BtreeOrder, typename NodeType>
     typename Elements<Key, Value, BtreeOrder, NodeType>::content_type&
-    Elements<Key, Value, BtreeOrder, NodeType>::assign(content_type& ele, pair<Key, NodeType*>& pair)
+    Elements<Key, Value, BtreeOrder, NodeType>::assign(content_type& ele, NodeType* node)
     {
-        ele.first = pair.first;
-        auto uni_ptr = unique_ptr<NodeType>(pair.second);
+        ele.first = node->max_key();
+        auto uni_ptr = unique_ptr<NodeType>(node);
         new (&(ele.second)) std::variant<Value, std::unique_ptr<NodeType>>(std::move(uni_ptr));
-//        ele.second = std::move(pair.second);
         return ele;
     }
 

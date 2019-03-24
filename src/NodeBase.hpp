@@ -21,22 +21,21 @@ namespace btree {
         virtual ~NodeBase();
 
         inline Key max_key() const;
-
         inline bool have(const Key&) const;
         inline std::vector<Key> all_key() const;
-
+//        void father(NodeBase*);
+        virtual NodeBase* father() const = 0;
+        int child_count() const;
     protected:
         using Ele = Elements<Key, Value, BtreeOrder, NodeBase>;
         NodeBase(const NodeBase&, BtreeType&, leaf_type);
         NodeBase(const NodeBase&, middle_type);
-        virtual NodeBase* Clone(BtreeType&) const = 0;
-        void father(NodeBase*);
 
-    private:
+
+//    private:
         NodeBase* father_{ nullptr };
         Elements<Key, Value, BtreeOrder, NodeBase> elements_;
 
-        Ele CloneElements() const;
     };
 }
 
@@ -57,7 +56,7 @@ namespace btree {
     {
         for (; begin != end; ++begin) {
             // need to use SFINE to control the property below?
-            begin->second->father_ = this;
+            (*begin)->father_ = this;
         }
     }
 
@@ -70,16 +69,30 @@ namespace btree {
 
     template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
     NodeBase<Key, Value, BtreeOrder, BtreeType>::NodeBase(const NodeBase& that, middle_type)
-        : middle(that.middle), btree(/* TODO */), elements_(std::move(that.CloneElements()))
+        : middle(that.middle), btree(/* TODO */), elements_(/*TODO*/)
     {                          // can solved by pass a para to Clone
         // null
     }
 
+//    template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+//    void
+//    NodeBase<Key, Value, BtreeOrder, BtreeType>::father(NodeBase* father)
+//    {
+//    	father_ = father;
+//    }
+
     template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
-    void
-    NodeBase<Key, Value, BtreeOrder, BtreeType>::father(NodeBase* father)
+    NodeBase<Key, Value, BtreeOrder, BtreeType>*
+    NodeBase<Key, Value, BtreeOrder, BtreeType>::father() const
     {
-    	father_ = father;
+    	return father_;
+    }
+
+    template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+    int
+    NodeBase<Key, Value, BtreeOrder, BtreeType>::child_count() const
+    {
+    	elements_.child_count();
     }
 
     template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
@@ -104,22 +117,5 @@ namespace btree {
     NodeBase<Key, Value, BtreeOrder, BtreeType>::all_key() const
     {
         return elements_.all_key();
-    }
-
-    template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
-    typename NodeBase<Key, Value, BtreeOrder, BtreeType>::Ele
-    NodeBase<Key, Value, BtreeOrder, BtreeType>::CloneElements() const
-    {
-    	Ele res{ Ele() }; // TODO don't have this default constructor
-
-        if (middle) { // depend on middle or leaf
-            for (auto& e : elements_) {
-                res.add(e.first, e.second->Clone());
-            }
-        } else {
-        	res.adds(elements_);
-        }
-
-        return res; // may be can use std::move?
     }
 }

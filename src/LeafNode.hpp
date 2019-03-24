@@ -1,6 +1,7 @@
 #pragma once
 #include <utility>
 #include "NodeBase.hpp"
+#include "MiddleNode.hpp"
 
 namespace btree {
     template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
@@ -8,7 +9,6 @@ namespace btree {
 	public:
         template <typename Iterator>
         LeafNode(BtreeType&, Iterator, Iterator);
-        LeafNode* Clone(BtreeType&) const override;
         ~LeafNode() override;
 
         const Value& operator[](const Key&) const;
@@ -16,6 +16,7 @@ namespace btree {
         void remove(const Key&);
         inline LeafNode* next_leaf() const;
         inline void next_leaf(LeafNode*);
+        MiddleNode<Key, Value, BtreeOrder, BtreeType>* father() const override;
 
 	private:
     	using Base = NodeBase<Key, Value, BtreeOrder, BtreeType>;
@@ -23,9 +24,9 @@ namespace btree {
 
 		LeafNode* next_{ nullptr };
 //    	put here (private) to refuse call externally
-    	LeafNode(LeafNode&&) noexcept;
-    	LeafNode& operator=(const LeafNode&);
-    	LeafNode& operator=(LeafNode&&) noexcept;
+    	LeafNode(LeafNode&&) noexcept = delete;
+    	LeafNode& operator=(const LeafNode&) = delete;
+    	LeafNode& operator=(LeafNode&&) noexcept = delete;
     };
 }
 
@@ -38,15 +39,6 @@ namespace btree {
     {
 		// null
     }
-
-	template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
-	LeafNode<Key, Value, BtreeOrder, BtreeType>*
-	LeafNode<Key, Value, BtreeOrder, BtreeType>::Clone(BtreeType& tree) const
-	{
-		auto l = new LeafNode(*this, tree);
-		l->father(nullptr);
-    	return l;
-	}
 
 	template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
 	LeafNode<Key, Value, BtreeOrder, BtreeType>::LeafNode(const LeafNode& that, BtreeType& tree, LeafNode* next)
@@ -120,5 +112,12 @@ namespace btree {
 	LeafNode<Key, Value, BtreeOrder, BtreeType>::next_leaf(LeafNode* next)
 	{
 		next_ = next;
+	}
+
+	template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+	MiddleNode<Key, Value, BtreeOrder, BtreeType>*
+	LeafNode<Key, Value, BtreeOrder, BtreeType>::father() const
+	{
+		return static_cast<MiddleNode<Key, Value, BtreeOrder, BtreeType>*>(Base::father());
 	}
 }

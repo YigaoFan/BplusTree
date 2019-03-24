@@ -58,8 +58,7 @@ namespace btree {
 		Node* check_out(const Key&) const;
 		static Node* check_out_digging(const Key&, Middle*);
 		std::vector<Leaf*> traverse_leaf(const predicate&) const;
-		Leaf* smallest_leaf() const;
-		Leaf* biggest_leaf() const;
+		Node* CloneNodes(Btree&) const;
 		//node_instance* extreme_leaf(std::function<node_instance*()>);
 
 		template <bool FirstFlag, typename Element, std::size_t NodeCount>
@@ -68,9 +67,14 @@ namespace btree {
 		//void root_add(const node_instance*, const std::pair<Key, Value>&);
 		//void create_new_branch(const node_instance*, const std::pair<Key, Value>&);
 		//void create_new_root(const node_instance*, const std::pair<Key, Value>&);
-		void merge_branch(Key, const Node*); // for Node merge a branch
+//		void merge_branch(Key, const Node*); // for Node merge a branch
 		// 暂定为 Node 类型，以及 Key 为传值还是引用未定
 	};
+
+	template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+	LeafNode<Key, Value, BtreeOrder, BtreeType>* biggest_leaf(NodeBase<Key, Value, BtreeOrder, BtreeType>*);
+	template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+	LeafNode<Key, Value, BtreeOrder, BtreeType>* smallest_leaf(NodeBase<Key, Value, BtreeOrder, BtreeType>*);
 }
 
 #include <algorithm>  // for sort
@@ -93,8 +97,6 @@ namespace btree {
 	using std::make_pair;
 	using std::runtime_error;
 	using std::allocator;
-
-#define BTREE_INSTANCE Btree<Key, Value, BtreeOrder>
 
 	// all method in this level,
 	// when call lower level function, must ensure the Key exist
@@ -141,10 +143,9 @@ namespace btree {
 
 	template <typename Key, typename Value, unsigned BtreeOrder>
 	Btree<Key, Value, BtreeOrder>::Btree(const Btree& that)
-		: BtreeHelper(that), key_num_(that.key_num_), root_(that.root_->Clone(this)), compare_func_(that.compare_func_)
+		: BtreeHelper(that), key_num_(that.key_num_), root_(that.CloneNodes(*this)), compare_func_(that.compare_func_)
 	{
-		// copy constructor deep copy
-		// TODO
+		// copy constructor
 	}
 
 	template <typename Key, typename Value, unsigned BtreeOrder>
@@ -158,11 +159,10 @@ namespace btree {
 	Btree<Key, Value, BtreeOrder>&
 	Btree<Key, Value, BtreeOrder>::operator=(const Btree& that)
 	{
-		// copy assign deep copy
-		// TODO
-		static_cast<BtreeHelper>(*root_) = that;
+		// copy assign
+		static_cast<BtreeHelper>(*this) = that;
 		this->key_num_ = that.key_num_;
-		this->root_.reset(that.root_->Clone());
+		this->root_.reset(that.CloneNodes());
 		this->compare_func_ = that.compare_func_;
 	}
 
@@ -184,7 +184,7 @@ namespace btree {
 	{
 		constexpr auto upper_node_num = (NodeCount % BtreeOrder == 0) ? (NodeCount / BtreeOrder) : (NodeCount / BtreeOrder + 1);
 		// store all nodes
-		array<pair<Key, Leaf*>, upper_node_num> all_upper_node;
+		array<Leaf*, upper_node_num> all_upper_node; // TODO just store the Leaf*
 
 		auto head = nodes.begin();
 		auto end = nodes.end();
@@ -208,12 +208,12 @@ namespace btree {
 				// defense code
 				assert(i < upper_node_num);
 
-				all_upper_node[i] = { leaf->max_key(), leaf };
+				all_upper_node[i] = leaf;
 				if (first) {
 					first = false;
 				} else {
 					// set next_node of Node
-					static_cast<Leaf*>(all_upper_node[i - 1].second)->next_leaf(leaf);
+					static_cast<Leaf*>(all_upper_node[i - 1])->next_leaf(leaf);
 				}
 			} else {
 				auto middle = new Middle(*this, head, tail);
@@ -229,7 +229,7 @@ namespace btree {
 				//defense code
 				assert(i < upper_node_num);
 
-				all_upper_node[i] = { middle->max_key(), middle };
+				all_upper_node[i] = middle;
 			}
 
 			// update
@@ -286,7 +286,7 @@ namespace btree {
 				++key_num_;
 			}
 		} else {
-			auto leaf = this->biggest_leaf();
+			auto leaf = biggest_leaf(root_.get());
 			leaf->add(pair);
 			++key_num_;
 		}
@@ -338,20 +338,20 @@ namespace btree {
 	//    root_.reset(new_root);
 	//}
 
-	template <typename Key, typename Value, unsigned BtreeOrder>
-	void
-	Btree<Key, Value, BtreeOrder>::merge_branch(Key max_key, const node_instance* node)
-	{
-		array<pair<Key, unique_ptr<node_instance>>, 2> sons{
-			{ root_->max_key(),root_ },
-			{ max_key, node },
-		};
-		root_->next_node_ = node; // need to be changed
-		auto new_root = new Node(this, middle_type(), sons.begin(), sons.end());
-
-		root_.release();
-		root_.reset(new_root);
-	}
+//	template <typename Key, typename Value, unsigned BtreeOrder>
+//	void
+//	Btree<Key, Value, BtreeOrder>::merge_branch(Key max_key, const node_instance* node)
+//	{
+//		array<pair<Key, unique_ptr<node_instance>>, 2> sons{
+//			{ root_->max_key(),root_ },
+//			{ max_key, node },
+//		};
+//		root_->next_node_ = node; // need to be changed
+//		auto new_root = new Node(this, middle_type(), sons.begin(), sons.end());
+//
+//		root_.release();
+//		root_.reset(new_root);
+//	}
 
 	/// if not exist, will add
 	template <typename Key, typename Value, unsigned BtreeOrder>
@@ -446,7 +446,7 @@ namespace btree {
 	{
 		vector<Leaf*> result;
 
-		Leaf* current = this->smallest_leaf();
+		Leaf* current = smallest_leaf(root_.get());
 		do {
 			if (predicate(current)) {
 				result.push_back(current);
@@ -459,41 +459,101 @@ namespace btree {
 	}
 
 	template <typename Key, typename Value, unsigned BtreeOrder>
-	typename Btree<Key, Value, BtreeOrder>::Leaf*
-	Btree<Key, Value, BtreeOrder>::smallest_leaf() const
+	typename Btree<Key, Value, BtreeOrder>::Node*
+	Btree<Key, Value, BtreeOrder>::CloneNodes(Btree& newBtree) const
 	{
-		Node* current_node = root_.get();
-
-		while (current_node->middle) {
-			current_node = static_cast<Middle*>(current_node)->min_son();
+		if (!root_->middle) {
+			auto l = new LeafNode(*root_, newBtree);
+			return l;
 		}
 
-		return static_cast<Leaf*>(current_node);
-	}
+		vector<Leaf*> old_leafs= this->traverse_leaf([](Leaf*) -> bool {
+			return true;
+		});
 
-	template <typename Key, typename Value, unsigned BtreeOrder>
-	typename Btree<Key, Value, BtreeOrder>::Leaf*
-	Btree<Key, Value, BtreeOrder>::biggest_leaf() const
-	{
-		Node* current_node = root_.get();
-
-		while (current_node->middle) {
-			current_node = static_cast<Middle*>(current_node)->max_son();
+		vector<Node*> old_childs{};
+		old_childs.reserve(key_num_);
+		for (auto& l: old_leafs) {
+			old_childs.emplace_back(static_cast<Node*>(l));
 		}
 
-		return static_cast<Leaf*>(current_node);
+        vector<Node*> new_childs{};
+        new_childs.reserve(key_num_);
+        Leaf* next = nullptr;
+        for (auto b = old_childs.rbegin(), e = old_childs.rend(); b != e; ++b) {
+            auto l = new Leaf(*b, newBtree, next);
+            new_childs.emplace_back(l);
+            next = l;
+        }
+
+		do {
+			auto i = 0;
+			vector<Node*> new_fathers{};
+			vector<Node*> old_fathers{};
+
+			do {
+#ifdef BTREE_DEBUG
+				assert(old_childs[i]->father() == nullptr);
+#endif
+				auto child_num = old_childs[i]->father()->child_count();
+				old_fathers.emplace(old_childs[i]->father());
+
+				new_fathers.emplace(new Middle(
+					newBtree,
+					new_childs.begin() + i,
+					new_childs.begin() + i + child_num
+				));
+				// update
+				i += child_num;
+			} while (i < old_childs.size());
+
+			// update
+			std::swap(new_childs, new_fathers);
+			std::swap(old_childs, old_fathers);
+		} while (new_childs.size() > 1);
+
+		return new_childs[0];
+
+//		// TODO need to think father may be not exist
+		// construct leaf from old leaf
+		// construct middle from leaf
+		// construct upper-middle from middle, need some info from old leaf
+
+		// so old need to be reserved, but need to be updated to upper level on time
+		// relatived-child vector
+		// relatived-father vector
 	}
 
-	//template <typename Key, typename Value, unsigned BtreeOrder>
-	//typename Btree<Key, Value, BtreeOrder>::node_instance*
-	//Btree<Key, Value, BtreeOrder>::extreme_leaf(function<node_instance*()> node_method) {
-	//    node_instance* current_node = root_.get();
-	//
-	//    while (current_node->middle) {
-	//        current_node = current_node->node_method();
-	//    }
-	//
-	//    return current_node;
-	//}
+	template<typename Key, typename Value, unsigned int BtreeOrder, typename BtreeType>
+	LeafNode<Key, Value, BtreeOrder, BtreeType>*
+	smallest_leaf(NodeBase<Key, Value, BtreeOrder, BtreeType>* node)
+	{
+		return node_select_recur(node, [] (MiddleNode<Key, Value, BtreeOrder, BtreeType>* n) -> auto {
+			return n->min_son();
+		});
+	}
 
+	template<typename Key, typename Value, unsigned int BtreeOrder, typename BtreeType>
+	LeafNode<Key, Value, BtreeOrder, BtreeType>*
+	biggest_leaf(NodeBase<Key, Value, BtreeOrder, BtreeType>* node)
+	{
+		return node_select_recur(node, [] (MiddleNode<Key, Value, BtreeOrder, BtreeType>* n) -> auto {
+			return n->max_son();
+		});
+	}
+
+
+	template <typename Key, typename Value, unsigned BtreeOrder, typename BtreeType>
+	LeafNode<Key, Value, BtreeOrder, BtreeType>*
+	node_select_recur(
+		NodeBase<Key, Value, BtreeOrder, BtreeType>* node,
+		std::function<NodeBase<Key, Value, BtreeOrder, BtreeType>* (MiddleNode<Key, Value, BtreeOrder, BtreeType>*)> operation
+	)
+	{
+		while (node->middle) {
+			node = operation(static_cast<MiddleNode<Key, Value, BtreeOrder, BtreeType>*>(node));
+		}
+
+		return static_cast<LeafNode<Key, Value, BtreeOrder, BtreeType>*>(node);
+	}
 }
