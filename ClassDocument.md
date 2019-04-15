@@ -17,11 +17,13 @@ Left-value version Constructor of Btree,
 Dependency: 
 
 	std::sort
+	
 ​	<a href="#cnh">Btree::constructNodeHierarchy</a>	
 
 - [ ] should think about the difference between left-value and right-value
 
 **Btree(compareFunction, pairAarray)**
+
 RIght-value version of Btree constructor
 
 <span id="cnh"> **constructNodeHierarchy**</span>
