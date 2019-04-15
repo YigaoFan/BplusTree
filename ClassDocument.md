@@ -20,7 +20,7 @@ Dependency:
 
 	std::sort
 	
-​	<a href="#cnh">Btree::constructNodeHierarchy</a>	
+​	<a href="#user-content-cnh">Btree::constructNodeHierarchy</a>	
 
 - [ ] should think about the difference between left-value and right-value
 
