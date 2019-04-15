@@ -13,7 +13,9 @@
 public for self and other to use to compare two Key
 
 **Btree(compareFunction, pairArray)**
+
 Left-value version Constructor of Btree, 
+
 Dependency: 
 
 	std::sort
