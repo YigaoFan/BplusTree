@@ -30,7 +30,8 @@ namespace btree {
 		using ValueForContent = variant<Value, unique_ptr<PtrType>>;
 		using Content     = pair<Key, ValueForContent>;
 		using CompareFunc = function<bool(const Key&, const Key&)>;
-		const bool LeafFlag;
+		const bool              LeafFlag;
+		shared_ptr<CompareFunc> CompareFuncPtr;
 
 		template <typename Iter>
 		Elements(Iter, Iter, shared_ptr<CompareFunc>);
@@ -45,13 +46,13 @@ namespace btree {
 		bool        full() const;
 		bool        remove(const Key&);
 		template <typename T>
-		bool        insert(pair<Key, T>);
+		void insert(pair<Key, T>);
 		template <typename T>
-		bool        append(pair<Key, T>);
+		void append(pair<Key, T>);
 
 		// should provide reference?
 		ValueForContent& operator[](const Key&);
-		Content& operator[](uint16_t);
+		Content&         operator[](uint16_t);
 
 		pair<Key, Value> exchangeMax(pair<Key, Value>);
 		PtrType* ptrOfMin() const; // for PtrType for Btree traverse all leaf
@@ -61,7 +62,6 @@ namespace btree {
 		static PtrType* ptr(const ValueForContent&);
 
 	private:
-		shared_ptr<CompareFunc>    _compareFuncPtr;
 		CompareFunc                _compareFunc;
 		uint16_t                   _count{ 0 };
 		uint16_t                   _cacheIndex{ 0 };
@@ -89,8 +89,8 @@ namespace btree {
 		shared_ptr<CompareFunc> funcPtr
 	) :
 		LeafFlag(std::is_same<typename std::decay<decltype(*begin)>::type, pair<Key, Value>>::value),
-		_compareFuncPtr(funcPtr),
-		_compareFunc(*_compareFuncPtr)
+		CompareFuncPtr(funcPtr),
+		_compareFunc(*CompareFuncPtr)
 	{
 		if (begin == end) {
 			return;
@@ -107,8 +107,8 @@ namespace btree {
 	ELEMENTS_TEMPLATE
 	ELE::Elements(const Elements& that) :
 		LeafFlag(that.LeafFlag),
-		_compareFuncPtr(that._compareFuncPtr),
-		_compareFunc(*_compareFuncPtr),
+		CompareFuncPtr(that.CompareFuncPtr),
+		_compareFunc(*CompareFuncPtr),
 		_count(that._count)
 	{
 		initialInternalElements(_elements, that._elements, that.LeafFlag, _count);
@@ -117,8 +117,8 @@ namespace btree {
 	ELEMENTS_TEMPLATE
 	ELE::Elements(Elements&& that) noexcept :
 		LeafFlag(that.LeafFlag),
-		_compareFuncPtr(that._compareFuncPtr),
-		_compareFunc(*_compareFuncPtr),
+		CompareFuncPtr(that.CompareFuncPtr),
+		_compareFunc(*CompareFuncPtr),
 		_count(that._count),
 		_elements(std::move(that._elements))
 	{
@@ -214,7 +214,7 @@ namespace btree {
 
 	ELEMENTS_TEMPLATE
 	template <typename T>
-	bool
+	void
 	ELE::insert(pair<Key, T> p)
 	{
 		// maybe only leaf add logic use this Elements method
@@ -223,10 +223,10 @@ namespace btree {
 		auto& v = p.second;
 
 		int16_t i = 0;
-		for (i = 0; i < _count; ++i) {
+		for (; i < _count; ++i) {
 			if (_compareFunc(k, _elements[i].first) == _compareFunc(_elements[i].first, k)) {
 				throw runtime_error("The inserting key duplicates: " + k);
-			} else if (_compareFunc(_elements[i].first, k)) {
+			} else if (_compareFunc(_elements[i].first, k)) { // TODO compare result is right? see compare function
 				goto Add;
 			}
 		}
@@ -239,21 +239,19 @@ namespace btree {
 		adjustMemory(1, &_elements[i]);
 		_elements[i] = std::move(p); //	Elements::assign(_elements[i], p);
 		++_count;
-		return false; // always false
 	}
 
 	ELEMENTS_TEMPLATE
 	template <typename T>
-	bool
+	void
 	ELE::append(pair<Key, T> p)
 	{
 		if (full()) {
-			throw runtime_error("No free space to append");
+			throw runtime_error("No free space to add");
 		}
 
 		_elements[_count] = std::move(p);
 		++_count;
-		return true;
 	}
 
 	ELEMENTS_TEMPLATE
@@ -297,7 +295,7 @@ namespace btree {
 	// private method part:
 	ELEMENTS_TEMPLATE
 	void
-	ELE::adjustMemory(const int16_t direction, Content *begin)
+	ELE::adjustMemory(const int16_t direction, Content* begin)
 	{
 		// default Content* end
 		if (_count == 0 || direction == 0) {

@@ -57,6 +57,7 @@ TESTCASE("Leaf node test") {
 		ASSERT(leaf1.maxKey() == "3");
 		vector<string> ks{ "1", "2", "3" };
 		ASSERT(ks == leaf1.allKey());
+		ASSERT(leaf1.full());
 	}
 
 	SECTION("Test copy") {
@@ -79,11 +80,31 @@ TESTCASE("Leaf node test") {
 	}
 
 	SECTION("Test add") {
-//		leaf1.add()
+		leaf1.remove("1");
+		ASSERT(leaf1.childCount() == 2);
+		ASSERT(!leaf1.have("1"));
+		if (!leaf1.full()) {
+			ASSERT(leaf1.add(make_pair<string, string>("4", "d")));
+		}
+		ASSERT(leaf1.have("4"));
+		ASSERT(leaf1.full());
+
+		leaf1.remove("2");
+		ASSERT(leaf1.childCount() == 2);
+		ASSERT(!leaf1.have("2"));
+		if (!leaf1.full()) {
+			ASSERT(!leaf1.add(make_pair<string, string>("2", "b")));
+		}
 	}
 
 	SECTION("Test remove") {
-
+		leaf1.remove(kv0.first);
+		ASSERT(leaf1.childCount() == 2);
+		leaf1.remove(kv1.first);
+		ASSERT(leaf1.childCount() == 1);
+		leaf1.remove(kv2.first);
+		ASSERT(leaf1.childCount() == 0);
+		ASSERT(leaf1.empty());
 	}
 }
 

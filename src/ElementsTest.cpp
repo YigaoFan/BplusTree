@@ -85,9 +85,10 @@ TESTCASE("Element test") {
 			ASSERT(leafEle.count() == 0);
 
 			SECTION("Test append and insert") {
-				ASSERT(leafEle.append(make_pair(string{"3"}, string{"c"})));
+				leafEle.append(make_pair(string{"3"}, string{"c"}));
 				ASSERT_THROW(runtime_error, leafEle.insert(make_pair(string{"4"}, string{"d"})));
-				ASSERT(!leafEle.insert(make_pair(string{"2"}, string{"b"})));
+				ASSERT_THROW(runtime_error, leafEle.insert(make_pair(string{"3"}, string{"c"})));
+				leafEle.insert(make_pair(string{"2"}, string{"b"}));
 				ASSERT(leafEle.count() == 2);
 				ASSERT(leafEle.rightMostKey() == "3");
 				ASSERT(ELE::value(leafEle["2"]) == "b");

@@ -1,5 +1,5 @@
 #pragma once
-#include <vector> // for vector
+#include <vector> 		// for vector
 #include "Elements.hpp" // for Elements
 //#include "Proxy.hpp"
 
@@ -24,11 +24,16 @@ namespace btree {
         NodeBase(NodeBase&&) noexcept;
         virtual ~NodeBase();
 
-        inline Key maxKey() const;
-        inline bool have(const Key&);
+        inline Key         maxKey() const;
+        inline bool        have(const Key&);
         inline vector<Key> allKey() const;
+
+		void              father(NodeBase*);
         virtual NodeBase* father() const;
-		uint16_t childCount() const;
+
+		uint16_t    childCount() const;
+		inline bool empty() const;
+		inline bool full() const;
     protected:
         NodeBase* father_{ nullptr };
         Elements<Key, Value, BtreeOrder, NodeBase> elements_;
@@ -75,11 +80,32 @@ namespace btree {
     }
 
     NODE_BASE_TEMPLATE
+    void
+    NODE::father(NodeBase* father)
+    {
+		father_ = father;
+    }
+
+    NODE_BASE_TEMPLATE
 	uint16_t
     NODE::childCount() const
     {
 		return elements_.count();
     }
+
+	NODE_BASE_TEMPLATE
+	bool
+	NODE::empty() const
+	{
+		return elements_.count() == 0;
+	}
+
+	NODE_BASE_TEMPLATE
+	bool
+	NODE::full() const
+	{
+		return elements_.full();
+	}
 
     NODE_BASE_TEMPLATE
     NODE::~NodeBase() = default;
@@ -106,7 +132,7 @@ namespace btree {
     }
 
     NODE_BASE_TEMPLATE
-    std::vector<Key>
+    vector<Key>
     NODE::allKey() const
     {
         return elements_.allKey();

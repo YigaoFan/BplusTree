@@ -21,7 +21,7 @@ namespace btree {
 
         const Value&     operator[](const Key&);
 		pair<Key, Value> operator[](uint16_t);
-        void             add(const pair<Key, Value>&);
+        bool add(pair<Key, Value>);
         void             remove(const Key&);
         inline LeafNode* nextLeaf() const;
         inline void      nextLeaf(LeafNode&);
@@ -72,34 +72,41 @@ namespace btree {
 	}
 
 	LEAF_NODE_TEMPLATE
-	void
-	LEAF::add(const pair<Key, Value>& p)
+	bool
+	LEAF::add(pair<Key, Value> p)
 	{
-		if (this->elements_.full()) {
-			auto&& old_key = this->max_key();
-			pair<Key, Value> out_pair{};
-
-			if (this->elements_.exchange_max_out(p, out_pair)) {
-				this->btree_.change_bound_upwards(this, old_key, this->max_key());
-				// function name should be put pair in and exchange_max_out
-			}
-
-            // TODO not very clear to the adjust first, or process other related Node first
-
-            // next node add
-            if (this->next_node_ != nullptr) {
-                this->next_node_->element_add(out_pair);
-            } else {
-                this->father_add(out_pair);
-            }
-        } else {
-            auto&& old_key = this->max_key();
-
-            if (this->elements_.add(p)) { // return bool if maxKey changed
-                // call BtreeHelper
-                this->btree_.change_bound_upwards(this, old_key, this->max_key());
-            }
-        }
+//		if (this->elements_.full()) {
+//			auto&& old_key = this->max_key();
+//			pair<Key, Value> out_pair{};
+//
+//			if (this->elements_.exchange_max_out(p, out_pair)) {
+//				this->btree_.change_bound_upwards(this, old_key, this->max_key());
+//				// function name should be put pair in and exchange_max_out
+//			}
+//
+//            // TODO not very clear to the adjust first, or process other related Node first
+//
+//            // next node add
+//            if (this->next_node_ != nullptr) {
+//                this->next_node_->element_add(out_pair);
+//            } else {
+//                this->father_add(out_pair);
+//            }
+//        } else {
+//            auto&& old_key = this->max_key();
+//
+//            if (this->elements_.add(p)) { // return bool if maxKey changed
+//                // call BtreeHelper
+//                this->btree_.change_bound_upwards(this, old_key, this->max_key());
+//            }
+//        }
+		if (this->elements_.CompareFuncPtr->operator()(p.first, this->maxKey())) {
+			this->elements_.append(p);
+			return true;
+		} else {
+			this->elements_.insert(p);
+			return false;
+		}
 	}
 
 	LEAF_NODE_TEMPLATE
