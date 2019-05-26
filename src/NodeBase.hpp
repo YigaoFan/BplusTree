@@ -1,58 +1,54 @@
 #pragma once
-
 #include <vector> // for vector
 #include "Elements.hpp" // for Elements
-#include "Proxy.hpp"
+//#include "Proxy.hpp"
 
 namespace btree {
-    struct leaf_type {};
-    struct middle_type {};
+    struct leafType {};
+    struct middleType {};
 
-    // maybe template arg can be less, like BtreeType maybe reduce
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
+#define NODE_BASE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
+
+    NODE_BASE_TEMPLATE
     class NodeBase {
     public:
+		using Ele         = Elements<Key, Value, BtreeOrder, NodeBase>;
+		using CompareFunc = typename Ele::CompareFunc;
         const bool Middle;
-        BtreeType& btree; // TODO should replaced by compare_function&, maybe btree has not one function
 
         template <typename Iter>
-        NodeBase(BtreeType&, leaf_type, Iter, Iter);
+        NodeBase(leafType, Iter, Iter, shared_ptr<CompareFunc>);
         template <typename Iter>
-        NodeBase(BtreeType&, middle_type,Iter, Iter);
+        NodeBase(middleType,Iter, Iter, shared_ptr<CompareFunc>);
+        NodeBase(const NodeBase&);
+        NodeBase(NodeBase&&) noexcept;
         virtual ~NodeBase();
-        virtual Proxy<Key, Value, BtreeOrder, BtreeType> self() = 0;
 
-        inline Key max_key() const;
-        inline bool have(const Key&) const;
-        inline std::vector<Key> all_key() const;
-        virtual NodeBase* father() const = 0;
-        int child_count() const;
+        inline Key maxKey() const;
+        inline bool have(const Key&);
+        inline vector<Key> allKey() const;
+        virtual NodeBase* father() const;
+		uint16_t childCount() const;
     protected:
-        using Ele = Elements<Key, Value, BtreeOrder, NodeBase>;
-        NodeBase(const NodeBase&, BtreeType&, leaf_type);
-        NodeBase(const NodeBase&) = delete; // maybe will add other copy control TODO
-
-//    private:
         NodeBase* father_{ nullptr };
         Elements<Key, Value, BtreeOrder, NodeBase> elements_;
-
     };
 }
 
 // implementation
 namespace btree {
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-    template <typename Iter>
-    NodeBase<Key, Value, BtreeOrder, BtreeType>::NodeBase(BtreeType& btree, leaf_type, Iter begin, Iter end)
-        : Middle(false), btree(btree), elements_(begin, end, btree.compareFunc)
-    {
-        // null
-    }
+#define NODE NodeBase<Key, Value, BtreeOrder>
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
+	NODE_BASE_TEMPLATE
     template <typename Iter>
-    NodeBase<Key, Value, BtreeOrder, BtreeType>::NodeBase(BtreeType& btree, middle_type, Iter begin, Iter end)
-        : Middle(true), btree(btree), elements_(begin, end, btree.compareFunc)
+    NODE::NodeBase(leafType, Iter begin, Iter end, shared_ptr<CompareFunc> funcPtr)
+        : Middle(false), elements_(begin, end, funcPtr)
+    {}
+
+	NODE_BASE_TEMPLATE
+    template <typename Iter>
+    NODE::NodeBase(middleType, Iter begin, Iter end, shared_ptr<CompareFunc> funcPtr)
+        : Middle(true), elements_(begin, end, funcPtr)
     {
         for (; begin != end; ++begin) {
             // need to use SFINE to control the property below?
@@ -60,55 +56,62 @@ namespace btree {
         }
     }
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-    NodeBase<Key, Value, BtreeOrder, BtreeType>::NodeBase(const NodeBase& that, BtreeType& tree, leaf_type)
-        : Middle(that.Middle), btree(tree), elements_(that.elements_, tree.compare_func)
-    {
-        // null
-    }
+    NODE_BASE_TEMPLATE
+    NODE::NodeBase(const NodeBase& that)
+        : Middle(that.Middle), elements_(that.elements_)
+    {}
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-    NodeBase<Key, Value, BtreeOrder, BtreeType>*
-    NodeBase<Key, Value, BtreeOrder, BtreeType>::father() const
+    NODE_BASE_TEMPLATE
+	NODE::NodeBase(NodeBase&& that) noexcept
+		: Middle(std::move(that.Middle)), father_(that.father_), elements_(std::move(that.elements_))
+	{}
+
+
+	NODE_BASE_TEMPLATE
+    NODE*
+    NODE::father() const
     {
     	return father_;
     }
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-    int
-    NodeBase<Key, Value, BtreeOrder, BtreeType>::child_count() const
+    NODE_BASE_TEMPLATE
+	uint16_t
+    NODE::childCount() const
     {
-		elements_.childCount();
+		return elements_.count();
     }
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-    NodeBase<Key, Value, BtreeOrder, BtreeType>::~NodeBase() = default;
+    NODE_BASE_TEMPLATE
+    NODE::~NodeBase() = default;
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-    Proxy<Key, Value, BtreeOrder, BtreeType>
-    NodeBase<Key, Value, BtreeOrder, BtreeType>::self()
-    {
-       return this;
-    }
+//    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
+//    Proxy<Key, Value, BtreeOrder, BtreeType>
+//    NodeBase<Key, Value, BtreeOrder, BtreeType>::self()
+//    {
+//       return this;
+//    }
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
+	NODE_BASE_TEMPLATE
     Key
-    NodeBase<Key, Value, BtreeOrder, BtreeType>::max_key() const
+    NODE::maxKey() const
     {
-        return elements_.maxKey();
+        return elements_.rightMostKey();
     }
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
+    NODE_BASE_TEMPLATE
     bool
-    NodeBase<Key, Value, BtreeOrder,BtreeType>::have(const Key& key) const
+    NODE::have(const Key& key)
     {
         return elements_.have(key);
     }
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
+    NODE_BASE_TEMPLATE
     std::vector<Key>
-    NodeBase<Key, Value, BtreeOrder, BtreeType>::all_key() const
+    NODE::allKey() const
     {
         return elements_.allKey();
     }
+
+#undef NODE
+#undef NODE_BASE_TEMPLATE
 }

@@ -1,7 +1,9 @@
-#include "ElementsTest.cpp"
+extern void elementTest();
+extern void nodeTest();
 
 void
 allTest()
 {
-	ElementsTest();
+	elementTest();
+	nodeTest();
 }

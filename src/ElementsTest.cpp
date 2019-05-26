@@ -3,7 +3,7 @@
 #include <utility>
 #include <cassert>
 #include <iostream>
-#define BTREE_DEBUG
+#include "FlyTest.hpp"
 #include "Elements.hpp"
 #include "Utility.hpp"
 using namespace btree;
@@ -14,156 +14,161 @@ using std::pair;
 using std::cout;
 using std::endl;
 
-class Node {
-	// for test only
+class DummyNode {
 };
 
-static array<pair<string, string>, 3> keyValueArray {
-	make_pair("1", "a"),
-    make_pair("2", "b"),
-    make_pair("3", "c"),
-};
+TESTCASE("Element test") {
+	function<bool(const string&, const string&)> compareFunction = [] (const string& a, const string& b) {
+		return a > b;
+	};
+	using ELE = Elements<string, string, 3, DummyNode>;
+	using std::make_shared;
 
-// who should save the compare function? Btree or Elements?
-static std::function<bool(string, string)> compareFunction = [] (string a, string b) {
-	return a > b;
-};
+	SECTION("Test leaf Element construct") {
+		array<pair<string, string>, 3> keyValueArray {
+			make_pair("1", "a"),
+			make_pair("2", "b"),
+			make_pair("3", "c"),
+		};
+		ELE leafEle{keyValueArray.begin(), keyValueArray.end(), make_shared<decltype(compareFunction)>(compareFunction)};
 
-static Elements<string, string, 3, Node> elements{keyValueArray.cbegin(), keyValueArray.cend(), compareFunction};
+		ASSERT(leafEle.count() == 3);
+		ASSERT(leafEle.full());
+		ASSERT(leafEle.have("1"));
+		ASSERT(leafEle.have("2"));
+		ASSERT(leafEle.have("3"));
+		ASSERT(!leafEle.have("4"));
+		ASSERT(leafEle.rightMostKey() == "3");
+		ASSERT(ELE::value(leafEle["1"]) == "a");
+		ASSERT(ELE::value(leafEle["2"]) == "b");
+		ASSERT(ELE::value(leafEle["3"]) == "c");
+		ASSERT(ELE::value(leafEle[0].second) == "a");
+		ASSERT(ELE::value(leafEle[1].second) == "b");
+		ASSERT(ELE::value(leafEle[2].second) == "c");
+		ASSERT(leafEle[0].first == "1");
+		ASSERT(leafEle[1].first == "2");
+		ASSERT(leafEle[2].first == "3");
+		auto&& keys = leafEle.allKey();
+		ASSERT(keys[0] == "1");
+		ASSERT(keys[1] == "2");
+		ASSERT(keys[2] == "3");
 
-static
-void
-testCopy()
-{
-	Elements<string, string , 3, Node> anotherOne{elements, compareFunction};
-	// what's the rule for copy constructor? only one arg, other should have default value?
-}
+		SECTION("Test copy") {
+			ELE b{leafEle};
 
-static
-void
-testBound()
-{
-	EXPECT_EQ("3", elements.rightmostKey());
-}
+			ASSERT(b.count() == 3);
+			ASSERT(b.full());
+			ASSERT(!b.remove("1"));
+			ASSERT(!b.have("1"));
+			ASSERT(leafEle.have("1"));
+		}
 
-static
-void
-testCount()
-{
-	EXPECT_EQ(3, elements.count());
-}
+		SECTION("Test move") {
+			ELE b{std::move(leafEle)};
 
-static
-void
-testFull()
-{
-	EXPECT_EQ(true, elements.full());
-}
+			ASSERT(b.count() == 3);
+			ASSERT(b.full());
+			ASSERT(!b.remove("1"));
+			ASSERT(!b.have("1"));
+			ASSERT(!leafEle.have("1"));
+		}
 
-static
-void
-testExistence()
-{
-	EXPECT_EQ(true, elements.have("1"));
-	EXPECT_EQ(false, elements.have("4"));
-}
+		SECTION("Test remove") {
+			ASSERT(!leafEle.remove("2"));
+			ASSERT(!leafEle.have("2"));
+			ASSERT(leafEle.count() == 2);
+			ASSERT(!leafEle.remove("1"));
+			ASSERT(!leafEle.have("1"));
+			ASSERT(leafEle.count() == 1);
+			ASSERT(leafEle.remove("3"));
+			ASSERT(!leafEle.have("3"));
+			ASSERT(leafEle.count() == 0);
 
-static
-void
-testAllKey()
-{
-	auto&& keys = elements.allKey();
-	EXPECT_EQ("1", keys[0]);
-	EXPECT_EQ("2", keys[1]);
-	EXPECT_EQ("3", keys[2]);
-}
+			SECTION("Test append and insert") {
+				ASSERT(leafEle.append(make_pair(string{"3"}, string{"c"})));
+				ASSERT_THROW(runtime_error, leafEle.insert(make_pair(string{"4"}, string{"d"})));
+				ASSERT(!leafEle.insert(make_pair(string{"2"}, string{"b"})));
+				ASSERT(leafEle.count() == 2);
+				ASSERT(leafEle.rightMostKey() == "3");
+				ASSERT(ELE::value(leafEle["2"]) == "b");
+				ASSERT(ELE::value(leafEle["3"]) == "c");
+			}
+		}
 
-static
-void
-testRemove()
-{
-	EXPECT_EQ(false, elements.remove("1"));
-	auto&& keys = elements.allKey();
-	EXPECT_EQ(2, keys.size());
-	EXPECT_EQ("2", keys[0]);
-	EXPECT_EQ("3", keys[1]);
+		SECTION("Test full append") {
+			ASSERT_THROW(runtime_error, leafEle.append(make_pair(string{"4"}, string{"d"})));
+		}
 
-	EXPECT_EQ(true, elements.remove("3"));
-	auto&& ks = elements.allKey();
-	EXPECT_EQ(1, ks.size());
-	EXPECT_EQ("2", ks[0]);
+		SECTION("Test exchange") {
+			ASSERT(leafEle.full());
+			auto&& max = leafEle.exchangeMax(make_pair("4", "d"));
+			ASSERT(max.first == "3");
+			ASSERT(max.second == "c");
+			ASSERT(ELE::value(leafEle["4"]) == "d");
+		}
 
-	EXPECT_EQ(true, elements.remove("2"));
-	auto&& k = elements.allKey();
-	EXPECT_EQ(0, k.size());
+	}
 
-	EXPECT_EQ(false, elements.full());
-}
+	SECTION("Test middle Element construct") {
+		auto* n1 = new DummyNode();
+		auto* n2 = new DummyNode();
+		auto* n3 = new DummyNode();
 
-static
-void
-testAdd()
-{
-	// insert will only insert, append will append
-	EXPECT_EQ(true, elements.append(make_pair(string{"4"}, string{"d"})));
-	auto&& keys = elements.allKey();
-	EXPECT_EQ(1, keys.size());
-	EXPECT_EQ("4", keys[0]);
+		array<pair<string, DummyNode*>, 3> keyValueArray {
+			make_pair("1", n1),
+			make_pair("2", n2),
+			make_pair("3", n3),
+		};
 
-	EXPECT_EQ(false, elements.insert(make_pair(string{"1"}, string{"a"})));
-	auto&& ks = elements.allKey();
-	EXPECT_EQ(2, ks.size());
-	EXPECT_EQ("1", ks[0]);
-	EXPECT_EQ("4", ks[1]);
+		ELE middle{keyValueArray.begin(), keyValueArray.end(), make_shared<decltype(compareFunction)>(compareFunction)};
 
-	EXPECT_EQ(false, elements.insert(make_pair(string{"2"}, string{"b"})));
-	auto&& k = elements.allKey();
-	EXPECT_EQ(3, k.size());
-	EXPECT_EQ("1", k[0]);
-	EXPECT_EQ("2", k[1]);
-	EXPECT_EQ("4", k[2]);
-}
+		ASSERT(middle.count() == 3);
+		ASSERT(middle.full());
+		ASSERT(middle.have("1"));
+		ASSERT(middle.have("2"));
+		ASSERT(middle.have("3"));
+		ASSERT(!middle.have("4"));
+		ASSERT(middle.rightMostKey() == "3");
+		ASSERT(ELE::ptr(middle["1"]) == n1);
+		ASSERT(ELE::ptr(middle["2"]) == n2);
+		ASSERT(ELE::ptr(middle["3"]) == n3);
+		auto&& keys = middle.allKey();
+		ASSERT(keys[0] == "1");
+		ASSERT(keys[1] == "2");
+		ASSERT(keys[2] == "3");
+		ASSERT(middle.ptrOfMin() == n1);
+		ASSERT(middle.ptrOfMax() == n3);
+		ASSERT(ELE::ptr(middle[0].second) == n1);
+		ASSERT(ELE::ptr(middle[1].second) == n2);
+		ASSERT(ELE::ptr(middle[2].second) == n3);
+		ASSERT(middle[0].first == "1");
+		ASSERT(middle[1].first == "2");
+		ASSERT(middle[2].first == "3");
 
-static
-void
-testOperatorRelated()
-{
-	auto& result = elements["4"];
-	auto& v = Elements<string, string, 3, Node>::value(result);
-	EXPECT_EQ(string{"d"}, v);
+		SECTION("Test copy") {
+			ELE b{middle};
 
-	try {
-		auto& result = elements["3"];
-	} catch (std::exception e) {
-//		cout << "Catched!" << endl;
+			ASSERT(ELE::ptr(b["1"]) != ELE::ptr(middle["1"]));
+			ASSERT(ELE::ptr(b["2"]) != ELE::ptr(middle["2"]));
+			ASSERT(ELE::ptr(b["3"]) != ELE::ptr(middle["3"]));
+		}
+
+		SECTION("Test move") {
+			ELE m{std::move(middle)};
+			ASSERT(middle.count() == 0);
+			ASSERT(m.count() == 3);
+			ASSERT(ELE::ptr(m["1"]) == n1);
+			ASSERT(ELE::ptr(m["2"]) == n2);
+			ASSERT(ELE::ptr(m["3"]) == n3);
+			ASSERT_THROW(runtime_error, ELE::ptr(middle["1"]));
+			ASSERT_THROW(runtime_error, ELE::ptr(middle["2"]));
+			ASSERT_THROW(runtime_error, ELE::ptr(middle["3"]));
+		}
 	}
 }
 
-static
 void
-testSqueeze()
+elementTest()
 {
-	if (elements.full()) {
-		cout << "Start squeeze!" << endl;
-		auto&& result = elements.squeezeOne(make_pair(string{"3"}, string{"c"}));
-		EXPECT_EQ("4", result.first);
-		EXPECT_EQ(true, elements.have("3"));
-	}
-
-}
-
-static
-void
-ElementsTest()
-{
-	testCopy();
-	testBound();
-	testCount();
-	testFull();
-	testExistence();
-	testAllKey();
-	testRemove();
-	testAdd();
-	testOperatorRelated();
-	testSqueeze();
+	allTest();
 }

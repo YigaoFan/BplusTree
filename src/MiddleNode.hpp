@@ -1,88 +1,88 @@
 #pragma once
-#include "Proxy.hpp"
+//#include "Proxy.hpp"
 #include "NodeBase.hpp"
 
 namespace btree {
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-    class MiddleNode final : public NodeBase<Key, Value, BtreeOrder, BtreeType> {
+#define MIDDLE_NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
+
+	MIDDLE_NODE_TEMPLATE
+    class MiddleNode final : public NodeBase<Key, Value, BtreeOrder> {
     private:
-        using Base = NodeBase<Key, Value, BtreeOrder, BtreeType>;
+        using          Base = NodeBase<Key, Value, BtreeOrder>;
+        using typename Base::CompareFunc;
 
     public:
         template <typename Iter>
-        MiddleNode(BtreeType&, Iter, Iter);
+        MiddleNode(Iter, Iter, shared_ptr<CompareFunc>);
+        MiddleNode(const MiddleNode&);
+		MiddleNode(MiddleNode&&) noexcept;
         ~MiddleNode() override;
 
-        Base* min_son() const; // use self to hack it?
-        Base* max_son() const;
+        Base* minSon() const; // use self to hack it?
+        Base* maxSon() const;
         Base* operator[](const Key&) const;
         MiddleNode* father() const override;
-        Proxy<Key, Value, BtreeOrder, BtreeType> self() override;
-
-    private:
-        MiddleNode(const MiddleNode&);
-
-        // put here (private) to refuse call externally
-        MiddleNode(MiddleNode&&) noexcept = delete;
-    	MiddleNode& operator=(const MiddleNode&) = delete;
-    	MiddleNode& operator=(MiddleNode&&) noexcept = delete;
     };
 }
 
-// implementation
+// implement
 namespace btree {
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
+#define MIDDLE MiddleNode<Key, Value, BtreeOrder>
+
+	MIDDLE_NODE_TEMPLATE
     template <typename Iter>
-    MiddleNode<Key, Value, BtreeOrder, BtreeType>::MiddleNode(BtreeType& btree, Iter begin, Iter end)
-        : Base(btree, middle_type(), begin, end)
-    {
-        // null
-    }
+    MIDDLE::MiddleNode(Iter begin, Iter end, shared_ptr<CompareFunc> funcPtr)
+        : Base(middleType(), begin, end, funcPtr)
+    {}
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-    MiddleNode<Key, Value, BtreeOrder, BtreeType>::MiddleNode(const MiddleNode& that)
-    {
-    	// maybe wait to delete
-        // TODO
-    	// copy constructor
-    }
+    MIDDLE_NODE_TEMPLATE
+    MIDDLE::MiddleNode(const MiddleNode& that)
+		: Base(that)
+	{}
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-    MiddleNode<Key, Value, BtreeOrder, BtreeType>::~MiddleNode() = default;
+	MIDDLE_NODE_TEMPLATE
+	MIDDLE::MiddleNode(MiddleNode&& that) noexcept
+		: Base(std::move(that))
+	{}
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-    typename MiddleNode<Key, Value, BtreeOrder, BtreeType>::Base*
-    MiddleNode<Key, Value, BtreeOrder, BtreeType>::min_son() const
+    MIDDLE_NODE_TEMPLATE
+    MIDDLE::~MiddleNode() = default;
+
+	MIDDLE_NODE_TEMPLATE
+    typename MIDDLE::Base*
+    MIDDLE::minSon() const
     {
         return this->elements_.ptrOfMin();
     }
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-    typename MiddleNode<Key, Value, BtreeOrder, BtreeType>::Base*
-    MiddleNode<Key, Value, BtreeOrder, BtreeType>::max_son() const
+    MIDDLE_NODE_TEMPLATE
+    typename MIDDLE::Base*
+    MIDDLE::maxSon() const
     {
         return this->elements_.ptrOfMax();
     }
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-    typename MiddleNode<Key, Value, BtreeOrder, BtreeType>::Base*
-    MiddleNode<Key, Value, BtreeOrder, BtreeType>::operator[](const Key& key) const
+    MIDDLE_NODE_TEMPLATE
+    typename MIDDLE::Base*
+    MIDDLE::operator[](const Key& key) const
     {
     	auto& e = this->elements_[key];
     	return this->Ele::ptr(e);
     }
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-    MiddleNode<Key, Value, BtreeOrder, BtreeType>*
-    MiddleNode<Key, Value, BtreeOrder, BtreeType>::father() const
+    MIDDLE_NODE_TEMPLATE
+    MIDDLE*
+    MIDDLE::father() const
     {
         return static_cast<MiddleNode*>(Base::father());
     }
 
-    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-    Proxy<Key, Value, BtreeOrder, BtreeType>
-    MiddleNode<Key, Value, BtreeOrder, BtreeType>::self()
-    {
-        return Proxy{this};
-    }
+//    MIDDLE_NODE_TEMPLATE
+//    Proxy<Key, Value, BtreeOrder>
+//    MIDDLE::self()
+//    {
+//        return Proxy{this};
+//    }
+#undef MIDDLE
+#undef MIDDLE_NODE_TEMPLATE
 }

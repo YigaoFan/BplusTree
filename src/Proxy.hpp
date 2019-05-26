@@ -1,12 +1,12 @@
 #pragma once
 
 namespace btree {
-	template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-	class NodeBase;
-	template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-	class MiddleNode;
-	template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-	class LeafNode;
+//	template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
+//	class NodeBase;
+//	template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
+//	class MiddleNode;
+//	template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
+//	class LeafNode;
 
 	template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
 	class Proxy {
