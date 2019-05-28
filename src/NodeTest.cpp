@@ -8,38 +8,78 @@ using std::make_shared;
 #include "LeafNode.hpp"
 using namespace btree;
 
-TESTCASE("Middle node test") {
-	using MIDDLE = MiddleNode<string, string, 3>;
+static auto kv0 = make_pair<string, string>("1", "a");
+static auto kv1 = make_pair<string, string>("2", "b");
+static auto kv2 = make_pair<string, string>("3", "c");
+static auto kv3 = make_pair<string, string>("4", "a");
+static auto kv4 = make_pair<string, string>("5", "b");
+static auto kv5 = make_pair<string, string>("6", "c");
+static auto kv6 = make_pair<string, string>("7", "c");
+static auto kv7 = make_pair<string, string>("8", "c");
+static auto kv8 = make_pair<string, string>("9", "c");
 
+static array<pair<string, string>, 3> keyValueArray1 {
+	kv0,
+	kv1,
+	kv2,
+};
+static array<pair<string, string>, 3> keyValueArray2 {
+	kv3,
+	kv4,
+	kv5,
+};
+static array<pair<string, string>, 3> keyValueArray3 {
+	kv6,
+	kv7,
+	kv8,
+};
+static function<bool(const string&, const string&)> compareFunction = [] (const string& a, const string& b) {
+	return a > b;
+};
+
+TESTCASE("Middle node test") {
+	using LEAF = LeafNode<string, string, 3>;
+	using MIDDLE = MiddleNode<string, string, 3>;
+	using BASE = NodeBase<string, string, 3>;
+	auto makeLeaf = [] (auto& kvArray, auto& func) {
+		return new LEAF{ kvArray.begin(), kvArray.end(), make_shared<decltype(compareFunction)>(func)};
+	};
+
+	LEAF* leaf0 = makeLeaf(keyValueArray1, compareFunction); // maybe here occur problem, because move
+	LEAF* leaf1 = makeLeaf(keyValueArray2, compareFunction);
+	LEAF* leaf2 = makeLeaf(keyValueArray3, compareFunction);
+	pair<string, LEAF*> kl0 {leaf0->maxKey(), leaf0};
+	pair<string, LEAF*> kl1 {leaf1->maxKey(), leaf1};
+	pair<string, LEAF*> kl2 {leaf2->maxKey(), leaf2};
+	array<pair<string, LEAF*>, 3> leafArray {
+		kl0,
+		kl1,
+		kl2,
+	};
+
+	MIDDLE middle{ leafArray.begin(), leafArray.end(), make_shared<decltype(compareFunction)>(compareFunction) };
+
+	SECTION("Test no change function") {
+		ASSERT(middle.minSon() == kl0.second);
+		ASSERT(middle.maxSon() == kl2.second);
+		ASSERT(middle[kl0.first] == kl0.second);
+		ASSERT(middle[kl1.first] == kl1.second);
+		ASSERT(middle[kl2.first] == kl2.second);
+		ASSERT(middle[0].first == kl0.first);
+		ASSERT(middle[0].second == static_cast<BASE*>(kl0.second));
+		ASSERT(middle[kl0.first]->father() == &middle);
+		ASSERT(middle[kl1.first]->father() == &middle);
+		ASSERT(middle[kl2.first]->father() == &middle);
+		// TODO test leaf nextLeaf()
+	}
 }
 
 TESTCASE("Leaf node test") {
 	using LEAF = LeafNode<string, string, 3>;
-	auto kv0 = make_pair<string, string>("1", "a");
-	auto kv1 = make_pair<string, string>("2", "b");
-	auto kv2 = make_pair<string, string>("3", "c");
-	auto kv3 = make_pair<string, string>("4", "a");
-	auto kv4 = make_pair<string, string>("5", "b");
-	auto kv5 = make_pair<string, string>("6", "c");
-
-	array<pair<string, string>, 3> keyValueArray1 {
-		kv0,
-		kv1,
-		kv2,
-	};
-	array<pair<string, string>, 3> keyValueArray2 {
-		kv3,
-		kv4,
-		kv5,
-	};
-
-	function<bool(const string&, const string&)> compareFunction = [] (const string& a, const string& b) {
-		return a > b;
-	};
 
 	LEAF leaf1{ keyValueArray1.begin(), keyValueArray1.end(), make_shared<decltype(compareFunction)>(compareFunction) };
 	LEAF leaf2{ keyValueArray2.begin(), keyValueArray2.end(), make_shared<decltype(compareFunction)>(compareFunction) };
-	leaf1.nextLeaf(leaf2);
+	leaf1.nextLeaf(&leaf2);
 
 	SECTION("Test no change function") {
 		ASSERT(!leaf1.Middle);

@@ -1,6 +1,7 @@
 #pragma once
 //#include "Proxy.hpp"
 #include "NodeBase.hpp"
+#include "LeafNode.hpp"
 
 namespace btree {
 #define MIDDLE_NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
@@ -14,14 +15,16 @@ namespace btree {
     public:
         template <typename Iter>
         MiddleNode(Iter, Iter, shared_ptr<CompareFunc>);
+        // should use another constructor for Leaf
         MiddleNode(const MiddleNode&);
 		MiddleNode(MiddleNode&&) noexcept;
         ~MiddleNode() override;
 
-        Base* minSon() const; // use self to hack it?
+        Base* minSon() const;
         Base* maxSon() const;
-        Base* operator[](const Key&) const;
-        MiddleNode* father() const override;
+		MiddleNode*    father() const override;
+        Base*            operator[](const Key&);
+        pair<Key, Base*> operator[](uint16_t);
     };
 }
 
@@ -32,7 +35,7 @@ namespace btree {
 	MIDDLE_NODE_TEMPLATE
     template <typename Iter>
     MIDDLE::MiddleNode(Iter begin, Iter end, shared_ptr<CompareFunc> funcPtr)
-        : Base(middleType(), begin, end, funcPtr)
+        : Base(MiddleFlag(), begin, end, funcPtr)
     {}
 
     MIDDLE_NODE_TEMPLATE
@@ -64,13 +67,21 @@ namespace btree {
 
     MIDDLE_NODE_TEMPLATE
     typename MIDDLE::Base*
-    MIDDLE::operator[](const Key& key) const
+    MIDDLE::operator[](const Key& key)
     {
     	auto& e = this->elements_[key];
-    	return this->Ele::ptr(e);
+    	return Base::Ele::ptr(e);
     }
 
-    MIDDLE_NODE_TEMPLATE
+	MIDDLE_NODE_TEMPLATE
+	pair<Key, typename MIDDLE::Base*>
+	MIDDLE::operator[](uint16_t i)
+	{
+		auto& e = this->elements_[i];
+		return make_pair(e.first, Base::Ele::ptr(e.second));
+	}
+
+	MIDDLE_NODE_TEMPLATE
     MIDDLE*
     MIDDLE::father() const
     {

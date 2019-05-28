@@ -1,10 +1,12 @@
 #pragma once
 #include <utility>
 #include "NodeBase.hpp"
-#include "MiddleNode.hpp"
 //#include "Proxy.hpp"
 
 namespace btree {
+	template <typename Key, typename Value, uint16_t BtreeOrder>
+	class MiddleNode;
+
 #define LEAF_NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 
 	LEAF_NODE_TEMPLATE
@@ -24,7 +26,7 @@ namespace btree {
         bool add(pair<Key, Value>);
         void             remove(const Key&);
         inline LeafNode* nextLeaf() const;
-        inline void      nextLeaf(LeafNode&);
+        inline void      nextLeaf(LeafNode*);
         FatherType*      father() const override;
 
 	private:
@@ -39,7 +41,7 @@ namespace btree {
 	LEAF_NODE_TEMPLATE
 	template <typename Iter>
 	LEAF::LeafNode(Iter begin, Iter end, shared_ptr<CompareFunc> funcPtr)
-		: Base(leafType(), begin, end, funcPtr)
+		: Base(LeafFlag(), begin, end, funcPtr)
     {}
 
 	LEAF_NODE_TEMPLATE
@@ -128,9 +130,9 @@ namespace btree {
 
 	LEAF_NODE_TEMPLATE
 	void
-	LEAF::nextLeaf(LeafNode& next)
+	LEAF::nextLeaf(LeafNode* next)
 	{
-		_next = &next;
+		_next = next;
 	}
 
 	LEAF_NODE_TEMPLATE

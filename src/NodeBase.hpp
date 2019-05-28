@@ -4,8 +4,8 @@
 //#include "Proxy.hpp"
 
 namespace btree {
-    struct leafType {};
-    struct middleType {};
+    struct LeafFlag {};
+    struct MiddleFlag {};
 
 #define NODE_BASE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 
@@ -17,9 +17,9 @@ namespace btree {
         const bool Middle;
 
         template <typename Iter>
-        NodeBase(leafType, Iter, Iter, shared_ptr<CompareFunc>);
+        NodeBase(LeafFlag, Iter, Iter, shared_ptr<CompareFunc>);
         template <typename Iter>
-        NodeBase(middleType,Iter, Iter, shared_ptr<CompareFunc>);
+        NodeBase(MiddleFlag,Iter, Iter, shared_ptr<CompareFunc>);
         NodeBase(const NodeBase&);
         NodeBase(NodeBase&&) noexcept;
         virtual ~NodeBase();
@@ -28,7 +28,6 @@ namespace btree {
         inline bool        have(const Key&);
         inline vector<Key> allKey() const;
 
-		void              father(NodeBase*);
         virtual NodeBase* father() const;
 
 		uint16_t    childCount() const;
@@ -46,18 +45,18 @@ namespace btree {
 
 	NODE_BASE_TEMPLATE
     template <typename Iter>
-    NODE::NodeBase(leafType, Iter begin, Iter end, shared_ptr<CompareFunc> funcPtr)
+    NODE::NodeBase(LeafFlag, Iter begin, Iter end, shared_ptr<CompareFunc> funcPtr)
         : Middle(false), elements_(begin, end, funcPtr)
     {}
 
 	NODE_BASE_TEMPLATE
     template <typename Iter>
-    NODE::NodeBase(middleType, Iter begin, Iter end, shared_ptr<CompareFunc> funcPtr)
+    NODE::NodeBase(MiddleFlag, Iter begin, Iter end, shared_ptr<CompareFunc> funcPtr)
         : Middle(true), elements_(begin, end, funcPtr)
     {
-        for (; begin != end; ++begin) {
+		for (; begin != end; ++begin) {
             // need to use SFINE to control the property below?
-            (*begin)->father_ = this;
+            begin->second->father_ = this;
         }
     }
 
@@ -68,7 +67,7 @@ namespace btree {
 
     NODE_BASE_TEMPLATE
 	NODE::NodeBase(NodeBase&& that) noexcept
-		: Middle(std::move(that.Middle)), father_(that.father_), elements_(std::move(that.elements_))
+		: Middle(that.Middle), father_(that.father_), elements_(std::move(that.elements_))
 	{}
 
 
@@ -77,13 +76,6 @@ namespace btree {
     NODE::father() const
     {
     	return father_;
-    }
-
-    NODE_BASE_TEMPLATE
-    void
-    NODE::father(NodeBase* father)
-    {
-		father_ = father;
     }
 
     NODE_BASE_TEMPLATE
