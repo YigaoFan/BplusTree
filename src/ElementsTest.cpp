@@ -18,8 +18,8 @@ class DummyNode {
 };
 
 TESTCASE("Element test") {
-	function<bool(const string&, const string&)> compareFunction = [] (const string& a, const string& b) {
-		return a > b;
+	function<bool(const string&, const string&)> lessThan = [] (const string& a, const string& b) {
+		return a < b;
 	};
 	using ELE = Elements<string, string, 3, DummyNode>;
 	using std::make_shared;
@@ -30,7 +30,7 @@ TESTCASE("Element test") {
 			make_pair("2", "b"),
 			make_pair("3", "c"),
 		};
-		ELE leafEle{keyValueArray.begin(), keyValueArray.end(), make_shared<decltype(compareFunction)>(compareFunction)};
+		ELE leafEle{keyValueArray.begin(), keyValueArray.end(), make_shared<decltype(lessThan)>(lessThan)};
 
 		ASSERT(leafEle.count() == 3);
 		ASSERT(leafEle.full());
@@ -121,7 +121,7 @@ TESTCASE("Element test") {
 			make_pair("3", n3),
 		};
 
-		ELE middle{keyValueArray.begin(), keyValueArray.end(), make_shared<decltype(compareFunction)>(compareFunction)};
+		ELE middle{keyValueArray.begin(), keyValueArray.end(), make_shared<decltype(lessThan)>(lessThan)};
 
 		ASSERT(middle.count() == 3);
 		ASSERT(middle.full());

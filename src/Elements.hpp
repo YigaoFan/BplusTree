@@ -29,12 +29,12 @@ namespace btree {
 	public:
 		using ValueForContent = variant<Value, unique_ptr<PtrType>>;
 		using Content     = pair<Key, ValueForContent>;
-		using CompareFunc = function<bool(const Key&, const Key&)>;
-		const bool              LeafFlag;
-		shared_ptr<CompareFunc> CompareFuncPtr;
+		using LessThan = function<bool(const Key&, const Key&)>;
+		const bool           LeafFlag;
+		shared_ptr<LessThan> LessThanPtr;
 
 		template <typename Iter>
-		Elements(Iter, Iter, shared_ptr<CompareFunc>);
+		Elements(Iter, Iter, shared_ptr<LessThan>);
 		Elements(const Elements&);
 		Elements(Elements&&) noexcept;
 
@@ -62,7 +62,7 @@ namespace btree {
 		static PtrType* ptr(const ValueForContent&);
 
 	private:
-		CompareFunc                _compareFunc;
+		LessThan                   _lessThan;
 		uint16_t                   _count{ 0 };
 		uint16_t                   _cacheIndex{ 0 };
 		array<Content, BtreeOrder> _elements;
@@ -86,11 +86,11 @@ namespace btree {
 	ELE::Elements(
 		Iter begin,
 		Iter end,
-		shared_ptr<CompareFunc> funcPtr
+		shared_ptr<LessThan> funcPtr
 	) :
 		LeafFlag(std::is_same<typename std::decay<decltype(*begin)>::type, pair<Key, Value>>::value),
-		CompareFuncPtr(funcPtr),
-		_compareFunc(*CompareFuncPtr)
+		LessThanPtr(funcPtr),
+		_lessThan(*LessThanPtr)
 	{
 		if (begin == end) {
 			return;
@@ -107,8 +107,8 @@ namespace btree {
 	ELEMENTS_TEMPLATE
 	ELE::Elements(const Elements& that) :
 		LeafFlag(that.LeafFlag),
-		CompareFuncPtr(that.CompareFuncPtr),
-		_compareFunc(*CompareFuncPtr),
+		LessThanPtr(that.LessThanPtr),
+		_lessThan(*LessThanPtr),
 		_count(that._count)
 	{
 		initialInternalElements(_elements, that._elements, that.LeafFlag, _count);
@@ -117,8 +117,8 @@ namespace btree {
 	ELEMENTS_TEMPLATE
 	ELE::Elements(Elements&& that) noexcept :
 		LeafFlag(that.LeafFlag),
-		CompareFuncPtr(that.CompareFuncPtr),
-		_compareFunc(*CompareFuncPtr),
+		LessThanPtr(that.LessThanPtr),
+		_lessThan(*LessThanPtr),
 		_count(that._count),
 		_elements(std::move(that._elements))
 	{
@@ -137,7 +137,7 @@ namespace btree {
 	ELE::have(const Key& key)
 	{
 		for (auto i = 0; i < _count; ++i) {
-			if (_compareFunc(_elements[i].first, key) == _compareFunc(key, _elements[i].first)) {
+			if (_lessThan(_elements[i].first, key) == _lessThan(key, _elements[i].first)) {
 				_cacheIndex = i;
 				return true;
 			}
@@ -224,10 +224,10 @@ namespace btree {
 
 		int16_t i = 0;
 		for (; i < _count; ++i) {
-			if (_compareFunc(k, _elements[i].first) == _compareFunc(_elements[i].first, k)) {
+			if (_lessThan(k, _elements[i].first) == _lessThan(_elements[i].first, k)) {
 				throw runtime_error("The inserting key duplicates: " + k);
-			} else if (_compareFunc(_elements[i].first, k)) { // TODO compare result is right? see compare function
-				goto Add;
+			} else if (_lessThan(k, _elements[i].first)) {
+				goto Insert;
 			}
 		}
 		// when equal and bigger than the bound, throw the error
@@ -235,7 +235,7 @@ namespace btree {
 							+ "Now the count of this Elements: " + std::to_string(_count )+ ". "
 							+ "And please check the max Key to ensure not beyond the bound.");
 
-		Add:
+		Insert:
 		adjustMemory(1, &_elements[i]);
 		_elements[i] = std::move(p); //	Elements::assign(_elements[i], p);
 		++_count;
@@ -268,7 +268,7 @@ namespace btree {
 		auto& maxItem = _elements[_count - 1];
 		pair<Key, Value> max{ maxItem.first, Elements::value(maxItem.second) };
 		--_count;
-		if (_compareFunc(p.first, _elements[_count - 1].first)) {
+		if (_lessThan(_elements[_count - 1].first, p.first)) {
 			append(p);
 		} else {
 			insert(p);

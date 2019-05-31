@@ -10,11 +10,11 @@ namespace btree {
     class MiddleNode final : public NodeBase<Key, Value, BtreeOrder> {
     private:
         using          Base = NodeBase<Key, Value, BtreeOrder>;
-        using typename Base::CompareFunc;
+        using typename Base::LessThan;
 
     public:
         template <typename Iter>
-        MiddleNode(Iter, Iter, shared_ptr<CompareFunc>);
+        MiddleNode(Iter, Iter, shared_ptr<LessThan>);
         // should use another constructor for Leaf
         MiddleNode(const MiddleNode&);
 		MiddleNode(MiddleNode&&) noexcept;
@@ -34,7 +34,7 @@ namespace btree {
 
 	MIDDLE_NODE_TEMPLATE
     template <typename Iter>
-    MIDDLE::MiddleNode(Iter begin, Iter end, shared_ptr<CompareFunc> funcPtr)
+    MIDDLE::MiddleNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
         : Base(MiddleFlag(), begin, end, funcPtr)
     {}
 

@@ -13,10 +13,10 @@ namespace btree {
     class LeafNode final : public NodeBase<Key, Value, BtreeOrder> {
 		using Base       = NodeBase<Key, Value, BtreeOrder>;
 		using FatherType = MiddleNode<Key, Value, BtreeOrder>;
-		using typename Base::CompareFunc;
+		using typename Base::LessThan;
 	public:
         template <typename Iterator>
-        LeafNode(Iterator, Iterator, shared_ptr<CompareFunc>);
+        LeafNode(Iterator, Iterator, shared_ptr<LessThan>);
 		LeafNode(const LeafNode&, LeafNode* next=nullptr);
     	LeafNode(LeafNode&&) noexcept;
         ~LeafNode() override;
@@ -40,7 +40,7 @@ namespace btree {
 
 	LEAF_NODE_TEMPLATE
 	template <typename Iter>
-	LEAF::LeafNode(Iter begin, Iter end, shared_ptr<CompareFunc> funcPtr)
+	LEAF::LeafNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
 		: Base(LeafFlag(), begin, end, funcPtr)
     {}
 
@@ -102,7 +102,7 @@ namespace btree {
 //                this->btree_.change_bound_upwards(this, old_key, this->max_key());
 //            }
 //        }
-		if (this->elements_.CompareFuncPtr->operator()(p.first, this->maxKey())) {
+		if (this->elements_.LessThanPtr->operator()(this->maxKey(), p.first)) {
 			this->elements_.append(p);
 			return true;
 		} else {

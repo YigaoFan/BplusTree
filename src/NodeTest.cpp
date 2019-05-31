@@ -33,8 +33,8 @@ static array<pair<string, string>, 3> keyValueArray3 {
 	kv7,
 	kv8,
 };
-static function<bool(const string&, const string&)> compareFunction = [] (const string& a, const string& b) {
-	return a > b;
+static function<bool(const string&, const string&)> lessThan = [] (const string& a, const string& b) {
+	return a < b;
 };
 
 TESTCASE("Middle node test") {
@@ -42,12 +42,12 @@ TESTCASE("Middle node test") {
 	using MIDDLE = MiddleNode<string, string, 3>;
 	using BASE = NodeBase<string, string, 3>;
 	auto makeLeaf = [] (auto& kvArray, auto& func) {
-		return new LEAF{ kvArray.begin(), kvArray.end(), make_shared<decltype(compareFunction)>(func)};
+		return new LEAF{ kvArray.begin(), kvArray.end(), make_shared<decltype(lessThan)>(func)};
 	};
 
-	LEAF* leaf0 = makeLeaf(keyValueArray1, compareFunction); // maybe here occur problem, because move
-	LEAF* leaf1 = makeLeaf(keyValueArray2, compareFunction);
-	LEAF* leaf2 = makeLeaf(keyValueArray3, compareFunction);
+	LEAF* leaf0 = makeLeaf(keyValueArray1, lessThan); // maybe here occur problem, because move
+	LEAF* leaf1 = makeLeaf(keyValueArray2, lessThan);
+	LEAF* leaf2 = makeLeaf(keyValueArray3, lessThan);
 	pair<string, LEAF*> kl0 {leaf0->maxKey(), leaf0};
 	pair<string, LEAF*> kl1 {leaf1->maxKey(), leaf1};
 	pair<string, LEAF*> kl2 {leaf2->maxKey(), leaf2};
@@ -57,7 +57,7 @@ TESTCASE("Middle node test") {
 		kl2,
 	};
 
-	MIDDLE middle{ leafArray.begin(), leafArray.end(), make_shared<decltype(compareFunction)>(compareFunction) };
+	MIDDLE middle{ leafArray.begin(), leafArray.end(), make_shared<decltype(lessThan)>(lessThan) };
 
 	SECTION("Test no change function") {
 		ASSERT(middle.minSon() == kl0.second);
@@ -77,8 +77,8 @@ TESTCASE("Middle node test") {
 TESTCASE("Leaf node test") {
 	using LEAF = LeafNode<string, string, 3>;
 
-	LEAF leaf1{ keyValueArray1.begin(), keyValueArray1.end(), make_shared<decltype(compareFunction)>(compareFunction) };
-	LEAF leaf2{ keyValueArray2.begin(), keyValueArray2.end(), make_shared<decltype(compareFunction)>(compareFunction) };
+	LEAF leaf1{ keyValueArray1.begin(), keyValueArray1.end(), make_shared<decltype(lessThan)>(lessThan) };
+	LEAF leaf2{ keyValueArray2.begin(), keyValueArray2.end(), make_shared<decltype(lessThan)>(lessThan) };
 	leaf1.nextLeaf(&leaf2);
 
 	SECTION("Test no change function") {

@@ -13,13 +13,13 @@ namespace btree {
     class NodeBase {
     public:
 		using Ele         = Elements<Key, Value, BtreeOrder, NodeBase>;
-		using CompareFunc = typename Ele::CompareFunc;
+		using LessThan = typename Ele::LessThan;
         const bool Middle;
 
         template <typename Iter>
-        NodeBase(LeafFlag, Iter, Iter, shared_ptr<CompareFunc>);
+        NodeBase(LeafFlag, Iter, Iter, shared_ptr<LessThan>);
         template <typename Iter>
-        NodeBase(MiddleFlag,Iter, Iter, shared_ptr<CompareFunc>);
+        NodeBase(MiddleFlag,Iter, Iter, shared_ptr<LessThan>);
         NodeBase(const NodeBase&);
         NodeBase(NodeBase&&) noexcept;
         virtual ~NodeBase();
@@ -45,13 +45,13 @@ namespace btree {
 
 	NODE_BASE_TEMPLATE
     template <typename Iter>
-    NODE::NodeBase(LeafFlag, Iter begin, Iter end, shared_ptr<CompareFunc> funcPtr)
+    NODE::NodeBase(LeafFlag, Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
         : Middle(false), elements_(begin, end, funcPtr)
     {}
 
 	NODE_BASE_TEMPLATE
     template <typename Iter>
-    NODE::NodeBase(MiddleFlag, Iter begin, Iter end, shared_ptr<CompareFunc> funcPtr)
+    NODE::NodeBase(MiddleFlag, Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
         : Middle(true), elements_(begin, end, funcPtr)
     {
 		for (; begin != end; ++begin) {
