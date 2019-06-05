@@ -22,10 +22,11 @@ namespace btree {
         NodeBase(MiddleFlag,Iter, Iter, shared_ptr<LessThan>);
         NodeBase(const NodeBase&);
         NodeBase(NodeBase&&) noexcept;
-        virtual ~NodeBase();
+        virtual ~NodeBase() = default;
 
         inline Key         maxKey() const;
         inline bool        have(const Key&);
+        Value*             search(const Key&);
         inline vector<Key> allKey() const;
 
         virtual NodeBase* father() const;
@@ -35,6 +36,7 @@ namespace btree {
 		inline bool full() const;
     protected:
         NodeBase* father_{ nullptr };
+
         Elements<Key, Value, BtreeOrder, NodeBase> elements_;
     };
 }
@@ -45,8 +47,8 @@ namespace btree {
 
 	NODE_BASE_TEMPLATE
     template <typename Iter>
-    NODE::NodeBase(LeafFlag, Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
-        : Middle(false), elements_(begin, end, funcPtr)
+    NODE::NodeBase(LeafFlag, Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
+        : Middle(false), elements_(begin, end, lessThanPtr)
     {}
 
 	NODE_BASE_TEMPLATE
@@ -56,6 +58,7 @@ namespace btree {
     {
 		for (; begin != end; ++begin) {
             // need to use SFINE to control the property below?
+            // TODO error
             begin->second->father_ = this;
         }
     }
@@ -99,9 +102,6 @@ namespace btree {
 		return elements_.full();
 	}
 
-    NODE_BASE_TEMPLATE
-    NODE::~NodeBase() = default;
-
 //    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
 //    Proxy<Key, Value, BtreeOrder, BtreeType>
 //    NodeBase<Key, Value, BtreeOrder, BtreeType>::self()
@@ -120,8 +120,52 @@ namespace btree {
     bool
     NODE::have(const Key& key)
     {
-        return elements_.have(key);
+		// a little duplicate to search, but not very
+		if (!Middle) {
+			return elements_.have(key);
+		} else {
+			for (auto& e : elements_) {
+				if ((*elements_.LessThanPtr)(key, e.first)) {
+					Ele::ptr(e.second)->have(key);
+				} else if (!(*elements_.LessThanPtr)(e.first, key)) {
+					return true;
+				}
+			}
+
+			return false;
+		}
     }
+
+    NODE_BASE_TEMPLATE
+	Value*
+	NODE::search(const Key& key)
+	{
+		if (!Middle) {
+			if (elements_.have(key)) {
+				return &Ele::value(elements_[key]);
+			} else {
+				return nullptr;
+			}
+		} else {
+			for (auto& e : elements_) {
+				if ((*elements_.LessThanPtr)(key, e.first)) {
+					return Ele::ptr(e.second)->search(key);
+				} else if (!(*elements_.LessThanPtr)(e.first, key)) {
+					auto subNodePtr = Ele::ptr(e.second);
+
+				SearchInThisNode:
+					if (!subNodePtr->Middle) {
+						return &Ele::value(subNodePtr->elements_.max());
+					} else {
+						subNodePtr = Ele::ptr(subNodePtr->elements_.max());
+						goto SearchInThisNode;
+					}
+				}
+			}
+
+			return nullptr;
+		}
+	}
 
     NODE_BASE_TEMPLATE
     vector<Key>

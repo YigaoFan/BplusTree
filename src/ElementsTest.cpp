@@ -108,6 +108,11 @@ TESTCASE("Element test") {
 			ASSERT(ELE::value(leafEle["4"]) == "d");
 		}
 
+		SECTION("Test iterator") {
+			for (auto& e : leafEle) {
+			}
+		}
+
 	}
 
 	SECTION("Test middle Element construct") {

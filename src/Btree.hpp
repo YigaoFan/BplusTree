@@ -6,7 +6,6 @@
 #include <algorithm>  	// for sort
 #include <array> 		// for array
 #include <exception> 	// for exception
-//#include "BtreeHelper.hpp"
 #include "LeafNode.hpp"
 #include "MiddleNode.hpp"
 
@@ -39,7 +38,7 @@ namespace btree {
 		using Middle = MiddleNode<Key, Value, BtreeOrder>;
 	public:
 		using LessThan = typename Base::LessThan;
-// should in constructor have a arg for "if save some space for future insert"?
+		// should in constructor have a arg for "if save some space for future insert"?
 		template <size_t NumOfArrayEle>
 		Btree(LessThan, array<pair<Key, Value>, NumOfArrayEle>);
 		template <size_t NumOfArrayEle>
@@ -63,11 +62,11 @@ namespace btree {
 		unique_ptr<Base> _root { nullptr };
 
 		Base* checkOut(const Key&) const;
-		static Base* checkOutDigging(const Key&, Middle*);
+		static Base* checkOutHelper(const Key&, Middle*);
 		vector<Leaf*> traverseLeaf(const std::function<bool(Leaf*)>&) const;
 		Base* CloneNodes(Btree&) const;
-		template <bool FirstFlag, typename Element, size_t NodeCount>
-		void constructNodeHierarchy(const std::array<Element, NodeCount>&);
+		template <bool FirstCall = true, typename E, size_t NodeCount>
+		void constructTreeFromBottomToRoot(const array<E, NodeCount>&);
 
 		//void root_add(const node_instance*, const std::pair<Key, Value>&);
 		//void create_new_branch(const node_instance*, const std::pair<Key, Value>&);
@@ -96,57 +95,47 @@ namespace btree {
 	{
 		if constexpr (NumOfArrayEle == 0) { return; }
 
-		// sort
 		sort(pairArray.begin(),
 			 pairArray.end(),
-			 [&](const pair<Key, Value>& p1, const pair<Key, Value>& p2) {
-				 if (!lessThan(p1.first, p2.first) && !lessThan(p2.first, p1.first)) {
-					 throw runtime_error("Input array has the duplicate key");
-				 } else {
-					 return lessThan(p1.first, p2.first);
-				 }
+			 [&] (auto& p1, auto& p2) {
+				 return lessThan(p1.first, p2.first);
 			 });
 
-		// construct from bottom
 		if constexpr (NumOfArrayEle <= BtreeOrder) {
-			_root.reset(new Leaf(pairArray.begin(), pairArray.end(), make_shared(lessThan)));
+			_root.reset(new Leaf(pairArray.begin(), pairArray.end(), lessThanPtr));
 		} else {
-			this->constructNodeHierarchy<true>(pairArray);
+			this->constructTreeFromBottomToRoot(pairArray);
 		}
 
 		_keyNum += NumOfArrayEle;
 	}
 
 	BTREE_TEMPLATE
-	template <bool FirstCall, typename ElementType, size_t NodeCount>
+	template <bool FirstCall, typename E, size_t NodeCount>
 	void
-	BTREE::constructNodeHierarchy(const array<ElementType, NodeCount>& nodesMaterial)
+	BTREE::constructTreeFromBottomToRoot(const array<E, NodeCount>& nodesMaterial)
 	{
 		constexpr auto upperNodeNum = (NodeCount % BtreeOrder == 0) ? (NodeCount / BtreeOrder) : (NodeCount / BtreeOrder + 1);
-		array<Base*, upperNodeNum> upperNodes;
+		array<pair<Key, Base*>, upperNodeNum> upperNodes;
 
 		auto head = nodesMaterial.begin();
 		auto end = nodesMaterial.end();
 		auto i = 0;
 		auto tail = head + BtreeOrder;
-		auto first = true;
+		auto firstLeaf = true;
 
 		do {
 			if constexpr (FirstCall) {
 				auto leaf = new Leaf(head, tail, lessThanPtr);
-
-				upperNodes[i] = leaf;
-				if (first) {
-					first = false;
+				upperNodes[i] = make_pair(leaf->maxKey(), leaf);
+				if (firstLeaf) {
+					firstLeaf = false;
 				} else {
-					// set nextLeaf of Base
-					static_cast<Leaf*>(upperNodes[i - 1])->nextLeaf(leaf);
+					static_cast<Leaf*>(upperNodes[i - 1].second)->nextLeaf(leaf);
 				}
 			} else {
 				auto middle = new Middle(head, tail, lessThanPtr);
-
-				upperNodes[i] = middle;
-				throw runtime_error("Got here"); // TODO Occur problem
+				upperNodes[i] = make_pair(middle->maxKey(), middle);
 			}
 
 			// update
@@ -158,8 +147,7 @@ namespace btree {
 		if constexpr (upperNodeNum <= BtreeOrder) {
 			_root.reset(new Middle(upperNodes.begin(), upperNodes.end(), lessThanPtr));
 		} else {
-			// recursive
-			this->constructNodeHierarchy<false>(upperNodes);
+			this->constructTreeFromBottomToRoot<false>(upperNodes);
 		}
 	}
 
@@ -167,9 +155,7 @@ namespace btree {
 	BTREE_TEMPLATE
 	BTREE::Btree(const Btree& that)
 		: _keyNum(that._keyNum), _root(that.CloneNodes(*this)), lessThanPtr(that.lessThanPtr)
-	{
-		// copy constructor
-	}
+	{}
 
 	BTREE_TEMPLATE
 	BTREE::Btree(Btree&& that) noexcept
@@ -180,8 +166,6 @@ namespace btree {
 	BTREE&
 	BTREE::operator=(const Btree& that)
 	{
-		// copy assign
-//		static_cast<BtreeHelper>(*this) = that;
 		this->_keyNum = that._keyNum;
 		this->_root.reset(that.CloneNodes(*this));
 		this->lessThanPtr = that.lessThanPtr;
@@ -202,11 +186,12 @@ namespace btree {
 	Value
 	BTREE::search(const Key& key) const
 	{
-		Base* node = this->checkOut(key);
-		if (node->Middle) {
-//			throw exception;
+		auto valuePtr = _root->search(key);
+		if (valuePtr == nullptr) {
+			throw runtime_error("The key you searched is beyond the max key.");
 		}
-		return static_cast<Leaf>(*node)[key];
+
+		return *valuePtr;
 	}
 
 	BTREE_TEMPLATE
@@ -289,8 +274,7 @@ namespace btree {
 	bool
 	BTREE::have(const Key& key) const
 	{
-		Base* r = this->checkOut(key);
-		return !(r->Middle || !r->have(key));
+		return _root->have(key);
 	}
 
 	// private method part:
@@ -303,15 +287,14 @@ namespace btree {
 		if (!_root->Middle) {
 			return _root.get();
 		} else {
-			return checkOutDigging(key, _root.get()->self());
+			return checkOutHelper(key, _root.get());
 		}
 	}
 
 	BTREE_TEMPLATE
 	typename BTREE::Base*
-	BTREE::checkOutDigging(const Key& key, Middle* node)
+	BTREE::checkOutHelper(const Key& key, Middle* node)
 	{
-		// call function checkOut has ensure Middle=true on the first time
 		do {
 			if (node->have(key)) {
 				node = node->operator[](key);
@@ -323,10 +306,9 @@ namespace btree {
 		return node; // node is Leaf here
 	}
 
-	/// operate on the true Node
 	BTREE_TEMPLATE
 	vector<typename BTREE::Leaf*>
-	BTREE::traverseLeaf(const std::function<bool(Leaf*)>& predicate) const
+	BTREE::traverseLeaf(const function<bool(Leaf*)>& predicate) const
 	{
 		vector<Leaf*> result;
 
@@ -422,7 +404,7 @@ namespace btree {
 	LeafNode<Key, Value, BtreeOrder>*
 	maxLeaf(NodeBase<Key, Value, BtreeOrder>* node)
 	{
-		std::function<NodeBase<Key, Value, BtreeOrder>*(MiddleNode<Key, Value, BtreeOrder>*)> max
+		function<NodeBase<Key, Value, BtreeOrder>*(MiddleNode<Key, Value, BtreeOrder>*)> max
 			= [] (auto n) {
 				return n->max_son();
 			};
@@ -434,7 +416,7 @@ namespace btree {
 	LeafNode<Key, Value, BtreeOrder>*
 	node_select_recur(
 		NodeBase<Key, Value, BtreeOrder>* node,
-		const std::function<NodeBase<Key, Value, BtreeOrder>* (MiddleNode<Key, Value, BtreeOrder>*)>& operation
+		const function<NodeBase<Key, Value, BtreeOrder>* (MiddleNode<Key, Value, BtreeOrder>*)>& operation
 	)
 	{
 		while (node->Middle) {

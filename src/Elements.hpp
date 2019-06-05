@@ -6,6 +6,7 @@
 #include <string>     // for to_string
 #include <vector>     // for vector
 #include <memory>     // for unique_ptr, shared_ptr
+#include <iterator>
 #ifdef BTREE_DEBUG
 #include "Utility.hpp"
 #endif
@@ -21,12 +22,15 @@ namespace btree {
 	using std::memcpy;
 	using std::runtime_error;
 	using std::make_unique;
+	using std::iterator;
+	using std::forward_iterator_tag;
 
 #define ELEMENTS_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder, typename PtrType>
 
 	ELEMENTS_TEMPLATE
 	class Elements {
 	public:
+		class ElementsIterator;
 		using ValueForContent = variant<Value, unique_ptr<PtrType>>;
 		using Content     = pair<Key, ValueForContent>;
 		using LessThan = function<bool(const Key&, const Key&)>;
@@ -46,15 +50,18 @@ namespace btree {
 		bool        full() const;
 		bool        remove(const Key&);
 		template <typename T>
-		void insert(pair<Key, T>);
+		void        insert(pair<Key, T>);
 		template <typename T>
-		void append(pair<Key, T>);
+		void        append(pair<Key, T>);
 
 		// should provide reference?
 		ValueForContent& operator[](const Key&);
 		Content&         operator[](uint16_t);
+		ElementsIterator begin();
+		ElementsIterator end();
 
 		pair<Key, Value> exchangeMax(pair<Key, Value>);
+		ValueForContent& max();
 		PtrType* ptrOfMin() const; // for PtrType for Btree traverse all leaf
 		PtrType* ptrOfMax() const; // for add the key beyond the max bound
 
@@ -62,7 +69,6 @@ namespace btree {
 		static PtrType* ptr(const ValueForContent&);
 
 	private:
-		LessThan                   _lessThan;
 		uint16_t                   _count{ 0 };
 		uint16_t                   _cacheIndex{ 0 };
 		array<Content, BtreeOrder> _elements;
@@ -74,7 +80,25 @@ namespace btree {
 		static Content& assign(Content&, pair<Key, Value>);
 		static Content* moveElement(int16_t, Content*, Content*);
 		static void initialInternalElements(array<Content, BtreeOrder>&, const array<Content, BtreeOrder>&, bool, uint16_t);
+
+	public:
+		class ElementsIterator : iterator<forward_iterator_tag, Content> {
+			Content* _ptr;
+
+		public:
+			explicit ElementsIterator(Content* p) : _ptr(p) {}
+
+			ElementsIterator& operator->()       { _ptr = ++_ptr; return *this; }
+			Content&          operator* () const { return *_ptr; }
+			Content*          operator->() const { return _ptr; }
+			ElementsIterator& operator++()       { ++_ptr; return *this; }
+			bool              operator==(const ElementsIterator& i) const
+			{ return _ptr == i._ptr; }
+			bool              operator!=(const ElementsIterator& i) const
+			{ return _ptr != i._ptr; }
+		};
 	};
+
 }
 
 namespace btree {
@@ -89,8 +113,7 @@ namespace btree {
 		shared_ptr<LessThan> funcPtr
 	) :
 		LeafFlag(std::is_same<typename std::decay<decltype(*begin)>::type, pair<Key, Value>>::value),
-		LessThanPtr(funcPtr),
-		_lessThan(*LessThanPtr)
+		LessThanPtr(funcPtr)
 	{
 		if (begin == end) {
 			return;
@@ -108,7 +131,6 @@ namespace btree {
 	ELE::Elements(const Elements& that) :
 		LeafFlag(that.LeafFlag),
 		LessThanPtr(that.LessThanPtr),
-		_lessThan(*LessThanPtr),
 		_count(that._count)
 	{
 		initialInternalElements(_elements, that._elements, that.LeafFlag, _count);
@@ -118,7 +140,6 @@ namespace btree {
 	ELE::Elements(Elements&& that) noexcept :
 		LeafFlag(that.LeafFlag),
 		LessThanPtr(that.LessThanPtr),
-		_lessThan(*LessThanPtr),
 		_count(that._count),
 		_elements(std::move(that._elements))
 	{
@@ -137,7 +158,7 @@ namespace btree {
 	ELE::have(const Key& key)
 	{
 		for (auto i = 0; i < _count; ++i) {
-			if (_lessThan(_elements[i].first, key) == _lessThan(key, _elements[i].first)) {
+			if ((*LessThanPtr)(_elements[i].first, key) == (*LessThanPtr)(key, _elements[i].first)) {
 				_cacheIndex = i;
 				return true;
 			}
@@ -213,6 +234,20 @@ namespace btree {
 	}
 
 	ELEMENTS_TEMPLATE
+	typename ELE::ElementsIterator
+	ELE::begin()
+	{
+		return ElementsIterator(_elements.begin());
+	}
+
+	ELEMENTS_TEMPLATE
+	typename ELE::ElementsIterator
+	ELE::end()
+	{
+		return ElementsIterator(_elements.end());
+	}
+
+	ELEMENTS_TEMPLATE
 	template <typename T>
 	void
 	ELE::insert(pair<Key, T> p)
@@ -224,9 +259,9 @@ namespace btree {
 
 		int16_t i = 0;
 		for (; i < _count; ++i) {
-			if (_lessThan(k, _elements[i].first) == _lessThan(_elements[i].first, k)) {
+			if ((*LessThanPtr)(k, _elements[i].first) == (*LessThanPtr)(_elements[i].first, k)) {
 				throw runtime_error("The inserting key duplicates: " + k);
-			} else if (_lessThan(k, _elements[i].first)) {
+			} else if ((*LessThanPtr)(k, _elements[i].first)) {
 				goto Insert;
 			}
 		}
@@ -268,13 +303,20 @@ namespace btree {
 		auto& maxItem = _elements[_count - 1];
 		pair<Key, Value> max{ maxItem.first, Elements::value(maxItem.second) };
 		--_count;
-		if (_lessThan(_elements[_count - 1].first, p.first)) {
+		if ((*LessThanPtr)(_elements[_count - 1].first, p.first)) {
 			append(p);
 		} else {
 			insert(p);
 		}
 
 		return max;
+	}
+
+	ELEMENTS_TEMPLATE
+	typename ELE::ValueForContent&
+	ELE::max()
+	{
+		return _elements[_count - 1].second;
 	}
 
 	// for ptr

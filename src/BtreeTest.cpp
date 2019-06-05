@@ -27,10 +27,38 @@ TESTCASE("Btree test") {
 		kv8,
 	};
 
-	using BTREE = Btree<4, string, string>;
-	BTREE::LessThan lessThan = [] (const string& a, const string& b) {
+	function<bool(const string&, const string&)> lessThan = [] (const string& a, const string& b) {
 		return a < b;
 	};
 
-	BTREE btree{ lessThan, keyValueArray };
+	SECTION("Test count more than BtreeOrder btree") {
+
+		using BTREE = Btree<4, string, string>;
+		BTREE btree{ lessThan, keyValueArray };
+
+		SECTION("Test move") {
+
+		}
+
+		SECTION("Test copy") {
+
+		}
+
+		SECTION("Test search") {
+			ASSERT(btree.search("1") == "a");
+			ASSERT(btree.search(kv0.first) == kv0.second);
+		}
+	}
+
+	SECTION("Test count less than BtreeOrder construct") {
+
+		using BTREE = Btree<10, string, string>;
+		BTREE btree{ lessThan, keyValueArray };
+	}
+}
+
+void
+btreeTest()
+{
+	allTest();
 }
