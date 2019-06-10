@@ -104,7 +104,7 @@ namespace btree {
 		if constexpr (NumOfArrayEle <= BtreeOrder) {
 			_root.reset(new Leaf(pairArray.begin(), pairArray.end(), lessThanPtr));
 		} else {
-			this->constructTreeFromBottomToRoot(pairArray);
+			constructTreeFromBottomToRoot(pairArray);
 		}
 
 		_keyNum += NumOfArrayEle;
@@ -138,16 +138,15 @@ namespace btree {
 				upperNodes[i] = make_pair(middle->maxKey(), middle);
 			}
 
-			// update
 			head = tail;
-			tail = (end - tail > BtreeOrder) ? (end + BtreeOrder) : end;
+			tail = (end - tail > BtreeOrder) ? (tail + BtreeOrder) : end;
 			++i;
 		} while (end - head > 0);
 
 		if constexpr (upperNodeNum <= BtreeOrder) {
 			_root.reset(new Middle(upperNodes.begin(), upperNodes.end(), lessThanPtr));
 		} else {
-			this->constructTreeFromBottomToRoot<false>(upperNodes);
+			constructTreeFromBottomToRoot<false>(upperNodes);
 		}
 	}
 
@@ -199,47 +198,37 @@ namespace btree {
 	BTREE::add(pair<Key, Value> pair)
 	{
 		if (_root == nullptr) {
-			_root.reset(new Leaf(*this, &pair, &pair + 1));
-			++_keyNum;
-			return;
-		}
-
-		auto& k = pair.first;
-		auto& v = pair.second;
-		Base* node = this->checkOut(k);
-		// all the pair is inserted to Leaf below
-		if (!node->Middle) {
-			if (node->have(k)) {
+			_root.reset(new Leaf(&pair, &pair + 1, lessThanPtr));
+		} else {
+			if (_root->have(pair.first)) {
 				throw runtime_error("The key-value has already existed, can't be added.");
 			} else {
-				node->self()->add(pair);
-				++_keyNum;
+				// TODO how to reduce the duplicate search process
+				_root->add(std::move(pair));
 			}
-		} else {
-			auto leaf = maxLeaf(_root.get());
-			leaf->add(pair);
-			++_keyNum;
 		}
+
+		++_keyNum;
 	}
-
-
 
 	BTREE_TEMPLATE
 	void
 	BTREE::modify(pair<Key, Value> pair)
 	{
+		if (_root == nullptr) {
+			throw runtime_error(
+				"Unable to modify, because the tree has no key-values");
+		}
+
 		auto& k = pair.first;
 		auto& v = pair.second;
 
-		Base* node = this->checkOut(k);
-		if (!node->Middle) {
-			if (node->have(k)) {
-				node->self()->operator[](k) = v;
-				return;
-			}
+		if (_root->have(k)) {
+			*(_root->search(k)) = v;
 		}
 
-		throw runtime_error("The key you want to modify does not exist.");
+		throw runtime_error(
+			"Unable to modify, because the tree doesn't have the key of pair");
 	}
 
 	BTREE_TEMPLATE
@@ -248,8 +237,8 @@ namespace btree {
 	{
 		vector<Key> keys;
 		keys.reserve(_keyNum);
-		this->traverseLeaf([&keys](Base* n) {
-			for (auto&& k : n->all_key()) {
+		traverseLeaf([&keys](Base* n) {
+			for (auto&& k : n->allKey()) {
 				keys.push_back(k);
 			}
 			return false;

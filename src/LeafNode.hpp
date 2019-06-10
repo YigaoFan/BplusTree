@@ -23,7 +23,7 @@ namespace btree {
 
         const Value&     operator[](const Key&);
 		pair<Key, Value> operator[](uint16_t);
-        bool add(pair<Key, Value>);
+        bool             add(pair<Key, Value>&&) override;
         void             remove(const Key&);
         inline LeafNode* nextLeaf() const;
         inline void      nextLeaf(LeafNode*);
@@ -75,7 +75,7 @@ namespace btree {
 
 	LEAF_NODE_TEMPLATE
 	bool
-	LEAF::add(pair<Key, Value> p)
+	LEAF::add(pair<Key, Value>&& p)
 	{
 //		if (this->elements_.full()) {
 //			auto&& old_key = this->max_key();

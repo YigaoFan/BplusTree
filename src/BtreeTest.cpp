@@ -32,7 +32,6 @@ TESTCASE("Btree test") {
 	};
 
 	SECTION("Test count more than BtreeOrder btree") {
-
 		using BTREE = Btree<4, string, string>;
 		BTREE btree{ lessThan, keyValueArray };
 
@@ -44,14 +43,25 @@ TESTCASE("Btree test") {
 
 		}
 
-		SECTION("Test search") {
-			ASSERT(btree.search("1") == "a");
+		SECTION("Test normal function") {
 			ASSERT(btree.search(kv0.first) == kv0.second);
+			ASSERT(btree.search(kv8.first) == kv8.second);
+			ASSERT_THROW(runtime_error, btree.search("10"));
+
+			btree.add(make_pair("10", "d")); // TODO
+			ASSERT(btree.search("10") == "d");
+
+			btree.modify(make_pair(kv0.first, "d"));
+			ASSERT(btree.search(kv0.first) == "d");
+
+//			auto keys = btree.explore();
+
+//			btree.remove("10");
+			ASSERT_THROW(runtime_error, btree.have("10"));
 		}
 	}
 
 	SECTION("Test count less than BtreeOrder construct") {
-
 		using BTREE = Btree<10, string, string>;
 		BTREE btree{ lessThan, keyValueArray };
 	}

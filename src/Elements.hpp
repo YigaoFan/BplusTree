@@ -76,8 +76,8 @@ namespace btree {
 		void     adjustMemory(int16_t , Content*);
 		uint16_t relatedIndex(const Key&);
 
-		static Content& assign(Content&, pair<Key, PtrType*>);
-		static Content& assign(Content&, pair<Key, Value>);
+		static Content& assign(Content &, pair<Key, Value>);
+		static Content& assign(Content &, pair<Key, PtrType*>);
 		static Content* moveElement(int16_t, Content*, Content*);
 		static void initialInternalElements(array<Content, BtreeOrder>&, const array<Content, BtreeOrder>&, bool, uint16_t);
 
@@ -369,12 +369,6 @@ namespace btree {
 	typename ELE::Content*
 	ELE::moveElement(int16_t direction, Content* begin, Content* end)
 	{
-#ifdef FALSE
-		std::cout << "begin: " << begin << std::endl;
-		std::cout << "end: " << end << std::endl;
-		std::cout << "content: " << sizeof(Content) << std::endl;
-#endif
-
 		// depend on different direction, where to start copy is different
 		// in the future, could use WORD_BIT to copy
 		if (direction < 0) {
@@ -409,6 +403,7 @@ namespace btree {
 		} else {
 			for (auto& e : thisInternalElements) {
 				auto& ptr = std::get<unique_ptr<PtrType>>(e.second);
+				// *ptr is error, because should copy derived class
 				auto deepClone = make_unique<PtrType>(*ptr);
 				ptr.release();
 				ptr.reset(deepClone.release());
@@ -418,10 +413,10 @@ namespace btree {
 
 	ELEMENTS_TEMPLATE
 	typename ELE::Content&
-	ELE::assign(Content& ele, pair<Key, PtrType*> p)
+	ELE::assign(Content &ele, pair<Key, PtrType*> pairPtr)
 	{
-		ele.first = p.first;
-		unique_ptr<PtrType> uni_ptr(p.second);
+		ele.first = pairPtr.first;
+		unique_ptr<PtrType> uni_ptr(pairPtr.second);
 
 		new (&(ele.second)) variant<Value, unique_ptr<PtrType>>(std::move(uni_ptr));
 		return ele;
@@ -429,9 +424,9 @@ namespace btree {
 
 	ELEMENTS_TEMPLATE
 	typename ELE::Content&
-	ELE::assign(Content& ele, pair<Key, Value> p)
+	ELE::assign(Content &ele, const pair<Key, Value> pairPtr)
 	{
-		ele = std::move(p);
+		ele = std::move(pairPtr);
 		return ele;
 	}
 

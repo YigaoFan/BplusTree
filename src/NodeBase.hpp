@@ -28,12 +28,11 @@ namespace btree {
         inline bool        have(const Key&);
         Value*             search(const Key&);
         inline vector<Key> allKey() const;
-
-        virtual NodeBase* father() const;
-
-		uint16_t    childCount() const;
-		inline bool empty() const;
-		inline bool full() const;
+        virtual NodeBase*  father() const;
+		uint16_t           childCount() const;
+		inline bool        empty() const;
+		inline bool        full() const;
+		virtual bool       add(pair<Key, Value>&&) = 0;
     protected:
         NodeBase* father_{ nullptr };
 
@@ -101,6 +100,8 @@ namespace btree {
 	{
 		return elements_.full();
 	}
+
+
 
 //    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
 //    Proxy<Key, Value, BtreeOrder, BtreeType>

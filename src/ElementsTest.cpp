@@ -24,13 +24,17 @@ TESTCASE("Element test") {
 	using ELE = Elements<string, string, 3, DummyNode>;
 	using std::make_shared;
 
-	SECTION("Test leaf Element construct") {
+	SECTION("Test leaf full Element construct") {
 		array<pair<string, string>, 3> keyValueArray {
 			make_pair("1", "a"),
 			make_pair("2", "b"),
 			make_pair("3", "c"),
 		};
-		ELE leafEle{keyValueArray.begin(), keyValueArray.end(), make_shared<decltype(lessThan)>(lessThan)};
+		ELE leafEle{
+			keyValueArray.begin(),
+			keyValueArray.end(),
+			make_shared<decltype(lessThan)>(lessThan)
+		};
 
 		ASSERT(leafEle.count() == 3);
 		ASSERT(leafEle.full());
@@ -113,6 +117,24 @@ TESTCASE("Element test") {
 			}
 		}
 
+		SECTION("Test construct Element on heap") {
+			ELE* heapEle = new ELE {
+				keyValueArray.begin(),
+				keyValueArray.end(),
+				make_shared<decltype(lessThan)>(lessThan)
+			};
+
+			delete heapEle;
+		}
+
+		SECTION("Test no full construct") {
+			ELE notFullEle {
+				keyValueArray.begin(),
+				&keyValueArray[keyValueArray.size() - 1],
+				make_shared<decltype(lessThan)>(lessThan)
+			};
+			ASSERT(notFullEle.count() == 2);
+		}
 	}
 
 	SECTION("Test middle Element construct") {
@@ -171,6 +193,8 @@ TESTCASE("Element test") {
 			ASSERT_THROW(runtime_error, ELE::ptr(middle["3"]));
 		}
 	}
+
+	// TODO maybe need to test deconstruct
 }
 
 void

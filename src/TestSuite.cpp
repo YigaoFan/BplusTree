@@ -5,7 +5,7 @@ extern void btreeTest();
 void
 allTest()
 {
-//	elementTest();
-//	nodeTest();
+	elementTest();
+	nodeTest();
 	btreeTest();
 }

@@ -22,7 +22,8 @@ namespace btree {
 
         Base* minSon() const;
         Base* maxSon() const;
-		MiddleNode*    father() const override;
+		MiddleNode*      father() const override;
+		bool             add(pair<Key, Value>&&) override;
         Base*            operator[](const Key&);
         pair<Key, Base*> operator[](uint16_t);
     };
@@ -87,6 +88,23 @@ namespace btree {
     {
         return static_cast<MiddleNode*>(Base::father());
     }
+
+    MIDDLE_NODE_TEMPLATE
+	bool
+	MIDDLE::add(pair<Key, Value>&& p)
+	{
+		auto& k = p.first;
+		auto& v = p.second;
+
+		for (auto& e : this->elements_) {
+			if ((*this->elements_.LessThanPtr)(k, e.first)) {
+				return Base::Ele::ptr(e.second)->add(std::move(p));
+			}
+		}
+
+		// TODO wait to delete
+		throw runtime_error("add pair encounter some error");
+	}
 
 //    MIDDLE_NODE_TEMPLATE
 //    Proxy<Key, Value, BtreeOrder>
