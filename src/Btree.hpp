@@ -273,7 +273,7 @@ namespace btree {
 	BTREE::have() const
 	{
 		return _root.get() != nullptr;
-    }
+	}
 
 	BTREE_TEMPLATE
 	vector<typename BTREE::Leaf*>
