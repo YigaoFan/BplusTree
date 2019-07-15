@@ -47,7 +47,7 @@ namespace btree {
 		Btree(Btree&&) noexcept;
 		Btree& operator=(const Btree&);
 		Btree& operator=(Btree&&) noexcept;
-        ~Btree() = default;
+		~Btree() = default;
 
 		Value       search (const Key&) const;
 		void        add    (pair<Key, Value>);
