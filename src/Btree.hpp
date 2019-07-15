@@ -272,7 +272,7 @@ namespace btree {
 	bool
 	BTREE::have() const
 	{
-        return _root.get() != nullptr;
+		return _root.get() != nullptr;
     }
 
 	BTREE_TEMPLATE
