@@ -1,9 +1,9 @@
 #pragma once
-#include <vector> 	    // for vector
-#include <functional> 	// for function
+#include <vector>       // for vector
+#include <functional>   // for function
 #include <memory>       // for unique_ptr
 #include <utility> 	    // for pair
-#include <algorithm>  	// for sort
+#include <algorithm>    // for sort
 #include <array>        // for array
 #include <exception>    // for exception
 #include "LeafNode.hpp"
@@ -66,8 +66,8 @@ namespace btree {
 		template <bool FirstCall=true, typename E, size_t NodeCount>
 		void constructTreeFromLeafToRoot(const array<E, NodeCount>&);
 
-        static Leaf* minLeaf(Base*);
-        static Leaf* recurSelectNode(Base*, function<Base*(Middle*)>&);
+		static Leaf* minLeaf(Base*);
+		static Leaf* recurSelectNode(Base*, function<Base*(Middle*)>&);
 		// Base* cloneNodes(Btree&) const;
         //void root_add(const node_instance*, const std::pair<Key, Value>&);
 		//void create_new_branch(const node_instance*, const std::pair<Key, Value>&);
@@ -148,7 +148,7 @@ namespace btree {
 		} while (end - head > 0);
 
 		if constexpr (upperNodeNum <= BtreeOrder) {
-            _root = make_unique<Middle>(upperNodes.begin(), upperNodes.end(), _lessThanPtr);
+			_root = make_unique<Middle>(upperNodes.begin(), upperNodes.end(), _lessThanPtr);
 		} else {
 			constructTreeFromLeafToRoot<false>(upperNodes);
 		}
@@ -224,8 +224,8 @@ namespace btree {
 
 		auto& k = pair.first;
 		auto& v = pair.second;
-
-        *(_root->search(k)) = v;
+		
+		*(_root->search(k)) = v;
 	}
 
 	BTREE_TEMPLATE
@@ -235,12 +235,12 @@ namespace btree {
 		vector<Key> keys;
 		keys.reserve(_keyNum);
 
-        traverseLeaf([&keys](Leaf* l) {
-            auto&& ks = l->allKey();
-            keys.insert(keys.end(), ks.begin(), ks.end());
+		traverseLeaf([&keys](Leaf* l) {
+			auto&& ks = l->allKey();
+			keys.insert(keys.end(), ks.begin(), ks.end());
 
-            return false;
-        });
+			return false;
+		});
 
 		return keys;
 	}
