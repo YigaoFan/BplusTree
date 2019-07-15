@@ -38,35 +38,41 @@ static function<bool(const string&, const string&)> lessThan = [] (const string&
 };
 
 TESTCASE("Middle node test") {
-	using LEAF = LeafNode<string, string, 3>;
+	using LEAF   = LeafNode  <string, string, 3>;
 	using MIDDLE = MiddleNode<string, string, 3>;
-	using BASE = NodeBase<string, string, 3>;
+	using BASE   = NodeBase  <string, string, 3>;
+
 	auto makeLeaf = [] (auto& kvArray, auto& func) {
-		return new LEAF{ kvArray.begin(), kvArray.end(), make_shared<decltype(lessThan)>(func)};
+		return make_unique<LEAF>(kvArray.begin(), kvArray.end(), make_shared<decltype(lessThan)>(func));
 	};
 
-	LEAF* leaf0 = makeLeaf(keyValueArray1, lessThan); // maybe here occur problem, because move
-	LEAF* leaf1 = makeLeaf(keyValueArray2, lessThan);
-	LEAF* leaf2 = makeLeaf(keyValueArray3, lessThan);
-	pair<string, LEAF*> kl0 {leaf0->maxKey(), leaf0};
-	pair<string, LEAF*> kl1 {leaf1->maxKey(), leaf1};
-	pair<string, LEAF*> kl2 {leaf2->maxKey(), leaf2};
-	array<pair<string, LEAF*>, 3> leafArray {
-		kl0,
-		kl1,
-		kl2,
+	auto leaf0 = makeLeaf(keyValueArray1, lessThan);
+	auto leaf1 = makeLeaf(keyValueArray2, lessThan);
+	auto leaf2 = makeLeaf(keyValueArray3, lessThan);
+
+    auto kl0 = make_pair<string, unique_ptr<LEAF>>(leaf0->maxKey(), std::move(leaf0));
+    auto kl1 = make_pair<string, unique_ptr<LEAF>>(leaf1->maxKey(), std::move(leaf1));
+    auto kl2 = make_pair<string, unique_ptr<LEAF>>(leaf2->maxKey(), std::move(leaf2));
+	array<decltype(kl0), 3> leafArray {
+		std::move(kl0),
+		std::move(kl1),
+		std::move(kl2),
 	};
 
 	MIDDLE middle{ leafArray.begin(), leafArray.end(), make_shared<decltype(lessThan)>(lessThan) };
 
 	SECTION("Test no change function") {
-		ASSERT(middle.minSon() == kl0.second);
-		ASSERT(middle.maxSon() == kl2.second);
-		ASSERT(middle[kl0.first] == kl0.second);
-		ASSERT(middle[kl1.first] == kl1.second);
-		ASSERT(middle[kl2.first] == kl2.second);
+		ASSERT(middle.minSon() == leaf0.get());
+		ASSERT(middle.maxSon() == leaf2.get());
+		ASSERT(middle[kl0.first] == leaf0.get());
+		ASSERT(middle[kl1.first] == leaf1.get());
+		ASSERT(middle[kl2.first] == leaf2.get());
 		ASSERT(middle[0].first == kl0.first);
-		ASSERT(middle[0].second == static_cast<BASE*>(kl0.second));
+		ASSERT(middle[0].second == static_cast<BASE*>(kl0.second.get()));
+		ASSERT(middle[1].first == kl1.first);
+		ASSERT(middle[1].second == static_cast<BASE*>(kl1.second.get()));
+		ASSERT(middle[2].first == kl2.first);
+		ASSERT(middle[2].second == static_cast<BASE*>(kl2.second.get()));
 		ASSERT(middle[kl0.first]->father() == &middle);
 		ASSERT(middle[kl1.first]->father() == &middle);
 		ASSERT(middle[kl2.first]->father() == &middle);

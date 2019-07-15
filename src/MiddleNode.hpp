@@ -1,13 +1,14 @@
 #pragma once
 //#include "Proxy.hpp"
-#include "NodeBase.hpp"
+#include "NodeBaseCrtp.hpp"
 #include "LeafNode.hpp"
 
 namespace btree {
 #define MIDDLE_NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
+#define MIDDLE MiddleNode<Key, Value, BtreeOrder>
 
 	MIDDLE_NODE_TEMPLATE
-    class MiddleNode final : public NodeBase<Key, Value, BtreeOrder> {
+    class MiddleNode : public NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder> {
     private:
         using          Base = NodeBase<Key, Value, BtreeOrder>;
         using typename Base::LessThan;
@@ -20,19 +21,19 @@ namespace btree {
 		MiddleNode(MiddleNode&&) noexcept;
         ~MiddleNode() override;
 
-        Base* minSon() const;
-        Base* maxSon() const;
+        Base* minSon();
+        Base* maxSon();
 		MiddleNode*      father() const override;
 		bool             add(pair<Key, Value>&&) override;
         Base*            operator[](const Key&);
         pair<Key, Base*> operator[](uint16_t);
+
+    private:
+	    unique_ptr<Base> clone() const override;
     };
 }
 
-// implement
 namespace btree {
-#define MIDDLE MiddleNode<Key, Value, BtreeOrder>
-
 	MIDDLE_NODE_TEMPLATE
     template <typename Iter>
     MIDDLE::MiddleNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
@@ -54,16 +55,20 @@ namespace btree {
 
 	MIDDLE_NODE_TEMPLATE
     typename MIDDLE::Base*
-    MIDDLE::minSon() const
+    MIDDLE::minSon()
     {
-        return this->elements_.ptrOfMin();
+	    auto& es = Base::elements_;
+
+        return Base::Ele::ptr(es[0].second);
     }
 
     MIDDLE_NODE_TEMPLATE
     typename MIDDLE::Base*
-    MIDDLE::maxSon() const
+    MIDDLE::maxSon()
     {
-        return this->elements_.ptrOfMax();
+	    auto& es = Base::elements_;
+
+        return Base::Ele::ptr(es[es.count() - 1].second);
     }
 
     MIDDLE_NODE_TEMPLATE
@@ -106,12 +111,13 @@ namespace btree {
 		throw runtime_error("add pair encounter some error");
 	}
 
-//    MIDDLE_NODE_TEMPLATE
-//    Proxy<Key, Value, BtreeOrder>
-//    MIDDLE::self()
-//    {
-//        return Proxy{this};
-//    }
+	MIDDLE_NODE_TEMPLATE
+    unique_ptr<typename MIDDLE::Base>
+    MIDDLE::clone() const
+    {
+	    return make_unique<MIDDLE>(*this);
+    }
+
 #undef MIDDLE
 #undef MIDDLE_NODE_TEMPLATE
 }

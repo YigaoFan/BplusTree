@@ -54,9 +54,9 @@ TESTCASE("Btree test") {
 			btree.modify(make_pair(kv0.first, "d"));
 			ASSERT(btree.search(kv0.first) == "d");
 
-//			auto keys = btree.explore();
+			auto keys = btree.explore();
 
-//			btree.remove("10");
+			btree.remove("10");
 			ASSERT_THROW(runtime_error, btree.have("10"));
 		}
 	}

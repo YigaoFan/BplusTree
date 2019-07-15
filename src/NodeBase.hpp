@@ -1,10 +1,9 @@
 #pragma once
-#include <vector> 		// for vector
-#include "Elements.hpp" // for Elements
-//#include "Proxy.hpp"
+#include <vector> // for vector
+#include "Elements.hpp"
 
 namespace btree {
-    struct LeafFlag {};
+    struct LeafFlag   {};
     struct MiddleFlag {};
 
 #define NODE_BASE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
@@ -12,19 +11,20 @@ namespace btree {
     NODE_BASE_TEMPLATE
     class NodeBase {
     public:
-		using Ele         = Elements<Key, Value, BtreeOrder, NodeBase>;
+		using Ele      = Elements<Key, Value, BtreeOrder, NodeBase>;
 		using LessThan = typename Ele::LessThan;
         const bool Middle;
 
         template <typename Iter>
-        NodeBase(LeafFlag, Iter, Iter, shared_ptr<LessThan>);
+        NodeBase(LeafFlag,   Iter, Iter, shared_ptr<LessThan>);
         template <typename Iter>
-        NodeBase(MiddleFlag,Iter, Iter, shared_ptr<LessThan>);
+        NodeBase(MiddleFlag, Iter, Iter, shared_ptr<LessThan>);
         NodeBase(const NodeBase&);
         NodeBase(NodeBase&&) noexcept;
+        virtual unique_ptr<NodeBase> clone() const = 0;
         virtual ~NodeBase() = default;
 
-        inline Key         maxKey() const;
+        inline Key         maxKey();
         inline bool        have(const Key&);
         Value*             search(const Key&);
         inline vector<Key> allKey() const;
@@ -32,15 +32,15 @@ namespace btree {
 		uint16_t           childCount() const;
 		inline bool        empty() const;
 		inline bool        full() const;
-		virtual bool       add(pair<Key, Value>&&) = 0;
+		virtual bool       add(pair<Key, Value>&&);
+		bool               remove(const Key&);
+
     protected:
         NodeBase* father_{ nullptr };
-
         Elements<Key, Value, BtreeOrder, NodeBase> elements_;
     };
 }
 
-// implementation
 namespace btree {
 #define NODE NodeBase<Key, Value, BtreeOrder>
 
@@ -48,7 +48,7 @@ namespace btree {
     template <typename Iter>
     NODE::NodeBase(LeafFlag, Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
         : Middle(false), elements_(begin, end, lessThanPtr)
-    {}
+    { }
 
 	NODE_BASE_TEMPLATE
     template <typename Iter>
@@ -65,12 +65,12 @@ namespace btree {
     NODE_BASE_TEMPLATE
     NODE::NodeBase(const NodeBase& that)
         : Middle(that.Middle), elements_(that.elements_)
-    {}
+    { }
 
     NODE_BASE_TEMPLATE
 	NODE::NodeBase(NodeBase&& that) noexcept
 		: Middle(that.Middle), father_(that.father_), elements_(std::move(that.elements_))
-	{}
+	{ }
 
 
 	NODE_BASE_TEMPLATE
@@ -101,20 +101,11 @@ namespace btree {
 		return elements_.full();
 	}
 
-
-
-//    template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
-//    Proxy<Key, Value, BtreeOrder, BtreeType>
-//    NodeBase<Key, Value, BtreeOrder, BtreeType>::self()
-//    {
-//       return this;
-//    }
-
 	NODE_BASE_TEMPLATE
     Key
-    NODE::maxKey() const
+    NODE::maxKey()
     {
-        return elements_.rightMostKey();
+        return elements_[elements_.count() - 1].first;
     }
 
     NODE_BASE_TEMPLATE
@@ -172,7 +163,27 @@ namespace btree {
     vector<Key>
     NODE::allKey() const
     {
-        return elements_.allKey();
+	    vector<Key> keys;
+	    keys.reserve(elements_.count());
+	    for (auto& e : elements_) {
+	        keys.emplace_back(e.first);
+	    }
+
+	    return keys;
+    }
+
+    NODE_BASE_TEMPLATE
+    unique_ptr<NODE>
+    NODE::clone() const
+    {
+	    throw runtime_error("NodeBase's clone is invalid.");
+    }
+
+    NODE_BASE_TEMPLATE
+    bool
+    NODE::remove(const Key& key)
+    {
+	    // TODO
     }
 
 #undef NODE

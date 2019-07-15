@@ -27,13 +27,17 @@ namespace btree {
 
 #define ELEMENTS_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder, typename PtrType>
 
+	/**
+	 * First and second is to public
+	 */
 	ELEMENTS_TEMPLATE
 	class Elements {
 	public:
 		class ElementsIterator;
 		using ValueForContent = variant<Value, unique_ptr<PtrType>>;
-		using Content     = pair<Key, ValueForContent>;
-		using LessThan = function<bool(const Key&, const Key&)>;
+		using Content         = pair<Key, ValueForContent>;
+		using LessThan        = function<bool(const Key&, const Key&)>;
+
 		const bool           LeafFlag;
 		shared_ptr<LessThan> LessThanPtr;
 
@@ -42,44 +46,40 @@ namespace btree {
 		Elements(const Elements&);
 		Elements(Elements&&) noexcept;
 
-		// bool means max key change
-		Key         rightMostKey() const;
-		bool        have(const Key&);
-		vector<Key> allKey() const;
-		uint16_t    count() const;
-		bool        full() const;
-		bool        remove(const Key&);
+		// Bool means max key changes
+		bool             have(const Key&);
+		uint16_t         count() const;
+		bool             full() const;
+		bool             remove(const Key&);
 		template <typename T>
-		void        insert(pair<Key, T>);
+		void             insert(pair<Key, T>);
 		template <typename T>
-		void        append(pair<Key, T>);
+		void             append(pair<Key, T>);
+        pair<Key, Value> exchangeMax(pair<Key, Value>);
 
-		// should provide reference?
 		ValueForContent& operator[](const Key&);
 		Content&         operator[](uint16_t);
-		ElementsIterator begin();
-		ElementsIterator end();
+		ElementsIterator       begin();
+		ElementsIterator       end();
 
-		pair<Key, Value> exchangeMax(pair<Key, Value>);
-		ValueForContent& max();
-		PtrType* ptrOfMin() const; // for PtrType for Btree traverse all leaf
-		PtrType* ptrOfMax() const; // for add the key beyond the max bound
-
-		static Value&   value(ValueForContent&);
-		static PtrType* ptr(const ValueForContent&);
+		static Value&         value(ValueForContent&);
+		static PtrType*       ptr  (ValueForContent&);
+        static const Value&   value(const ValueForContent&);
+        static const PtrType* ptr  (const ValueForContent&);
 
 	private:
 		uint16_t                   _count{ 0 };
-		uint16_t                   _cacheIndex{ 0 };
 		array<Content, BtreeOrder> _elements;
 
 		void     adjustMemory(int16_t , Content*);
 		uint16_t relatedIndex(const Key&);
 
-		static Content& assign(Content &, pair<Key, Value>);
-		static Content& assign(Content &, pair<Key, PtrType*>);
+		static Content& assign(Content&, const pair<Key, Value>&);
+		template <typename T>
+		static Content& assign(Content&, pair<Key, unique_ptr<T>>&);
 		static Content* moveElement(int16_t, Content*, Content*);
 		static void initialInternalElements(array<Content, BtreeOrder>&, const array<Content, BtreeOrder>&, bool, uint16_t);
+		static unique_ptr<PtrType>& uniquePtr(ValueForContent&);
 
 	public:
 		class ElementsIterator : iterator<forward_iterator_tag, Content> {
@@ -98,26 +98,22 @@ namespace btree {
 			{ return _ptr != i._ptr; }
 		};
 	};
-
 }
 
 namespace btree {
 #define ELE Elements<Key, Value, BtreeOrder, PtrType>
-	// public method part:
 
 	ELEMENTS_TEMPLATE
 	template <typename Iter>
 	ELE::Elements(
 		Iter begin,
 		Iter end,
-		shared_ptr<LessThan> funcPtr
+		shared_ptr<LessThan> lessThanPtr
 	) :
 		LeafFlag(std::is_same<typename std::decay<decltype(*begin)>::type, pair<Key, Value>>::value),
-		LessThanPtr(funcPtr)
+		LessThanPtr(lessThanPtr)
 	{
-		if (begin == end) {
-			return;
-		} else {
+		if (begin != end) {
 			do {
 				Elements::assign(_elements[_count], *begin);
 
@@ -147,35 +143,15 @@ namespace btree {
 	}
 
 	ELEMENTS_TEMPLATE
-	Key
-	ELE::rightMostKey() const
-	{
-		return _elements[_count - 1].first;
-	}
-
-	ELEMENTS_TEMPLATE
 	bool
 	ELE::have(const Key& key)
 	{
 		for (auto i = 0; i < _count; ++i) {
 			if ((*LessThanPtr)(_elements[i].first, key) == (*LessThanPtr)(key, _elements[i].first)) {
-				_cacheIndex = i;
 				return true;
 			}
 		}
 		return false;
-	}
-
-	ELEMENTS_TEMPLATE
-	vector<Key>
-	ELE::allKey() const
-	{
-		vector<Key> r;
-		r.reserve(_count);
-		for (size_t i = 0; i < _count; ++i) {
-			r.emplace_back(_elements[i].first);
-		}
-		return r;
 	}
 
 	ELEMENTS_TEMPLATE
@@ -207,22 +183,19 @@ namespace btree {
 		return boundChanged;
 	}
 
-	// for Value
 	ELEMENTS_TEMPLATE
 	typename ELE::ValueForContent&
 	ELE::operator[](const Key& key)
 	{
-		if (key == _elements[_cacheIndex].first) {
-			// where to use this function, why just only need to return ptr?
-			return _elements[_cacheIndex].second;
-		}
 		for (auto i = 0; i < _count; ++i) {
 			if (key == _elements[i].first) {
 				return _elements[i].second;
 			}
 		}
 
-		throw runtime_error("Can't get the Value corresponding to the Key: " + key + ","
+		throw runtime_error("Can't get the Value corresponding to the Key: "
+                            + key
+                            + ","
 							+ " Please check the key existence.");
 	}
 
@@ -312,28 +285,6 @@ namespace btree {
 		return max;
 	}
 
-	ELEMENTS_TEMPLATE
-	typename ELE::ValueForContent&
-	ELE::max()
-	{
-		return _elements[_count - 1].second;
-	}
-
-	// for ptr
-	ELEMENTS_TEMPLATE
-	PtrType*
-	ELE::ptrOfMin() const
-	{
-		return Elements::ptr(_elements[0].second);
-	}
-
-	ELEMENTS_TEMPLATE
-	PtrType*
-	ELE::ptrOfMax() const
-	{
-		return Elements::ptr(_elements[_count - 1].second);
-	}
-
 	// private method part:
 	ELEMENTS_TEMPLATE
 	void
@@ -387,24 +338,21 @@ namespace btree {
 	ELEMENTS_TEMPLATE
 	void
 	ELE::initialInternalElements(
-		array<Content, BtreeOrder>& thisInternalElements,
-		const array<typename ELE::Content, BtreeOrder>& thatInternalElements,
-		bool valueEle,
+		array<Content, BtreeOrder>& thisElements,
+		const array<typename ELE::Content, BtreeOrder>& thatElements,
+		bool isValue,
 		uint16_t count
 	)
 	{
-		auto src = &thatInternalElements;
-		auto des = &thisInternalElements;
+		auto src = &thatElements;
+		auto des = &thisElements;
 
-		memcpy(des, src, count * sizeof(Content)); // copy all include unique_ptr
+		memcpy(des, src, count * sizeof(Content)); // copy all without distinguish
 
-		if (valueEle) {
-			return;
-		} else {
-			for (auto& e : thisInternalElements) {
+		if (!isValue) {
+			for (auto& e : thisElements) {
 				auto& ptr = std::get<unique_ptr<PtrType>>(e.second);
-				// *ptr is error, because should copy derived class
-				auto deepClone = make_unique<PtrType>(*ptr);
+				auto deepClone = ptr->clone();
 				ptr.release();
 				ptr.reset(deepClone.release());
 			}
@@ -412,19 +360,22 @@ namespace btree {
 	}
 
 	ELEMENTS_TEMPLATE
+    template <typename T>
 	typename ELE::Content&
-	ELE::assign(Content &ele, pair<Key, PtrType*> pairPtr)
+	ELE::assign(Content &ele, pair<Key, unique_ptr<T>>& ptrPair)
 	{
-		ele.first = pairPtr.first;
-		unique_ptr<PtrType> uni_ptr(pairPtr.second);
+        static_assert(std::is_base_of<PtrType, T>::value, "The type to be stored should be derived from PtrType");
 
-		new (&(ele.second)) variant<Value, unique_ptr<PtrType>>(std::move(uni_ptr));
+		ele.first = ptrPair.first;
+		ELE::uniquePtr(ele.second).reset(ptrPair.second.release());
+		// ele.second = std::move(make_unique<PtrType>(ptrPair.second.release()));
+		// new (&(ele.second)) ValueForContent(std::move(ptrPair.second));
 		return ele;
 	}
 
 	ELEMENTS_TEMPLATE
 	typename ELE::Content&
-	ELE::assign(Content &ele, const pair<Key, Value> pairPtr)
+	ELE::assign(Content &ele, const pair<Key, Value>& pairPtr)
 	{
 		ele = std::move(pairPtr);
 		return ele;
@@ -438,12 +389,32 @@ namespace btree {
 	}
 
 	ELEMENTS_TEMPLATE
+	const Value&
+	ELE::value(const ValueForContent& v)
+	{
+		return std::get<Value>(v);
+	}
+
+	ELEMENTS_TEMPLATE
 	PtrType*
+	ELE::ptr(ValueForContent& v)
+	{
+		return std::get<unique_ptr<PtrType>>(v).get();
+	}
+
+    ELEMENTS_TEMPLATE
+    const PtrType*
 	ELE::ptr(const ValueForContent& v)
 	{
 		return std::get<unique_ptr<PtrType>>(v).get();
 	}
 
+	ELEMENTS_TEMPLATE
+    unique_ptr<PtrType>&
+	ELE::uniquePtr(ValueForContent& v)
+    {
+	    return std::get<unique_ptr<PtrType>>(v);
+	}
 #undef ELE
 #undef ELEMENTS_TEMPLATE
 }

@@ -39,7 +39,7 @@ Recursive method to construct Nodes Hierarchy, the first call is different from 
 Dependency:
 
     * LeafNode constructor
-
+    
     * MidddleNode constructor
 
 *TODO*
@@ -53,9 +53,9 @@ Search the given Key in the Btree. Return Value pointer when found the LeafNode 
 Dependency:
 
     * middle of NodeBase
-
+    
     * checkOut
-
+    
     * operator[] of the LeafNode
 
 *TODO*
@@ -69,13 +69,13 @@ add the Key-Value pair into the Btree
 Dependency:
 
     * middle of NodeBase
-
+    
     * checkOut
-
+    
     * have of NodeBase
-
+    
     * add of LeafNode
-
+    
     * static function maxLeaf
 
 *TODO*
@@ -88,11 +88,11 @@ modify the existed Value of the Key
 Dependency:
 
     * middle of NodeBase
-
+    
     * checkOut
-
+    
     * have of NodeBase(TODO: should belong to LeafNode?)
-
+    
     * operator[] of LeafNode
 
 **explore**
@@ -102,7 +102,7 @@ use traverseLeaf to get Key of LeafNode
 Dependency:
 
     * traverseLeaf
-
+    
     * allKey of LeafNode
 
 **remove**
@@ -112,9 +112,9 @@ remove the correspond Node of the Key
 Dependency:
 
     * checkOut
-
+    
     * have of NodeBase
-
+    
     * remvoe of LeafNode(TODO: in the current this logic is belong to NodeBase, should modify)
 
 **have**
@@ -124,7 +124,7 @@ User before changing the btree should use have **have** to check the Key's exist
 Dependency:
 
     * checkOut
-
+    
     * middle of NodeBase
-
+    
     * have of NodeBase(TODO: this logic shoud belong to LeafNode? Think of it.)

@@ -30,3 +30,4 @@ static int test_pass = 0;
         }                                                                  \
     } while(0)
 
+// #define

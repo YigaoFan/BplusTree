@@ -13,8 +13,14 @@ using std::make_pair;
 using std::pair;
 using std::cout;
 using std::endl;
+using std::make_shared;
 
 class DummyNode {
+public:
+    unique_ptr<DummyNode> clone() const
+    {
+        return make_unique<DummyNode>(*this);
+    }
 };
 
 TESTCASE("Element test") {
@@ -22,7 +28,6 @@ TESTCASE("Element test") {
 		return a < b;
 	};
 	using ELE = Elements<string, string, 3, DummyNode>;
-	using std::make_shared;
 
 	SECTION("Test leaf full Element construct") {
 		array<pair<string, string>, 3> keyValueArray {
@@ -30,7 +35,7 @@ TESTCASE("Element test") {
 			make_pair("2", "b"),
 			make_pair("3", "c"),
 		};
-		ELE leafEle{
+		ELE leafEle {
 			keyValueArray.begin(),
 			keyValueArray.end(),
 			make_shared<decltype(lessThan)>(lessThan)
@@ -42,7 +47,6 @@ TESTCASE("Element test") {
 		ASSERT(leafEle.have("2"));
 		ASSERT(leafEle.have("3"));
 		ASSERT(!leafEle.have("4"));
-		ASSERT(leafEle.rightMostKey() == "3");
 		ASSERT(ELE::value(leafEle["1"]) == "a");
 		ASSERT(ELE::value(leafEle["2"]) == "b");
 		ASSERT(ELE::value(leafEle["3"]) == "c");
@@ -52,13 +56,9 @@ TESTCASE("Element test") {
 		ASSERT(leafEle[0].first == "1");
 		ASSERT(leafEle[1].first == "2");
 		ASSERT(leafEle[2].first == "3");
-		auto&& keys = leafEle.allKey();
-		ASSERT(keys[0] == "1");
-		ASSERT(keys[1] == "2");
-		ASSERT(keys[2] == "3");
 
 		SECTION("Test copy") {
-			ELE b{leafEle};
+			ELE b { leafEle };
 
 			ASSERT(b.count() == 3);
 			ASSERT(b.full());
@@ -78,6 +78,7 @@ TESTCASE("Element test") {
 		}
 
 		SECTION("Test remove") {
+		    // TODO could use function to simplify below code
 			ASSERT(!leafEle.remove("2"));
 			ASSERT(!leafEle.have("2"));
 			ASSERT(leafEle.count() == 2);
@@ -94,7 +95,6 @@ TESTCASE("Element test") {
 				ASSERT_THROW(runtime_error, leafEle.insert(make_pair(string{"3"}, string{"c"})));
 				leafEle.insert(make_pair(string{"2"}, string{"b"}));
 				ASSERT(leafEle.count() == 2);
-				ASSERT(leafEle.rightMostKey() == "3");
 				ASSERT(ELE::value(leafEle["2"]) == "b");
 				ASSERT(ELE::value(leafEle["3"]) == "c");
 			}
@@ -114,6 +114,7 @@ TESTCASE("Element test") {
 
 		SECTION("Test iterator") {
 			for (auto& e : leafEle) {
+
 			}
 		}
 
@@ -138,14 +139,14 @@ TESTCASE("Element test") {
 	}
 
 	SECTION("Test middle Element construct") {
-		auto* n1 = new DummyNode();
-		auto* n2 = new DummyNode();
-		auto* n3 = new DummyNode();
+		auto n1 = make_unique<DummyNode>();
+        auto n2 = make_unique<DummyNode>();
+        auto n3 = make_unique<DummyNode>();
 
-		array<pair<string, DummyNode*>, 3> keyValueArray {
-			make_pair("1", n1),
-			make_pair("2", n2),
-			make_pair("3", n3),
+		array<pair<string, unique_ptr<DummyNode>>, 3> keyValueArray {
+			make_pair("1", std::move(n1)),
+			make_pair("2", std::move(n2)),
+			make_pair("3", std::move(n3)),
 		};
 
 		ELE middle{keyValueArray.begin(), keyValueArray.end(), make_shared<decltype(lessThan)>(lessThan)};
@@ -156,19 +157,12 @@ TESTCASE("Element test") {
 		ASSERT(middle.have("2"));
 		ASSERT(middle.have("3"));
 		ASSERT(!middle.have("4"));
-		ASSERT(middle.rightMostKey() == "3");
-		ASSERT(ELE::ptr(middle["1"]) == n1);
-		ASSERT(ELE::ptr(middle["2"]) == n2);
-		ASSERT(ELE::ptr(middle["3"]) == n3);
-		auto&& keys = middle.allKey();
-		ASSERT(keys[0] == "1");
-		ASSERT(keys[1] == "2");
-		ASSERT(keys[2] == "3");
-		ASSERT(middle.ptrOfMin() == n1);
-		ASSERT(middle.ptrOfMax() == n3);
-		ASSERT(ELE::ptr(middle[0].second) == n1);
-		ASSERT(ELE::ptr(middle[1].second) == n2);
-		ASSERT(ELE::ptr(middle[2].second) == n3);
+		ASSERT(ELE::ptr(middle["1"]) == n1.get());
+		ASSERT(ELE::ptr(middle["2"]) == n2.get());
+		ASSERT(ELE::ptr(middle["3"]) == n3.get());
+		ASSERT(ELE::ptr(middle[0].second) == n1.get());
+		ASSERT(ELE::ptr(middle[1].second) == n2.get());
+		ASSERT(ELE::ptr(middle[2].second) == n3.get());
 		ASSERT(middle[0].first == "1");
 		ASSERT(middle[1].first == "2");
 		ASSERT(middle[2].first == "3");
@@ -185,9 +179,9 @@ TESTCASE("Element test") {
 			ELE m{std::move(middle)};
 			ASSERT(middle.count() == 0);
 			ASSERT(m.count() == 3);
-			ASSERT(ELE::ptr(m["1"]) == n1);
-			ASSERT(ELE::ptr(m["2"]) == n2);
-			ASSERT(ELE::ptr(m["3"]) == n3);
+			ASSERT(ELE::ptr(m["1"]) == n1.get());
+			ASSERT(ELE::ptr(m["2"]) == n2.get());
+			ASSERT(ELE::ptr(m["3"]) == n3.get());
 			ASSERT_THROW(runtime_error, ELE::ptr(middle["1"]));
 			ASSERT_THROW(runtime_error, ELE::ptr(middle["2"]));
 			ASSERT_THROW(runtime_error, ELE::ptr(middle["3"]));

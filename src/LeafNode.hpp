@@ -1,6 +1,6 @@
 #pragma once
 #include <utility>
-#include "NodeBase.hpp"
+#include "NodeBaseCrtp.hpp"
 //#include "Proxy.hpp"
 
 namespace btree {
@@ -8,9 +8,10 @@ namespace btree {
 	class MiddleNode;
 
 #define LEAF_NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
+#define LEAF LeafNode<Key, Value, BtreeOrder>
 
-	LEAF_NODE_TEMPLATE
-    class LeafNode final : public NodeBase<Key, Value, BtreeOrder> {
+    LEAF_NODE_TEMPLATE
+    class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder> {
 		using Base       = NodeBase<Key, Value, BtreeOrder>;
 		using FatherType = MiddleNode<Key, Value, BtreeOrder>;
 		using typename Base::LessThan;
@@ -31,13 +32,12 @@ namespace btree {
 
 	private:
 		LeafNode* _next{ nullptr };
+
+		unique_ptr<Base> clone() const override;
     };
 }
 
-// implement
 namespace btree {
-#define LEAF LeafNode<Key, Value, BtreeOrder>
-
 	LEAF_NODE_TEMPLATE
 	template <typename Iter>
 	LEAF::LeafNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
@@ -142,12 +142,12 @@ namespace btree {
 		return static_cast<FatherType*>(Base::father());
 	}
 
-//	LEAF_NODE_TEMPLATE
-//	Proxy<Key, Value, BtreeOrder, >
-//	LeafNode<Key, Value, BtreeOrder, >::self()
-//	{
-//		return Proxy{this};
-//	}
+    LEAF_NODE_TEMPLATE
+    unique_ptr<typename LEAF::Base>
+    LEAF::clone() const
+    {
+        return make_unique<LEAF>(*this);
+    }
 
 #undef LEAF
 #undef LEAF_NODE_TEMPLATE
