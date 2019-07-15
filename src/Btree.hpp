@@ -261,11 +261,11 @@ namespace btree {
 	bool
 	BTREE::have(const Key& key) const
 	{
-	    if (have()) {
-            return _root->have(key);
-	    }
+		if (have()) {
+			return _root->have(key);
+		}
 
-	    return false;
+		return false;
 	}
 
 	BTREE_TEMPLATE
@@ -354,15 +354,15 @@ namespace btree {
 	typename BTREE::Leaf*
 	BTREE::minLeaf(Base* node)
 	{
-        function<Base*(Middle*)> min = [] (auto n) {
-            return n->minSon();
-        };
+		function<Base*(Middle*)> min = [] (auto n) {
+			return n->minSon();
+		};
         
 		return recurSelectNode(node, min);
 	}
 
 	BTREE_TEMPLATE
-    typename BTREE::Leaf*
+	typename BTREE::Leaf*
 	BTREE::recurSelectNode(Base* node, function<Base*(Middle*)>& choose)
 	{
 		while (node->Middle) {
