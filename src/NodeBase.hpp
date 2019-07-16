@@ -3,40 +3,37 @@
 #include "Elements.hpp"
 
 namespace btree {
-    struct LeafFlag   {};
-    struct MiddleFlag {};
+	struct LeafFlag   {};
+	struct MiddleFlag {};
 
 #define NODE_BASE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 
-    NODE_BASE_TEMPLATE
-    class NodeBase {
-    public:
+	NODE_BASE_TEMPLATE
+	class NodeBase {
+	public:
 		using Ele      = Elements<Key, Value, BtreeOrder, NodeBase>;
 		using LessThan = typename Ele::LessThan;
-        const bool Middle;
-
-        template <typename Iter>
-        NodeBase(LeafFlag,   Iter, Iter, shared_ptr<LessThan>);
-        template <typename Iter>
-        NodeBase(MiddleFlag, Iter, Iter, shared_ptr<LessThan>);
-        NodeBase(const NodeBase&);
-        NodeBase(NodeBase&&) noexcept;
-        virtual unique_ptr<NodeBase> clone() const = 0;
-        virtual ~NodeBase() = default;
-
-        inline Key         maxKey();
-        inline bool        have(const Key&);
-        Value*             search(const Key&);
-        inline vector<Key> allKey() const;
-        virtual NodeBase*  father() const;
+		const bool Middle		
+		template <typename Iter>
+		NodeBase(LeafFlag,   Iter, Iter, shared_ptr<LessThan>);
+		template <typename Iter>
+		NodeBase(MiddleFlag, Iter, Iter, shared_ptr<LessThan>);
+		NodeBase(const NodeBase&);
+		NodeBase(NodeBase&&) noexcept;
+		virtual unique_ptr<NodeBase> clone() const = 0;
+		virtual ~NodeBase() = default		
+		inline Key         maxKey() const;
 		uint16_t           childCount() const;
+		inline vector<Key> allKey() const;
+		virtual NodeBase*  father() const;
+		inline bool        have  (const Key&);
+		Value*             search(const Key&);
 		bool               add(pair<Key, Value>);
 		bool               remove(const Key&);
 
-    protected:
-        NodeBase* father_{ nullptr };
-        Elements<Key, Value, BtreeOrder, NodeBase> elements_;
-
+	protected:
+		NodeBase* father_{ nullptr };
+		Elements<Key, Value, BtreeOrder, NodeBase> elements_;		
 		inline bool empty() const;
 		inline bool full()  const;
 		inline bool siblingSpaceFree() const;
@@ -50,54 +47,53 @@ namespace btree {
 #define NODE NodeBase<Key, Value, BtreeOrder>
 
 	NODE_BASE_TEMPLATE
-    template <typename Iter>
-    NODE::NodeBase(LeafFlag, Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
-        : Middle(false), elements_(begin, end, lessThanPtr)
-    { }
+	template <typename Iter>
+	NODE::NodeBase(LeafFlag, Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
+		: Middle(false), elements_(begin, end, lessThanPtr)
+	{ }	
+	NODE_BASE_TEMPLATE
+	template <typename Iter>
+	NODE::NodeBase(MiddleFlag, Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
+		: Middle(true), elements_(begin, end, funcPtr)
+	{
+		for (; begin != end; ++begin) {
+			// need to use SFINE to control the property below?
+			// TODO error
+			begin->second->father_ = this;
+		}
+	}
 
 	NODE_BASE_TEMPLATE
-    template <typename Iter>
-    NODE::NodeBase(MiddleFlag, Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
-        : Middle(true), elements_(begin, end, funcPtr)
-    {
-		for (; begin != end; ++begin) {
-            // need to use SFINE to control the property below?
-            // TODO error
-            begin->second->father_ = this;
-        }
-    }
+	NODE::NodeBase(const NodeBase& that)
+		: Middle(that.Middle), elements_(that.elements_)
+	{ }
 
-    NODE_BASE_TEMPLATE
-    NODE::NodeBase(const NodeBase& that)
-        : Middle(that.Middle), elements_(that.elements_)
-    { }
-
-    NODE_BASE_TEMPLATE
+	NODE_BASE_TEMPLATE
 	NODE::NodeBase(NodeBase&& that) noexcept
 		: Middle(that.Middle), father_(that.father_), elements_(std::move(that.elements_))
 	{ }
 
 
 	NODE_BASE_TEMPLATE
-    NODE*
-    NODE::father() const
-    {
-    	return father_;
-    }
+	NODE*
+	NODE::father() const
+	{
+		return father_;
+	}
 
-    NODE_BASE_TEMPLATE
+	NODE_BASE_TEMPLATE
 	uint16_t
-    NODE::childCount() const
-    {
+	NODE::childCount() const
+	{
 		return elements_.count();
-    }
+	}
 
 	NODE_BASE_TEMPLATE
 	bool
 	NODE::empty() const
 	{
 		return elements_.count() == 0;
-	}
+	}	
 
 	NODE_BASE_TEMPLATE
 	bool
@@ -108,15 +104,15 @@ namespace btree {
 
 	NODE_BASE_TEMPLATE
     Key
-    NODE::maxKey()
+    NODE::maxKey() const
     {
         return elements_[elements_.count() - 1].first;
     }
 
-    NODE_BASE_TEMPLATE
-    bool
-    NODE::have(const Key& key)
-    {
+	NODE_BASE_TEMPLATE
+	bool
+	NODE::have(const Key& key)
+	{
 		if (!Middle) {
 			return elements_.have(key);
 		} else {
@@ -130,9 +126,9 @@ namespace btree {
 
 			return false;
 		}
-    }
+	}
 
-    NODE_BASE_TEMPLATE
+	NODE_BASE_TEMPLATE
 	Value*
 	NODE::search(const Key& key)
 	{
@@ -163,30 +159,30 @@ namespace btree {
 		}
 	}
 
-    NODE_BASE_TEMPLATE
-    vector<Key>
-    NODE::allKey() const
-    {
-	    vector<Key> keys;
-	    keys.reserve(elements_.count());
-	    for (auto& e : elements_) {
-	        keys.emplace_back(e.first);
-	    }
+	NODE_BASE_TEMPLATE
+	vector<Key>
+	NODE::allKey() const
+	{
+		vector<Key> keys;
+		keys.reserve(elements_.count());
+		for (auto& e : elements_) {
+			keys.emplace_back(e.first);
+		}
 
-	    return keys;
-    }
-
-    NODE_BASE_TEMPLATE
-    unique_ptr<NODE>
-    NODE::clone() const
-    {
-	    throw runtime_error("NodeBase's clone is invalid.");
+		return keys;
     }
 
 	NODE_BASE_TEMPLATE
-    bool
-    NODE::add(pair<Key, Value> p)
-    {
+	unique_ptr<NODE>
+	NODE::clone() const
+	{
+		throw runtime_error("NodeBase's clone is invalid.");
+	}
+
+	NODE_BASE_TEMPLATE
+	bool
+	NODE::add(pair<Key, Value> p)
+	{
 #define LAST_ELE elements_[elements_.count() - 1]
 		using Ele::ptr;
 		// Keep internal node key count between w/2 and w
@@ -208,22 +204,22 @@ namespace btree {
 				splitNode(p);
 			}
 	    } else {
-		    for (auto& e : elements_) {
-			    if (lessThan(k, e.first)) {
-				   auto subNodePtr = ptr(e.second);
-				   subNodePtr->add(p);
-			    }
-		    }
+			for (auto& e : elements_) {
+				if (lessThan(k, e.first)) {
+					auto subNodePtr = ptr(e.second);
+					subNodePtr->add(p);
+				}
+			}
 
-		   addBeyondMax(p);
+			addBeyondMax(p);
 	    }
     }
 
     // TODO how to make all _elements of Element in a vector?
-    NODE_BASE_TEMPLATE
-    bool
-    NODE::remove(const Key& key)
-    {
+	NODE_BASE_TEMPLATE
+	bool
+	NODE::remove(const Key& key)
+	{
 		auto maxValue = [] (Ele& e) -> typename Ele::ValueForContent& {
 			return e[e.count() - 1].second;
 		};
@@ -253,7 +249,7 @@ namespace btree {
 	}
 
 	// Name maybe not very accurate, because not must beyond
-    NODE_BASE_TEMPLATE
+	NODE_BASE_TEMPLATE
 	void
 	NODE::addBeyondMax(pair<Key, Value> p)
 	{
@@ -274,6 +270,8 @@ namespace btree {
 	NODE::siblingSpaceFree() const
 	{
 		// TODO
+		// Just ask left and right LeafNode if it has free space
+		// TODO If you want to fine all the node, you could leave a gap "fineAllocate" to fine global allocate
 		return false;
 	}
 

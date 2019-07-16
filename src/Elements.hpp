@@ -55,7 +55,7 @@ namespace btree {
 		void             insert(pair<Key, T>);
 		template <typename T>
 		void             append(pair<Key, T>);
-        pair<Key, Value> exchangeMax(pair<Key, Value>);
+		pair<Key, Value> exchangeMax(pair<Key, Value>);
 
 		ValueForContent& operator[](const Key&);
 		Content&         operator[](uint16_t);
@@ -194,9 +194,9 @@ namespace btree {
 		}
 
 		throw runtime_error("Can't get the Value corresponding to the Key: "
-                            + key
-                            + ","
-							+ " Please check the key existence.");
+							 + key
+							 + ","
+							 + " Please check the key existence.");
 	}
 
 	ELEMENTS_TEMPLATE
@@ -359,11 +359,11 @@ namespace btree {
 	}
 
 	ELEMENTS_TEMPLATE
-    template <typename T>
+	template <typename T>
 	typename ELE::Content&
 	ELE::assign(Content &ele, pair<Key, unique_ptr<T>>& ptrPair)
 	{
-        static_assert(std::is_base_of<PtrType, T>::value, "The type to be stored should be derived from PtrType");
+		static_assert(std::is_base_of<PtrType, T>::value, "The type to be stored should be derived from PtrType");
 
 		ele.first = ptrPair.first;
 		ELE::uniquePtr(ele.second).reset(ptrPair.second.release());
@@ -401,15 +401,15 @@ namespace btree {
 		return std::get<unique_ptr<PtrType>>(v).get();
 	}
 
-    ELEMENTS_TEMPLATE
-    const PtrType*
+	ELEMENTS_TEMPLATE
+	const PtrType*
 	ELE::ptr(const ValueForContent& v)
 	{
 		return std::get<unique_ptr<PtrType>>(v).get();
 	}
 
 	ELEMENTS_TEMPLATE
-    unique_ptr<PtrType>&
+	unique_ptr<PtrType>&
 	ELE::uniquePtr(ValueForContent& v)
     {
 	    return std::get<unique_ptr<PtrType>>(v);
