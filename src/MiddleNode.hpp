@@ -16,13 +16,12 @@ namespace btree {
     public:
         template <typename Iter>
         MiddleNode(Iter, Iter, shared_ptr<LessThan>);
-        // should use another constructor for Leaf
         MiddleNode(const MiddleNode&);
 		MiddleNode(MiddleNode&&) noexcept;
         ~MiddleNode() override;
 
         Base* minSon();
-        Base* maxSon();
+        // Base* maxSon();
 		MiddleNode*      father() const override;
 		bool             add(pair<Key, Value>&&) override;
         Base*            operator[](const Key&);
@@ -38,17 +37,24 @@ namespace btree {
     template <typename Iter>
     MIDDLE::MiddleNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
         : Base(MiddleFlag(), begin, end, funcPtr)
-    {}
+    { }
 
     MIDDLE_NODE_TEMPLATE
     MIDDLE::MiddleNode(const MiddleNode& that)
-		: Base(that)
-	{}
+		: Base(that) // TODO wrong work
+	{
+		using Base::Ele::ptr;
+
+		for (auto& e : Base::elements_) {
+			// Set to corresponding this elements_ position
+			ptr(e.second)->clone();
+		}
+	}
 
 	MIDDLE_NODE_TEMPLATE
 	MIDDLE::MiddleNode(MiddleNode&& that) noexcept
 		: Base(std::move(that))
-	{}
+	{ }
 
     MIDDLE_NODE_TEMPLATE
     MIDDLE::~MiddleNode() = default;
@@ -62,14 +68,14 @@ namespace btree {
         return Base::Ele::ptr(es[0].second);
     }
 
-    MIDDLE_NODE_TEMPLATE
-    typename MIDDLE::Base*
-    MIDDLE::maxSon()
-    {
-	    auto& es = Base::elements_;
-
-        return Base::Ele::ptr(es[es.count() - 1].second);
-    }
+    // MIDDLE_NODE_TEMPLATE
+    // typename MIDDLE::Base*
+    // MIDDLE::maxSon()
+    // {
+	//     auto& es = Base::elements_;
+	//
+    //     return Base::Ele::ptr(es[es.count() - 1].second);
+    // }
 
     MIDDLE_NODE_TEMPLATE
     typename MIDDLE::Base*

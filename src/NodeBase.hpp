@@ -30,14 +30,19 @@ namespace btree {
         inline vector<Key> allKey() const;
         virtual NodeBase*  father() const;
 		uint16_t           childCount() const;
-		inline bool        empty() const;
-		inline bool        full() const;
-		virtual bool       add(pair<Key, Value>&&);
+		bool               add(pair<Key, Value>);
 		bool               remove(const Key&);
 
     protected:
         NodeBase* father_{ nullptr };
         Elements<Key, Value, BtreeOrder, NodeBase> elements_;
+
+		inline bool empty() const;
+		inline bool full()  const;
+		inline bool siblingSpaceFree() const;
+		inline void siblingElementsReallocate(pair<Key, Value>);
+		inline void splitNode(pair<Key, Value>);
+		inline void addBeyondMax(pair<Key, Value>);
     };
 }
 
@@ -112,7 +117,6 @@ namespace btree {
     bool
     NODE::have(const Key& key)
     {
-		// a little duplicate to search, but not very
 		if (!Middle) {
 			return elements_.have(key);
 		} else {
@@ -132,12 +136,12 @@ namespace btree {
 	Value*
 	NODE::search(const Key& key)
 	{
+		auto maxValueForContent = [] (Ele& e) {
+			return e[e.count() - 1].second;
+		};
+
 		if (!Middle) {
-			if (elements_.have(key)) {
-				return &Ele::value(elements_[key]);
-			} else {
-				return nullptr;
-			}
+			return elements_.have(key) ? &Ele::value(elements_[key]) : nullptr;
 		} else {
 			for (auto& e : elements_) {
 				if ((*elements_.LessThanPtr)(key, e.first)) {
@@ -147,9 +151,9 @@ namespace btree {
 
 				SearchInThisNode:
 					if (!subNodePtr->Middle) {
-						return &Ele::value(subNodePtr->elements_.max());
+						return &Ele::value(maxValueForContent(subNodePtr->elements_));
 					} else {
-						subNodePtr = Ele::ptr(subNodePtr->elements_.max());
+						subNodePtr = Ele::ptr(maxValueForContent(subNodePtr->elements_));
 						goto SearchInThisNode;
 					}
 				}
@@ -179,13 +183,113 @@ namespace btree {
 	    throw runtime_error("NodeBase's clone is invalid.");
     }
 
+	NODE_BASE_TEMPLATE
+    bool
+    NODE::add(pair<Key, Value> p)
+    {
+#define LAST_ELE elements_[elements_.count() - 1]
+		using Ele::ptr;
+		// Keep internal node key count between w/2 and w
+		auto& k = p.first;
+		auto& v = p.second;
+		auto& lessThan = *(elements_.LessThanPtr);
+
+		if (!Middle) {
+			if (!full()) {
+				if (lessThan(k, LAST_ELE.first)) {
+					elements_.insert(p);
+				} else {
+					elements_.append(p);
+					// change bound in NodeBase above
+				}
+			} else if (siblingSpaceFree()) {
+				siblingElementsReallocate(p);
+			} else {
+				splitNode(p);
+			}
+	    } else {
+		    for (auto& e : elements_) {
+			    if (lessThan(k, e.first)) {
+				   auto subNodePtr = ptr(e.second);
+				   subNodePtr->add(p);
+			    }
+		    }
+
+		   addBeyondMax(p);
+	    }
+    }
+
+    // TODO how to make all _elements of Element in a vector?
     NODE_BASE_TEMPLATE
     bool
     NODE::remove(const Key& key)
     {
-	    // TODO
-    }
+		auto maxValue = [] (Ele& e) -> typename Ele::ValueForContent& {
+			return e[e.count() - 1].second;
+		};
 
+		// Keep internal node key count between w/2 and w
+		if (!Middle) {
+			elements_.remove(key);
+			// check count
+		} else {
+			for (auto& e : elements_) {
+				if ((*elements_.LessThanPtr)(key, e.first)) {
+					// Recursive locate
+				} else if (!(*elements_.LessThanPtr)(e.first, key)) {
+					auto subNodePtr = Ele::ptr(e.second);
+
+				SearchInThisNode:
+					if (!subNodePtr->Middle) {
+						subNodePtr->elements_.remove(key);
+						// Check count
+					} else {
+						subNodePtr = Ele::ptr(maxValue(subNodePtr->elements_));
+						goto SearchInThisNode;
+					}
+				}
+			}
+		}
+	}
+
+	// Name maybe not very accurate, because not must beyond
+    NODE_BASE_TEMPLATE
+	void
+	NODE::addBeyondMax(pair<Key, Value> p)
+	{
+		// Ptr append will some thing different
+		if (!LAST_ELE.full()) {
+			LAST_ELE.append(p);
+		} else if (/*sibling space free*/) {
+			// move some element to sibling
+		} else {
+			// split node into two
+		}
+		// Think about this way: should add new right most node to expand max bound
+#undef LAST_ELE
+	}
+
+	NODE_BASE_TEMPLATE
+	bool
+	NODE::siblingSpaceFree() const
+	{
+		// TODO
+		return false;
+	}
+
+	NODE_BASE_TEMPLATE
+	void
+	NODE::siblingElementsReallocate(pair<Key, Value> p)
+	{
+		// if max change, need to change above
+	}
+
+	NODE_BASE_TEMPLATE
+	void
+	NODE::splitNode(pair<Key, Value> p)
+	{
+		// if max change, need to change above
+	}
 #undef NODE
 #undef NODE_BASE_TEMPLATE
 }

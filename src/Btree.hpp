@@ -74,8 +74,6 @@ namespace btree {
 		//void create_new_root(const node_instance*, const std::pair<Key, Value>&);
 		// void merge_branch(Key, const Base*); // for Base merge a branch
 	};
-
-
 }
 
 namespace btree {
@@ -187,7 +185,10 @@ namespace btree {
 	Value
 	BTREE::search(const Key& key) const
 	{
-		auto valuePtr = _root->search(key);// if _root is nullptr, will return what?
+		if (!have()) {
+			throw runtime_error("The tree doesn't have any key-value");
+		}
+		auto valuePtr = _root->search(key); // TODO maybe could return Node or ValueForContent ... to make consistency
 		if (valuePtr == nullptr) {
 			throw runtime_error("The key you searched is beyond the max key.");
 		}
@@ -197,16 +198,16 @@ namespace btree {
 
 	BTREE_TEMPLATE
 	void
-	BTREE::add(pair<Key, Value> pair)
+	BTREE::add(pair<Key, Value> p)
 	{
-		if (have()) {
-			_root.reset(new Leaf(&pair, &pair + 1, _lessThanPtr));
+		if (!have()) {
+			_root.reset(new Leaf(&p, &p + 1, _lessThanPtr));
 		} else {
-			if (_root->have(pair.first)) {
+			if (_root->have(p.first)) {
 				throw runtime_error("The key-value has already existed, can't be added.");
 			} else {
 				// TODO how to reduce the duplicate search process
-				_root->add(std::move(pair));
+				_root->add(std::move(p));
 			}
 		}
 
@@ -284,7 +285,7 @@ namespace btree {
 		if (!have()) {
 		    return leafCollection;
 		}
-		auto current = minLeaf(_root.get()); // Maybe not use minLeaf to get this leaf, hack NodeBase::search
+		auto current = minLeaf(_root.get());
 		while (current != nullptr) {
 			if (predicate(current)) {
 				leafCollection.emplace_back(current);

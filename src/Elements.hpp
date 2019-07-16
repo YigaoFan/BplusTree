@@ -28,7 +28,7 @@ namespace btree {
 #define ELEMENTS_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder, typename PtrType>
 
 	/**
-	 * First and second is to public
+	 * First and second relationship is to public
 	 */
 	ELEMENTS_TEMPLATE
 	class Elements {
@@ -64,8 +64,8 @@ namespace btree {
 
 		static Value&         value(ValueForContent&);
 		static PtrType*       ptr  (ValueForContent&);
-        static const Value&   value(const ValueForContent&);
-        static const PtrType* ptr  (const ValueForContent&);
+		static const Value&   value(const ValueForContent&);
+		static const PtrType* ptr  (const ValueForContent&);
 
 	private:
 		uint16_t                   _count{ 0 };
@@ -314,7 +314,6 @@ namespace btree {
 	}
 }
 
-// static method implementation
 namespace btree {
 	ELEMENTS_TEMPLATE
 	typename ELE::Content*
@@ -415,6 +414,7 @@ namespace btree {
     {
 	    return std::get<unique_ptr<PtrType>>(v);
 	}
+
 #undef ELE
 #undef ELEMENTS_TEMPLATE
 }
