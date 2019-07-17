@@ -1,7 +1,7 @@
 #pragma once
 //#include "Proxy.hpp"
 #include "NodeBaseCrtp.hpp"
-#include "LeafNode.hpp"
+// #include "LeafNode.hpp"
 
 namespace btree {
 #define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
