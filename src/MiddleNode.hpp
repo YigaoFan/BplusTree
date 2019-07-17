@@ -4,10 +4,10 @@
 #include "LeafNode.hpp"
 
 namespace btree {
-#define MIDDLE_NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
+#define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 #define MIDDLE MiddleNode<Key, Value, BtreeOrder>
 
-	MIDDLE_NODE_TEMPLATE
+	NODE_TEMPLATE
     class MiddleNode : public NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder> {
     private:
         using          Base = NodeBase<Key, Value, BtreeOrder>;
@@ -33,13 +33,13 @@ namespace btree {
 }
 
 namespace btree {
-	MIDDLE_NODE_TEMPLATE
+	NODE_TEMPLATE
     template <typename Iter>
     MIDDLE::MiddleNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
         : Base(MiddleFlag(), begin, end, funcPtr)
     { }
 
-    MIDDLE_NODE_TEMPLATE
+    NODE_TEMPLATE
     MIDDLE::MiddleNode(const MiddleNode& that)
 		: Base(that) // TODO wrong work
 	{
@@ -51,15 +51,15 @@ namespace btree {
 		}
 	}
 
-	MIDDLE_NODE_TEMPLATE
+	NODE_TEMPLATE
 	MIDDLE::MiddleNode(MiddleNode&& that) noexcept
 		: Base(std::move(that))
 	{ }
 
-    MIDDLE_NODE_TEMPLATE
+    NODE_TEMPLATE
     MIDDLE::~MiddleNode() = default;
 
-	MIDDLE_NODE_TEMPLATE
+	NODE_TEMPLATE
     typename MIDDLE::Base*
     MIDDLE::minSon()
     {
@@ -68,7 +68,7 @@ namespace btree {
         return Base::Ele::ptr(es[0].second);
     }
 
-    // MIDDLE_NODE_TEMPLATE
+    // NODE_TEMPLATE
     // typename MIDDLE::Base*
     // MIDDLE::maxSon()
     // {
@@ -77,7 +77,7 @@ namespace btree {
     //     return Base::Ele::ptr(es[es.count() - 1].second);
     // }
 
-    MIDDLE_NODE_TEMPLATE
+    NODE_TEMPLATE
     typename MIDDLE::Base*
     MIDDLE::operator[](const Key& key)
     {
@@ -85,7 +85,7 @@ namespace btree {
     	return Base::Ele::ptr(e);
     }
 
-	MIDDLE_NODE_TEMPLATE
+	NODE_TEMPLATE
 	pair<Key, typename MIDDLE::Base*>
 	MIDDLE::operator[](uint16_t i)
 	{
@@ -93,14 +93,14 @@ namespace btree {
 		return make_pair(e.first, Base::Ele::ptr(e.second));
 	}
 
-	MIDDLE_NODE_TEMPLATE
+	NODE_TEMPLATE
     MIDDLE*
     MIDDLE::father() const
     {
         return static_cast<MiddleNode*>(Base::father());
     }
 
-    MIDDLE_NODE_TEMPLATE
+    NODE_TEMPLATE
 	bool
 	MIDDLE::add(pair<Key, Value>&& p)
 	{
@@ -117,7 +117,7 @@ namespace btree {
 		throw runtime_error("add pair encounter some error");
 	}
 
-	MIDDLE_NODE_TEMPLATE
+	NODE_TEMPLATE
     unique_ptr<typename MIDDLE::Base>
     MIDDLE::clone() const
     {
@@ -125,5 +125,5 @@ namespace btree {
     }
 
 #undef MIDDLE
-#undef MIDDLE_NODE_TEMPLATE
+#undef NODE_TEMPLATE
 }

@@ -7,10 +7,10 @@ namespace btree {
 	template <typename Key, typename Value, uint16_t BtreeOrder>
 	class MiddleNode;
 
-#define LEAF_NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
+#define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 #define LEAF LeafNode<Key, Value, BtreeOrder>
 
-    LEAF_NODE_TEMPLATE
+    NODE_TEMPLATE
     class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder> {
 		using Base       = NodeBase<Key, Value, BtreeOrder>;
 		using FatherType = MiddleNode<Key, Value, BtreeOrder>;
@@ -24,7 +24,7 @@ namespace btree {
 
         const Value&     operator[](const Key&);
 		pair<Key, Value> operator[](uint16_t);
-        bool             add(pair<Key, Value>&&) override;
+        bool             add(pair<Key, Value>);
         void             remove(const Key&);
         inline LeafNode* nextLeaf() const;
         inline void      nextLeaf(LeafNode*);
@@ -32,32 +32,37 @@ namespace btree {
 
 	private:
 		LeafNode* _next{ nullptr };
+		LeafNode* _previous{ nullptr };
 
 		unique_ptr<Base> clone() const override;
+		inline bool previousSpaceFree() const;
+		inline bool nextSpaceFree()     const;
+		inline void siblingElementReallocate(pair<Key, Value>);
+		inline void splitNode(pair<Key, Value>);
     };
 }
 
 namespace btree {
-	LEAF_NODE_TEMPLATE
+	NODE_TEMPLATE
 	template <typename Iter>
 	LEAF::LeafNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
 		: Base(LeafFlag(), begin, end, funcPtr)
     {}
 
-	LEAF_NODE_TEMPLATE
+	NODE_TEMPLATE
 	LeafNode<Key, Value, BtreeOrder>::LeafNode(const LeafNode& that, LeafNode* next)
 		: Base(that), _next(next)
 	{}
 
-	LEAF_NODE_TEMPLATE
+	NODE_TEMPLATE
 	LeafNode<Key, Value, BtreeOrder>::LeafNode(LeafNode&& that) noexcept
 		: Base(std::move(that)), _next(that._next)
 	{}
 
-	LEAF_NODE_TEMPLATE
+	NODE_TEMPLATE
 	LeafNode<Key, Value, BtreeOrder >::~LeafNode() = default;
 
-    LEAF_NODE_TEMPLATE
+    NODE_TEMPLATE
     const Value&
 	LEAF::operator[](const Key& key)
 	{
@@ -65,53 +70,45 @@ namespace btree {
 		return Base::Ele::value(e);
 	}
 
-	LEAF_NODE_TEMPLATE
+	NODE_TEMPLATE
 	pair<Key, Value>
 	LEAF::operator[](uint16_t i)
 	{
-		auto& e = this->elements_[i];
+		auto& e = Base::elements_[i];
 		return make_pair(e.first, Base::Ele::value(e.second));
 	}
 
-	LEAF_NODE_TEMPLATE
+	NODE_TEMPLATE
 	bool
-	LEAF::add(pair<Key, Value>&& p)
+	LEAF::add(pair<Key, Value> p)
 	{
-//		if (this->elements_.full()) {
-//			auto&& old_key = this->max_key();
-//			pair<Key, Value> out_pair{};
-//
-//			if (this->elements_.exchange_max_out(p, out_pair)) {
-//				this->btree_.change_bound_upwards(this, old_key, this->max_key());
-//				// function name should be put pair in and exchange_max_out
-//			}
-//
-//            // TODO not very clear to the adjust first, or process other related Node first
-//
-//            // next node add
-//            if (this->next_node_ != nullptr) {
-//                this->next_node_->element_add(out_pair);
-//            } else {
-//                this->father_add(out_pair);
-//            }
-//        } else {
-//            auto&& old_key = this->max_key();
-//
-//            if (this->elements_.add(p)) { // return bool if maxKey changed
-//                // call BtreeHelper
-//                this->btree_.change_bound_upwards(this, old_key, this->max_key());
-//            }
-//        }
-		if (this->elements_.LessThanPtr->operator()(this->maxKey(), p.first)) {
-			this->elements_.append(p);
-			return true;
+		// TODO not very clear to the adjust first, or process other related Node first
+#define MAX_KEY elements_[elements_.count() - 1].first
+
+		using Base::elements_;
+		using Base::full;
+		auto& k = p.first;
+		auto& lessThan = *(elements_.LessThanPtr);
+
+		if (!full()) {
+			if (lessThan(k, MAX_KEY)) {
+				elements_.insert(p);
+			} else {
+				elements_.append(p);
+				// Change bound in NodeBase above
+			}
+		} else if (previousSpaceFree()) {
+			siblingElementReallocate(p);
+		} else if (nextSpaceFree()) {
+			siblingElementReallocate(p);
 		} else {
-			this->elements_.insert(p);
-			return false;
+			splitNode(p);
 		}
+
+#undef MAX_KEY
 	}
 
-	LEAF_NODE_TEMPLATE
+	NODE_TEMPLATE
 	void
 	LEAF::remove(const Key& key)
 	{
@@ -121,34 +118,66 @@ namespace btree {
 		}
 	}
 
-	LEAF_NODE_TEMPLATE
+	NODE_TEMPLATE
 	LEAF*
 	LEAF::nextLeaf() const
 	{
 		return _next;
 	}
 
-	LEAF_NODE_TEMPLATE
+	NODE_TEMPLATE
 	void
 	LEAF::nextLeaf(LeafNode* next)
 	{
 		_next = next;
 	}
 
-	LEAF_NODE_TEMPLATE
+	NODE_TEMPLATE
 	typename LEAF::FatherType*
 	LEAF::father() const
 	{
 		return static_cast<FatherType*>(Base::father());
 	}
 
-    LEAF_NODE_TEMPLATE
+    NODE_TEMPLATE
     unique_ptr<typename LEAF::Base>
     LEAF::clone() const
     {
         return make_unique<LEAF>(*this);
     }
+    
+    NODE_TEMPLATE
+	bool
+	LEAF::previousSpaceFree() const
+	{
+		// TODO
+		// TODO If you want to fine all the node, you could leave a gap "fineAllocate" to fine global allocate
+		return !_previous->full();
+	}
 
+	NODE_TEMPLATE
+	bool
+	LEAF::nextSpaceFree() const
+	{
+		// TODO
+		// TODO If you want to fine all the node, you could leave a gap "fineAllocate" to fine global allocate
+		return !_previous->full();
+	}
+
+
+	NODE_TEMPLATE
+	void
+	LEAF::siblingElementReallocate(pair<Key, Value> p)
+	{
+		// if max change, need to change above
+	}
+
+	NODE_TEMPLATE
+	void
+	LEAF::splitNode(pair<Key, Value> p)
+	{
+		// if max change, need to change above
+	}
 #undef LEAF
-#undef LEAF_NODE_TEMPLATE
+#undef NODE_TEMPLATE
 }
