@@ -1,7 +1,7 @@
 #include <array>
 using std::array;
 #include "FlyTest.hpp"
-#include "Btree.hpp"
+#include "../Btree.hpp"
 using namespace btree;
 
 TESTCASE("Btree test") {

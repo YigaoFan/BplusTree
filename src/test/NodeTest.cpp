@@ -4,8 +4,8 @@
 using std::array;
 using std::make_shared;
 #include "FlyTest.hpp"
-#include "MiddleNode.hpp"
-#include "LeafNode.hpp"
+#include "../MiddleNode.hpp"
+#include "../LeafNode.hpp"
 using namespace btree;
 
 static auto kv0 = make_pair<string, string>("1", "a");

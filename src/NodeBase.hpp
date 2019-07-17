@@ -13,6 +13,9 @@ namespace btree {
 	class LeafNode;
 
 	NODE_TEMPLATE
+	class MiddleNode;
+
+	NODE_TEMPLATE
 	class NodeBase {
 	public:
 		using Ele      = Elements<Key, Value, BtreeOrder, NodeBase>;
@@ -184,25 +187,15 @@ namespace btree {
 	bool
 	BASE::add(pair<Key, Value> p)
 	{
-#define MAX_ELE [elements_.count() - 1]
-		using Ele::ptr;
 		using Leaf = LeafNode<Key, Value, BtreeOrder>;
+		using Middle = MidlleNode<Key, Value, BtreeOrder>;
 		// Keep internal node key count between w/2 and w
-		auto& k = p.first;
-		auto& lessThan = *(elements_.LessThanPtr);
 
 		// TODO could maintain a stack to store recursive record
 		if (!Middle) {
 			static_cast<Leaf*>(this)->add(p);
 	    } else {
-			for (auto& e : elements_) {
-				if (lessThan(k, e.first)) {
-					auto subNodePtr = ptr(e.second);
-					subNodePtr->add(p);
-				}
-			}
-
-			addBeyondMax(p);
+			static_cast<Middle*>(this)->add(p);
 	    }
     }
 
@@ -238,24 +231,6 @@ namespace btree {
 			}
 		}
 	}
-
-	// Name maybe not very accurate, because not must beyond
-	NODE_TEMPLATE
-	void
-	BASE::addBeyondMax(pair<Key, Value> p)
-	{
-		// Ptr append will some thing different
-		if (!MAX_ELE->full()) {
-			MAX_ELE.append(p);
-		} else if (/*sibling space free*/) {
-			// move some element to sibling
-		} else {
-			// split node into two
-		}
-		// Think about this way: should add new right most node to expand max bound
-#undef MAX_ELE
-	}
-
 #undef BASE
 #undef NODE_TEMPLATE
 }

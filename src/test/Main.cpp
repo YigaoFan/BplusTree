@@ -1,7 +1,7 @@
 //#define BTREE_DEBUG
 //#include "Btree.hpp"
 //using namespace btree;
-#include "TestSuite.cpp"
+#include "TestSuite.hpp"
 
 int
 main()

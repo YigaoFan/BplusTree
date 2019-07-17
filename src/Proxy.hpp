@@ -8,7 +8,7 @@ namespace btree {
 //	template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
 //	class LeafNode;
 
-	template <typename Key, typename Value, int16_t BtreeOrder, typename BtreeType>
+	template <typename Key, typename Value, uint16_t BtreeOrder, typename BtreeType>
 	class Proxy {
 	private:
 		using B = NodeBase<Key, Value, BtreeOrder, BtreeType>;
