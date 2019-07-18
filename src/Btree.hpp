@@ -39,10 +39,10 @@ namespace btree {
 	public:
 		using LessThan = typename Base::LessThan;
 		// TODO should in constructor have a arg for "if save some space for future insert"?
-		template <size_t NumOfArrayEle>
-		Btree(LessThan, array<pair<Key, Value>, NumOfArrayEle>);
-		template <size_t NumOfArrayEle>
-		Btree(LessThan, array<pair<Key, Value>, NumOfArrayEle>&&);
+		template <size_t NumOfEle>
+		Btree(LessThan, array<pair<Key, Value>, NumOfEle>);
+		template <size_t NumOfEle>
+		Btree(LessThan, array<pair<Key, Value>, NumOfEle>&&);
 		Btree(const Btree&);
 		Btree(Btree&&) noexcept;
 		Btree& operator=(const Btree&);
@@ -66,6 +66,8 @@ namespace btree {
 		template <bool FirstCall=true, typename E, size_t NodeCount>
 		void constructTreeFromLeafToRoot(const array<E, NodeCount>&);
 
+		template <size_t NumOfEle>
+		static inline bool duplicateIn(const array<pair<Key, Value>, NumOfEle>&);
 		static Leaf* minLeaf(Base*);
 		static Leaf* recurSelectNode(Base*, function<Base*(Middle*)>&);
 		// Base* cloneNodes(Btree&) const;
@@ -80,14 +82,14 @@ namespace btree {
 #define BTREE Btree<BtreeOrder, Key, Value>
 
 	BTREE_TEMPLATE
-	template <size_t NumOfArrayEle>
+	template <size_t NumOfEle>
 	BTREE::Btree(
 		LessThan lessThan,
-		array<pair<Key, Value>, NumOfArrayEle> pairArray
+		array<pair<Key, Value>, NumOfEle> pairArray
 	) :
 	_lessThanPtr(make_shared<LessThan>(lessThan))
 	{
-		if constexpr (NumOfArrayEle == 0) { return; }
+		if constexpr (NumOfEle == 0) { return; }
 
 		sort(pairArray.begin(),
 			 pairArray.end(),
@@ -95,20 +97,24 @@ namespace btree {
 				 return lessThan(p1.first, p2.first);
 			 });
 
-		if constexpr (NumOfArrayEle <= BtreeOrder) {
+		if (duplicateIn(pairArray)) {
+			throw runtime_error("Please ensure the key-value array doesn't have duplicate key");
+		}
+
+		if constexpr (NumOfEle <= BtreeOrder) {
 			_root = make_unique<Leaf>(pairArray.begin(), pairArray.end(), _lessThanPtr);
 		} else {
 			constructTreeFromLeafToRoot(pairArray);
 		}
 
-		_keyNum += NumOfArrayEle;
+		_keyNum += NumOfEle;
 	}
 
 	BTREE_TEMPLATE
-	template <size_t NumOfArrayEle>
+	template <size_t NumOfEle>
 	BTREE::Btree(
 		LessThan lessThan,
-		array<pair<Key, Value>, NumOfArrayEle>&& pairArray
+		array<pair<Key, Value>, NumOfEle>&& pairArray
 	) : Btree(lessThan, pairArray)
 	{ }
 
@@ -350,6 +356,26 @@ namespace btree {
     //
 	// 	return newChilds[0];
 	// }
+
+	BTREE_TEMPLATE
+	template <size_t NumOfEle>
+	bool
+	BTREE::duplicateIn(const array<pair<Key, Value>, NumOfEle>& sortedPairArray)
+	{
+		auto& array = sortedPairArray;
+		const Key* lastKeyPtr = &(sortedPairArray[0].first);
+
+		for (auto i = 1; i < NumOfEle; ++i) {
+			auto& currentKey = array[i].first;
+			if (currentKey == (*lastKeyPtr)) {
+				return true;
+			}
+
+			lastKeyPtr = &currentKey;
+		}
+
+		return false;
+	}
 
 	BTREE_TEMPLATE
 	typename BTREE::Leaf*

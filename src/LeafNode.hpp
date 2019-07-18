@@ -24,21 +24,23 @@ namespace btree {
 
         const Value&     operator[](const Key&);
 		pair<Key, Value> operator[](uint16_t);
-        bool             add(pair<Key, Value>);
+        bool             add(pair<Key, Value>, vector<Base*>&);
         void             remove(const Key&);
         inline LeafNode* nextLeaf() const;
         inline void      nextLeaf(LeafNode*);
-        FatherType*      father() const override;
+        // FatherType*      father() const override;
 
 	private:
+    	// TODO remember to initialize two property below
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
 
-		unique_ptr<Base> clone() const override;
-		inline bool previousSpaceFree() const;
-		inline bool nextSpaceFree()     const;
+		inline bool spaceFreeIn(const LeafNode*) const;
 		inline void siblingElementReallocate(pair<Key, Value>);
 		inline void splitNode(pair<Key, Value>);
+		// template default is inline?
+		template <bool FirstCall = true>
+		inline void changeMaxKeyIn(vector<Base*>&, const Key&) const;
     };
 }
 
@@ -80,26 +82,29 @@ namespace btree {
 
 	NODE_TEMPLATE
 	bool
-	LEAF::add(pair<Key, Value> p)
+	LEAF::add(pair<Key, Value> p, vector<Base*>& passedNodeTrackStack)
 	{
-		// TODO not very clear to the adjust first, or process other related Node first
 #define MAX_KEY elements_[elements_.count() - 1].first
 
-		using Base::elements_;
 		using Base::full;
+		using Base::elements_;
 		auto& k = p.first;
 		auto& lessThan = *(elements_.LessThanPtr);
+		auto& stack = passedNodeTrackStack;
+		stack.push_back(this);
 
 		if (!full()) {
 			if (lessThan(k, MAX_KEY)) {
 				elements_.insert(p);
 			} else {
 				elements_.append(p);
-				// Change bound in NodeBase above
+				changeMaxKeyIn(stack, k);
 			}
-		} else if (previousSpaceFree()) {
-			siblingElementReallocate(p);
-		} else if (nextSpaceFree()) {
+		} else if (spaceFreeIn(_previous)) {
+			// How to split some element to another
+			siblingElementReallocate();
+		} else if (spaceFreeIn(_next)) {
+			// How to split some element to another
 			siblingElementReallocate(p);
 		} else {
 			splitNode(p);
@@ -132,38 +137,20 @@ namespace btree {
 		_next = next;
 	}
 
-	NODE_TEMPLATE
-	typename LEAF::FatherType*
-	LEAF::father() const
-	{
-		return static_cast<FatherType*>(Base::father());
-	}
+	// NODE_TEMPLATE
+	// typename LEAF::FatherType*
+	// LEAF::father() const
+	// {
+	// 	return static_cast<FatherType*>(Base::father());
+	// }
 
     NODE_TEMPLATE
-    unique_ptr<typename LEAF::Base>
-    LEAF::clone() const
-    {
-        return make_unique<LEAF>(*this);
-    }
-    
-    NODE_TEMPLATE
 	bool
-	LEAF::previousSpaceFree() const
+	LEAF::spaceFreeIn(const LeafNode *node) const
 	{
-		// TODO
-		// TODO If you want to fine all the node, you could leave a gap "fineAllocate" to fine global allocate
-		return !_previous->full();
+		return !node->full();
 	}
-
-	NODE_TEMPLATE
-	bool
-	LEAF::nextSpaceFree() const
-	{
-		// TODO
-		// TODO If you want to fine all the node, you could leave a gap "fineAllocate" to fine global allocate
-		return !_previous->full();
-	}
-
+	// TODO If you want to fine all the node, you could leave a gap "fineAllocate" to fine global allocate
 
 	NODE_TEMPLATE
 	void
@@ -177,6 +164,35 @@ namespace btree {
 	LEAF::splitNode(pair<Key, Value> p)
 	{
 		// if max change, need to change above
+	}
+
+	NODE_TEMPLATE
+	template <bool FirstCall>
+	void
+	LEAF::changeMaxKeyIn(vector<Base*>& passedNodeTrackStack, const Key& maxKey) const
+	{
+    	auto& stack = passedNodeTrackStack;
+    	auto node = *(passedNodeTrackStack.pop_back());
+
+    	if constexpr (FirstCall) {
+    		// TODO check below code
+    		auto nodePtr = stack.pop_back();
+    		auto i = Base::Ele::indexOf(nodePtr);
+    		auto upperNodePtr = stack[stack.size() - 1];
+    		auto matchIndex = upperNodePtr->elements_.indexOf(nodePtr);
+			node[matchIndex].first = maxKey;
+			auto maxIndex = upperNodePtr->childCount() - 1;
+
+			if (matchIndex == maxIndex) {
+				// Change upper recursively
+			}
+    	} else {
+    		// Change corresponding key
+    		// Add a index() to Elements
+    		// If not max, stop to change
+
+    	}
+
 	}
 #undef LEAF
 #undef NODE_TEMPLATE

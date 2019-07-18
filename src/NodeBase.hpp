@@ -6,7 +6,6 @@ namespace btree {
 	struct LeafFlag   {};
 	struct MiddleFlag {};
 
-
 #define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 
 	NODE_TEMPLATE
@@ -29,21 +28,21 @@ namespace btree {
 		NodeBase(NodeBase&&) noexcept;
 		virtual unique_ptr<NodeBase> clone() const = 0;
 		virtual ~NodeBase() = default;
+
 		inline Key         maxKey() const;
 		uint16_t           childCount() const;
 		inline vector<Key> allKey() const;
-		virtual NodeBase*  father() const;
+		// virtual NodeBase*  father() const;
 		inline bool        have  (const Key&);
 		Value*             search(const Key&);
 		bool               add(pair<Key, Value>);
 		bool               remove(const Key&);
 
 	protected:
-		NodeBase* father_{ nullptr };
+		// NodeBase* father_{ nullptr };
 		Elements<Key, Value, BtreeOrder, NodeBase> elements_;		
 		inline bool empty() const;
 		inline bool full()  const;
-		inline void addBeyondMax(pair<Key, Value>);
     };
 }
 
@@ -60,6 +59,7 @@ namespace btree {
 	BASE::NodeBase(MiddleFlag, Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
 		: Middle(true), elements_(begin, end, funcPtr)
 	{
+		// 好像不需要设置 father 了
 		for (; begin != end; ++begin) {
 			// need to use SFINE to control the property below?
 			// TODO error
@@ -78,12 +78,12 @@ namespace btree {
 	{ }
 
 
-	NODE_TEMPLATE
-	BASE*
-	BASE::father() const
-	{
-		return father_;
-	}
+	// NODE_TEMPLATE
+	// BASE*
+	// BASE::father() const
+	// {
+	// 	return father_;
+	// }
 
 	NODE_TEMPLATE
 	uint16_t
@@ -187,19 +187,20 @@ namespace btree {
 	bool
 	BASE::add(pair<Key, Value> p)
 	{
-		using Leaf = LeafNode<Key, Value, BtreeOrder>;
-		using Middle = MidlleNode<Key, Value, BtreeOrder>;
-		// Keep internal node key count between w/2 and w
+		using LeafNode   = LeafNode<Key, Value, BtreeOrder>;
+		using MiddleNode = MiddleNode<Key, Value, BtreeOrder>;
 
-		// TODO could maintain a stack to store recursive record
+		vector<decltype(this)> passedNodeTrackStack;
+		passedNodeTrackStack.push_back(this);
+
 		if (!Middle) {
-			static_cast<Leaf*>(this)->add(p);
+			static_cast<LeafNode*>(this)->add(p, passedNodeTrackStack);
 	    } else {
-			static_cast<Middle*>(this)->add(p);
+			static_cast<MiddleNode*>(this)->add(p, passedNodeTrackStack);
 	    }
+		// TODO profile between using if to call different function and using virtual function
     }
 
-    // TODO how to make all _elements of Element in a vector?
 	NODE_TEMPLATE
 	bool
 	BASE::remove(const Key& key)

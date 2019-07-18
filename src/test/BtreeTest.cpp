@@ -4,6 +4,8 @@ using std::array;
 #include "../Btree.hpp"
 using namespace btree;
 
+// TODO test construct 0 element, then add a lot of element
+
 TESTCASE("Btree test") {
 	auto kv0 = make_pair<string, string>("1", "a");
 	auto kv1 = make_pair<string, string>("2", "b");

@@ -5,7 +5,7 @@
 #include <iostream>
 #include "FlyTest.hpp"
 #include "../Elements.hpp"
-#include "../Utility.hpp"
+#include "Utility.hpp"
 using namespace btree;
 using std::string;
 using std::array;

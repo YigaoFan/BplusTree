@@ -8,6 +8,9 @@ namespace btree {
 #define MIDDLE MiddleNode<Key, Value, BtreeOrder>
 
 	NODE_TEMPLATE
+	class LeafNode;
+
+	NODE_TEMPLATE
     class MiddleNode : public NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder> {
     private:
         using          Base = NodeBase<Key, Value, BtreeOrder>;
@@ -22,8 +25,8 @@ namespace btree {
 
         Base* minSon();
         // Base* maxSon();
-		MiddleNode*      father() const override;
-		bool             add(pair<Key, Value>&&);
+		// MiddleNode*      father() const override;
+		bool             add(pair<Key, Value>, vector<Base*>&);
         Base*            operator[](const Key&);
         pair<Key, Base*> operator[](uint16_t);
 
@@ -81,43 +84,46 @@ namespace btree {
 	MIDDLE::operator[](uint16_t i)
 	{
 		auto& e = this->elements_[i];
+		// TODO because this is pass by value, can't be used by directly
 		return make_pair(e.first, Base::Ele::ptr(e.second));
 	}
 
-	NODE_TEMPLATE
-    MIDDLE*
-    MIDDLE::father() const
-    {
-        return static_cast<MiddleNode*>(Base::father());
-    }
+	// NODE_TEMPLATE
+    // MIDDLE*
+    // MIDDLE::father() const
+    // {
+    //     return static_cast<MiddleNode*>(Base::father());
+    // }
 
     NODE_TEMPLATE
 	bool
-	MIDDLE::add(pair<Key, Value>&& p)
+	MIDDLE::add(pair<Key, Value> p, vector<Base*>& passedNodeTrackStack)
 	{
-		// auto& k = p.first;
-		// auto& v = p.second;
-
-		// for (auto& e : this->elements_) {
-		// 	if ((*this->elements_.LessThanPtr)(k, e.first)) {
-		// 		return Base::Ele::ptr(e.second)->add(std::move(p));
-		// 	}
-		// }
-
-		// // TODO wait to delete
-		// throw runtime_error("add pair encounter some error");
         using Base::elements_;
 		using Base::Ele::ptr;
-
+		using LeafNode = LeafNode<Key, Value, BtreeOrder>;
         auto& k = p.first;
 		auto& lessThan = *(elements_.LessThanPtr);
+		auto& stack = passedNodeTrackStack;
+		stack.push_back(this);
 
-        for (auto &e : elements_) {
-            if (lessThan(k, e.first)) {
-                auto subNodePtr = ptr(e.second);
-                subNodePtr->add(p);
+#define KEY_OF_ELE e.first
+#define VALUE_OF_ELE e.second
+
+        for (auto& e : elements_) {
+            if (lessThan(k, KEY_OF_ELE)) {
+                auto subNodePtr = ptr(VALUE_OF_ELE);
+
+				if (subNodePtr->Middle) {
+					static_cast<MiddleNode*>(subNodePtr)->add(p, stack);
+                } else {
+					static_cast<LeafNode*>(subNodePtr)->add(p, stack);
+				}
             }
         }
+
+#undef VALUE_OF_ELE
+#undef KEY_OF_ELE
 
         addBeyondMax(p);
     }
