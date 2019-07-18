@@ -71,7 +71,7 @@ namespace btree {
 		static Leaf* minLeaf(Base*);
 		static Leaf* recurSelectNode(Base*, function<Base*(Middle*)>&);
 		// Base* cloneNodes(Btree&) const;
-        //void root_add(const node_instance*, const std::pair<Key, Value>&);
+		//void root_add(const node_instance*, const std::pair<Key, Value>&);
 		//void create_new_branch(const node_instance*, const std::pair<Key, Value>&);
 		//void create_new_root(const node_instance*, const std::pair<Key, Value>&);
 		// void merge_branch(Key, const Base*); // for Base merge a branch
@@ -289,7 +289,7 @@ namespace btree {
 		vector<Leaf*> leafCollection;
 
 		if (!have()) {
-		    return leafCollection;
+			return leafCollection;
 		}
 		auto current = minLeaf(_root.get());
 		while (current != nullptr) {

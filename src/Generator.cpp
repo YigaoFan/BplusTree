@@ -11,54 +11,55 @@ using std::string;
 using std::array;
 
 namespace func_lib {
-    vector<string>
-    scanf_source(const string& src_dir)
-    {
-       vector<string> res;
+	vector<string>
+	scanf_source(const string& src_dir)
+	{
+		
+	   vector<string> res;
 
-       return res;
-    }
+	   return res;
+	}
 
-    vector<string>
-    compile(const vector<string>& sources, const string& save_object_dir)
-    {
-        vector<string> res;
-        res.reserve(sources.size());
+	vector<string>
+	compile(const vector<string>& sources, const string& save_object_dir)
+	{
+		vector<string> res;
+		res.reserve(sources.size());
 
-        return res;
-    }
+		return res;
+	}
 
-    void
-    construct_LIB_file(const vector<string>& objs, const string& target_dir)
-    {
+	void
+	construct_LIB_file(const vector<string>& objs, const string& target_dir)
+	{
 
-        // open a file
+		// open a file
 
-        // add obj content into file
-    }
+		// add obj content into file
+	}
 
-    void
-    construct_IDX_file(const vector<string>& objs, const string& target_dir)
-    {
-        // set the key-value to call btree
-    }
+	void
+	construct_IDX_file(const vector<string>& objs, const string& target_dir)
+	{
+		// set the key-value to call btree
+	}
 
-    void
-    generate_function_library()
-    {
-        // paths could be read from some configure file or other way
-        const string& source_folder = "TODO";
-        const string& obj_folder = "TODO";
-        const string& target_save_folder = "TODO";
+	void
+	generate_function_library()
+	{
+		// paths could be read from some configure file or other way
+		const string& source_folder = "TODO";
+		const string& obj_folder = "TODO";
+		const string& target_save_folder = "TODO";
 
-        // need to require a file just include a function or use program to scan
-        // suggest to use program to scan to set different function into different obj
-        auto sources = scanf_source(source_folder);
-        auto objs = compile(sources, obj_folder);
+		// need to require a file just include a function or use program to scan
+		// suggest to use program to scan to set different function into different obj
+		auto sources = scanf_source(source_folder);
+		auto objs = compile(sources, obj_folder);
 
-        construct_LIB_file(objs, target_save_folder);
-        construct_IDX_file(objs, target_save_folder);
+		construct_LIB_file(objs, target_save_folder);
+		construct_IDX_file(objs, target_save_folder);
 
-    }
+	}
 }
 

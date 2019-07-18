@@ -17,10 +17,10 @@ using std::make_shared;
 
 class DummyNode {
 public:
-    unique_ptr<DummyNode> clone() const
-    {
-        return make_unique<DummyNode>(*this);
-    }
+	unique_ptr<DummyNode> clone() const
+	{
+		return make_unique<DummyNode>(*this);
+	}
 };
 
 TESTCASE("Element test") {
@@ -78,7 +78,7 @@ TESTCASE("Element test") {
 		}
 
 		SECTION("Test remove") {
-		    // TODO could use function to simplify below code
+				// TODO could use function to simplify below code
 			ASSERT(!leafEle.remove("2"));
 			ASSERT(!leafEle.have("2"));
 			ASSERT(leafEle.count() == 2);
@@ -140,8 +140,8 @@ TESTCASE("Element test") {
 
 	SECTION("Test middle Element construct") {
 		auto n1 = make_unique<DummyNode>();
-        auto n2 = make_unique<DummyNode>();
-        auto n3 = make_unique<DummyNode>();
+		auto n2 = make_unique<DummyNode>();
+		auto n3 = make_unique<DummyNode>();
 
 		array<pair<string, unique_ptr<DummyNode>>, 3> keyValueArray {
 			make_pair("1", std::move(n1)),

@@ -10,28 +10,28 @@ namespace btree {
 #define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 #define LEAF LeafNode<Key, Value, BtreeOrder>
 
-    NODE_TEMPLATE
-    class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder> {
+	NODE_TEMPLATE
+	class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder> {
 		using Base       = NodeBase<Key, Value, BtreeOrder>;
 		using FatherType = MiddleNode<Key, Value, BtreeOrder>;
 		using typename Base::LessThan;
 	public:
-        template <typename Iterator>
-        LeafNode(Iterator, Iterator, shared_ptr<LessThan>);
+		template <typename Iterator>
+		LeafNode(Iterator, Iterator, shared_ptr<LessThan>);
 		LeafNode(const LeafNode&, LeafNode* next=nullptr);
-    	LeafNode(LeafNode&&) noexcept;
-        ~LeafNode() override;
+		LeafNode(LeafNode&&) noexcept;
+		~LeafNode() override;
 
-        const Value&     operator[](const Key&);
+		const Value&     operator[](const Key&);
 		pair<Key, Value> operator[](uint16_t);
-        bool             add(pair<Key, Value>, vector<Base*>&);
-        void             remove(const Key&);
-        inline LeafNode* nextLeaf() const;
-        inline void      nextLeaf(LeafNode*);
-        // FatherType*      father() const override;
+		bool             add(pair<Key, Value>, vector<Base*>&);
+		void             remove(const Key&);
+		inline LeafNode* nextLeaf() const;
+		inline void      nextLeaf(LeafNode*);
+		// FatherType*      father() const override;
 
 	private:
-    	// TODO remember to initialize two property below
+		// TODO remember to initialize two property below
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
 
@@ -41,7 +41,7 @@ namespace btree {
 		// template default is inline?
 		template <bool FirstCall = true>
 		inline void changeMaxKeyIn(vector<Base*>&, const Key&) const;
-    };
+	};
 }
 
 namespace btree {
@@ -49,7 +49,7 @@ namespace btree {
 	template <typename Iter>
 	LEAF::LeafNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
 		: Base(LeafFlag(), begin, end, funcPtr)
-    {}
+	{}
 
 	NODE_TEMPLATE
 	LeafNode<Key, Value, BtreeOrder>::LeafNode(const LeafNode& that, LeafNode* next)
@@ -64,8 +64,8 @@ namespace btree {
 	NODE_TEMPLATE
 	LeafNode<Key, Value, BtreeOrder >::~LeafNode() = default;
 
-    NODE_TEMPLATE
-    const Value&
+	NODE_TEMPLATE
+	const Value&
 	LEAF::operator[](const Key& key)
 	{
 		auto& e = this->elements_[key];
@@ -144,7 +144,7 @@ namespace btree {
 	// 	return static_cast<FatherType*>(Base::father());
 	// }
 
-    NODE_TEMPLATE
+	NODE_TEMPLATE
 	bool
 	LEAF::spaceFreeIn(const LeafNode *node) const
 	{
@@ -171,27 +171,27 @@ namespace btree {
 	void
 	LEAF::changeMaxKeyIn(vector<Base*>& passedNodeTrackStack, const Key& maxKey) const
 	{
-    	auto& stack = passedNodeTrackStack;
-    	auto node = *(passedNodeTrackStack.pop_back());
+		auto& stack = passedNodeTrackStack;
+		auto node = *(passedNodeTrackStack.pop_back());
 
-    	if constexpr (FirstCall) {
-    		// TODO check below code
-    		auto nodePtr = stack.pop_back();
-    		auto i = Base::Ele::indexOf(nodePtr);
-    		auto upperNodePtr = stack[stack.size() - 1];
-    		auto matchIndex = upperNodePtr->elements_.indexOf(nodePtr);
+		if constexpr (FirstCall) {
+			// TODO check below code
+			auto nodePtr = stack.pop_back();
+			auto i = Base::Ele::indexOf(nodePtr);
+			auto upperNodePtr = stack[stack.size() - 1];
+			auto matchIndex = upperNodePtr->elements_.indexOf(nodePtr);
 			node[matchIndex].first = maxKey;
 			auto maxIndex = upperNodePtr->childCount() - 1;
 
 			if (matchIndex == maxIndex) {
 				// Change upper recursively
 			}
-    	} else {
-    		// Change corresponding key
-    		// Add a index() to Elements
-    		// If not max, stop to change
+		} else {
+			// Change corresponding key
+			// Add a index() to Elements
+			// If not max, stop to change
 
-    	}
+		}
 
 	}
 #undef LEAF

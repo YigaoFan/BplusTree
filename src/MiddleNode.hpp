@@ -11,39 +11,39 @@ namespace btree {
 	class LeafNode;
 
 	NODE_TEMPLATE
-    class MiddleNode : public NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder> {
-    private:
-        using          Base = NodeBase<Key, Value, BtreeOrder>;
-        using typename Base::LessThan;
+	class MiddleNode : public NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder> {
+	private:
+		using          Base = NodeBase<Key, Value, BtreeOrder>;
+		using typename Base::LessThan;
 
-    public:
-        template <typename Iter>
-        MiddleNode(Iter, Iter, shared_ptr<LessThan>);
-        MiddleNode(const MiddleNode&);
+	public:
+		template <typename Iter>
+		MiddleNode(Iter, Iter, shared_ptr<LessThan>);
+		MiddleNode(const MiddleNode&);
 		MiddleNode(MiddleNode&&) noexcept;
-        ~MiddleNode() override;
+		~MiddleNode() override;
 
-        Base* minSon();
-        // Base* maxSon();
+		Base* minSon();
+		// Base* maxSon();
 		// MiddleNode*      father() const override;
 		bool             add(pair<Key, Value>, vector<Base*>&);
-        Base*            operator[](const Key&);
-        pair<Key, Base*> operator[](uint16_t);
+		Base*            operator[](const Key&);
+		pair<Key, Base*> operator[](uint16_t);
 
-    private:
-        void addBeyondMax(pair<Key, Value>);
-    };
+	private:
+		void addBeyondMax(pair<Key, Value>);
+	};
 }
 
 namespace btree {
 	NODE_TEMPLATE
-    template <typename Iter>
-    MIDDLE::MiddleNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
-        : Base(MiddleFlag(), begin, end, funcPtr)
-    { }
+	template <typename Iter>
+	MIDDLE::MiddleNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
+		: Base(MiddleFlag(), begin, end, funcPtr)
+	{ }
 
-    NODE_TEMPLATE
-    MIDDLE::MiddleNode(const MiddleNode& that)
+	NODE_TEMPLATE
+	MIDDLE::MiddleNode(const MiddleNode& that)
 		: Base(that) // TODO wrong work
 	{
 		using Base::Ele::ptr;
@@ -59,25 +59,25 @@ namespace btree {
 		: Base(std::move(that))
 	{ }
 
-    NODE_TEMPLATE
-    MIDDLE::~MiddleNode() = default;
+	NODE_TEMPLATE
+	MIDDLE::~MiddleNode() = default;
 
 	NODE_TEMPLATE
-    typename MIDDLE::Base*
-    MIDDLE::minSon()
-    {
-	    auto& es = Base::elements_;
+	typename MIDDLE::Base*
+	MIDDLE::minSon()
+	{
+		auto& es = Base::elements_;
 
-        return Base::Ele::ptr(es[0].second);
-    }
+		return Base::Ele::ptr(es[0].second);
+	}
 
-    NODE_TEMPLATE
-    typename MIDDLE::Base*
-    MIDDLE::operator[](const Key& key)
-    {
-    	auto& e = this->elements_[key];
-    	return Base::Ele::ptr(e);
-    }
+	NODE_TEMPLATE
+	typename MIDDLE::Base*
+	MIDDLE::operator[](const Key& key)
+	{
+		auto& e = this->elements_[key];
+		return Base::Ele::ptr(e);
+	}
 
 	NODE_TEMPLATE
 	pair<Key, typename MIDDLE::Base*>
@@ -88,21 +88,14 @@ namespace btree {
 		return make_pair(e.first, Base::Ele::ptr(e.second));
 	}
 
-	// NODE_TEMPLATE
-    // MIDDLE*
-    // MIDDLE::father() const
-    // {
-    //     return static_cast<MiddleNode*>(Base::father());
-    // }
-
-    NODE_TEMPLATE
+	NODE_TEMPLATE
 	bool
 	MIDDLE::add(pair<Key, Value> p, vector<Base*>& passedNodeTrackStack)
 	{
-        using Base::elements_;
+		using Base::elements_;
 		using Base::Ele::ptr;
 		using LeafNode = LeafNode<Key, Value, BtreeOrder>;
-        auto& k = p.first;
+		auto& k = p.first;
 		auto& lessThan = *(elements_.LessThanPtr);
 		auto& stack = passedNodeTrackStack;
 		stack.push_back(this);
@@ -110,35 +103,35 @@ namespace btree {
 #define KEY_OF_ELE e.first
 #define VALUE_OF_ELE e.second
 
-        for (auto& e : elements_) {
-            if (lessThan(k, KEY_OF_ELE)) {
-                auto subNodePtr = ptr(VALUE_OF_ELE);
+		for (auto& e : elements_) {
+			if (lessThan(k, KEY_OF_ELE)) {
+				auto subNodePtr = ptr(VALUE_OF_ELE);
 
 				if (subNodePtr->Middle) {
 					static_cast<MiddleNode*>(subNodePtr)->add(p, stack);
-                } else {
+				} else {
 					static_cast<LeafNode*>(subNodePtr)->add(p, stack);
 				}
-            }
-        }
+			}
+		}
 
 #undef VALUE_OF_ELE
 #undef KEY_OF_ELE
 
-        addBeyondMax(p);
-    }
+		addBeyondMax(p);
+	}
 
-    // Name maybe not very accurate, because not must beyond
+	// Name maybe not very accurate, because not must beyond
 	NODE_TEMPLATE
 	void
 	MIDDLE::addBeyondMax(pair<Key, Value> p)
 	{
-        using Base::elements_;
-        using Base::Ele::ptr;
+		using Base::elements_;
+		using Base::Ele::ptr;
 		// Ptr append will some thing different
 		if (!Base::full()) {
 			elements_.append(p);
-            // update bound related info
+			// update bound related info
 		} else if (/*sibling space free*/) {
 			// move some element to sibling
 		} else {

@@ -43,7 +43,7 @@ namespace btree {
 		Elements<Key, Value, BtreeOrder, NodeBase> elements_;		
 		inline bool empty() const;
 		inline bool full()  const;
-    };
+	};
 }
 
 namespace btree {
@@ -107,11 +107,11 @@ namespace btree {
 	}
 
 	NODE_TEMPLATE
-    Key
-    BASE::maxKey() const
-    {
-        return elements_[elements_.count() - 1].first;
-    }
+	Key
+	BASE::maxKey() const
+	{
+		return elements_[elements_.count() - 1].first;
+	}
 
 	NODE_TEMPLATE
 	bool
@@ -174,7 +174,7 @@ namespace btree {
 		}
 
 		return keys;
-    }
+	}
 
 	NODE_TEMPLATE
 	unique_ptr<BASE>
@@ -195,11 +195,11 @@ namespace btree {
 
 		if (!Middle) {
 			static_cast<LeafNode*>(this)->add(p, passedNodeTrackStack);
-	    } else {
+		} else {
 			static_cast<MiddleNode*>(this)->add(p, passedNodeTrackStack);
-	    }
+		}
 		// TODO profile between using if to call different function and using virtual function
-    }
+	}
 
 	NODE_TEMPLATE
 	bool

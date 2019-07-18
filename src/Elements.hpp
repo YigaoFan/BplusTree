@@ -411,8 +411,8 @@ namespace btree {
 	ELEMENTS_TEMPLATE
 	unique_ptr<PtrType>&
 	ELE::uniquePtr(ValueForContent& v)
-    {
-	    return std::get<unique_ptr<PtrType>>(v);
+	{
+		return std::get<unique_ptr<PtrType>>(v);
 	}
 
 #undef ELE

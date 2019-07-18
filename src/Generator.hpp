@@ -4,5 +4,5 @@
 // called function_lib
 
 namespace func_lib {
-    void generate_function_library(); // should set some args maybe
+	void generate_function_library(); // should set some args maybe
 }
