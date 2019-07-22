@@ -1,7 +1,5 @@
 #pragma once
-//#include "Proxy.hpp"
 #include "NodeBaseCrtp.hpp"
-// #include "LeafNode.hpp"
 
 namespace btree {
 #define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
@@ -23,9 +21,7 @@ namespace btree {
 		MiddleNode(MiddleNode&&) noexcept;
 		~MiddleNode() override;
 
-		Base* minSon();
-		// Base* maxSon();
-		// MiddleNode*      father() const override;
+		Base*            minSon();
 		bool             add(pair<Key, Value>, vector<Base*>&);
 		Base*            operator[](const Key&);
 		pair<Key, Base*> operator[](uint16_t);

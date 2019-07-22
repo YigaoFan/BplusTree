@@ -32,17 +32,22 @@ namespace btree {
 		inline Key         maxKey() const;
 		uint16_t           childCount() const;
 		inline vector<Key> allKey() const;
-		// virtual NodeBase*  father() const;
 		inline bool        have  (const Key&);
 		Value*             search(const Key&);
 		bool               add(pair<Key, Value>);
+		bool               add(NodeBase*);
 		bool               remove(const Key&);
 
 	protected:
-		// NodeBase* father_{ nullptr };
-		Elements<Key, Value, BtreeOrder, NodeBase> elements_;		
+		Elements<Key, Value, BtreeOrder, NodeBase> elements_;
 		inline bool empty() const;
 		inline bool full()  const;
+		inline void   changeInSearchDownPath(const Key&, const Key&);
+		inline Value* searchWithSaveTrack(const Key&, vector<NodeBase*>&);
+
+		void upperAdd(NodeBase*, vector<NodeBase*>&);
+		virtual NodeBase* previousSearchIn(vector<NodeBase*>&) const;
+		virtual NodeBase* nextSearchIn    (vector<NodeBase*>&) const;
 	};
 }
 
@@ -74,16 +79,8 @@ namespace btree {
 
 	NODE_TEMPLATE
 	BASE::NodeBase(NodeBase&& that) noexcept
-		: Middle(that.Middle), father_(that.father_), elements_(std::move(that.elements_))
+		: Middle(that.Middle), elements_(std::move(that.elements_))
 	{ }
-
-
-	// NODE_TEMPLATE
-	// BASE*
-	// BASE::father() const
-	// {
-	// 	return father_;
-	// }
 
 	NODE_TEMPLATE
 	uint16_t
@@ -187,7 +184,7 @@ namespace btree {
 	bool
 	BASE::add(pair<Key, Value> p)
 	{
-		using LeafNode   = LeafNode<Key, Value, BtreeOrder>;
+		using LeafNode   = LeafNode  <Key, Value, BtreeOrder>;
 		using MiddleNode = MiddleNode<Key, Value, BtreeOrder>;
 
 		vector<decltype(this)> passedNodeTrackStack;
@@ -199,6 +196,13 @@ namespace btree {
 			static_cast<MiddleNode*>(this)->add(p, passedNodeTrackStack);
 		}
 		// TODO profile between using if to call different function and using virtual function
+	}
+
+	NODE_TEMPLATE
+	bool
+	BASE::add(NodeBase* node)
+	{
+
 	}
 
 	NODE_TEMPLATE
@@ -231,6 +235,110 @@ namespace btree {
 				}
 			}
 		}
+	}
+
+
+	NODE_TEMPLATE
+	void
+	BASE::changeInSearchDownPath(const Key& oldKey, const Key& newKey)
+	{
+		vector<NodeBase*> trackStack{};
+
+		searchWithSaveTrack(oldKey, trackStack);
+
+		auto rend = trackStack.rend();
+		for (auto rIter = trackStack.rbegin(); rIter != rend; ++rIter) {
+			auto& node = *rIter;
+
+			auto i = node.elements_.indexOf(oldKey);
+			if (i != -1 && node->Middle) { // No need to change leaf
+				node.elements_[i].first = newKey;
+			}
+		}
+
+	}
+
+	NODE_TEMPLATE
+	Value*
+	BASE::searchWithSaveTrack(const Key& key, vector<NodeBase*>& trackStack)
+	{
+		// TODO modify, or think of search
+		// TODO maybe not need return value
+		trackStack.push_back(this);
+
+		auto maxValueForContent = [] (Ele& e) {
+			return e[e.count() - 1].second;
+		};
+
+		if (!Middle) {
+			return elements_.have(key) ? &Ele::value(elements_[key]) : nullptr;
+		} else {
+			for (auto& e : elements_) {
+				if ((*elements_.LessThanPtr)(key, e.first)) {
+					return Ele::ptr(e.second)->searchWithSaveTrack(key, trackStack);
+				} else if (!(*elements_.LessThanPtr)(e.first, key)) {
+					auto subNodePtr = Ele::ptr(e.second);
+
+				SearchInThisNode:
+					trackStack.push_back(subNodePtr);
+
+					if (!subNodePtr->Middle) {
+						return &Ele::value(maxValueForContent(subNodePtr->elements_));
+					} else {
+						subNodePtr = Ele::ptr(maxValueForContent(subNodePtr->elements_));
+						goto SearchInThisNode;
+					}
+				}
+			}
+
+			return nullptr;
+		}
+	}
+
+	NODE_TEMPLATE
+	void
+	BASE::upperAdd(NodeBase* node, vector<NodeBase*>& passedNodeTrackStack)
+	{
+		// TODO
+#define MAX_KEY elements_[elements_.count() - 1].first
+
+		auto& k = node->maxKey();
+		auto& lessThan = *(elements_.LessThanPtr);
+		auto& stack = passedNodeTrackStack;
+		stack.push_back(this);
+		auto p = make_pair(k, node);
+
+		if (!full()) {
+
+			if (lessThan(k, MAX_KEY)) {
+				elements_.insert(std::move(p));
+			} else {
+				elements_.append(std::move(p));
+				changeMaxKeyIn(stack, k);
+			}
+		} else if (spaceFreeIn(previousSearchIn(stack))) {
+			siblingElementReallocate(true, stack, std::move(p));
+		} else if (spaceFreeIn(nextSearchIn(stack))) {
+			siblingElementReallocate(false, stack, std::move(p));
+		} else {
+			splitNode(std::move(p), stack); // TODO
+		}
+
+#undef MAX_KEY
+	}
+
+	NODE_TEMPLATE
+	BASE*
+	BASE::previousSearchIn(vector<NodeBase*>& passedNodeTrackStack) const
+	{
+
+	}
+
+	NODE_TEMPLATE
+	BASE*
+	BASE::nextSearchIn(vector<NodeBase*>& passedNodeTrackStack) const
+	{
+
 	}
 #undef BASE
 #undef NODE_TEMPLATE

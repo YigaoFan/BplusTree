@@ -18,7 +18,7 @@ namespace btree {
 	public:
 		template <typename Iterator>
 		LeafNode(Iterator, Iterator, shared_ptr<LessThan>);
-		LeafNode(const LeafNode&, LeafNode* next=nullptr);
+		LeafNode(const LeafNode&, LeafNode* previous=nullptr,LeafNode* next=nullptr);
 		LeafNode(LeafNode&&) noexcept;
 		~LeafNode() override;
 
@@ -28,7 +28,8 @@ namespace btree {
 		void             remove(const Key&);
 		inline LeafNode* nextLeaf() const;
 		inline void      nextLeaf(LeafNode*);
-		// FatherType*      father() const override;
+		// inline LeafNode* previousLeaf() const;
+		inline void      previousLeaf(LeafNode*);
 
 	private:
 		// TODO remember to initialize two property below
@@ -36,11 +37,15 @@ namespace btree {
 		LeafNode* _previous{ nullptr };
 
 		inline bool spaceFreeIn(const LeafNode*) const;
-		inline void siblingElementReallocate(pair<Key, Value>);
-		inline void splitNode(pair<Key, Value>);
+		inline void siblingElementReallocate(bool, vector<Base *>&, pair<Key, Value>);
+		inline void splitNode(pair<Key, Value>, vector<Base*>&);
 		// template default is inline?
-		template <bool FirstCall = true>
 		inline void changeMaxKeyIn(vector<Base*>&, const Key&) const;
+		inline void replacePreviousNodeMaxKeyInTreeBySearchUpIn(vector<Base*>&, const Key&, const Key&);
+		inline void insertPreLeafToUpperNode(LeafNode*, vector<Base*>) const;
+
+		Base* previousSearchIn(vector<Base*>&) const override;
+		Base* nextSearchIn    (vector<Base*>&) const override;
 	};
 }
 
@@ -52,8 +57,8 @@ namespace btree {
 	{}
 
 	NODE_TEMPLATE
-	LeafNode<Key, Value, BtreeOrder>::LeafNode(const LeafNode& that, LeafNode* next)
-		: Base(that), _next(next)
+	LeafNode<Key, Value, BtreeOrder>::LeafNode(const LeafNode& that, LeafNode* previous, LeafNode* next)
+		: Base(that), _previous(previous), _next(next)
 	{}
 
 	NODE_TEMPLATE
@@ -101,13 +106,11 @@ namespace btree {
 				changeMaxKeyIn(stack, k);
 			}
 		} else if (spaceFreeIn(_previous)) {
-			// How to split some element to another
-			siblingElementReallocate();
+			siblingElementReallocate(true, stack, p);
 		} else if (spaceFreeIn(_next)) {
-			// How to split some element to another
-			siblingElementReallocate(p);
+			siblingElementReallocate(false, stack, p);
 		} else {
-			splitNode(p);
+			splitNode(p, stack);
 		}
 
 #undef MAX_KEY
@@ -137,12 +140,12 @@ namespace btree {
 		_next = next;
 	}
 
-	// NODE_TEMPLATE
-	// typename LEAF::FatherType*
-	// LEAF::father() const
-	// {
-	// 	return static_cast<FatherType*>(Base::father());
-	// }
+	NODE_TEMPLATE
+	void
+	LEAF::previousLeaf(LeafNode* previous)
+	{
+		_previous = previous;
+	}
 
 	NODE_TEMPLATE
 	bool
@@ -154,46 +157,165 @@ namespace btree {
 
 	NODE_TEMPLATE
 	void
-	LEAF::siblingElementReallocate(pair<Key, Value> p)
+	LEAF::siblingElementReallocate(bool isPrevious, vector<Base*>& passedNodeTrackStack, pair<Key, Value> p)
 	{
+		auto& stack = passedNodeTrackStack;
 		// if max change, need to change above
+		if (isPrevious) {
+			auto&& min = Base::elements_.exchangeMin(p);
+			auto&& previousOldMax = _previous->maxKey();
+			_previous->elements_.append(min);
+			// previous max change
+			replacePreviousNodeMaxKeyInTreeBySearchUpIn(stack, _previous, min);
+		} else {
+			auto&& max = Base::elements_.exchangeMax(p);
+			// this max change
+			changeMaxKeyIn(stack, Base::maxKey());
+			_next->elements_.insert(p);
+		}
 	}
 
 	NODE_TEMPLATE
 	void
-	LEAF::splitNode(pair<Key, Value> p)
+	LEAF::splitNode(pair<Key, Value> p, vector<Base*>& passedNodeTrackStack)
 	{
-		// if max change, need to change above
+		auto& key = p.first;
+		auto& lessThan = *(Base::Ele::LessThanPtr);
+		auto& stack = passedNodeTrackStack;
+
+		// construct a new one, left is newPre, right is this
+		auto newPre = make_unique<LeafNode>(*this, _previous, this);
+		auto newPrePtr = newPre.get();
+		// update previous
+		this->previousLeaf(newPrePtr);
+
+		auto i = Base::elements_.suitablePosition(key);
+
+		// [] not need reference if don't have last sentence?
+		auto moveItems = [&] (uint16_t preNodeRemoveCount) {
+			newPrePtr->elements_.removeItemsFrom(false, preNodeRemoveCount);
+			Base::     elements_.removeItemsFrom(true,  BtreeOrder - preNodeRemoveCount);
+
+			insertPreLeafToUpperNode(newPrePtr, stack); // stack is copied
+		};
+
+		auto addIn = [&] (LeafNode* leaf, bool shouldAppend) {
+			if (shouldAppend) {
+				leaf->elements_.append(p);
+			} else {
+				leaf->elements_.insert(p);
+			}
+		};
+		auto handleAdd = [] (LeafNode* relatedLeaf, uint16_t maxBound) {
+			auto isAppend = (i == maxBound);
+			addIn(relatedLeaf, isAppend);
+		};
+
+		constexpr bool odd = BtreeOrder % 2;
+		constexpr auto middle = odd ? (BtreeOrder / 2 + 1) : (BtreeOrder / 2);
+		if (i <= middle) {
+			constexpr auto removeCount = middle;
+			moveItems(removeCount);
+
+			handleAdd(newPrePtr, middle);
+		} else {
+			constexpr auto removeCount = BtreeOrder - middle;
+			moveItems(removeCount);
+
+			handleAdd(this, BtreeOrder);
+		}
 	}
 
 	NODE_TEMPLATE
-	template <bool FirstCall>
 	void
 	LEAF::changeMaxKeyIn(vector<Base*>& passedNodeTrackStack, const Key& maxKey) const
 	{
 		auto& stack = passedNodeTrackStack;
-		auto node = *(passedNodeTrackStack.pop_back());
-
-		if constexpr (FirstCall) {
-			// TODO check below code
-			auto nodePtr = stack.pop_back();
-			auto i = Base::Ele::indexOf(nodePtr);
-			auto upperNodePtr = stack[stack.size() - 1];
-			auto matchIndex = upperNodePtr->elements_.indexOf(nodePtr);
-			node[matchIndex].first = maxKey;
-			auto maxIndex = upperNodePtr->childCount() - 1;
-
-			if (matchIndex == maxIndex) {
-				// Change upper recursively
-			}
-		} else {
-			// Change corresponding key
-			// Add a index() to Elements
-			// If not max, stop to change
-
+		if (stack.size() < 2) {
+			return;
 		}
 
+		auto  nodePtr = stack.pop_back();
+		auto& upperNode = *(stack[stack.size() - 1]);
+		// 以下这个修改 key 的部分可以复用
+		auto  matchIndex = upperNode.elements_.indexOf(nodePtr);
+		upperNode[matchIndex].first = maxKey;
+
+		auto maxIndex = upperNode->childCount() - 1;
+		if (matchIndex == maxIndex) {
+			changeMaxKeyIn(stack, maxKey);
+		}
 	}
+
+	// use stack to get root node(maybe not need root node), then use this early max key to search
+	NODE_TEMPLATE
+	void
+	LEAF::replacePreviousNodeMaxKeyInTreeBySearchUpIn(vector<Base*>& passedNodeTrackStack, const Key& oldKey, const Key& newKey)
+	{
+		auto& stack = passedNodeTrackStack;
+#define EMIT_UPPER_NODE() stack.pop_back()
+
+		EMIT_UPPER_NODE(); // top pointer is leaf, it's useless
+
+		for (Base* node = EMIT_UPPER_NODE(); stack.size() != 0; node = EMIT_UPPER_NODE()) {
+			// judge if the node is the same ancestor between this and previous node
+			if (node->have(oldKey)) {
+				node->changeInSearchDownPath(oldKey, newKey);
+
+				// judge if need to change upper node
+				auto i = node->elements_.indexOf(oldKey); // should create a method called this layer search
+				auto maxIndex = Base::childCount() - 1;
+				if (i != -1 && i == maxIndex) {
+					stack.push_back(node);
+					// change upper node
+					changeMaxKeyIn(stack, newKey);
+					break;
+				}
+			}
+		}
+	}
+
+	NODE_TEMPLATE
+	void
+	LEAF::insertPreLeafToUpperNode(LeafNode* preLeaf, vector<Base*> passedNodeTrackStack) const
+	{
+		auto& stack = passedNodeTrackStack;
+		EMIT_UPPER_NODE(); // top pointer is leaf, it's useless
+		
+		// 这部分甚至可能动 root，做好心理准备
+
+		Base* node = EMIT_UPPER_NODE();
+
+		if (!node->full()) {
+			if (node->add(node)) {
+				// change max key upper in stack
+			}
+		} else {
+			// if sibling free, move to sibling
+
+			// not free, split node into two, do the LeafNode same thing to upper node
+
+			// attention to arrive root, and change root
+		}
+		// 这一层造好节点之后，就交给上一层处理
+		
+#undef EMIT_UPPER_NODE
+	}
+
+	NODE_TEMPLATE
+	typename LEAF::Base*
+	LEAF::previousSearchIn(vector<Base*>&) const
+	{
+		return _previous;
+	}
+
+	NODE_TEMPLATE
+	typename LEAF::Base*
+	LEAF::nextSearchIn(vector<Base*>&) const
+	{
+		return _next;
+	}
+
 #undef LEAF
 #undef NODE_TEMPLATE
 }

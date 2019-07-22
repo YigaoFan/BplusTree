@@ -46,19 +46,24 @@ namespace btree {
 		Elements(const Elements&);
 		Elements(Elements&&) noexcept;
 
-		// Bool means max key changes
+		// bool means max key changes
 		bool             have(const Key&);
 		uint16_t         count() const;
 		bool             full() const;
 		bool             remove(const Key&);
+		void             removeItemsFrom(bool, uint16_t);
 		template <typename T>
 		void             insert(pair<Key, T>);
 		template <typename T>
 		void             append(pair<Key, T>);
 		pair<Key, Value> exchangeMax(pair<Key, Value>);
+		pair<Key, Value> exchangeMin(pair<Key, Value>);
 
 		ValueForContent& operator[](const Key&);
 		Content&         operator[](uint16_t);
+		int16_t          indexOf(PtrType *);
+		int16_t          indexOf(const Key&);
+		uint16_t         suitablePosition(const Key&) const;
 		ElementsIterator       begin();
 		ElementsIterator       end();
 
@@ -71,7 +76,7 @@ namespace btree {
 		uint16_t                   _count{ 0 };
 		array<Content, BtreeOrder> _elements;
 
-		void     adjustMemory(int16_t , Content*);
+		void     adjustMemory(int16_t, Content *);
 		uint16_t relatedIndex(const Key&);
 
 		static Content& assign(Content&, const pair<Key, Value>&);
@@ -184,6 +189,17 @@ namespace btree {
 	}
 
 	ELEMENTS_TEMPLATE
+	void
+	ELE::removeItemsFrom(bool head, uint16_t count)
+	{
+		if (head) {
+			adjustMemory(-count, &_elements[0]);
+		}
+
+		_count -= count;
+	}
+
+	ELEMENTS_TEMPLATE
 	typename ELE::ValueForContent&
 	ELE::operator[](const Key& key)
 	{
@@ -218,6 +234,59 @@ namespace btree {
 	ELE::end()
 	{
 		return ElementsIterator(_elements.end());
+	}
+
+	ELEMENTS_TEMPLATE
+	int16_t
+	ELE::indexOf(PtrType *pointer)
+	{
+#define PTR_OF_ELE ptr(_elements[i].value)
+
+		for (auto i = 0; i < _count; ++i) {
+			if (PTR_OF_ELE == pointer) {
+				return i;
+			}
+		}
+
+		return -1; // means not found
+		// throw runtime_error("can not find the corresponding index");
+#undef PTR_OF_ELE
+	}
+
+
+	ELEMENTS_TEMPLATE
+	int16_t
+	ELE::indexOf(const Key& key)
+	{
+#define KEY_OF_ELE ptr(_elements[i].first)
+		auto& lessThan = *LessThanPtr;
+
+		for (auto i = 0; i < _count; ++i) {
+			if ((!lessThan(key, KEY_OF_ELE)) && (!lessThan(KEY_OF_ELE, key))) {
+				return i;
+			}
+		}
+
+		return -1; // means not found
+		// throw runtime_error("can not find the corresponding index");
+#undef KEY_OF_ELE
+	}
+
+	ELEMENTS_TEMPLATE
+	uint16_t
+	ELE::suitablePosition(const Key& key) const
+	{
+#define KEY_OF_ELE ptr(_elements[i].first)
+		auto& lessThan = *LessThanPtr;
+
+		for (auto i = 0; i < _count; ++i) {
+			if (lessThan(key, KEY_OF_ELE)) {
+				return i;
+			}
+		}
+
+		return _count + 1;
+#undef KEY_OF_ELE
 	}
 
 	ELEMENTS_TEMPLATE
@@ -285,19 +354,44 @@ namespace btree {
 		return max;
 	}
 
-	// private method part:
+	ELEMENTS_TEMPLATE
+	pair<Key, Value>
+	ELE::exchangeMin(pair<Key, Value> p)
+	{
+#ifdef BTREE_DEBUG
+		if (_count < BtreeOrder) {
+			throw runtime_error("Please invoke exchangeMax when the Elements is full, you can use full to check it");
+		} else if (have(p.first)) {
+			throw runtime_error("The Key: " + p.first + " has already existed");
+		}
+#endif
+		auto& minItem = _elements[0];
+		pair<Key, Value> min{ minItem.first, Elements::value(minItem.second) };
+		// move left
+		adjustMemory(-1, &_elements[1]);
+		--_count;
+
+		if ((*LessThanPtr)(_elements[_count - 1].first, p.first)) {
+			append(p);
+		} else {
+			insert(p);
+		}
+
+		return min;
+	}
+
 	ELEMENTS_TEMPLATE
 	void
-	ELE::adjustMemory(const int16_t direction, Content* begin)
+	ELE::adjustMemory(int16_t direction, Content* begin)
 	{
 		// default Content* end
 		if (_count == 0 || direction == 0) {
 			return;
-		} else if (direction > 0 && _count >= BtreeOrder) {
+		} else if (_count >= BtreeOrder && direction > 0) {
 			throw runtime_error("The Elements is full");
 		}
-		auto&& end = _count >= BtreeOrder ? _elements.end() : &_elements[_count]; // end is exclude
-		Elements::moveElement(direction, begin, end);
+		auto&& end = (_count >= BtreeOrder) ? _elements.end() : &_elements[_count]; // end is exclude
+		moveElement(direction, begin, end);
 	}
 
 	ELEMENTS_TEMPLATE
