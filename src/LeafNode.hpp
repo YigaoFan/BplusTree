@@ -15,6 +15,9 @@ namespace btree {
 		using Base       = NodeBase<Key, Value, BtreeOrder>;
 		using FatherType = MiddleNode<Key, Value, BtreeOrder>;
 		using typename Base::LessThan;
+
+		template <typename T>
+		friend void doAdd(Base*, pair<Key, T>, vector<Base*>&);
 	public:
 		template <typename Iterator>
 		LeafNode(Iterator, Iterator, shared_ptr<LessThan>);
@@ -28,7 +31,7 @@ namespace btree {
 		void             remove(const Key&);
 		inline LeafNode* nextLeaf() const;
 		inline void      nextLeaf(LeafNode*);
-		// inline LeafNode* previousLeaf() const;
+		inline LeafNode* previousLeaf() const;
 		inline void      previousLeaf(LeafNode*);
 
 	private:
@@ -36,16 +39,12 @@ namespace btree {
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
 
-		inline bool spaceFreeIn(const LeafNode*) const;
 		inline void siblingElementReallocate(bool, vector<Base *>&, pair<Key, Value>);
 		inline void splitNode(pair<Key, Value>, vector<Base*>&);
 		// template default is inline?
 		inline void changeMaxKeyIn(vector<Base*>&, const Key&) const;
 		inline void replacePreviousNodeMaxKeyInTreeBySearchUpIn(vector<Base*>&, const Key&, const Key&);
-		inline void insertPreLeafToUpperNode(LeafNode*, vector<Base*>) const;
-
-		Base* previousSearchIn(vector<Base*>&) const override;
-		Base* nextSearchIn    (vector<Base*>&) const override;
+		inline void insertLeafToUpper(LeafNode*, vector<Base*>) const;
 	};
 }
 
@@ -89,8 +88,6 @@ namespace btree {
 	bool
 	LEAF::add(pair<Key, Value> p, vector<Base*>& passedNodeTrackStack)
 	{
-#define MAX_KEY elements_[elements_.count() - 1].first
-
 		using Base::full;
 		using Base::elements_;
 		auto& k = p.first;
@@ -99,12 +96,13 @@ namespace btree {
 		stack.push_back(this);
 
 		if (!full()) {
-			if (lessThan(k, MAX_KEY)) {
+			if (lessThan(k, Base::maxKey())) {
 				elements_.insert(p);
 			} else {
 				elements_.append(p);
 				changeMaxKeyIn(stack, k);
 			}
+			// why here not Base::spaceFreeIn()?
 		} else if (spaceFreeIn(_previous)) {
 			siblingElementReallocate(true, stack, p);
 		} else if (spaceFreeIn(_next)) {
@@ -112,8 +110,6 @@ namespace btree {
 		} else {
 			splitNode(p, stack);
 		}
-
-#undef MAX_KEY
 	}
 
 	NODE_TEMPLATE
@@ -148,11 +144,12 @@ namespace btree {
 	}
 
 	NODE_TEMPLATE
-	bool
-	LEAF::spaceFreeIn(const LeafNode *node) const
+	LEAF*
+	LEAF::previousLeaf() const
 	{
-		return !node->full();
+		return _previous;
 	}
+
 	// TODO If you want to fine all the node, you could leave a gap "fineAllocate" to fine global allocate
 
 	NODE_TEMPLATE
@@ -160,9 +157,9 @@ namespace btree {
 	LEAF::siblingElementReallocate(bool isPrevious, vector<Base*>& passedNodeTrackStack, pair<Key, Value> p)
 	{
 		auto& stack = passedNodeTrackStack;
-		// if max change, need to change above
+		
 		if (isPrevious) {
-			auto&& min = Base::elements_.exchangeMin(p);
+			auto&& min = Base::elements_.exchangeMin(p); // exchange need to provide key, PtrType version
 			auto&& previousOldMax = _previous->maxKey();
 			_previous->elements_.append(min);
 			// previous max change
@@ -192,11 +189,9 @@ namespace btree {
 		auto i = Base::elements_.suitablePosition(key);
 
 		// [] not need reference if don't have last sentence?
-		auto moveItems = [&] (uint16_t preNodeRemoveCount) {
+		auto moveItems = [] (uint16_t preNodeRemoveCount) {
 			newPrePtr->elements_.removeItemsFrom(false, preNodeRemoveCount);
 			Base::     elements_.removeItemsFrom(true,  BtreeOrder - preNodeRemoveCount);
-
-			insertPreLeafToUpperNode(newPrePtr, stack); // stack is copied
 		};
 
 		auto addIn = [&] (LeafNode* leaf, bool shouldAppend) {
@@ -206,10 +201,8 @@ namespace btree {
 				leaf->elements_.insert(p);
 			}
 		};
-		auto handleAdd = [] (LeafNode* relatedLeaf, uint16_t maxBound) {
-			auto isAppend = (i == maxBound);
-			addIn(relatedLeaf, isAppend);
-		};
+
+#define HANDLE_ADD(leaf, maxBound) auto shouldAppend = (i == maxBound); do { addIn(leaf, shouldAppend); } while(0)
 
 		constexpr bool odd = BtreeOrder % 2;
 		constexpr auto middle = odd ? (BtreeOrder / 2 + 1) : (BtreeOrder / 2);
@@ -217,13 +210,20 @@ namespace btree {
 			constexpr auto removeCount = middle;
 			moveItems(removeCount);
 
-			handleAdd(newPrePtr, middle);
+			HANDLE_ADD(newPrePtr, middle);
 		} else {
 			constexpr auto removeCount = BtreeOrder - middle;
 			moveItems(removeCount);
 
-			handleAdd(this, BtreeOrder);
+			HANDLE_ADD(this, BtreeOrder);
+			if (shouldAppend) {
+				changeMaxKeyIn(stack, key);
+			}
 		}
+		
+#undef HANDLE_ADD
+
+		insertLeafToUpper(newPrePtr, stack); // stack is copied
 	}
 
 	NODE_TEMPLATE
@@ -277,43 +277,16 @@ namespace btree {
 
 	NODE_TEMPLATE
 	void
-	LEAF::insertPreLeafToUpperNode(LeafNode* preLeaf, vector<Base*> passedNodeTrackStack) const
+	LEAF::insertLeafToUpper(LeafNode* leaf, vector<Base*> passedNodeTrackStack) const
 	{
 		auto& stack = passedNodeTrackStack;
+		// reduce the useless node, prepare to upper level add, just like start new leaf add
 		EMIT_UPPER_NODE(); // top pointer is leaf, it's useless
-		
+
+		doAdd(make_pair<Key, Base*>(leaf->maxKey(), leaf), stack);
 		// 这部分甚至可能动 root，做好心理准备
 
-		Base* node = EMIT_UPPER_NODE();
-
-		if (!node->full()) {
-			if (node->add(node)) {
-				// change max key upper in stack
-			}
-		} else {
-			// if sibling free, move to sibling
-
-			// not free, split node into two, do the LeafNode same thing to upper node
-
-			// attention to arrive root, and change root
-		}
-		// 这一层造好节点之后，就交给上一层处理
-		
 #undef EMIT_UPPER_NODE
-	}
-
-	NODE_TEMPLATE
-	typename LEAF::Base*
-	LEAF::previousSearchIn(vector<Base*>&) const
-	{
-		return _previous;
-	}
-
-	NODE_TEMPLATE
-	typename LEAF::Base*
-	LEAF::nextSearchIn(vector<Base*>&) const
-	{
-		return _next;
 	}
 
 #undef LEAF

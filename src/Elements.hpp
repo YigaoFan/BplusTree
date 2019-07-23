@@ -58,6 +58,8 @@ namespace btree {
 		void             append(pair<Key, T>);
 		pair<Key, Value> exchangeMax(pair<Key, Value>);
 		pair<Key, Value> exchangeMin(pair<Key, Value>);
+		pair<Key, PtrType*> exchangeMax(pair<Key, PtrType*>);
+		pair<Key, PtrType*> exchangeMin(pair<Key, PtrType*>);
 
 		ValueForContent& operator[](const Key&);
 		Content&         operator[](uint16_t);
@@ -78,6 +80,8 @@ namespace btree {
 
 		void     adjustMemory(int16_t, Content *);
 		uint16_t relatedIndex(const Key&);
+		template <typename T>
+		void     add(pair<Key, T>);
 
 		static Content& assign(Content&, const pair<Key, Value>&);
 		template <typename T>
@@ -151,8 +155,10 @@ namespace btree {
 	bool
 	ELE::have(const Key& key)
 	{
+		auto& lessThan = *LessThanPtr;
 		for (auto i = 0; i < _count; ++i) {
-			if ((*LessThanPtr)(_elements[i].first, key) == (*LessThanPtr)(key, _elements[i].first)) {
+			auto& eleKey = _elements[i].first;
+			if (lessThan(eleKey, key) == lessThan(key, eleKey)) {
 				return true;
 			}
 		}
@@ -343,13 +349,30 @@ namespace btree {
 		}
 #endif
 		auto& maxItem = _elements[_count - 1];
-		pair<Key, Value> max{ maxItem.first, Elements::value(maxItem.second) };
+		pair<Key, Value> max{ maxItem.first, value(maxItem.second) };
 		--_count;
-		if ((*LessThanPtr)(_elements[_count - 1].first, p.first)) {
-			append(p);
-		} else {
-			insert(p);
+
+		add(p);
+
+		return max;
+	}
+
+	ELEMENTS_TEMPLATE
+	pair<Key, PtrType*>
+	ELE::exchangeMax(pair<Key, PtrType*> p)
+	{
+#ifdef BTREE_DEBUG
+		if (_count < BtreeOrder) {
+			throw runtime_error("Please invoke exchangeMax when the Elements is full, you can use full to check it");
+		} else if (have(p.first)) {
+			throw runtime_error("The Key: " + p.first + " has already existed");
 		}
+#endif
+		auto& maxItem = _elements[_count - 1];
+		pair<Key, PtrType*> max{ maxItem.first, ptr(maxItem.second) };
+		--_count;
+
+		add(p);
 
 		return max;
 	}
@@ -366,18 +389,50 @@ namespace btree {
 		}
 #endif
 		auto& minItem = _elements[0];
-		pair<Key, Value> min{ minItem.first, Elements::value(minItem.second) };
+		pair<Key, Value> min{ minItem.first, value(minItem.second) };
 		// move left
 		adjustMemory(-1, &_elements[1]);
 		--_count;
 
-		if ((*LessThanPtr)(_elements[_count - 1].first, p.first)) {
+		add(p);
+
+		return min;
+	}
+
+	ELEMENTS_TEMPLATE
+	pair<Key, PtrType*>
+	ELE::exchangeMin(pair<Key, PtrType*> p)
+	{
+#ifdef BTREE_DEBUG
+		if (_count < BtreeOrder) {
+			throw runtime_error("Please invoke exchangeMax when the Elements is full, you can use full to check it");
+		} else if (have(p.first)) {
+			throw runtime_error("The Key: " + p.first + " has already existed");
+		}
+#endif
+		auto& minItem = _elements[0];
+		pair<Key, PtrType*> min{ minItem.first, ptr(minItem.second) };
+		// move left
+		adjustMemory(-1, &_elements[1]);
+		--_count;
+
+		add(p);
+
+		return min;
+	}
+
+	ELEMENTS_TEMPLATE
+	template <typename T>
+	void
+	ELE::add(pair<Key, T> p)
+	{
+		auto& lessThan = *LessThanPtr;
+
+		if (lessThan(_elements[_count - 1].first, p.first)) {
 			append(p);
 		} else {
 			insert(p);
 		}
-
-		return min;
 	}
 
 	ELEMENTS_TEMPLATE

@@ -16,6 +16,8 @@ namespace btree {
 
 	NODE_TEMPLATE
 	class NodeBase {
+		template <typename T>
+		friend void doAdd(NodeBase*, pair<Key, T>, vector<NodeBase*>&);
 	public:
 		using Ele      = Elements<Key, Value, BtreeOrder, NodeBase>;
 		using LessThan = typename Ele::LessThan;
@@ -45,9 +47,10 @@ namespace btree {
 		inline void   changeInSearchDownPath(const Key&, const Key&);
 		inline Value* searchWithSaveTrack(const Key&, vector<NodeBase*>&);
 
-		void upperAdd(NodeBase*, vector<NodeBase*>&);
-		virtual NodeBase* previousSearchIn(vector<NodeBase*>&) const;
-		virtual NodeBase* nextSearchIn    (vector<NodeBase*>&) const;
+		virtual NodeBase* searchPreviousIn(vector<NodeBase *> &) const;
+		virtual NodeBase* searchNextIn(vector<NodeBase *> &) const;
+
+		inline bool spaceFreeIn(const NodeBase*) const;
 	};
 }
 
@@ -188,10 +191,9 @@ namespace btree {
 		using MiddleNode = MiddleNode<Key, Value, BtreeOrder>;
 
 		vector<decltype(this)> passedNodeTrackStack;
-		passedNodeTrackStack.push_back(this);
 
 		if (!Middle) {
-			static_cast<LeafNode*>(this)->add(p, passedNodeTrackStack);
+			static_cast<LeafNode*>  (this)->add(p, passedNodeTrackStack);
 		} else {
 			static_cast<MiddleNode*>(this)->add(p, passedNodeTrackStack);
 		}
@@ -295,50 +297,26 @@ namespace btree {
 		}
 	}
 
-	NODE_TEMPLATE
-	void
-	BASE::upperAdd(NodeBase* node, vector<NodeBase*>& passedNodeTrackStack)
-	{
-		// TODO
-#define MAX_KEY elements_[elements_.count() - 1].first
-
-		auto& k = node->maxKey();
-		auto& lessThan = *(elements_.LessThanPtr);
-		auto& stack = passedNodeTrackStack;
-		stack.push_back(this);
-		auto p = make_pair(k, node);
-
-		if (!full()) {
-
-			if (lessThan(k, MAX_KEY)) {
-				elements_.insert(std::move(p));
-			} else {
-				elements_.append(std::move(p));
-				changeMaxKeyIn(stack, k);
-			}
-		} else if (spaceFreeIn(previousSearchIn(stack))) {
-			siblingElementReallocate(true, stack, std::move(p));
-		} else if (spaceFreeIn(nextSearchIn(stack))) {
-			siblingElementReallocate(false, stack, std::move(p));
-		} else {
-			splitNode(std::move(p), stack); // TODO
-		}
-
-#undef MAX_KEY
-	}
 
 	NODE_TEMPLATE
 	BASE*
-	BASE::previousSearchIn(vector<NodeBase*>& passedNodeTrackStack) const
+	BASE::searchPreviousIn(vector<NodeBase *> &passedNodeTrackStack) const
 	{
 
 	}
 
 	NODE_TEMPLATE
 	BASE*
-	BASE::nextSearchIn(vector<NodeBase*>& passedNodeTrackStack) const
+	BASE::searchNextIn(vector<NodeBase *> &passedNodeTrackStack) const
 	{
 
+	}
+
+	NODE_TEMPLATE
+	bool
+	BASE::spaceFreeIn(const NodeBase* node) const
+	{
+		return !node->full();
 	}
 #undef BASE
 #undef NODE_TEMPLATE
