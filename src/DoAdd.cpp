@@ -23,10 +23,9 @@ namespace btree {
 		if constexpr (std::is_same<typename std::decay<T>::type, Value>::value) {
 			auto leaf = static_cast<LEAF*>(node);
 			previous = leaf->previousLeaf();
-			next = leaf->nextLeaf();
+			next     = leaf->nextLeaf();
 		} else {
-			previous = searchPreviousIn(stack);
-			next = searchNextIn(stack);
+			node->searchSiblingsIn(stack, previous, next);
 		}
 
 		if (!node->full()) {
@@ -34,10 +33,9 @@ namespace btree {
 				node->elements_.insert(p);
 			} else {
 				node->elements_.append(p);
-				changeMaxKeyIn(stack, k);
+				node->changeMaxKeyIn(stack, k);
 			}
 		} else if (spaceFreeIn(previous)) {
-			// below should be a template function
 			siblingElementReallocate(true, stack, p);
 		} else if (spaceFreeIn(next)) {
 			siblingElementReallocate(false, stack, p);
