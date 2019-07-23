@@ -22,12 +22,12 @@ namespace btree {
 		~MiddleNode() override;
 
 		Base*            minSon();
-		bool             add(pair<Key, Value>, vector<Base*>&);
+		void             collectAddInfo(const Key&, vector<Base*>&);
 		Base*            operator[](const Key&);
 		pair<Key, Base*> operator[](uint16_t);
 
 	private:
-		void addBeyondMax(pair<Key, Value>);
+		void addBeyondMax(pair<Key, Value>); // TODO maybe useless
 	};
 }
 
@@ -85,13 +85,12 @@ namespace btree {
 	}
 
 	NODE_TEMPLATE
-	bool
-	MIDDLE::add(pair<Key, Value> p, vector<Base*>& passedNodeTrackStack)
+	void
+	MIDDLE::collectAddInfo(const Key& key, vector<Base*>& passedNodeTrackStack)
 	{
 		using Base::elements_;
 		using Base::Ele::ptr;
 		using LeafNode = LeafNode<Key, Value, BtreeOrder>;
-		auto& k = p.first;
 		auto& lessThan = *(elements_.LessThanPtr);
 		auto& stack = passedNodeTrackStack;
 		stack.push_back(this);
@@ -100,21 +99,21 @@ namespace btree {
 #define VALUE_OF_ELE e.second
 
 		for (auto& e : elements_) {
-			if (lessThan(k, KEY_OF_ELE)) {
+			if (lessThan(key, KEY_OF_ELE)) {
 				auto subNodePtr = ptr(VALUE_OF_ELE);
+				stack.push_back(subNodePtr);
 
 				if (subNodePtr->Middle) {
-					static_cast<MiddleNode*>(subNodePtr)->add(p, stack);
-				} else {
-					static_cast<LeafNode*>(subNodePtr)->add(p, stack);
+					static_cast<MiddleNode*>(subNodePtr)->add(key, stack);
 				}
 			}
 		}
 
+		addBeyondMax(key); // TODO have problem, think about this method
+
 #undef VALUE_OF_ELE
 #undef KEY_OF_ELE
 
-		addBeyondMax(p);
 	}
 
 	// Name maybe not very accurate, because not must beyond

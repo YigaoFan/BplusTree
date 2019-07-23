@@ -3,6 +3,8 @@
 #include "Elements.hpp"
 
 namespace btree {
+	using std::make_pair;
+
 	struct LeafFlag   {};
 	struct MiddleFlag {};
 
@@ -31,8 +33,8 @@ namespace btree {
 		inline bool        have  (const Key&);
 		Value*             search(const Key&);
 		bool               add(pair<Key, Value>);
-		bool               add(NodeBase*);
 		bool               remove(const Key&);
+		void searchSiblingsIn(vector<NodeBase *> &, NodeBase*&, NodeBase*&) const;
 
 	protected:
 		Elements<Key, Value, BtreeOrder, NodeBase> elements_;
@@ -41,11 +43,9 @@ namespace btree {
 		inline void   changeInSearchDownPath(const Key&, const Key&);
 		inline Value* searchWithSaveTrack(const Key&, vector<NodeBase*>&);
 
-		virtual void searchSiblingsIn(vector<NodeBase *> &, NodeBase*&, NodeBase*&) const;
 
-		inline bool spaceFreeIn(const NodeBase*) const;
 		template <typename T>
-		inline void siblingElementReallocate(bool, vector<NodeBase*>&, pair<Key, T>);
+		inline void siblingElementReallocate(bool, NodeBase*, vector<NodeBase*>&, pair<Key, T>);
 		inline void changeMaxKeyIn(vector<NodeBase*>&, const Key&) const;
 		inline void replacePreviousNodeMaxKeyInTreeBySearchUpIn(vector<NodeBase*>&, const Key&, const Key&);
 		template <typename T>
@@ -66,14 +66,7 @@ namespace btree {
 	template <typename Iter>
 	BASE::NodeBase(MiddleFlag, Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
 		: Middle(true), elements_(begin, end, funcPtr)
-	{
-		// 好像不需要设置 father 了
-		for (; begin != end; ++begin) {
-			// need to use SFINE to control the property below?
-			// TODO error
-			begin->second->father_ = this;
-		}
-	}
+	{ }
 
 	NODE_TEMPLATE
 	BASE::NodeBase(const NodeBase& that)
@@ -183,20 +176,19 @@ namespace btree {
 		throw runtime_error("NodeBase's clone is invalid.");
 	}
 
+	template <typename Key, typename Value, uint16_t BtreeOrder>
+	void
+	collectDeepInfo(BASE*, const Key&, vector<BASE*>&);
+
 	NODE_TEMPLATE
 	bool
 	BASE::add(pair<Key, Value> p)
 	{
 		vector<decltype(this)> passedNodeTrackStack;
 
+		auto& key = p.first;
+		collectDeepInfo(this, key, passedNodeTrackStack);
 		doAdd(this, p, passedNodeTrackStack);
-	}
-
-	NODE_TEMPLATE
-	bool
-	BASE::add(NodeBase* node)
-	{
-
 	}
 
 	NODE_TEMPLATE
@@ -207,6 +199,7 @@ namespace btree {
 			return e[e.count() - 1].second;
 		};
 
+		// TODO wrong
 		// Keep internal node key count between w/2 and w
 		if (!Middle) {
 			elements_.remove(key);
@@ -289,47 +282,32 @@ namespace btree {
 		}
 	}
 
-
 	NODE_TEMPLATE
-	BASE*
-	BASE::searchSiblingsIn(vector<NodeBase *> &passedNodeTrackStack) const
+	void
+	BASE::searchSiblingsIn(vector<NodeBase*>& passedNodeTrackStack, NodeBase*& previous, NodeBase*& next) const
 	{
 
-	}
-
-	NODE_TEMPLATE
-	BASE*
-	BASE::searchNextIn(vector<NodeBase *> &passedNodeTrackStack) const
-	{
-
-	}
-
-	NODE_TEMPLATE
-	bool
-	BASE::spaceFreeIn(const NodeBase* node) const
-	{
-		return !node->full();
 	}
 
 	NODE_TEMPLATE
 	template <typename T>
 	void
-	BASE::siblingElementReallocate(bool isPrevious, vector<NodeBase*>& passedNodeTrackStack, pair<Key, T> p)
+	BASE::siblingElementReallocate(bool isPrevious, NodeBase* sibling, vector<NodeBase*>& passedNodeTrackStack, pair<Key, T> p)
 	{
 		auto& stack = passedNodeTrackStack;
 		
 		if (isPrevious) {
 			auto&& min = elements_.exchangeMin(p);
-			auto&& previousOldMax = _previous->maxKey();
-			_previous->elements_.append(min);
+			auto&& previousOldMax = sibling->maxKey();
+			sibling->elements_.append(min);
 			// previous max change
 			// TODO could use this stack to get sibling stack, then change upper
-			replacePreviousNodeMaxKeyInTreeBySearchUpIn(stack, _previous, min);
+			replacePreviousNodeMaxKeyInTreeBySearchUpIn(stack, sibling, min);
 		} else {
 			auto&& max = elements_.exchangeMax(p);
 			// this max change
 			changeMaxKeyIn(stack, maxKey());
-			_next->elements_.insert(p);
+			sibling->elements_.insert(p);
 		}
 	}
 
@@ -364,14 +342,14 @@ namespace btree {
 
 		EMIT_UPPER_NODE(); // top pointer is leaf, it's useless
 
-		for (Base* node = EMIT_UPPER_NODE(); stack.size() != 0; node = EMIT_UPPER_NODE()) {
+		for (NodeBase* node = EMIT_UPPER_NODE(); stack.size() != 0; node = EMIT_UPPER_NODE()) {
 			// judge if the node is the same ancestor between this and previous node
 			if (node->have(oldKey)) {
 				node->changeInSearchDownPath(oldKey, newKey);
 
 				// judge if need to change upper node
 				auto i = node->elements_.indexOf(oldKey); // should create a method called this layer search
-				auto maxIndex = Base::childCount() - 1;
+				auto maxIndex = childCount() - 1;
 				if (i != -1 && i == maxIndex) {
 					stack.push_back(node);
 					// change upper node
@@ -382,6 +360,9 @@ namespace btree {
 		}
 	}
 
+	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
+	void
+	setSiblings(BASE*, BASE*);
 
 	NODE_TEMPLATE
 	template <typename T>
@@ -389,28 +370,27 @@ namespace btree {
 	BASE::splitNode(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack)
 	{
 		auto& key = p.first;
-		auto& lessThan = *(Base::Ele::LessThanPtr);
+		auto& lessThan = *(Ele::LessThanPtr);
 		auto& stack = passedNodeTrackStack;
 
 		// construct a new one, left is newPre, right is this
-		auto newPre = make_unique<LeafNode>(*this, _previous, this);
+		auto newPre = this->clone();
 		auto newPrePtr = newPre.get();
-		// update previous
-		this->previousLeaf(newPrePtr); // TODO may not need
+		setSiblings<T>(newPrePtr, this);
 
-		auto i = Base::elements_.suitablePosition(key);
+		auto i = elements_.suitablePosition(key);
 
 		// [] not need reference if don't have last sentence?
-		auto moveItems = [] (uint16_t preNodeRemoveCount) {
+		auto moveItems = [&] (uint16_t preNodeRemoveCount) {
 			newPrePtr->elements_.removeItemsFrom(false, preNodeRemoveCount);
-			Base::     elements_.removeItemsFrom(true,  BtreeOrder - preNodeRemoveCount);
+			this->elements_.removeItemsFrom(true,  BtreeOrder - preNodeRemoveCount);
 		};
 
-		auto addIn = [&] (LeafNode* leaf, bool shouldAppend) {
+		auto addIn = [&] (NodeBase* node, bool shouldAppend) {
 			if (shouldAppend) {
-				leaf->elements_.append(p);
+				node->elements_.append(p);
 			} else {
-				leaf->elements_.insert(p);
+				node->elements_.insert(p);
 			}
 		};
 
@@ -448,7 +428,7 @@ namespace btree {
 		// reduce the useless node, prepare to upper level add, just like start new leaf add
 		EMIT_UPPER_NODE(); // top pointer is leaf, it's useless
 
-		doAdd(make_pair<Key, Base*>(node->maxKey(), leaf), stack);
+		doAdd(make_pair<Key, NodeBase*>(node->maxKey(), node), stack);
 		// 这部分甚至可能动 root，做好心理准备
 
 #undef EMIT_UPPER_NODE

@@ -27,7 +27,6 @@ namespace btree {
 
 		const Value&     operator[](const Key&);
 		pair<Key, Value> operator[](uint16_t);
-		bool             add(pair<Key, Value>, vector<Base*>&);
 		void             remove(const Key&);
 		inline LeafNode* nextLeaf() const;
 		inline void      nextLeaf(LeafNode*);
@@ -39,11 +38,7 @@ namespace btree {
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
 
-		inline void siblingElementReallocate(bool, vector<Base *>&, pair<Key, Value>);
-		inline void splitNode(pair<Key, Value>, vector<Base*>&);
 		// template default is inline?
-		inline void changeMaxKeyIn(vector<Base*>&, const Key&) const;
-		inline void replacePreviousNodeMaxKeyInTreeBySearchUpIn(vector<Base*>&, const Key&, const Key&);
 		inline void insertLeafToUpper(LeafNode*, vector<Base*>) const;
 	};
 }
@@ -279,6 +274,8 @@ namespace btree {
 	void
 	LEAF::insertLeafToUpper(LeafNode* leaf, vector<Base*> passedNodeTrackStack) const
 	{
+#define EMIT_UPPER_NODE() stack.pop_back()
+
 		auto& stack = passedNodeTrackStack;
 		// reduce the useless node, prepare to upper level add, just like start new leaf add
 		EMIT_UPPER_NODE(); // top pointer is leaf, it's useless
