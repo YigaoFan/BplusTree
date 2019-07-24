@@ -26,6 +26,7 @@ namespace btree {
 		auto& stack = passedNodeTrackStack;
 		auto& lessThan = *(node->elements_.LessThanPtr);
 
+		// some item don't one of siblings
 		BASE* previous = nullptr, next = nullptr;
 		getSiblings<T>(node, stack, previous, next);
 
@@ -37,9 +38,9 @@ namespace btree {
 				node->changeMaxKeyIn(stack, k);
 			}
 		} else if (spaceFreeIn(previous)) {
-			node->siblingElementReallocate(true, stack, p);
+			node->reallocateSiblingElement(true,  stack, p);
 		} else if (spaceFreeIn(next)) {
-			node->siblingElementReallocate(false, stack, p);
+			node->reallocateSiblingElement(false, stack, p);
 		} else {
 			node->splitNode(p, stack);
 		}

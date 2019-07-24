@@ -8,8 +8,11 @@ namespace btree {
 		using Base = NodeBase<Key, Value, BtreeOrder>;
 
 	public:
-		virtual unique_ptr<Base> clone()
+		// TODO should provide same constructor of NodeBase
+
+		virtual unique_ptr<Base> clone() const
 		{
+			// maybe not right, this class how to know Derived
 			return make_unique<Base>(*(new Derived(*this)));
 		}
 	};

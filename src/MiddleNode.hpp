@@ -11,7 +11,7 @@ namespace btree {
 	NODE_TEMPLATE
 	class MiddleNode : public NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder> {
 	private:
-		using          Base = NodeBase<Key, Value, BtreeOrder>;
+		using          Base = NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder>;
 		using typename Base::LessThan;
 
 	public:
@@ -21,13 +21,14 @@ namespace btree {
 		MiddleNode(MiddleNode&&) noexcept;
 		~MiddleNode() override;
 
+		// TODO Base is not past Base, maybe occur some problem
 		Base*            minSon();
 		void             collectAddInfo(const Key&, vector<Base*>&);
 		Base*            operator[](const Key&);
 		pair<Key, Base*> operator[](uint16_t);
 
 	private:
-		void addBeyondMax(pair<Key, Value>); // TODO maybe useless
+		// void addBeyondMax(pair<Key, Value>);
 	};
 }
 
@@ -98,43 +99,46 @@ namespace btree {
 #define KEY_OF_ELE e.first
 #define VALUE_OF_ELE e.second
 
-		for (auto& e : elements_) {
-			if (lessThan(key, KEY_OF_ELE)) {
+		auto count = elements_.count();
+		for (auto i = 0; i < count; ++i) {
+			auto& e = elements_[i];
+
+			if (lessThan(key, KEY_OF_ELE) || i == (count - 1)) {
 				auto subNodePtr = ptr(VALUE_OF_ELE);
 				stack.push_back(subNodePtr);
 
 				if (subNodePtr->Middle) {
-					static_cast<MiddleNode*>(subNodePtr)->add(key, stack);
+					static_cast<MiddleNode*>(subNodePtr)->collectAddInfo(key, stack);
 				}
+
+				return;
 			}
 		}
 
-		addBeyondMax(key); // TODO have problem, think about this method
-
 #undef VALUE_OF_ELE
 #undef KEY_OF_ELE
-
 	}
 
+	// TODO have problem, think about this method
 	// Name maybe not very accurate, because not must beyond
-	NODE_TEMPLATE
-	void
-	MIDDLE::addBeyondMax(pair<Key, Value> p)
-	{
-		using Base::elements_;
-		using Base::Ele::ptr;
-		// Ptr append will some thing different
-		if (!Base::full()) {
-			elements_.append(p);
-			// update bound related info
-		} else if (/*sibling space free*/) {
-			// move some element to sibling
-		} else {
-			// split node into two
-		}
-		// Think about this way: should add new right most node to expand max bound
-
-	}
+	// NODE_TEMPLATE
+	// void
+	// MIDDLE::addBeyondMax(pair<Key, Value> p)
+	// {
+	// 	using Base::elements_;
+	// 	using Base::Ele::ptr;
+	// 	// Ptr append will some thing different
+	// 	if (!Base::full()) {
+	// 		elements_.append(p);
+	// 		// update bound related info
+	// 	} else if (/*sibling space free*/) {
+	// 		// move some element to sibling
+	// 	} else {
+	// 		// split node into two
+	// 	}
+	// 	// Think about this way: should add new right most node to expand max bound
+	//
+	// }
 
 #undef MIDDLE
 #undef NODE_TEMPLATE

@@ -45,12 +45,12 @@ namespace btree {
 
 
 		template <typename T>
-		inline void siblingElementReallocate(bool, NodeBase*, vector<NodeBase*>&, pair<Key, T>);
+		inline void reallocateSiblingElement(bool, NodeBase*, vector<NodeBase*>&, pair<Key, T>);
 		inline void changeMaxKeyIn(vector<NodeBase*>&, const Key&) const;
 		inline void replacePreviousNodeMaxKeyInTreeBySearchUpIn(vector<NodeBase*>&, const Key&, const Key&);
 		template <typename T>
 		inline void splitNode(pair<Key, T>, vector<NodeBase*>&);
-		inline void insertLeafToUpper(NodeBase* leaf, vector<NodeBase*> passedNodeTrackStack) const;
+		inline void insertLeafToUpper(NodeBase* leaf, vector<NodeBase*>& passedNodeTrackStack) const;
 	};
 }
 
@@ -169,13 +169,6 @@ namespace btree {
 		return keys;
 	}
 
-	NODE_TEMPLATE
-	unique_ptr<BASE>
-	BASE::clone() const
-	{
-		throw runtime_error("NodeBase's clone is invalid.");
-	}
-
 	template <typename Key, typename Value, uint16_t BtreeOrder>
 	void
 	collectDeepInfo(BASE*, const Key&, vector<BASE*>&);
@@ -187,6 +180,7 @@ namespace btree {
 		vector<decltype(this)> passedNodeTrackStack;
 
 		auto& key = p.first;
+		// TODO could use reference in this function internal, because just search
 		collectDeepInfo(this, key, passedNodeTrackStack);
 		doAdd(this, p, passedNodeTrackStack);
 	}
@@ -292,7 +286,7 @@ namespace btree {
 	NODE_TEMPLATE
 	template <typename T>
 	void
-	BASE::siblingElementReallocate(bool isPrevious, NodeBase* sibling, vector<NodeBase*>& passedNodeTrackStack, pair<Key, T> p)
+	BASE::reallocateSiblingElement(bool isPrevious, NodeBase* sibling, vector<NodeBase*>& passedNodeTrackStack, pair<Key, T> p)
 	{
 		auto& stack = passedNodeTrackStack;
 		
@@ -373,7 +367,7 @@ namespace btree {
 		auto& lessThan = *(Ele::LessThanPtr);
 		auto& stack = passedNodeTrackStack;
 
-		// construct a new one, left is newPre, right is this
+		// construct new one, left is newPre, right is this
 		auto newPre = this->clone();
 		auto newPrePtr = newPre.get();
 		setSiblings<T>(newPrePtr, this);
@@ -409,24 +403,25 @@ namespace btree {
 
 			HANDLE_ADD(this, BtreeOrder);
 			if (shouldAppend) {
-				changeMaxKeyIn(stack, key);
+				auto stackCopy = stack;
+				changeMaxKeyIn(stackCopy, key);
 			}
 		}
 		
 #undef HANDLE_ADD
 
-		insertLeafToUpper(newPrePtr, stack); // stack is copied
+		insertLeafToUpper(newPrePtr, stack);
 	}
 
 	NODE_TEMPLATE
 	void
-	BASE::insertLeafToUpper(NodeBase* node, vector<NodeBase*> passedNodeTrackStack) const
+	BASE::insertLeafToUpper(NodeBase* node, vector<NodeBase*>& passedNodeTrackStack) const
 	{
 #define EMIT_UPPER_NODE() stack.pop_back()
 
+		// reduce useless node, prepare to upper level add, like start new leaf add
 		auto& stack = passedNodeTrackStack;
-		// reduce the useless node, prepare to upper level add, just like start new leaf add
-		EMIT_UPPER_NODE(); // top pointer is leaf, it's useless
+		EMIT_UPPER_NODE();
 
 		doAdd(make_pair<Key, NodeBase*>(node->maxKey(), node), stack);
 		// 这部分甚至可能动 root，做好心理准备

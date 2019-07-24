@@ -1,7 +1,6 @@
 #pragma once
 #include <utility>
 #include "NodeBaseCrtp.hpp"
-//#include "Proxy.hpp"
 
 namespace btree {
 	template <typename Key, typename Value, uint16_t BtreeOrder>
@@ -39,7 +38,7 @@ namespace btree {
 		LeafNode* _previous{ nullptr };
 
 		// template default is inline?
-		inline void insertLeafToUpper(LeafNode*, vector<Base*>) const;
+		// inline void insertLeafToUpper(LeafNode*, vector<Base*>) const;
 	};
 }
 
@@ -270,21 +269,21 @@ namespace btree {
 // 		}
 // 	}
 
-	NODE_TEMPLATE
-	void
-	LEAF::insertLeafToUpper(LeafNode* leaf, vector<Base*> passedNodeTrackStack) const
-	{
-#define EMIT_UPPER_NODE() stack.pop_back()
-
-		auto& stack = passedNodeTrackStack;
-		// reduce the useless node, prepare to upper level add, just like start new leaf add
-		EMIT_UPPER_NODE(); // top pointer is leaf, it's useless
-
-		doAdd(make_pair<Key, Base*>(leaf->maxKey(), leaf), stack);
-		// 这部分甚至可能动 root，做好心理准备
-
-#undef EMIT_UPPER_NODE
-	}
+// 	NODE_TEMPLATE
+// 	void
+// 	LEAF::insertLeafToUpper(LeafNode* leaf, vector<Base*> passedNodeTrackStack) const
+// 	{
+// #define EMIT_UPPER_NODE() stack.pop_back()
+//
+// 		auto& stack = passedNodeTrackStack;
+// 		// reduce the useless node, prepare to upper level add, just like start new leaf add
+// 		EMIT_UPPER_NODE(); // top pointer is leaf, it's useless
+//
+// 		doAdd(make_pair<Key, Base*>(leaf->maxKey(), leaf), stack);
+// 		// 这部分甚至可能动 root，做好心理准备
+//
+// #undef EMIT_UPPER_NODE
+// 	}
 
 #undef LEAF
 #undef NODE_TEMPLATE
