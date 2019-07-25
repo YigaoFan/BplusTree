@@ -12,7 +12,6 @@ namespace btree {
 
 		virtual unique_ptr<Base> clone() const
 		{
-			// maybe not right, this class how to know Derived
 			return make_unique<Base>(*(new Derived(*this)));
 		}
 	};

@@ -43,14 +43,13 @@ namespace btree {
 		inline void   changeInSearchDownPath(const Key&, const Key&);
 		inline Value* searchWithSaveTrack(const Key&, vector<NodeBase*>&);
 
-
 		template <typename T>
 		inline void reallocateSiblingElement(bool, NodeBase*, vector<NodeBase*>&, pair<Key, T>);
 		inline void changeMaxKeyIn(vector<NodeBase*>&, const Key&) const;
 		inline void replacePreviousNodeMaxKeyInTreeBySearchUpIn(vector<NodeBase*>&, const Key&, const Key&);
 		template <typename T>
 		inline void splitNode(pair<Key, T>, vector<NodeBase*>&);
-		inline void insertLeafToUpper(NodeBase* leaf, vector<NodeBase*>& passedNodeTrackStack) const;
+		inline void insertLeafToUpper(NodeBase*, vector<NodeBase*>&) const;
 	};
 }
 
@@ -368,7 +367,7 @@ namespace btree {
 		auto& stack = passedNodeTrackStack;
 
 		// construct new one, left is newPre, right is this
-		auto newPre = this->clone();
+		auto newPre = this->clone(); // TODO have a problem
 		auto newPrePtr = newPre.get();
 		setSiblings<T>(newPrePtr, this);
 
