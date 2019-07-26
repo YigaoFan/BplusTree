@@ -179,7 +179,6 @@ namespace btree {
 		vector<decltype(this)> passedNodeTrackStack;
 
 		auto& key = p.first;
-		// TODO could use reference in this function internal, because just search
 		collectDeepInfo(this, key, passedNodeTrackStack);
 		doAdd(this, p, passedNodeTrackStack);
 	}
@@ -366,9 +365,9 @@ namespace btree {
 		auto& lessThan = *(Ele::LessThanPtr);
 		auto& stack = passedNodeTrackStack;
 
-		// construct new one, left is newPre, right is this
 		auto newPre = this->clone(); // TODO have a problem
 		auto newPrePtr = newPre.get();
+		// left is newPre, right is this
 		setSiblings<T>(newPrePtr, this);
 
 		auto i = elements_.suitablePosition(key);

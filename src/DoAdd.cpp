@@ -26,7 +26,7 @@ namespace btree {
 		auto& stack = passedNodeTrackStack;
 		auto& lessThan = *(node->elements_.LessThanPtr);
 
-		// some item don't one of siblings
+		// some item don't have one of siblings
 		BASE* previous = nullptr, next = nullptr;
 		getSiblings<T>(node, stack, previous, next);
 
@@ -94,7 +94,11 @@ namespace btree {
 	bool
 	spaceFreeIn(const BASE* node)
 	{
-		return !node->full();
+		if (node != nullptr) {
+			return !node->full();
+		}
+
+		return false;
 	}
 
 #undef MIDDLE

@@ -98,12 +98,13 @@ namespace btree {
 
 #define KEY_OF_ELE e.first
 #define VALUE_OF_ELE e.second
+#define LAST_ONE (count - 1)
 
 		auto count = elements_.count();
 		for (auto i = 0; i < count; ++i) {
 			auto& e = elements_[i];
 
-			if (lessThan(key, KEY_OF_ELE) || i == (count - 1)) {
+			if (lessThan(key, KEY_OF_ELE) || i == LAST_ONE) {
 				auto subNodePtr = ptr(VALUE_OF_ELE);
 				stack.push_back(subNodePtr);
 
@@ -115,6 +116,7 @@ namespace btree {
 			}
 		}
 
+#undef LAST_ONE
 #undef VALUE_OF_ELE
 #undef KEY_OF_ELE
 	}
