@@ -33,6 +33,7 @@ namespace btree {
 	ELEMENTS_TEMPLATE
 	class Elements {
 	public:
+		template <typename T>
 		class ElementsIterator;
 		using ValueForContent = variant<Value, unique_ptr<PtrType>>;
 		using Content         = pair<Key, ValueForContent>;
@@ -63,11 +64,16 @@ namespace btree {
 
 		ValueForContent& operator[](const Key&);
 		Content&         operator[](uint16_t);
-		int16_t          indexOf(PtrType *);
-		int16_t          indexOf(const Key&);
+		const ValueForContent& operator[](const Key&) const;
+		const Content&         operator[](uint16_t)   const;
+
+		int32_t          indexOf(const PtrType*) const;
+		int32_t          indexOf(const Key&)     const;
 		uint16_t         suitablePosition(const Key&) const;
-		ElementsIterator       begin();
-		ElementsIterator       end();
+		ElementsIterator<Content> begin();
+		ElementsIterator<Content> end();
+		ElementsIterator<const Content> begin() const;
+		ElementsIterator<const Content> end  () const;
 
 		static Value&         value(ValueForContent&);
 		static PtrType*       ptr  (ValueForContent&);
@@ -91,15 +97,16 @@ namespace btree {
 		static unique_ptr<PtrType>& uniquePtr(ValueForContent&);
 
 	public:
-		class ElementsIterator : iterator<forward_iterator_tag, Content> {
-			Content* _ptr;
+		template <typename T>
+		class ElementsIterator : iterator<forward_iterator_tag, T> {
+			T* _ptr;
 
 		public:
-			explicit ElementsIterator(Content* p) : _ptr(p) {}
+			explicit ElementsIterator(T* p)       : _ptr(p) {}
 
 			ElementsIterator& operator->()       { _ptr = ++_ptr; return *this; }
-			Content&          operator* () const { return *_ptr; }
-			Content*          operator->() const { return _ptr; }
+			T&          operator* () const { return *_ptr; }
+			T*          operator->() const { return _ptr; }
 			ElementsIterator& operator++()       { ++_ptr; return *this; }
 			bool              operator==(const ElementsIterator& i) const
 			{ return _ptr == i._ptr; }
@@ -205,21 +212,32 @@ namespace btree {
 		_count -= count;
 	}
 
+#define OP                                                                   \
+		auto i = indexOf(key);                                               \
+		                                                                     \
+		if (i != -1) {                                                       \
+			return _elements[i].second;                                      \
+		}                                                                    \
+                                                                             \
+		throw runtime_error("Can't get the Value corresponding to the Key: " \
+							 + key                                           \
+							 + ","                                           \
+							 + " Please check the key existence.");
+
 	ELEMENTS_TEMPLATE
 	typename ELE::ValueForContent&
 	ELE::operator[](const Key& key)
 	{
-		for (auto i = 0; i < _count; ++i) {
-			if (key == _elements[i].first) {
-				return _elements[i].second;
-			}
-		}
-
-		throw runtime_error("Can't get the Value corresponding to the Key: "
-							 + key
-							 + ","
-							 + " Please check the key existence.");
+		OP
 	}
+
+	ELEMENTS_TEMPLATE
+	const typename ELE::ValueForContent&
+	ELE::operator[](const Key& key) const
+	{
+		OP
+	}
+#undef OP
 
 	ELEMENTS_TEMPLATE
 	typename ELE::Content&
@@ -229,22 +247,43 @@ namespace btree {
 	}
 
 	ELEMENTS_TEMPLATE
-	typename ELE::ElementsIterator
+	const typename ELE::Content&
+	ELE::operator[](uint16_t i) const
+	{
+		return _elements[i];
+	}
+
+	ELEMENTS_TEMPLATE
+	typename ELE::template ElementsIterator<typename ELE::Content>
 	ELE::begin()
 	{
-		return ElementsIterator(_elements.begin());
+		return ElementsIterator<typename ELE::Content>(_elements.begin());
 	}
 
 	ELEMENTS_TEMPLATE
-	typename ELE::ElementsIterator
+	typename ELE::template ElementsIterator<typename ELE::Content>
 	ELE::end()
 	{
-		return ElementsIterator(_elements.end());
+		return ElementsIterator<typename ELE::Content>(_elements.end());
 	}
 
 	ELEMENTS_TEMPLATE
-	int16_t
-	ELE::indexOf(PtrType *pointer)
+	typename ELE::template ElementsIterator<const typename ELE::Content>
+	ELE::begin() const
+	{
+		return ElementsIterator<const typename ELE::Content>(_elements.begin());
+	}
+
+	ELEMENTS_TEMPLATE
+	typename ELE::template ElementsIterator<const typename ELE::Content>
+	ELE::end() const
+	{
+		return ElementsIterator<const typename ELE::Content>(_elements.end());
+	}
+
+	ELEMENTS_TEMPLATE
+	int32_t
+	ELE::indexOf(const PtrType* pointer) const
 	{
 #define PTR_OF_ELE ptr(_elements[i].value)
 
@@ -255,16 +294,15 @@ namespace btree {
 		}
 
 		return -1; // means not found
-		// throw runtime_error("can not find the corresponding index");
 #undef PTR_OF_ELE
 	}
 
 
 	ELEMENTS_TEMPLATE
-	int16_t
-	ELE::indexOf(const Key& key)
+	int32_t
+	ELE::indexOf(const Key& key) const
 	{
-#define KEY_OF_ELE ptr(_elements[i].first)
+#define KEY_OF_ELE _elements[i].first
 		auto& lessThan = *LessThanPtr;
 
 		for (auto i = 0; i < _count; ++i) {
@@ -274,7 +312,6 @@ namespace btree {
 		}
 
 		return -1; // means not found
-		// throw runtime_error("can not find the corresponding index");
 #undef KEY_OF_ELE
 	}
 

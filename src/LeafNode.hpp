@@ -12,6 +12,7 @@ namespace btree {
 	NODE_TEMPLATE
 	class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder> {
 		using Base       = NodeBase<Key, Value, BtreeOrder>;
+		using Base_CRTP  = NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>;
 		using FatherType = MiddleNode<Key, Value, BtreeOrder>;
 		using typename Base::LessThan;
 
@@ -46,17 +47,17 @@ namespace btree {
 	NODE_TEMPLATE
 	template <typename Iter>
 	LEAF::LeafNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
-		: Base(LeafFlag(), begin, end, funcPtr)
+		: Base_CRTP(LeafFlag(), begin, end, funcPtr)
 	{}
 
 	NODE_TEMPLATE
 	LeafNode<Key, Value, BtreeOrder>::LeafNode(const LeafNode& that, LeafNode* previous, LeafNode* next)
-		: Base(that), _previous(previous), _next(next)
+		: Base_CRTP(that), _previous(previous), _next(next)
 	{}
 
 	NODE_TEMPLATE
 	LeafNode<Key, Value, BtreeOrder>::LeafNode(LeafNode&& that) noexcept
-		: Base(std::move(that)), _next(that._next)
+		: Base_CRTP(std::move(that)), _next(that._next)
 	{}
 
 	NODE_TEMPLATE

@@ -11,7 +11,8 @@ namespace btree {
 	NODE_TEMPLATE
 	class MiddleNode : public NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder> {
 	private:
-		using          Base = NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder>;
+		using          Base = NodeBase<Key, Value, BtreeOrder>;
+		using          Base_CRTP = NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder>;
 		using typename Base::LessThan;
 
 	public:
@@ -36,24 +37,22 @@ namespace btree {
 	NODE_TEMPLATE
 	template <typename Iter>
 	MIDDLE::MiddleNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
-		: Base(MiddleFlag(), begin, end, funcPtr)
+		: Base_CRTP(MiddleFlag(), begin, end, funcPtr)
 	{ }
 
 	NODE_TEMPLATE
 	MIDDLE::MiddleNode(const MiddleNode& that)
-		: Base(that) // TODO wrong work
+		: Base_CRTP(that) // TODO wrong work
 	{
-		using Base::Ele::ptr;
-
-		for (auto& e : Base::elements_) {
-			// Set to corresponding this elements_ position
-			ptr(e.second)->clone();
-		}
+		// for (auto& e : Base::elements_) {
+		// 	// Set to corresponding this elements_ position
+		// 	Base::Ele::ptr(e.second)->clone();
+		// }
 	}
 
 	NODE_TEMPLATE
 	MIDDLE::MiddleNode(MiddleNode&& that) noexcept
-		: Base(std::move(that))
+		: Base_CRTP(std::move(that))
 	{ }
 
 	NODE_TEMPLATE
