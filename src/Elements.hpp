@@ -47,34 +47,38 @@ namespace btree {
 		Elements(const Elements&);
 		Elements(Elements&&) noexcept;
 
-		// bool means max key changes
-		bool             have(const Key&);
+		bool             have(const Key&) const;
 		uint16_t         count() const;
-		bool             full() const;
+		bool             full()  const;
+
+		// bool means max key changes
 		bool             remove(const Key&);
+		bool             remove(uint16_t); // TODO maybe will implement
 		void             removeItemsFrom(bool, uint16_t);
 		template <typename T>
 		void             insert(pair<Key, T>);
 		template <typename T>
 		void             append(pair<Key, T>);
-		pair<Key, Value> exchangeMax(pair<Key, Value>);
-		pair<Key, Value> exchangeMin(pair<Key, Value>);
-		pair<Key, PtrType*> exchangeMax(pair<Key, PtrType*>);
-		pair<Key, PtrType*> exchangeMin(pair<Key, PtrType*>);
+		template <typename T>
+		pair<Key, T> exchangeMax(pair<Key, T>);
+		template <typename T>
+		pair<Key, T> exchangeMin(pair<Key, T>);
+		// TODO maybe directly use PtrType without * this project every where
 
 		ValueForContent& operator[](const Key&);
 		Content&         operator[](uint16_t);
 		const ValueForContent& operator[](const Key&) const;
 		const Content&         operator[](uint16_t)   const;
 
-		int32_t          indexOf(const PtrType*) const;
-		int32_t          indexOf(const Key&)     const;
-		uint16_t         suitablePosition(const Key&) const;
+		int32_t          indexOf         (const PtrType*) const;
+		int32_t          indexOf         (const Key&)     const;
+		uint16_t         suitablePosition(const Key&)     const;
 		ElementsIterator<Content> begin();
 		ElementsIterator<Content> end();
 		ElementsIterator<const Content> begin() const;
 		ElementsIterator<const Content> end  () const;
 
+		// use template to reduce the code below
 		static Value&         value(ValueForContent&);
 		static PtrType*       ptr  (ValueForContent&);
 		static const Value&   value(const ValueForContent&);
@@ -96,17 +100,32 @@ namespace btree {
 		static void initialInternalElements(array<Content, BtreeOrder>&, const array<Content, BtreeOrder>&, bool, uint16_t);
 		static unique_ptr<PtrType>& uniquePtr(ValueForContent&);
 
+		template <typename T>
+		struct ContentRelatedType {
+		};
+
+		template <>
+		struct ContentRelatedType<const Content> {
+			using type = const Content;
+		};
+
+		template <>
+		struct ContentRelatedType<Content> {
+			using type = Content;
+		};
+
 	public:
 		template <typename T>
-		class ElementsIterator : iterator<forward_iterator_tag, T> {
-			T* _ptr;
+		class ElementsIterator : iterator<forward_iterator_tag, ContentRelatedType<T>::type> {
+			using type = ContentRelatedType<T>::type;
+			type* _ptr;
 
 		public:
 			explicit ElementsIterator(T* p)       : _ptr(p) {}
 
 			ElementsIterator& operator->()       { _ptr = ++_ptr; return *this; }
-			T&          operator* () const { return *_ptr; }
-			T*          operator->() const { return _ptr; }
+			type&             operator* () const { return *_ptr; }
+			type*             operator->() const { return _ptr; }
 			ElementsIterator& operator++()       { ++_ptr; return *this; }
 			bool              operator==(const ElementsIterator& i) const
 			{ return _ptr == i._ptr; }
@@ -160,7 +179,7 @@ namespace btree {
 
 	ELEMENTS_TEMPLATE
 	bool
-	ELE::have(const Key& key)
+	ELE::have(const Key& key) const
 	{
 		auto& lessThan = *LessThanPtr;
 		for (auto i = 0; i < _count; ++i) {
@@ -212,38 +231,38 @@ namespace btree {
 		_count -= count;
 	}
 
-#define OP                                                                   \
-		auto i = indexOf(key);                                               \
-		                                                                     \
-		if (i != -1) {                                                       \
-			return _elements[i].second;                                      \
-		}                                                                    \
-                                                                             \
-		throw runtime_error("Can't get the Value corresponding to the Key: " \
-							 + key                                           \
-							 + ","                                           \
-							 + " Please check the key existence.");
-
 	ELEMENTS_TEMPLATE
 	typename ELE::ValueForContent&
 	ELE::operator[](const Key& key)
 	{
-		OP
+		return const_cast<Content&>(
+			(static_cast<const Elements&>(*this))[key]
+			);
 	}
 
 	ELEMENTS_TEMPLATE
 	const typename ELE::ValueForContent&
 	ELE::operator[](const Key& key) const
 	{
-		OP
+		auto i = indexOf(key);
+	
+		if (i != -1) {                            
+			return _elements[i].second;
+		}                   
+    
+		throw runtime_error("Can't get the Value correspond"
+							 + key
+							 + ","
+							 + " Please check the key existence.");
 	}
-#undef OP
 
 	ELEMENTS_TEMPLATE
 	typename ELE::Content&
 	ELE::operator[](uint16_t i)
 	{
-		return _elements[i];
+		return const_cast<Content&>(
+			(static_cast<const Elements&>(*this))[i]
+			);
 	}
 
 	ELEMENTS_TEMPLATE
@@ -257,21 +276,21 @@ namespace btree {
 	typename ELE::template ElementsIterator<typename ELE::Content>
 	ELE::begin()
 	{
-		return ElementsIterator<typename ELE::Content>(_elements.begin());
+		return ElementsIterator(_elements.begin());
 	}
 
 	ELEMENTS_TEMPLATE
 	typename ELE::template ElementsIterator<typename ELE::Content>
 	ELE::end()
 	{
-		return ElementsIterator<typename ELE::Content>(_elements.end());
+		return ElementsIterator(_elements.end());
 	}
 
 	ELEMENTS_TEMPLATE
 	typename ELE::template ElementsIterator<const typename ELE::Content>
 	ELE::begin() const
 	{
-		return ElementsIterator<const typename ELE::Content>(_elements.begin());
+		return ElementsIterator(_elements.begin());
 	}
 
 	ELEMENTS_TEMPLATE
@@ -375,8 +394,9 @@ namespace btree {
 	}
 
 	ELEMENTS_TEMPLATE
-	pair<Key, Value>
-	ELE::exchangeMax(pair<Key, Value> p)
+	template <typename T>
+	pair<Key, T>
+	ELE::exchangeMax(pair<Key, T> p)
 	{
 #ifdef BTREE_DEBUG
 		if (_count < BtreeOrder) {
@@ -386,59 +406,43 @@ namespace btree {
 		}
 #endif
 		auto& maxItem = _elements[_count - 1];
-		pair<Key, Value> max{ maxItem.first, value(maxItem.second) };
+		auto key = maxItem.first;
+		auto valueForContent = maxItem.second;
+
 		--_count;
-
 		add(p);
-
-		return max;
-	}
-
-	ELEMENTS_TEMPLATE
-	pair<Key, PtrType*>
-	ELE::exchangeMax(pair<Key, PtrType*> p)
-	{
-#ifdef BTREE_DEBUG
-		if (_count < BtreeOrder) {
-			throw runtime_error("Please invoke exchangeMax when the Elements is full, you can use full to check it");
-		} else if (have(p.first)) {
-			throw runtime_error("The Key: " + p.first + " has already existed");
+		
+		if constexpr (std::is_same<T, Value>::value) {
+			return make_pair<Key, T>(key, value(valueForContent));
+		} else {
+			return make_pair<Key, T>(key, ptr(valueForContent));
 		}
-#endif
-		auto& maxItem = _elements[_count - 1];
-		pair<Key, PtrType*> max{ maxItem.first, ptr(maxItem.second) };
-		--_count;
-
-		add(p);
-
-		return max;
 	}
 
-	ELEMENTS_TEMPLATE
-	pair<Key, Value>
-	ELE::exchangeMin(pair<Key, Value> p)
-	{
-#ifdef BTREE_DEBUG
-		if (_count < BtreeOrder) {
-			throw runtime_error("Please invoke exchangeMax when the Elements is full, you can use full to check it");
-		} else if (have(p.first)) {
-			throw runtime_error("The Key: " + p.first + " has already existed");
-		}
-#endif
-		auto& minItem = _elements[0];
-		pair<Key, Value> min{ minItem.first, value(minItem.second) };
-		// move left
-		adjustMemory(-1, &_elements[1]);
-		--_count;
+// 	ELEMENTS_TEMPLATE
+// 	pair<Key, PtrType*>
+// 	ELE::exchangeMax(pair<Key, PtrType*> p)
+// 	{
+// #ifdef BTREE_DEBUG
+// 		if (_count < BtreeOrder) {
+// 			throw runtime_error("Please invoke exchangeMax when the Elements is full, you can use full to check it");
+// 		} else if (have(p.first)) {
+// 			throw runtime_error("The Key: " + p.first + " has already existed");
+// 		}
+// #endif
+// 		auto& maxItem = _elements[_count - 1];
+// 		pair<Key, PtrType*> max{ maxItem.first, ptr(maxItem.second) };
+// 		--_count;
 
-		add(p);
+// 		add(p);
 
-		return min;
-	}
+// 		return max;
+// 	}
 
 	ELEMENTS_TEMPLATE
-	pair<Key, PtrType*>
-	ELE::exchangeMin(pair<Key, PtrType*> p)
+	template <typename T>
+	pair<Key, T>
+	ELE::exchangeMin(pair<Key, T> p)
 	{
 #ifdef BTREE_DEBUG
 		if (_count < BtreeOrder) {
@@ -448,14 +452,20 @@ namespace btree {
 		}
 #endif
 		auto& minItem = _elements[0];
-		pair<Key, PtrType*> min{ minItem.first, ptr(minItem.second) };
+		auto key = minItem.first;
+		auto valueForContent = minItem.second;
+		// pair<Key, Value> min{ minItem.first, value(minItem.second) };
 		// move left
 		adjustMemory(-1, &_elements[1]);
 		--_count;
 
 		add(p);
 
-		return min;
+		if constexpr (std::is_same<T, Value>::value) {
+			return make_pair<Key, T>(key, value(valueForContent));
+		} else {
+			return make_pair<Key, T>(key, ptr(valueForContent));
+		}
 	}
 
 	ELEMENTS_TEMPLATE
@@ -577,7 +587,7 @@ namespace btree {
 	const Value&
 	ELE::value(const ValueForContent& v)
 	{
-		return std::get<Value>(v);
+		return std::get<const Value>(v);
 	}
 
 	ELEMENTS_TEMPLATE
@@ -591,7 +601,10 @@ namespace btree {
 	const PtrType*
 	ELE::ptr(const ValueForContent& v)
 	{
+		#error which to choose?
 		return std::get<unique_ptr<PtrType>>(v).get();
+		return std::get<const unique_ptr<const PtrType>>(v).get();
+		return std::get<const unique_ptr<PtrType>>(v).get();
 	}
 
 	ELEMENTS_TEMPLATE

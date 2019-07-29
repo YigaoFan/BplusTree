@@ -24,6 +24,26 @@
         "xlocinfo": "cpp",
         "xlocnum": "cpp",
         "xmemory0": "cpp",
-        "xstddef": "cpp"
+        "xstddef": "cpp",
+        "utility": "cpp",
+        "xutility": "cpp",
+        "array": "cpp",
+        "cmath": "cpp",
+        "cstdint": "cpp",
+        "cstdio": "cpp",
+        "cstdlib": "cpp",
+        "cstring": "cpp",
+        "iosfwd": "cpp",
+        "iostream": "cpp",
+        "iterator": "cpp",
+        "limits": "cpp",
+        "list": "cpp",
+        "string": "cpp",
+        "typeinfo": "cpp",
+        "unordered_map": "cpp",
+        "xfacet": "cpp",
+        "xhash": "cpp",
+        "xmemory": "cpp",
+        "xtr1common": "cpp"
     }
 }
