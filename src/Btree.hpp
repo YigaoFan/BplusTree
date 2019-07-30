@@ -62,7 +62,7 @@ namespace btree {
 		uint16_t             _keyNum { 0 };
 		unique_ptr<Base>     _root { nullptr };
 
-		vector<Leaf*> traverseLeaf(function<bool(Leaf*)>&) const;
+		vector<Leaf*> traverseLeaf(const function<bool(Leaf*)>&) const;
 		template <bool FirstCall=true, typename E, size_t NodeCount>
 		void constructTreeFromLeafToRoot(const array<E, NodeCount>&);
 
@@ -284,7 +284,7 @@ namespace btree {
 
 	BTREE_TEMPLATE
 	vector<typename BTREE::Leaf*>
-	BTREE::traverseLeaf(function<bool(Leaf*)>& predicate) const
+	BTREE::traverseLeaf(const function<bool(Leaf*)>& predicate) const
 	{
 		vector<Leaf*> leafCollection;
 

@@ -106,7 +106,7 @@ TESTCASE("Element test") {
 
 		SECTION("Test exchange") {
 			ASSERT(leafEle.full());
-			auto&& max = leafEle.exchangeMax(make_pair("4", "d"));
+			auto&& max = leafEle.exchangeMax(make_pair<string, string>("4", "d"));
 			ASSERT(max.first == "3");
 			ASSERT(max.second == "c");
 			ASSERT(ELE::value(leafEle["4"]) == "d");

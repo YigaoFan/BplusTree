@@ -128,7 +128,7 @@ namespace btree {
 	Value*
 	BASE::search(const Key& key)
 	{
-		auto maxValueForContent = [] (Ele& e) {
+		auto maxValueForContent = [] (Ele& e) -> typename Ele::ValueForContent& {
 			return e[e.count() - 1].second;
 		};
 
@@ -179,8 +179,11 @@ namespace btree {
 		vector<decltype(this)> passedNodeTrackStack;
 
 		auto& key = p.first;
+		// here is wrong
 		collectDeepInfo(this, key, passedNodeTrackStack);
 		doAdd(this, p, passedNodeTrackStack);
+
+		return false; // TODO wait to modify
 	}
 
 	NODE_TEMPLATE
@@ -214,6 +217,8 @@ namespace btree {
 				}
 			}
 		}
+
+		return false; // TODO wait to modify
 	}
 
 

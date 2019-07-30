@@ -1,4 +1,3 @@
-#pragma once
 #include "NodeBase.hpp"
 #include "LeafNode.hpp"
 #include "MiddleNode.hpp"
@@ -20,7 +19,8 @@ namespace btree {
 
 	template<typename Key, typename Value, uint16_t BtreeOrder, typename T>
 	void
-	doAdd(BASE* node, pair<Key, T> p, vector<BASE*>& passedNodeTrackStack) {
+	doAdd(BASE* node, pair<Key, T> p, vector<BASE*>& passedNodeTrackStack)
+	{
 		// TODO need use std::move p or not?
 		auto& k = p.first;
 		auto& stack = passedNodeTrackStack;

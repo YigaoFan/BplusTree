@@ -7,6 +7,7 @@
 #include <vector>     // for vector
 #include <memory>     // for unique_ptr, shared_ptr
 #include <iterator>
+#include <utility>
 #ifdef BTREE_DEBUG
 #include "Utility.hpp"
 #endif
@@ -24,6 +25,7 @@ namespace btree {
 	using std::make_unique;
 	using std::iterator;
 	using std::forward_iterator_tag;
+	using std::make_pair;
 
 #define ELEMENTS_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder, typename PtrType>
 
@@ -73,10 +75,10 @@ namespace btree {
 		int32_t          indexOf         (const PtrType*) const;
 		int32_t          indexOf         (const Key&)     const;
 		uint16_t         suitablePosition(const Key&)     const;
-		ElementsIterator<Content> begin();
-		ElementsIterator<Content> end();
-		ElementsIterator<const Content> begin() const;
-		ElementsIterator<const Content> end  () const;
+		auto begin();
+		auto end();
+		auto begin() const;
+		auto end  () const;
 
 		// use template to reduce the code below
 		static Value&         value(ValueForContent&);
@@ -116,8 +118,8 @@ namespace btree {
 
 	public:
 		template <typename T>
-		class ElementsIterator : iterator<forward_iterator_tag, ContentRelatedType<T>::type> {
-			using type = ContentRelatedType<T>::type;
+		class ElementsIterator : iterator<forward_iterator_tag, typename ContentRelatedType<T>::type> {
+			using type = typename ContentRelatedType<T>::type;
 			type* _ptr;
 
 		public:
@@ -235,7 +237,7 @@ namespace btree {
 	typename ELE::ValueForContent&
 	ELE::operator[](const Key& key)
 	{
-		return const_cast<Content&>(
+		return const_cast<ValueForContent&>(
 			(static_cast<const Elements&>(*this))[key]
 			);
 	}
@@ -273,31 +275,31 @@ namespace btree {
 	}
 
 	ELEMENTS_TEMPLATE
-	typename ELE::template ElementsIterator<typename ELE::Content>
+	auto
 	ELE::begin()
 	{
-		return ElementsIterator(_elements.begin());
+		return ElementsIterator<Content>(_elements.begin());
 	}
 
 	ELEMENTS_TEMPLATE
-	typename ELE::template ElementsIterator<typename ELE::Content>
+	auto
 	ELE::end()
 	{
-		return ElementsIterator(_elements.end());
+		return ElementsIterator<Content>(_elements.end());
 	}
 
 	ELEMENTS_TEMPLATE
-	typename ELE::template ElementsIterator<const typename ELE::Content>
+	auto
 	ELE::begin() const
 	{
-		return ElementsIterator(_elements.begin());
+		return ElementsIterator<const Content>(_elements.begin());
 	}
 
 	ELEMENTS_TEMPLATE
-	typename ELE::template ElementsIterator<const typename ELE::Content>
+	auto
 	ELE::end() const
 	{
-		return ElementsIterator<const typename ELE::Content>(_elements.end());
+		return ElementsIterator<const Content>(_elements.end());
 	}
 
 	ELEMENTS_TEMPLATE
@@ -407,15 +409,15 @@ namespace btree {
 #endif
 		auto& maxItem = _elements[_count - 1];
 		auto key = maxItem.first;
-		auto valueForContent = maxItem.second;
+		auto valueForContent = std::move(maxItem.second);
 
 		--_count;
 		add(p);
 		
 		if constexpr (std::is_same<T, Value>::value) {
-			return make_pair<Key, T>(key, value(valueForContent));
+			return make_pair<Key, T>(std::move(key), std::move(value(valueForContent)));
 		} else {
-			return make_pair<Key, T>(key, ptr(valueForContent));
+			return make_pair<Key, T>(std::move(key), std::move(ptr(valueForContent)));
 		}
 	}
 
@@ -601,10 +603,10 @@ namespace btree {
 	const PtrType*
 	ELE::ptr(const ValueForContent& v)
 	{
-		#error which to choose?
-		return std::get<unique_ptr<PtrType>>(v).get();
+		// #error which to choose?
+		// return std::get<unique_ptr<PtrType>>(v).get();
 		return std::get<const unique_ptr<const PtrType>>(v).get();
-		return std::get<const unique_ptr<PtrType>>(v).get();
+		// return std::get<const unique_ptr<PtrType>>(v).get();
 	}
 
 	ELEMENTS_TEMPLATE
