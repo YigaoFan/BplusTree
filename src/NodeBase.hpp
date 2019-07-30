@@ -1,6 +1,7 @@
 #pragma once
 #include <vector> // for vector
 #include "Elements.hpp"
+//#include "DoAdd.hpp"
 
 namespace btree {
 	using std::make_pair;
@@ -8,12 +9,16 @@ namespace btree {
 	struct LeafFlag   {};
 	struct MiddleFlag {};
 
+	template<typename Key, typename Value, uint16_t BtreeOrder, typename T>
+	void
+	extern doAdd(NodeBase<Key, Value, BtreeOrder>*, pair<Key, T>, vector<NodeBase<Key, Value, BtreeOrder>*>&);
+
 #define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 
 	NODE_TEMPLATE
 	class NodeBase {
 		template <typename T>
-		friend void doAdd(NodeBase*, pair<Key, T>, vector<NodeBase*>&);
+		friend void doAdd<Key, Value, BtreeOrder, T>(NodeBase*, pair<Key, T>, vector<NodeBase*>&);
 	public:
 		using Ele      = Elements<Key, Value, BtreeOrder, NodeBase>;
 		using LessThan = typename Ele::LessThan;
@@ -181,7 +186,8 @@ namespace btree {
 		auto& key = p.first;
 		// here is wrong
 		collectDeepInfo(this, key, passedNodeTrackStack);
-		doAdd(this, p, passedNodeTrackStack);
+        // 模板参数匹配顺序
+		doAdd<Key, Value, BtreeOrder, Value>(this, p, passedNodeTrackStack);
 
 		return false; // TODO wait to modify
 	}

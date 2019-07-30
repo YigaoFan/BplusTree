@@ -129,11 +129,12 @@ TESTCASE("Element test") {
 		}
 
 		SECTION("Test no full construct") {
-			ELE notFullEle {
+			ELE notFullEle (
 				keyValueArray.begin(),
-				&keyValueArray[keyValueArray.size() - 1],
+				//&keyValueArray[keyValueArray.size() - 1],
+				keyValueArray.end(),
 				make_shared<decltype(lessThan)>(lessThan)
-			};
+			);
 			ASSERT(notFullEle.count() == 2);
 		}
 	}

@@ -88,10 +88,12 @@ namespace btree {
 	void
 	MIDDLE::collectAddInfo(const Key& key, vector<Base*>& passedNodeTrackStack)
 	{
-		using Base::elements_;
-		using Base::Ele::ptr;
+		//using Base::elements_;
+		auto& elements = Base::elements_;
+		auto& pointer = Base::Ele::ptr;
+		//using Base::Ele::ptr;
 		using LeafNode = LeafNode<Key, Value, BtreeOrder>;
-		auto& lessThan = *(elements_.LessThanPtr);
+		auto& lessThan = *(elements.LessThanPtr);
 		auto& stack = passedNodeTrackStack;
 		stack.push_back(this);
 
@@ -99,12 +101,12 @@ namespace btree {
 #define VALUE_OF_ELE e.second
 #define LAST_ONE (count - 1)
 
-		auto count = elements_.count();
+		auto count = elements.count();
 		for (auto i = 0; i < count; ++i) {
-			auto& e = elements_[i];
+			auto& e = elements[i];
 
 			if (lessThan(key, KEY_OF_ELE) || i == LAST_ONE) {
-				auto subNodePtr = ptr(VALUE_OF_ELE);
+				auto subNodePtr = pointer(VALUE_OF_ELE);
 				stack.push_back(subNodePtr);
 
 				if (subNodePtr->Middle) {

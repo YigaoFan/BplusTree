@@ -23,7 +23,6 @@ namespace btree {
 	using std::memcpy;
 	using std::runtime_error;
 	using std::make_unique;
-	using std::iterator;
 	using std::forward_iterator_tag;
 	using std::make_pair;
 
@@ -84,7 +83,7 @@ namespace btree {
 		static Value&         value(ValueForContent&);
 		static PtrType*       ptr  (ValueForContent&);
 		static const Value&   value(const ValueForContent&);
-		static const PtrType* ptr  (const ValueForContent&);
+		static PtrType*       ptr  (const ValueForContent&);
 
 	private:
 		uint16_t                   _count{ 0 };
@@ -102,7 +101,7 @@ namespace btree {
 		static void initialInternalElements(array<Content, BtreeOrder>&, const array<Content, BtreeOrder>&, bool, uint16_t);
 		static unique_ptr<PtrType>& uniquePtr(ValueForContent&);
 
-		template <typename T>
+		/*template <typename T>
 		struct ContentRelatedType {
 		};
 
@@ -118,14 +117,19 @@ namespace btree {
 
 	public:
 		template <typename T>
-		class ElementsIterator : iterator<forward_iterator_tag, typename ContentRelatedType<T>::type> {
+		class ElementsIterator {
 			using type = typename ContentRelatedType<T>::type;
 			type* _ptr;
 
 		public:
+            using iterator_category = forward_iterator_tag;
+            using value_type = type;
+            using difference_type = ptrdiff_t;
+            using pointer = type * ;
+            using reference = type & ;
+
 			explicit ElementsIterator(T* p)       : _ptr(p) {}
 
-			ElementsIterator& operator->()       { _ptr = ++_ptr; return *this; }
 			type&             operator* () const { return *_ptr; }
 			type*             operator->() const { return _ptr; }
 			ElementsIterator& operator++()       { ++_ptr; return *this; }
@@ -133,7 +137,7 @@ namespace btree {
 			{ return _ptr == i._ptr; }
 			bool              operator!=(const ElementsIterator& i) const
 			{ return _ptr != i._ptr; }
-		};
+		};*/
 	};
 }
 
@@ -248,9 +252,9 @@ namespace btree {
 	{
 		auto i = indexOf(key);
 	
-		if (i != -1) {                            
+		if (i != -1) {
 			return _elements[i].second;
-		}                   
+		}
     
 		throw runtime_error("Can't get the Value correspond"
 							 + key
@@ -278,28 +282,33 @@ namespace btree {
 	auto
 	ELE::begin()
 	{
-		return ElementsIterator<Content>(_elements.begin());
+		// 本来应该从 begin 的返回类型推导的，这样...
+		return _elements.begin();
+		//return ElementsIterator(_elements.begin());
 	}
 
 	ELEMENTS_TEMPLATE
 	auto
 	ELE::end()
 	{
-		return ElementsIterator<Content>(_elements.end());
+		return _elements.end();
+		//return ElementsIterator(_elements.end());
 	}
 
 	ELEMENTS_TEMPLATE
 	auto
 	ELE::begin() const
 	{
-		return ElementsIterator<const Content>(_elements.begin());
+		return _elements.begin();
+		//return ElementsIterator(_elements.begin());
 	}
 
 	ELEMENTS_TEMPLATE
 	auto
 	ELE::end() const
 	{
-		return ElementsIterator<const Content>(_elements.end());
+		return _elements.end();
+		//return ElementsIterator(_elements.end());
 	}
 
 	ELEMENTS_TEMPLATE
@@ -494,7 +503,7 @@ namespace btree {
 		} else if (_count >= BtreeOrder && direction > 0) {
 			throw runtime_error("The Elements is full");
 		}
-		auto&& end = (_count >= BtreeOrder) ? _elements.end() : &_elements[_count]; // end is exclude
+		auto end = /*(_count >= BtreeOrder) ? _elements.end() : */&_elements[_count]; // end is exclude
 		moveElement(direction, begin, end);
 	}
 
@@ -600,12 +609,12 @@ namespace btree {
 	}
 
 	ELEMENTS_TEMPLATE
-	const PtrType*
+	PtrType*
 	ELE::ptr(const ValueForContent& v)
 	{
 		// #error which to choose?
 		// return std::get<unique_ptr<PtrType>>(v).get();
-		return std::get<const unique_ptr<const PtrType>>(v).get();
+		return std::get<const unique_ptr<PtrType>>(v).get();
 		// return std::get<const unique_ptr<PtrType>>(v).get();
 	}
 
