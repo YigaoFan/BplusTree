@@ -349,7 +349,7 @@ namespace btree {
 	uint16_t
 	ELE::suitablePosition(const Key& key) const
 	{
-#define KEY_OF_ELE ptr(_elements[i].first)
+#define KEY_OF_ELE _elements[i].first
 		auto& lessThan = *LessThanPtr;
 
 		for (auto i = 0; i < _count; ++i) {
@@ -381,9 +381,9 @@ namespace btree {
 			}
 		}
 		// when equal and bigger than the bound, throw the error
-		throw runtime_error("\nWrong adding Key-Value: " + k + " " + v + ". "
-							+ "Now the count of this Elements: " + std::to_string(_count )+ ". "
-							+ "And please check the max Key to ensure not beyond the bound.");
+		throw runtime_error(/*"\nWrong adding Key-Value: " + k + " " + v + ". "
+							+ "Now the count of this Elements: " + std::to_string(_count)+ ". "
+							+ */"And please check the max Key to ensure not beyond the bound.");
 
 		Insert:
 		adjustMemory(1, &_elements[i]);
@@ -444,7 +444,7 @@ namespace btree {
 		BOUND_CHECK
 #endif
 		auto& minItem = _elements[0];
-		auto key = minItem.first;
+		auto key = std::move(minItem.first);
 		auto valueForContent = std::move(minItem.second);
 		// pair<Key, Value> min{ minItem.first, value(minItem.second) };
 		// move left
@@ -454,7 +454,7 @@ namespace btree {
 		add(p);
 
 		if constexpr (std::is_same<T, Value>::value) {
-			return make_pair<Key, T>(key, value(valueForContent));
+			return make_pair<Key, T>(std::move(key), std::move(value(valueForContent)));
 		} else {
 			return make_pair<Key, T>(key, ptr(valueForContent));
 		}

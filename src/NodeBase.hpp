@@ -13,16 +13,7 @@ namespace btree {
 #define BASE NodeBase<Key, Value, BtreeOrder>
 
 	NODE_TEMPLATE
-	class NodeBase;
-
-	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
-	void
-	doAdd(BASE*, pair<Key, T>, vector<BASE*>&);
-
-	NODE_TEMPLATE
 	class NodeBase {
-		template <typename K, typename V, uint16_t Order, typename T>
-		friend void doAdd(NodeBase<K, V, Order>*, pair<K, T>, vector<NodeBase<K, V, Order>*>&);
 	public:
 		using Ele      = Elements<Key, Value, BtreeOrder, NodeBase>;
 		using LessThan = typename Ele::LessThan;
@@ -43,7 +34,7 @@ namespace btree {
 		Value*             search(const Key&);
 		bool               add(pair<Key, Value>);
 		bool               remove(const Key&);
-		void searchSiblingsIn(vector<NodeBase *> &, NodeBase*&, NodeBase*&) const;
+		void               searchSiblingsIn(vector<NodeBase *> &, NodeBase*&, NodeBase*&) const;
 		inline bool        full()  const;
 
 	protected:
@@ -53,12 +44,14 @@ namespace btree {
 		inline Value* searchWithSaveTrack(const Key&, vector<NodeBase*>&);
 
 		template <typename T>
-		inline void reallocateSiblingElement(bool, NodeBase*, vector<NodeBase*>&, pair<Key, T>);
-		inline void changeMaxKeyIn(vector<NodeBase*>&, const Key&) const;
-		inline void replacePreviousNodeMaxKeyInTreeBySearchUpIn(vector<NodeBase*>&, const Key&, const Key&);
+		void doAdd(pair<Key, T>, vector<NodeBase*>&);
 		template <typename T>
-		inline void splitNode(pair<Key, T>, vector<NodeBase*>&);
-		inline void insertLeafToUpper(NodeBase*, vector<NodeBase*>&) const;
+		void reallocateSiblingElement(bool, NodeBase*, vector<NodeBase*>&, pair<Key, T>);
+		void changeMaxKeyIn(vector<NodeBase*>&, const Key&) const;
+		void replacePreviousNodeMaxKeyInTreeBySearchUpIn(vector<NodeBase*>&, const Key&, const Key&);
+		template <typename T>
+		void splitNode(pair<Key, T>, vector<NodeBase*>&);
+		void insertLeafToUpper(NodeBase*, vector<NodeBase*>&);
 	};
 }
 
@@ -189,9 +182,47 @@ namespace btree {
 		auto& key = p.first;
 		collectDeepInfo(this, key, passedNodeTrackStack);
         // 模板参数匹配顺序
-		doAdd<Key, Value, BtreeOrder, Value>(this, p, passedNodeTrackStack);
+		doAdd(p, passedNodeTrackStack);
 
 		return false; // TODO wait to modify
+	}
+
+	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
+	void
+	getSiblings(BASE*, vector<BASE*>, BASE*&, BASE*&);
+
+	NODE_TEMPLATE
+	template<typename T>
+	void
+	BASE::doAdd(pair<Key, T> p, vector<BASE*>& passedNodeTrackStack)
+	{
+		// TODO need use std::move p or not?
+		auto& k = p.first;
+		auto& stack = passedNodeTrackStack;
+		auto& lessThan = *(elements_.LessThanPtr);
+
+		// some item don't have one of siblings
+		BASE *previous = nullptr, *next = nullptr;
+		getSiblings<Key, Value, BtreeOrder, T>(this, stack, previous, next);
+
+		if (!full()) {
+			if (lessThan(k, maxKey())) {
+				elements_.insert(p);
+			}
+			else {
+				elements_.append(p);
+				changeMaxKeyIn(stack, k);
+			}
+		}
+		else if (spaceFreeIn(previous)) {
+			reallocateSiblingElement(true, previous, stack, p);
+		}
+		else if (spaceFreeIn(next)) {
+			reallocateSiblingElement(false, next, stack, p);
+		}
+		else {
+			splitNode(p, stack);
+		}
 	}
 
 	NODE_TEMPLATE
@@ -242,9 +273,9 @@ namespace btree {
 		for (auto rIter = trackStack.rbegin(); rIter != rend; ++rIter) {
 			auto& node = *rIter;
 
-			auto i = node.elements_.indexOf(oldKey);
+			auto i = node->elements_.indexOf(oldKey);
 			if (i != -1 && node->Middle) { // No need to change leaf
-				node.elements_[i].first = newKey;
+				node->elements_[i].first = newKey;
 			}
 		}
 
@@ -345,11 +376,17 @@ namespace btree {
 	BASE::replacePreviousNodeMaxKeyInTreeBySearchUpIn(vector<NodeBase*>& passedNodeTrackStack, const Key& oldKey, const Key& newKey)
 	{
 		auto& stack = passedNodeTrackStack;
-#define EMIT_UPPER_NODE() stack.pop_back()
+		auto emitUpperNode = [&] {
+			auto last = stack.back();
+			stack.pop_back();
 
-		EMIT_UPPER_NODE(); // top pointer is leaf, it's useless
+			return last;
+		};
 
-		for (NodeBase* node = EMIT_UPPER_NODE(); stack.size() != 0; node = EMIT_UPPER_NODE()) {
+		emitUpperNode(); // top pointer is leaf, it's useless
+		
+
+		for (NodeBase* node = emitUpperNode(); stack.size() != 0; node = emitUpperNode()) {
 			// judge if the node is the same ancestor between this and previous node
 			if (node->have(oldKey)) {
 				node->changeInSearchDownPath(oldKey, newKey);
@@ -377,7 +414,7 @@ namespace btree {
 	BASE::splitNode(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack)
 	{
 		auto& key = p.first;
-		auto& lessThan = *(Ele::LessThanPtr);
+		auto& lessThan = *(elements_.LessThanPtr);
 		auto& stack = passedNodeTrackStack;
 
 		auto newPre = this->clone(); // TODO have a problem
@@ -428,15 +465,16 @@ namespace btree {
 
 	NODE_TEMPLATE
 	void
-	BASE::insertLeafToUpper(NodeBase* node, vector<NodeBase*>& passedNodeTrackStack) const
+	BASE::insertLeafToUpper(NodeBase* node, vector<NodeBase*>& passedNodeTrackStack)
 	{
 #define EMIT_UPPER_NODE() stack.pop_back()
 
 		// reduce useless node, prepare to upper level add, like start new leaf add
 		auto& stack = passedNodeTrackStack;
 		EMIT_UPPER_NODE();
-
-		doAdd(this, make_pair<Key, NodeBase*>(node->maxKey(), node), stack);
+		
+		auto pair = make_pair<Key, NodeBase*>(node->maxKey(), std::move(node));
+		doAdd(pair, stack);
 		// 这部分甚至可能动 root，做好心理准备
 
 #undef EMIT_UPPER_NODE

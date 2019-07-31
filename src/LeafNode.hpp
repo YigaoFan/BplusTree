@@ -283,5 +283,3 @@ namespace btree {
 #undef LEAF
 #undef NODE_TEMPLATE
 }
-
-#include "DoAdd.hpp"
