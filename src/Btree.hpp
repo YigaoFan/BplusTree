@@ -6,8 +6,7 @@
 #include <algorithm>    // for sort
 #include <array>        // for array
 #include <exception>    // for exception
-#include "LeafNode.hpp"
-#include "MiddleNode.hpp"
+#include "DoAdd.hpp"
 
 #ifdef BTREE_DEBUG
 #include <iostream>
@@ -28,6 +27,7 @@ namespace btree {
 	using std::make_shared;
 	using std::size_t;
 
+	// TODO should in constructor have a arg for "if save some space for future insert"?
 #define BTREE_TEMPLATE template <uint16_t BtreeOrder, typename Key, typename Value>
 
 	BTREE_TEMPLATE
@@ -38,7 +38,6 @@ namespace btree {
 
 	public:
 		using LessThan = typename Base::LessThan;
-		// TODO should in constructor have a arg for "if save some space for future insert"?
 		template <size_t NumOfEle>
 		Btree(LessThan, array<pair<Key, Value>, NumOfEle>);
 		template <size_t NumOfEle>
@@ -55,7 +54,7 @@ namespace btree {
 		vector<Key> explore() const;
 		void        remove (const Key&);
 		bool        have   (const Key&) const;
-		bool        have   () const;
+		bool        empty() const;
 
 	private:
 		shared_ptr<LessThan> _lessThanPtr;
@@ -70,11 +69,6 @@ namespace btree {
 		static inline bool duplicateIn(const array<pair<Key, Value>, NumOfEle>&);
 		static Leaf* minLeaf(Base*);
 		static Leaf* recurSelectNode(Base*, function<Base*(Middle*)>&);
-		// Base* cloneNodes(Btree&) const;
-		//void root_add(const node_instance*, const std::pair<Key, Value>&);
-		//void create_new_branch(const node_instance*, const std::pair<Key, Value>&);
-		//void create_new_root(const node_instance*, const std::pair<Key, Value>&);
-		// void merge_branch(Key, const Base*); // for Base merge a branch
 	};
 }
 
@@ -173,17 +167,17 @@ namespace btree {
 	BTREE&
 	BTREE::operator=(const Btree& that)
 	{
-		_keyNum = that._keyNum;
-		_root.reset(that._root->clone());
-		_lessThanPtr = that._lessThanPtr;
+		this->_root.reset(that._root->clone());
+		this->_keyNum      = that._keyNum;
+		this->_lessThanPtr = that._lessThanPtr;
 	}
 
 	BTREE_TEMPLATE
 	BTREE&
 	BTREE::operator=(Btree&& that) noexcept
 	{
-		this->_keyNum = that._keyNum;
 		this->_root.reset(that._root.release());
+		this->_keyNum      = that._keyNum;
 		this->_lessThanPtr = that._lessThanPtr;
 	}
 
@@ -191,7 +185,7 @@ namespace btree {
 	Value
 	BTREE::search(const Key& key) const
 	{
-		if (!have()) {
+		if (empty()) {
 			throw runtime_error("The tree doesn't have any key-value");
 		}
 		auto valuePtr = _root->search(key); // TODO maybe could return Node or ValueForContent ... to make consistency
@@ -206,8 +200,9 @@ namespace btree {
 	void
 	BTREE::add(pair<Key, Value> p)
 	{
-		if (!have()) {
-			_root.reset(new Leaf(&p, &p + 1, _lessThanPtr));
+		if (empty()) {
+			auto leaf = make_unique<Leaf>(&p, &p + 1, _lessThanPtr);
+			_root.reset(leaf.release());
 		} else {
 			if (_root->have(p.first)) {
 				throw runtime_error("The key-value has already existed, can't be added.");
@@ -268,7 +263,7 @@ namespace btree {
 	bool
 	BTREE::have(const Key& key) const
 	{
-		if (have()) {
+		if (!empty()) {
 			return _root->have(key);
 		}
 
@@ -277,18 +272,18 @@ namespace btree {
 
 	BTREE_TEMPLATE
 	bool
-	BTREE::have() const
+	BTREE::empty() const
 	{
-		return _root.get() != nullptr;
+		return _keyNum == 0;
 	}
 
 	BTREE_TEMPLATE
 	vector<typename BTREE::Leaf*>
 	BTREE::traverseLeaf(const function<bool(Leaf*)>& predicate) const
 	{
-		vector<Leaf*> leafCollection;
+		vector<Leaf*> leafCollection { };
 
-		if (!have()) {
+		if (empty()) {
 			return leafCollection;
 		}
 		auto current = minLeaf(_root.get());
@@ -302,60 +297,6 @@ namespace btree {
 
 		return leafCollection;
 	}
-
-	// BTREE_TEMPLATE
-	// typename BTREE::Base*
-	// BTREE::cloneNodes(Btree& newBtree) const
-	// {
-	// 	if (!_root->Middle) {
-	// 		auto l = new Leaf(*(_root.get()->self()), newBtree);
-	// 		return l;
-	// 	}
-    //
-	// 	vector<Leaf*> old_leafs= traverseLeaf([](Leaf*) -> bool {
-	// 		return true;
-	// 	});
-    //
-	// 	vector<Base*> oldChilds{};
-	// 	oldChilds.reserve(_keyNum);
-	// 	for (auto& l: old_leafs) {
-	// 		oldChilds.emplace_back(l);
-	// 	}
-    //
-    //     vector<Base*> newChilds{};
-    //     newChilds.reserve(_keyNum);
-    //     Leaf* next = nullptr;
-    //     for (auto b = oldChilds.rbegin(), e = oldChilds.rend(); b != e; ++b) {
-    //         auto l = new Leaf(*b, newBtree, next);
-    //         newChilds.emplace_back(l);
-    //         next = l;
-    //     }
-    //
-	// 	do {
-	// 		auto i = 0;
-	// 		vector<Base*> new_fathers{};
-	// 		vector<Base*> old_fathers{};
-    //
-	// 		do {
-	// 			auto child_num = oldChilds[i]->father()->child_count();
-	// 			old_fathers.emplace(oldChilds[i]->father());
-    //
-	// 			new_fathers.emplace(new Middle(
-	// 				newBtree,
-	// 				newChilds.begin() + i,
-	// 				newChilds.begin() + i + child_num
-	// 			));
-	//
-	// 			i += child_num;
-	// 		} while (i < oldChilds.size());
-    //
-	// 		// update
-	// 		std::swap(newChilds, new_fathers);
-	// 		std::swap(oldChilds, old_fathers);
-	// 	} while (newChilds.size() > 1);
-    //
-	// 	return newChilds[0];
-	// }
 
 	BTREE_TEMPLATE
 	template <size_t NumOfEle>

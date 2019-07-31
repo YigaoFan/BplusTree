@@ -1,15 +1,8 @@
 #pragma once
 #include <utility>
 #include "NodeBaseCrtp.hpp"
-//#include "DoAdd.hpp"
 
 namespace btree {
-	template <typename Key, typename Value, uint16_t BtreeOrder>
-	class MiddleNode;
-
-	template<typename Key, typename Value, uint16_t BtreeOrder, typename T>
-	void
-	extern doAdd(NodeBase<Key, Value, BtreeOrder>*, pair<Key, T>, vector<NodeBase<Key, Value, BtreeOrder>*>&);
 #define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 #define LEAF LeafNode<Key, Value, BtreeOrder>
 
@@ -17,11 +10,8 @@ namespace btree {
 	class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder> {
 		using Base       = NodeBase<Key, Value, BtreeOrder>;
 		using Base_CRTP  = NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>;
-		using FatherType = MiddleNode<Key, Value, BtreeOrder>;
 		using typename Base::LessThan;
 
-		template <typename T>
-		friend void doAdd<Key, Value, BtreeOrder, T>(Base*, pair<Key, T>, vector<Base*>&);
 	public:
 		template <typename Iterator>
 		LeafNode(Iterator, Iterator, shared_ptr<LessThan>);
@@ -293,3 +283,5 @@ namespace btree {
 #undef LEAF
 #undef NODE_TEMPLATE
 }
+
+#include "DoAdd.hpp"

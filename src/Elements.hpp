@@ -315,7 +315,7 @@ namespace btree {
 	int32_t
 	ELE::indexOf(const PtrType* pointer) const
 	{
-#define PTR_OF_ELE ptr(_elements[i].value)
+#define PTR_OF_ELE ptr(_elements[i].second)
 
 		for (auto i = 0; i < _count; ++i) {
 			if (PTR_OF_ELE == pointer) {
@@ -404,17 +404,22 @@ namespace btree {
 		++_count;
 	}
 
+#ifdef BTREE_DEBUG
+#define BOUND_CHECK                                                                                                  \
+	if (_count < BtreeOrder) {                                                                                       \
+		throw runtime_error("Please invoke exchangeMax when the Elements is full, you can use full to check it");\
+	} else if (have(p.first)) {                                                                                  \
+		throw runtime_error("The Key: " + p.first + " has already existed");                                     \
+	}
+#endif
+
 	ELEMENTS_TEMPLATE
 	template <typename T>
 	pair<Key, T>
 	ELE::exchangeMax(pair<Key, T> p)
 	{
 #ifdef BTREE_DEBUG
-		if (_count < BtreeOrder) {
-			throw runtime_error("Please invoke exchangeMax when the Elements is full, you can use full to check it");
-		} else if (have(p.first)) {
-			throw runtime_error("The Key: " + p.first + " has already existed");
-		}
+		BOUND_CHECK
 #endif
 		auto& maxItem = _elements[_count - 1];
 		auto key = maxItem.first;
@@ -430,41 +435,17 @@ namespace btree {
 		}
 	}
 
-// 	ELEMENTS_TEMPLATE
-// 	pair<Key, PtrType*>
-// 	ELE::exchangeMax(pair<Key, PtrType*> p)
-// 	{
-// #ifdef BTREE_DEBUG
-// 		if (_count < BtreeOrder) {
-// 			throw runtime_error("Please invoke exchangeMax when the Elements is full, you can use full to check it");
-// 		} else if (have(p.first)) {
-// 			throw runtime_error("The Key: " + p.first + " has already existed");
-// 		}
-// #endif
-// 		auto& maxItem = _elements[_count - 1];
-// 		pair<Key, PtrType*> max{ maxItem.first, ptr(maxItem.second) };
-// 		--_count;
-
-// 		add(p);
-
-// 		return max;
-// 	}
-
 	ELEMENTS_TEMPLATE
 	template <typename T>
 	pair<Key, T>
 	ELE::exchangeMin(pair<Key, T> p)
 	{
 #ifdef BTREE_DEBUG
-		if (_count < BtreeOrder) {
-			throw runtime_error("Please invoke exchangeMax when the Elements is full, you can use full to check it");
-		} else if (have(p.first)) {
-			throw runtime_error("The Key: " + p.first + " has already existed");
-		}
+		BOUND_CHECK
 #endif
 		auto& minItem = _elements[0];
 		auto key = minItem.first;
-		auto valueForContent = minItem.second;
+		auto valueForContent = std::move(minItem.second);
 		// pair<Key, Value> min{ minItem.first, value(minItem.second) };
 		// move left
 		adjustMemory(-1, &_elements[1]);
@@ -478,6 +459,10 @@ namespace btree {
 			return make_pair<Key, T>(key, ptr(valueForContent));
 		}
 	}
+
+#ifdef BOUND_CHECK
+#undef BOUND_CHECK
+#endif
 
 	ELEMENTS_TEMPLATE
 	template <typename T>
@@ -614,7 +599,7 @@ namespace btree {
 	{
 		// #error which to choose?
 		// return std::get<unique_ptr<PtrType>>(v).get();
-		return std::get<const unique_ptr<PtrType>>(v).get();
+		return std::get<unique_ptr<PtrType>>(v).get();
 		// return std::get<const unique_ptr<PtrType>>(v).get();
 	}
 

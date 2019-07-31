@@ -9,16 +9,20 @@ namespace btree {
 	struct LeafFlag   {};
 	struct MiddleFlag {};
 
-	template<typename Key, typename Value, uint16_t BtreeOrder, typename T>
-	void
-	extern doAdd(NodeBase<Key, Value, BtreeOrder>*, pair<Key, T>, vector<NodeBase<Key, Value, BtreeOrder>*>&);
-
 #define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
+#define BASE NodeBase<Key, Value, BtreeOrder>
+
+	NODE_TEMPLATE
+	class NodeBase;
+
+	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
+	void
+	doAdd(BASE*, pair<Key, T>, vector<BASE*>&);
 
 	NODE_TEMPLATE
 	class NodeBase {
-		template <typename T>
-		friend void doAdd<Key, Value, BtreeOrder, T>(NodeBase*, pair<Key, T>, vector<NodeBase*>&);
+		template <typename K, typename V, uint16_t Order, typename T>
+		friend void doAdd(NodeBase<K, V, Order>*, pair<K, T>, vector<NodeBase<K, V, Order>*>&);
 	public:
 		using Ele      = Elements<Key, Value, BtreeOrder, NodeBase>;
 		using LessThan = typename Ele::LessThan;
@@ -40,11 +44,11 @@ namespace btree {
 		bool               add(pair<Key, Value>);
 		bool               remove(const Key&);
 		void searchSiblingsIn(vector<NodeBase *> &, NodeBase*&, NodeBase*&) const;
+		inline bool        full()  const;
 
 	protected:
 		Elements<Key, Value, BtreeOrder, NodeBase> elements_;
 		inline bool empty() const;
-		inline bool full()  const;
 		inline void   changeInSearchDownPath(const Key&, const Key&);
 		inline Value* searchWithSaveTrack(const Key&, vector<NodeBase*>&);
 
@@ -59,7 +63,6 @@ namespace btree {
 }
 
 namespace btree {
-#define BASE NodeBase<Key, Value, BtreeOrder>
 
 	NODE_TEMPLATE
 	template <typename Iter>
@@ -184,7 +187,6 @@ namespace btree {
 		vector<decltype(this)> passedNodeTrackStack;
 
 		auto& key = p.first;
-		// here is wrong
 		collectDeepInfo(this, key, passedNodeTrackStack);
         // 模板参数匹配顺序
 		doAdd<Key, Value, BtreeOrder, Value>(this, p, passedNodeTrackStack);
@@ -323,13 +325,14 @@ namespace btree {
 			return;
 		}
 
-		auto  nodePtr = stack.pop_back();
-		auto& upperNode = *(stack[stack.size() - 1]);
+		auto  nodePtr = stack.back();
+		stack.pop_back();
+		auto& upperNode = *stack.back();
 		// 以下这个修改 key 的部分可以复用
 		auto  matchIndex = upperNode.elements_.indexOf(nodePtr);
-		upperNode[matchIndex].first = maxKey;
+		(upperNode.elements_)[matchIndex].first = maxKey;
 
-		auto maxIndex = upperNode->childCount() - 1;
+		auto maxIndex = upperNode.childCount() - 1;
 		if (matchIndex == maxIndex) {
 			changeMaxKeyIn(stack, maxKey);
 		}
@@ -379,7 +382,7 @@ namespace btree {
 		auto newPre = this->clone(); // TODO have a problem
 		auto newPrePtr = newPre.get();
 		// left is newPre, right is this
-		setSiblings<T>(newPrePtr, this);
+		setSiblings<Key, Value, BtreeOrder, T>(newPrePtr, this);
 
 		auto i = elements_.suitablePosition(key);
 
@@ -432,11 +435,12 @@ namespace btree {
 		auto& stack = passedNodeTrackStack;
 		EMIT_UPPER_NODE();
 
-		doAdd(make_pair<Key, NodeBase*>(node->maxKey(), node), stack);
+		doAdd(this, make_pair<Key, NodeBase*>(node->maxKey(), node), stack);
 		// 这部分甚至可能动 root，做好心理准备
 
 #undef EMIT_UPPER_NODE
 	}
+
 #undef BASE
 #undef NODE_TEMPLATE
 }

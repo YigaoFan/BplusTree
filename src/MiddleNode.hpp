@@ -6,9 +6,6 @@ namespace btree {
 #define MIDDLE MiddleNode<Key, Value, BtreeOrder>
 
 	NODE_TEMPLATE
-	class LeafNode;
-
-	NODE_TEMPLATE
 	class MiddleNode : public NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder> {
 	private:
 		using          Base = NodeBase<Key, Value, BtreeOrder>;
@@ -89,34 +86,37 @@ namespace btree {
 	MIDDLE::collectAddInfo(const Key& key, vector<Base*>& passedNodeTrackStack)
 	{
 		//using Base::elements_;
-		auto& elements = Base::elements_;
-		auto& pointer = Base::Ele::ptr;
+		// auto& pointer  = Base::elements_.ptr;
 		//using Base::Ele::ptr;
-		using LeafNode = LeafNode<Key, Value, BtreeOrder>;
+		auto& elements = Base::elements_;
 		auto& lessThan = *(elements.LessThanPtr);
-		auto& stack = passedNodeTrackStack;
+		auto& stack    = passedNodeTrackStack;
+
 		stack.push_back(this);
 
 #define KEY_OF_ELE e.first
 #define VALUE_OF_ELE e.second
 #define LAST_ONE (count - 1)
+#define PTR(E) Base::Ele::ptr(E)
 
 		auto count = elements.count();
 		for (auto i = 0; i < count; ++i) {
 			auto& e = elements[i];
 
 			if (lessThan(key, KEY_OF_ELE) || i == LAST_ONE) {
-				auto subNodePtr = pointer(VALUE_OF_ELE);
-				stack.push_back(subNodePtr);
+				auto subNodePtr = PTR(VALUE_OF_ELE);
 
 				if (subNodePtr->Middle) {
 					static_cast<MiddleNode*>(subNodePtr)->collectAddInfo(key, stack);
+				} else {
+					stack.push_back(subNodePtr);
 				}
 
 				return;
 			}
 		}
 
+#undef PTR
 #undef LAST_ONE
 #undef VALUE_OF_ELE
 #undef KEY_OF_ELE

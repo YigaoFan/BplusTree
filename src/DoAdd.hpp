@@ -28,8 +28,8 @@ namespace btree {
 		auto& lessThan = *(node->elements_.LessThanPtr);
 
 		// some item don't have one of siblings
-		BASE* previous = nullptr, next = nullptr;
-		getSiblings<T>(node, stack, previous, next);
+		BASE *previous = nullptr, *next = nullptr;
+		getSiblings<Key, Value, BtreeOrder, T>(node, stack, previous, next);
 
 		if (!node->full()) {
 			if (lessThan(k, node->maxKey())) {
@@ -39,9 +39,9 @@ namespace btree {
 				node->changeMaxKeyIn(stack, k);
 			}
 		} else if (spaceFreeIn(previous)) {
-			node->reallocateSiblingElement(true,  stack, p);
+			node->reallocateSiblingElement(true, previous, stack, p);
 		} else if (spaceFreeIn(next)) {
-			node->reallocateSiblingElement(false, stack, p);
+			node->reallocateSiblingElement(false, next, stack, p);
 		} else {
 			node->splitNode(p, stack);
 		}
