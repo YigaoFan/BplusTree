@@ -302,12 +302,13 @@ namespace btree {
 		auto& stack = passedNodeTrackStack;
 		
 		if (isPrevious) {
-			auto&& min = elements_.exchangeMin(p);
-			auto&& previousOldMax = sibling->maxKey();
+			auto min = elements_.exchangeMin(p);
+			auto previousOldMax = sibling->maxKey();
 			sibling->elements_.append(min);
+			auto newMaxKey = min.first;
 			// previous max change
 			// TODO could use this stack to get sibling stack, then change upper
-			replacePreviousNodeMaxKeyInTreeBySearchUpIn(stack, sibling, min);
+			replacePreviousNodeMaxKeyInTreeBySearchUpIn(stack, previousOldMax, newMaxKey);
 		} else {
 			auto&& max = elements_.exchangeMax(p);
 			// this max change
