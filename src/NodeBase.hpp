@@ -30,6 +30,7 @@ namespace btree {
 		uint16_t           childCount() const;
 		inline vector<Key> allKey() const;
 		inline bool        have  (const Key&, vector<NodeBase*>&) const;
+		inline bool        have  (const Key&) const;
 		Value*             search(const Key&);
 		void               add(pair<Key, Value>, vector<NodeBase*>&);
 		bool               remove(const Key&);
@@ -112,13 +113,58 @@ namespace btree {
 	{
 		// this have doesn't record all data, like max bound append
 		passedNodeTrackStack.push_back(this);
-
 		auto& lessThan = *(elements_.LessThanPtr);
 
 		for (auto& e : elements_) {
 			if (lessThan(key, e.first)) {
 				if (!Middle) {
-					Ele::ptr(e.second)->have(key, passedNodeTrackStack);
+					return Ele::ptr(e.second)->have(key, passedNodeTrackStack);
+				} else {
+					return false;
+				}
+			} else if (!lessThan(e.first, key)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	NODE_TEMPLATE
+	bool
+	BASE::have(const Key& key) const
+	{
+		auto& lessThan = *(elements_.LessThanPtr);
+
+		for (auto& e : elements_) {
+			if (lessThan(key, e.first)) {
+				if (!Middle) {
+					return Ele::ptr(e.second)->have(key);
+				} else {
+					return false;
+				}
+			} else if (!lessThan(e.first, key)) {
+				return true;
+			}
+		}
+
+		return false;
+		function<bool(NodeBase*, const Key&)> selfCall = [] (NodeBase* node, const Key& k) -> bool {
+			return node->have(key);
+		};
+		haveHelper(key, selfCall);
+	}
+
+	NODE_TEMPLATE
+	bool
+	BASE::haveHelper(const Key& key, function<bool(NodeBase*, const Key&)> recursiveHaveCall) const
+	{
+		auto& lessThan = *(elements_.LessThanPtr);
+
+		for (auto& e : elements_) {
+			if (lessThan(key, e.first)) {
+				if (!Middle) {
+					return recursiveHaveCall(Ele::ptr(e.second), key)
 				} else {
 					return false;
 				}
@@ -314,7 +360,7 @@ namespace btree {
 	void
 	BASE::searchSiblingsIn(vector<NodeBase*>& passedNodeTrackStack, NodeBase*& previous, NodeBase*& next) const
 	{
-
+		// TODO
 	}
 
 	NODE_TEMPLATE

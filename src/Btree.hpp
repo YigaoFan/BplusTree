@@ -40,8 +40,7 @@ namespace btree {
 		using LessThan = typename Base::LessThan;
 		template <size_t NumOfEle>
 		Btree(LessThan, array<pair<Key, Value>, NumOfEle>);
-		template <size_t NumOfEle>
-		Btree(LessThan, array<pair<Key, Value>, NumOfEle>&&);
+		// TODO think about different right value or other
 		Btree(const Btree&);
 		Btree(Btree&&) noexcept;
 		Btree& operator=(const Btree&);
@@ -54,16 +53,16 @@ namespace btree {
 		vector<Key> explore() const;
 		void        remove (const Key&);
 		bool        have   (const Key&) const;
-		bool        empty() const;
+		bool        empty  () const;
 
 	private:
 		shared_ptr<LessThan> _lessThanPtr;
-		uint16_t             _keyNum { 0 };
+		uint32_t             _keyNum { 0 };
 		unique_ptr<Base>     _root { nullptr };
 
 		vector<Leaf*> traverseLeaf(const function<bool(Leaf*)>&) const;
-		template <bool FirstCall=true, typename E, size_t NodeCount>
-		void constructTreeFromLeafToRoot(const array<E, NodeCount>&);
+		template <bool FirstCall=true, typename E, size_t Size>
+		void constructTreeFromLeafToRoot(const array<E, Size>&);
 
 		template <size_t NumOfEle>
 		static inline bool duplicateIn(const array<pair<Key, Value>, NumOfEle>&);
@@ -95,46 +94,50 @@ namespace btree {
 			throw runtime_error("Please ensure the key-value array doesn't have duplicate key");
 		}
 
-		if constexpr (NumOfEle <= BtreeOrder) {
-			_root = make_unique<Leaf>(pairArray.begin(), pairArray.end(), _lessThanPtr);
-		} else {
-			constructTreeFromLeafToRoot(pairArray);
-		}
-
+		constructTreeFromLeafToRoot(pairArray);
 		_keyNum += NumOfEle;
 	}
 
 	BTREE_TEMPLATE
-	template <size_t NumOfEle>
-	BTREE::Btree(
-		LessThan lessThan,
-		array<pair<Key, Value>, NumOfEle>&& pairArray
-	) : Btree(lessThan, pairArray)
-	{ }
-
-	BTREE_TEMPLATE
-	template <bool FirstCall, typename E, size_t NodeCount>
+	template <bool FirstCall, typename E, size_t Size>
 	void
-	BTREE::constructTreeFromLeafToRoot(const array<E, NodeCount>& nodesMaterial)
+	BTREE::constructTreeFromLeafToRoot(const array<E, Size>& nodesMaterial)
 	{
-		constexpr auto upperNodeNum = (NodeCount % BtreeOrder == 0) ? (NodeCount / BtreeOrder) : (NodeCount / BtreeOrder + 1);
+		if constexpr (Size <= BtreeOrder) {
+			if constexpr (FirstCall) {
+				_root = make_unique<Leaf>(nodesMaterial.begin(), nodesMaterial.end(), _lessThanPtr);
+			} else {
+				_root = make_unique<Middle>(nodesMaterial.begin(), nodesMaterial.end(), _lessThanPtr);
+			}
+			return;
+		}
+		
+		constexpr auto upperNodeNum =  Size % BtreeOrder == 0) ?  Size / BtreeOrder) :  Size / BtreeOrder + 1);
 		array<pair<Key, unique_ptr<Base>>, upperNodeNum> upperNodes;
 
 		auto head = nodesMaterial.begin();
-		auto end = nodesMaterial.end();
-		auto i = 0;
+		auto end  = nodesMaterial.end();
 		auto tail = head + BtreeOrder;
-		auto firstLeaf = true;
+		uint32_t i = 0; // array index
+
+		// construct Leaf need
+		auto  firstLeaf = true;
+		Leaf* lastLeaf  = nullptr;
 
 		do {
 			if constexpr (FirstCall) {
+				// set previous and next
 				auto leaf = make_unique<Leaf>(head, tail, _lessThanPtr);
-				upperNodes[i] = make_pair(leaf->maxKey(), std::move(leaf));
+				leaf->previousLeaf(lastLeaf);
+
 				if (firstLeaf) {
 					firstLeaf = false;
 				} else {
-					static_cast<Leaf*>(upperNodes[i - 1].second.get())->nextLeaf(leaf.get());
+					lastLeaf->nextLeaf(leaf);
 				}
+				lastLeaf = leaf.get();
+
+				upperNodes[i] = make_pair(leaf->maxKey(), std::move(leaf));
 			} else {
 				auto middle = make_unique<Middle>(head, tail, _lessThanPtr);
 				upperNodes[i] = make_pair(middle->maxKey(), std::move(middle));
@@ -145,13 +148,8 @@ namespace btree {
 			++i;
 		} while (end - head > 0);
 
-		if constexpr (upperNodeNum <= BtreeOrder) {
-			_root = make_unique<Middle>(upperNodes.begin(), upperNodes.end(), _lessThanPtr);
-		} else {
-			constructTreeFromLeafToRoot<false>(upperNodes);
-		}
+		constructTreeFromLeafToRoot<false>(upperNodes);
 	}
-
 
 	BTREE_TEMPLATE
 	BTREE::Btree(const Btree& that)
@@ -186,11 +184,11 @@ namespace btree {
 	BTREE::search(const Key& key) const
 	{
 		if (empty()) {
-			throw runtime_error("The tree doesn't have any key-value");
+			throw runtime_error("The tree is empty");
 		}
 		auto valuePtr = _root->search(key); // TODO maybe could return Node or ValueForContent ... to make consistency
 		if (valuePtr == nullptr) {
-			throw runtime_error("The key you searched is beyond the max key.");
+			throw runtime_error("The key you searched doesn't exist in this tree.");
 		}
 
 		return *valuePtr;

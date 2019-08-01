@@ -39,13 +39,8 @@ namespace btree {
 
 	NODE_TEMPLATE
 	MIDDLE::MiddleNode(const MiddleNode& that)
-		: Base_CRTP(that) // TODO wrong work
-	{
-		// for (auto& e : Base::elements_) {
-		// 	// Set to corresponding this elements_ position
-		// 	Base::Ele::ptr(e.second)->clone();
-		// }
-	}
+		: Base_CRTP(that)
+	{ }
 
 	NODE_TEMPLATE
 	MIDDLE::MiddleNode(MiddleNode&& that) noexcept

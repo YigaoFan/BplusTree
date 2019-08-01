@@ -71,15 +71,14 @@ namespace btree {
 		const ValueForContent& operator[](const Key&) const;
 		const Content&         operator[](uint16_t)   const;
 
-		int32_t          indexOf         (const PtrType*) const;
-		int32_t          indexOf         (const Key&)     const;
-		uint16_t         suitablePosition(const Key&)     const;
-		auto begin();
-		auto end();
-		auto begin() const;
-		auto end  () const;
+		int32_t  indexOf         (const PtrType*) const;
+		int32_t  indexOf         (const Key&)     const;
+		uint16_t suitablePosition(const Key&)     const;
+		auto     begin();
+		auto     end  ();
+		auto     begin() const;
+		auto     end  () const;
 
-		// use template to reduce the code below
 		static Value&         value(ValueForContent&);
 		static PtrType*       ptr  (ValueForContent&);
 		static const Value&   value(const ValueForContent&);
@@ -100,44 +99,6 @@ namespace btree {
 		static Content* moveElement(int16_t, Content*, Content*);
 		static void initialInternalElements(array<Content, BtreeOrder>&, const array<Content, BtreeOrder>&, bool, uint16_t);
 		static unique_ptr<PtrType>& uniquePtr(ValueForContent&);
-
-		/*template <typename T>
-		struct ContentRelatedType {
-		};
-
-		template <>
-		struct ContentRelatedType<const Content> {
-			using type = const Content;
-		};
-
-		template <>
-		struct ContentRelatedType<Content> {
-			using type = Content;
-		};
-
-	public:
-		template <typename T>
-		class ElementsIterator {
-			using type = typename ContentRelatedType<T>::type;
-			type* _ptr;
-
-		public:
-            using iterator_category = forward_iterator_tag;
-            using value_type = type;
-            using difference_type = ptrdiff_t;
-            using pointer = type * ;
-            using reference = type & ;
-
-			explicit ElementsIterator(T* p)       : _ptr(p) {}
-
-			type&             operator* () const { return *_ptr; }
-			type*             operator->() const { return _ptr; }
-			ElementsIterator& operator++()       { ++_ptr; return *this; }
-			bool              operator==(const ElementsIterator& i) const
-			{ return _ptr == i._ptr; }
-			bool              operator!=(const ElementsIterator& i) const
-			{ return _ptr != i._ptr; }
-		};*/
 	};
 }
 
