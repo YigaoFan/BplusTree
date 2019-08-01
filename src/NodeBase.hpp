@@ -1,7 +1,6 @@
 #pragma once
 #include <vector> // for vector
 #include "Elements.hpp"
-//#include "DoAdd.hpp"
 
 namespace btree {
 	using std::make_pair;
@@ -30,11 +29,11 @@ namespace btree {
 		inline Key         maxKey() const;
 		uint16_t           childCount() const;
 		inline vector<Key> allKey() const;
-		inline bool        have  (const Key&);
+		inline bool        have  (const Key&, vector<NodeBase*>&) const;
 		Value*             search(const Key&);
-		bool               add(pair<Key, Value>);
+		void               add(pair<Key, Value>, vector<NodeBase*>&);
 		bool               remove(const Key&);
-		void               searchSiblingsIn(vector<NodeBase *> &, NodeBase*&, NodeBase*&) const;
+		void               searchSiblingsIn(vector<NodeBase*> &, NodeBase*&, NodeBase*&) const;
 		inline bool        full()  const;
 
 	protected:
@@ -52,6 +51,7 @@ namespace btree {
 		template <typename T>
 		void splitNode(pair<Key, T>, vector<NodeBase*>&);
 		void insertLeafToUpper(NodeBase*, vector<NodeBase*>&);
+		static bool spaceFreeIn(const NodeBase*);
 	};
 }
 
@@ -108,21 +108,26 @@ namespace btree {
 
 	NODE_TEMPLATE
 	bool
-	BASE::have(const Key& key)
+	BASE::have(const Key& key, vector<NodeBase*>& passedNodeTrackStack) const
 	{
-		if (!Middle) {
-			return elements_.have(key);
-		} else {
-			for (auto& e : elements_) {
-				if ((*elements_.LessThanPtr)(key, e.first)) {
-					Ele::ptr(e.second)->have(key);
-				} else if (!(*elements_.LessThanPtr)(e.first, key)) {
-					return true;
-				}
-			}
+		// this have doesn't record all data, like max bound append
+		passedNodeTrackStack.push_back(this);
 
-			return false;
+		auto& lessThan = *(elements_.LessThanPtr);
+
+		for (auto& e : elements_) {
+			if (lessThan(key, e.first)) {
+				if (!Middle) {
+					Ele::ptr(e.second)->have(key);
+				} else {
+					return false;
+				}
+			} else if (!lessThan(e.first, key)) {
+				return true;
+			}
 		}
+
+		return false;
 	}
 
 	NODE_TEMPLATE
@@ -169,22 +174,12 @@ namespace btree {
 		return keys;
 	}
 
-	template <typename Key, typename Value, uint16_t BtreeOrder>
-	void
-	collectDeepInfo(BASE*, const Key&, vector<BASE*>&);
-
 	NODE_TEMPLATE
-	bool
-	BASE::add(pair<Key, Value> p)
+	void
+	BASE::add(pair<Key, Value> p, vector<NodeBase*>& passedNodeTrackStack)
 	{
-		vector<decltype(this)> passedNodeTrackStack;
-
-		auto& key = p.first;
-		collectDeepInfo(this, key, passedNodeTrackStack);
         // 模板参数匹配顺序
 		doAdd(p, passedNodeTrackStack);
-
-		return false; // TODO wait to modify
 	}
 
 	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
@@ -201,26 +196,23 @@ namespace btree {
 		auto& stack = passedNodeTrackStack;
 		auto& lessThan = *(elements_.LessThanPtr);
 
-		// some item don't have one of siblings
+		// some doesn't have one of siblings
+
 		BASE *previous = nullptr, *next = nullptr;
 		getSiblings<Key, Value, BtreeOrder, T>(this, stack, previous, next);
 
 		if (!full()) {
 			if (lessThan(k, maxKey())) {
 				elements_.insert(p);
-			}
-			else {
+			} else {
 				elements_.append(p);
 				changeMaxKeyIn(stack, k);
 			}
-		}
-		else if (spaceFreeIn(previous)) {
+		} else if (spaceFreeIn(previous)) {
 			reallocateSiblingElement(true, previous, stack, p);
-		}
-		else if (spaceFreeIn(next)) {
+		} else if (spaceFreeIn(next)) {
 			reallocateSiblingElement(false, next, stack, p);
-		}
-		else {
+		} else {
 			splitNode(p, stack);
 		}
 	}
@@ -479,6 +471,18 @@ namespace btree {
 
 #undef EMIT_UPPER_NODE
 	}
+
+	NODE_TEMPLATE
+	bool
+	BASE::spaceFreeIn(const BASE* node)
+	{
+		if (node != nullptr) {
+			return !node->full();
+		}
+
+		return false;
+	}
+
 
 #undef BASE
 #undef NODE_TEMPLATE

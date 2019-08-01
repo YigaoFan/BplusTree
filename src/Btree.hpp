@@ -204,10 +204,10 @@ namespace btree {
 			auto leaf = make_unique<Leaf>(&p, &p + 1, _lessThanPtr);
 			_root.reset(leaf.release());
 		} else {
-			if (_root->have(p.first)) {
+			vector<Base*> passedNodeTrackStack { };
+			if (_root->have(p.first, passedNodeTrackStack)) {
 				throw runtime_error("The key-value has already existed, can't be added.");
 			} else {
-				// TODO how to reduce the duplicate search process
 				_root->add(std::move(p));
 			}
 		}
