@@ -264,6 +264,7 @@ namespace btree {
 	BTREE::have(const Key& key) const
 	{
 		if (!empty()) {
+			// should have a simple have in NodeBase
 			return _root->have(key);
 		}
 

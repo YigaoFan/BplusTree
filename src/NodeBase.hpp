@@ -118,7 +118,7 @@ namespace btree {
 		for (auto& e : elements_) {
 			if (lessThan(key, e.first)) {
 				if (!Middle) {
-					Ele::ptr(e.second)->have(key);
+					Ele::ptr(e.second)->have(key, passedNodeTrackStack);
 				} else {
 					return false;
 				}
