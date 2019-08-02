@@ -98,7 +98,7 @@ namespace btree {
 		for (auto i = 0; i < count; ++i) {
 			auto& e = elements[i];
 
-			if (lessThan(key, KEY_OF_ELE) || i == LAST_ONE) {
+			if (lessThan(key, KEY_OF_ELE) || i == LAST_ONE) { // Last one is always last one
 				auto subNodePtr = PTR(VALUE_OF_ELE);
 
 				if (subNodePtr->Middle) {
