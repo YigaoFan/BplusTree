@@ -52,12 +52,12 @@ namespace btree {
 		template <typename T>
 		void splitNode(pair<Key, T>, vector<NodeBase*>&);
 		void insertLeafToUpper(NodeBase*, vector<NodeBase*>&);
+		inline bool haveHelper(const Key&, function<bool(const NodeBase*, const Key&)>, function<void(const NodeBase*)>) const;
 		static bool spaceFreeIn(const NodeBase*);
 	};
 }
 
 namespace btree {
-
 	NODE_TEMPLATE
 	template <typename Iter>
 	BASE::NodeBase(LeafFlag, Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
@@ -109,16 +109,18 @@ namespace btree {
 
 	NODE_TEMPLATE
 	bool
-	BASE::have(const Key& key, vector<NodeBase*>& passedNodeTrackStack) const
+	BASE::haveHelper(
+		const Key& key,
+		function<bool(const NodeBase*, const Key&)> lessThanAndMiddleHandler,
+		function<void(const NodeBase*)>             keyBeyondMaxHandler
+		) const
 	{
-		// this have doesn't record all data, like max bound append
-		passedNodeTrackStack.push_back(this);
 		auto& lessThan = *(elements_.LessThanPtr);
 
 		for (auto& e : elements_) {
 			if (lessThan(key, e.first)) {
 				if (!Middle) {
-					return Ele::ptr(e.second)->have(key, passedNodeTrackStack);
+					return lessThanAndMiddleHandler(Ele::ptr(e.second), key);
 				} else {
 					return false;
 				}
@@ -127,53 +129,44 @@ namespace btree {
 			}
 		}
 
+		keyBeyondMaxHandler(this);
+		
 		return false;
+	}
+
+	NODE_TEMPLATE
+	bool
+	BASE::have(const Key& key, vector<NodeBase*>& passedNodeTrackStack) const
+	{
+		auto& stack = passedNodeTrackStack;
+		stack.push_back(this);
+
+		// these function will be constructed repeatedly, will have some bad effect?
+		auto callSelf = [&] (const NodeBase* node, const Key& key) -> bool {
+			return node->have(key, stack);
+		};
+		function<void(const NodeBase*)> collectMaxDeep = [&] (const NodeBase* node) {
+			auto maxIndex = node->childCount() - 1;
+			auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
+			stack.push_back(maxChildPtr);
+
+			if (node->Middle) {
+				collectMaxDeep(maxChildPtr);
+			}
+		};
+		
+		return haveHelper(key, callSelf, collectMaxDeep);
 	}
 
 	NODE_TEMPLATE
 	bool
 	BASE::have(const Key& key) const
 	{
-		auto& lessThan = *(elements_.LessThanPtr);
-
-		for (auto& e : elements_) {
-			if (lessThan(key, e.first)) {
-				if (!Middle) {
-					return Ele::ptr(e.second)->have(key);
-				} else {
-					return false;
-				}
-			} else if (!lessThan(e.first, key)) {
-				return true;
-			}
-		}
-
-		return false;
-		function<bool(NodeBase*, const Key&)> selfCall = [] (NodeBase* node, const Key& k) -> bool {
+		auto callSelf = [&] (const NodeBase* node, const Key& key) -> bool {
 			return node->have(key);
 		};
-		haveHelper(key, selfCall);
-	}
-
-	NODE_TEMPLATE
-	bool
-	BASE::haveHelper(const Key& key, function<bool(NodeBase*, const Key&)> recursiveHaveCall) const
-	{
-		auto& lessThan = *(elements_.LessThanPtr);
-
-		for (auto& e : elements_) {
-			if (lessThan(key, e.first)) {
-				if (!Middle) {
-					return recursiveHaveCall(Ele::ptr(e.second), key)
-				} else {
-					return false;
-				}
-			} else if (!lessThan(e.first, key)) {
-				return true;
-			}
-		}
-
-		return false;
+		auto doNothing = [] (auto) { };
+		return haveHelper(key, callSelf, doNothing);
 	}
 
 	NODE_TEMPLATE

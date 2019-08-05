@@ -6,7 +6,7 @@
 #include <algorithm>    // for sort
 #include <array>        // for array
 #include <exception>    // for exception
-#include "DoAdd.hpp"
+#include "SiblingFunc.hpp"
 
 #ifdef BTREE_DEBUG
 #include <iostream>
@@ -48,8 +48,10 @@ namespace btree {
 		~Btree() = default;
 
 		Value       search (const Key&) const;
-		void        add    (pair<Key, Value>);
-		void        modify (pair<Key, Value>);
+		void        add    (pair<Key, Value>); // should without check
+		// void        addWithCheck(pair<Key, Value>);
+		void        modify (pair<Key, Value>); // should without exception
+		// void        modifyWithWarn(pair<Key, Value>);
 		vector<Key> explore() const;
 		void        remove (const Key&);
 		bool        have   (const Key&) const;
@@ -80,7 +82,7 @@ namespace btree {
 		LessThan lessThan,
 		array<pair<Key, Value>, NumOfEle> pairArray
 	) :
-	_lessThanPtr(make_shared<LessThan>(lessThan))
+		_lessThanPtr(make_shared<LessThan>(lessThan))
 	{
 		if constexpr (NumOfEle == 0) { return; }
 
@@ -112,7 +114,7 @@ namespace btree {
 			return;
 		}
 		
-		constexpr auto upperNodeNum =  Size % BtreeOrder == 0) ?  Size / BtreeOrder) :  Size / BtreeOrder + 1);
+		constexpr auto upperNodeNum =  Size % BtreeOrder == 0 ?  (Size / BtreeOrder) :  (Size / BtreeOrder + 1);
 		array<pair<Key, unique_ptr<Base>>, upperNodeNum> upperNodes;
 
 		auto head = nodesMaterial.begin();
@@ -126,18 +128,18 @@ namespace btree {
 
 		do {
 			if constexpr (FirstCall) {
-				// set previous and next
 				auto leaf = make_unique<Leaf>(head, tail, _lessThanPtr);
-				leaf->previousLeaf(lastLeaf);
+				upperNodes[i] = make_pair(leaf->maxKey(), std::move(leaf));
 
+				// set previous and next
+				leaf->previousLeaf(lastLeaf);
 				if (firstLeaf) {
 					firstLeaf = false;
 				} else {
-					lastLeaf->nextLeaf(leaf);
+					lastLeaf->nextLeaf(leaf.get());
 				}
-				lastLeaf = leaf.get();
 
-				upperNodes[i] = make_pair(leaf->maxKey(), std::move(leaf));
+				lastLeaf = leaf.get();
 			} else {
 				auto middle = make_unique<Middle>(head, tail, _lessThanPtr);
 				upperNodes[i] = make_pair(middle->maxKey(), std::move(middle));
@@ -206,7 +208,7 @@ namespace btree {
 			if (_root->have(p.first, passedNodeTrackStack)) {
 				throw runtime_error("The key-value has already existed, can't be added.");
 			} else {
-				_root->add(std::move(p));
+				_root->add(std::move(p), passedNodeTrackStack);
 			}
 		}
 

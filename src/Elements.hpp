@@ -13,18 +13,18 @@
 #endif
 
 namespace btree {
-	using std::variant;
-	using std::pair;
-	using std::vector;
-	using std::function;
-	using std::unique_ptr;
-	using std::shared_ptr;
-	using std::array;
-	using std::memcpy;
-	using std::runtime_error;
-	using std::make_unique;
-	using std::forward_iterator_tag;
-	using std::make_pair;
+	using ::std::variant;
+	using ::std::pair;
+	using ::std::vector;
+	using ::std::function;
+	using ::std::unique_ptr;
+	using ::std::shared_ptr;
+	using ::std::array;
+	using ::std::memcpy;
+	using ::std::runtime_error;
+	using ::std::make_unique;
+	using ::std::forward_iterator_tag;
+	using ::std::make_pair;
 
 #define ELEMENTS_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder, typename PtrType>
 
@@ -34,8 +34,6 @@ namespace btree {
 	ELEMENTS_TEMPLATE
 	class Elements {
 	public:
-		template <typename T>
-		class ElementsIterator;
 		using ValueForContent = variant<Value, unique_ptr<PtrType>>;
 		using Content         = pair<Key, ValueForContent>;
 		using LessThan        = function<bool(const Key&, const Key&)>;
@@ -93,9 +91,8 @@ namespace btree {
 		template <typename T>
 		void     add(pair<Key, T>);
 
-		static Content& assign(Content&, const pair<Key, Value>&);
-		template <typename T>
-		static Content& assign(Content&, pair<Key, unique_ptr<T>>&);
+		static Content& assign(Content&, pair<Key, Value>&);
+		static Content& assign(Content&, pair<Key, unique_ptr<PtrType>>&);
 		static Content* moveElement(int16_t, Content*, Content*);
 		static void initialInternalElements(array<Content, BtreeOrder>&, const array<Content, BtreeOrder>&, bool, uint16_t);
 		static unique_ptr<PtrType>& uniquePtr(ValueForContent&);
@@ -115,21 +112,19 @@ namespace btree {
 		LeafFlag(std::is_same<typename std::decay<decltype(*begin)>::type, pair<Key, Value>>::value),
 		LessThanPtr(lessThanPtr)
 	{
-		if (begin != end) {
-			do {
-				Elements::assign(_elements[_count], *begin);
+		do {
+			Elements::assign(_elements[_count], *begin);
 
-				++_count;
-				++begin;
-			} while (begin != end);
-		}
+			++_count;
+			++begin;
+		} while (begin != end);
 	}
 
 	ELEMENTS_TEMPLATE
 	ELE::Elements(const Elements& that) :
-		LeafFlag(that.LeafFlag),
+		LeafFlag   (that.LeafFlag),
 		LessThanPtr(that.LessThanPtr),
-		_count(that._count)
+		_count     (that._count)
 	{
 		initialInternalElements(_elements, that._elements, that.LeafFlag, _count);
 	}
@@ -204,7 +199,7 @@ namespace btree {
 	{
 		return const_cast<ValueForContent&>(
 			(static_cast<const Elements&>(*this))[key]
-			);
+		);
 	}
 
 	ELEMENTS_TEMPLATE
@@ -243,9 +238,7 @@ namespace btree {
 	auto
 	ELE::begin()
 	{
-		// 本来应该从 begin 的返回类型推导的，这样...
 		return _elements.begin();
-		//return ElementsIterator(_elements.begin());
 	}
 
 	ELEMENTS_TEMPLATE
@@ -253,7 +246,6 @@ namespace btree {
 	ELE::end()
 	{
 		return _elements.end();
-		//return ElementsIterator(_elements.end());
 	}
 
 	ELEMENTS_TEMPLATE
@@ -261,7 +253,6 @@ namespace btree {
 	ELE::begin() const
 	{
 		return _elements.begin();
-		//return ElementsIterator(_elements.begin());
 	}
 
 	ELEMENTS_TEMPLATE
@@ -269,7 +260,6 @@ namespace btree {
 	ELE::end() const
 	{
 		return _elements.end();
-		//return ElementsIterator(_elements.end());
 	}
 
 	ELEMENTS_TEMPLATE
@@ -512,22 +502,18 @@ namespace btree {
 	}
 
 	ELEMENTS_TEMPLATE
-	template <typename T>
 	typename ELE::Content&
-	ELE::assign(Content &ele, pair<Key, unique_ptr<T>>& ptrPair)
+	ELE::assign(Content &ele, pair<Key, unique_ptr<PtrType>>& ptrPair)
 	{
-		static_assert(std::is_base_of<PtrType, T>::value, "The type to be stored should be derived from PtrType");
-
 		ele.first = ptrPair.first;
 		ELE::uniquePtr(ele.second).reset(ptrPair.second.release());
-		// ele.second = std::move(make_unique<PtrType>(ptrPair.second.release()));
-		// new (&(ele.second)) ValueForContent(std::move(ptrPair.second));
+
 		return ele;
 	}
 
 	ELEMENTS_TEMPLATE
 	typename ELE::Content&
-	ELE::assign(Content &ele, const pair<Key, Value>& pairPtr)
+	ELE::assign(Content &ele, pair<Key, Value>& pairPtr)
 	{
 		ele = std::move(pairPtr);
 		return ele;
