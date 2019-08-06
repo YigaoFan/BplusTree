@@ -64,7 +64,7 @@ namespace btree {
 
 		vector<Leaf*> traverseLeaf(const function<bool(Leaf*)>&) const;
 		template <bool FirstCall=true, typename E, size_t Size>
-		void constructTreeFromLeafToRoot(const array<E, Size>&);
+		void constructTreeFromLeafToRoot(array<E, Size>&); // When need to use std::move, not mark const
 
 		template <size_t NumOfEle>
 		static inline bool duplicateIn(const array<pair<Key, Value>, NumOfEle>&);
@@ -103,7 +103,7 @@ namespace btree {
 	BTREE_TEMPLATE
 	template <bool FirstCall, typename E, size_t Size>
 	void
-	BTREE::constructTreeFromLeafToRoot(const array<E, Size>& nodesMaterial)
+	BTREE::constructTreeFromLeafToRoot(array<E, Size>& nodesMaterial)
 	{
 		if constexpr (Size <= BtreeOrder) {
 			if constexpr (FirstCall) {

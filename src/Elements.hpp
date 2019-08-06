@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <functional> // for function
 #include <variant>    // variant
 #include <cstring>    // for memcpy
@@ -77,13 +77,14 @@ namespace btree {
 		auto     begin() const;
 		auto     end  () const;
 
+		//TODO should use reference or value? actually is read way and write way and copy way
 		static Value&         value(ValueForContent&);
 		static PtrType*       ptr  (ValueForContent&);
 		static const Value&   value(const ValueForContent&);
 		static PtrType*       ptr  (const ValueForContent&);
 
 	private:
-		uint16_t                   _count{ 0 };
+		uint16_t                   _count;
 		array<Content, BtreeOrder> _elements;
 
 		void     adjustMemory(int16_t, Content *);
@@ -91,8 +92,8 @@ namespace btree {
 		template <typename T>
 		void     add(pair<Key, T>);
 
-		static Content& assign(Content&, pair<Key, Value>&);
-		static Content& assign(Content&, pair<Key, unique_ptr<PtrType>>&);
+		static void assign(Content&, pair<Key, Value>&);
+		static void assign(Content&, pair<Key, unique_ptr<PtrType>>&);
 		static Content* moveElement(int16_t, Content*, Content*);
 		static void initialInternalElements(array<Content, BtreeOrder>&, const array<Content, BtreeOrder>&, bool, uint16_t);
 		static unique_ptr<PtrType>& uniquePtr(ValueForContent&);
@@ -102,6 +103,7 @@ namespace btree {
 namespace btree {
 #define ELE Elements<Key, Value, BtreeOrder, PtrType>
 
+	// some are copy, some are not copy
 	ELEMENTS_TEMPLATE
 	template <typename Iter>
 	ELE::Elements(
@@ -110,7 +112,8 @@ namespace btree {
 		shared_ptr<LessThan> lessThanPtr
 	) :
 		LeafFlag(std::is_same<typename std::decay<decltype(*begin)>::type, pair<Key, Value>>::value),
-		LessThanPtr(lessThanPtr)
+		LessThanPtr(lessThanPtr),
+		_count(0)
 	{
 		do {
 			Elements::assign(_elements[_count], *begin);
@@ -338,7 +341,7 @@ namespace btree {
 
 		Insert:
 		adjustMemory(1, &_elements[i]);
-		_elements[i] = std::move(p); //	Elements::assign(_elements[i], p);
+		Elements::assign(_elements[i], p);
 		++_count;
 	}
 
@@ -351,7 +354,7 @@ namespace btree {
 			throw runtime_error("No free space to add");
 		}
 
-		_elements[_count] = std::move(p);
+		Elements::assign(_elements[_count], p);
 		++_count;
 	}
 
@@ -502,21 +505,18 @@ namespace btree {
 	}
 
 	ELEMENTS_TEMPLATE
-	typename ELE::Content&
-	ELE::assign(Content &ele, pair<Key, unique_ptr<PtrType>>& ptrPair)
+	void
+	ELE::assign(Content& e, pair<Key, unique_ptr<PtrType>>& ptrPair)
 	{
-		ele.first = ptrPair.first;
-		ELE::uniquePtr(ele.second).reset(ptrPair.second.release());
-
-		return ele;
+		e.first = ptrPair.first;
+		ELE::uniquePtr(e.second).reset(ptrPair.second.release());
 	}
 
 	ELEMENTS_TEMPLATE
-	typename ELE::Content&
-	ELE::assign(Content &ele, pair<Key, Value>& pairPtr)
+	void
+	ELE::assign(Content& e, pair<Key, Value>& p)
 	{
-		ele = std::move(pairPtr);
-		return ele;
+		e = std::move(p);
 	}
 
 	ELEMENTS_TEMPLATE

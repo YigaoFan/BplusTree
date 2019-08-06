@@ -29,7 +29,7 @@ namespace btree {
 		inline Key         maxKey() const;
 		uint16_t           childCount() const;
 		inline vector<Key> allKey() const;
-		inline bool        have  (const Key&, vector<NodeBase*>&) const;
+		inline bool        have  (const Key&, vector<NodeBase*>&);
 		inline bool        have  (const Key&) const;
 		Value*             search(const Key&);
 		void               add(pair<Key, Value>, vector<NodeBase*>&);
@@ -51,8 +51,8 @@ namespace btree {
 		void replacePreviousNodeMaxKeyInTreeBySearchUpIn(vector<NodeBase*>&, const Key&, const Key&);
 		template <typename T>
 		void splitNode(pair<Key, T>, vector<NodeBase*>&);
-		void insertLeafToUpper(NodeBase*, vector<NodeBase*>&);
-		inline bool haveHelper(const Key&, function<bool(const NodeBase*, const Key&)>, function<void(const NodeBase*)>) const;
+		void insertLeafToUpper(unique_ptr<NodeBase>, vector<NodeBase*>&);
+		inline bool haveHelper(const Key&, function<bool(NodeBase*, const Key&)>, function<void(NodeBase*)>);
 		static bool spaceFreeIn(const NodeBase*);
 	};
 }
@@ -111,9 +111,9 @@ namespace btree {
 	bool
 	BASE::haveHelper(
 		const Key& key,
-		function<bool(const NodeBase*, const Key&)> lessThanAndMiddleHandler,
-		function<void(const NodeBase*)>             keyBeyondMaxHandler
-		) const
+		function<bool(NodeBase*, const Key&)> lessThanAndMiddleHandler,
+		function<void(NodeBase*)>             keyBeyondMaxHandler
+		)
 	{
 		auto& lessThan = *(elements_.LessThanPtr);
 
@@ -136,16 +136,16 @@ namespace btree {
 
 	NODE_TEMPLATE
 	bool
-	BASE::have(const Key& key, vector<NodeBase*>& passedNodeTrackStack) const
+	BASE::have(const Key& key, vector<NodeBase*>& passedNodeTrackStack)
 	{
 		auto& stack = passedNodeTrackStack;
 		stack.push_back(this);
 
 		// these function will be constructed repeatedly, will have some bad effect?
-		auto callSelf = [&] (const NodeBase* node, const Key& key) -> bool {
+		function<bool(NodeBase*, const Key&)> callSelf = [&] (NodeBase* node, const Key& key) {
 			return node->have(key, stack);
 		};
-		function<void(const NodeBase*)> collectMaxDeep = [&] (const NodeBase* node) {
+		function<void(NodeBase*)> collectMaxDeep = [&] (const NodeBase* node) {
 			auto maxIndex = node->childCount() - 1;
 			auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
 			stack.push_back(maxChildPtr);
@@ -166,7 +166,7 @@ namespace btree {
 			return node->have(key);
 		};
 		auto doNothing = [] (auto) { };
-		return haveHelper(key, callSelf, doNothing);
+		return const_cast<NodeBase*>(this)->haveHelper(key, callSelf, doNothing);
 	}
 
 	NODE_TEMPLATE
@@ -242,17 +242,17 @@ namespace btree {
 
 		if (!full()) {
 			if (lessThan(k, maxKey())) {
-				elements_.insert(p);
+				elements_.insert(std::move(p));
 			} else {
-				elements_.append(p);
+				elements_.append(std::move(p));
 				changeMaxKeyIn(stack, k);
 			}
 		} else if (spaceFreeIn(previous)) {
-			reallocateSiblingElement(true, previous, stack, p);
+			reallocateSiblingElement(true, previous, stack, std::move(p));
 		} else if (spaceFreeIn(next)) {
-			reallocateSiblingElement(false, next, stack, p);
+			reallocateSiblingElement(false, next, stack, std::move(p));
 		} else {
-			splitNode(p, stack);
+			splitNode(std::move(p), stack);
 		}
 	}
 
@@ -320,7 +320,7 @@ namespace btree {
 		// TODO maybe not need return value
 		trackStack.push_back(this);
 
-		auto maxValueForContent = [] (Ele& e) {
+		auto maxValueForContent = [] (Ele& e) -> typename Ele::ValueForContent& {
 			return e[e.count() - 1].second;
 		};
 
@@ -364,18 +364,19 @@ namespace btree {
 		auto& stack = passedNodeTrackStack;
 		
 		if (isPrevious) {
-			auto min = elements_.exchangeMin(p);
+			auto min = elements_.exchangeMin(std::move(p));
 			auto previousOldMax = sibling->maxKey();
-			sibling->elements_.append(min);
+			sibling->elements_.append(std::move(min));
 			auto newMaxKey = min.first;
 			// previous max change
 			// TODO could use this stack to get sibling stack, then change upper
 			replacePreviousNodeMaxKeyInTreeBySearchUpIn(stack, previousOldMax, newMaxKey);
 		} else {
-			auto&& max = elements_.exchangeMax(p);
+			auto&& max = elements_.exchangeMax(std::move(p));
+			// TODO why max not be used
 			// this max change
 			changeMaxKeyIn(stack, maxKey());
-			sibling->elements_.insert(p);
+			sibling->elements_.insert(std::move(p));
 		}
 	}
 
@@ -463,9 +464,9 @@ namespace btree {
 
 		auto addIn = [&] (NodeBase* node, bool shouldAppend) {
 			if (shouldAppend) {
-				node->elements_.append(p);
+				node->elements_.append(std::move(p));
 			} else {
-				node->elements_.insert(p);
+				node->elements_.insert(std::move(p));
 			}
 		};
 
@@ -491,12 +492,12 @@ namespace btree {
 		
 #undef HANDLE_ADD
 
-		insertLeafToUpper(newPrePtr, stack);
+		insertLeafToUpper(std::move(newPre), stack);
 	}
 
 	NODE_TEMPLATE
 	void
-	BASE::insertLeafToUpper(NodeBase* node, vector<NodeBase*>& passedNodeTrackStack)
+	BASE::insertLeafToUpper(unique_ptr<NodeBase> node, vector<NodeBase*>& passedNodeTrackStack)
 	{
 #define EMIT_UPPER_NODE() stack.pop_back()
 
@@ -504,8 +505,8 @@ namespace btree {
 		auto& stack = passedNodeTrackStack;
 		EMIT_UPPER_NODE();
 		
-		auto pair = make_pair<Key, NodeBase*>(node->maxKey(), std::move(node));
-		doAdd(pair, stack);
+		auto pair = make_pair<Key, unique_ptr<NodeBase>>(node->maxKey(), std::move(node));
+		doAdd(std::move(pair), stack);
 		// 这部分甚至可能动 root，做好心理准备
 
 #undef EMIT_UPPER_NODE
