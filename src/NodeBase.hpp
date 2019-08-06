@@ -178,7 +178,7 @@ namespace btree {
 		};
 
 		if (!Middle) {
-			return elements_.have(key) ? &Ele::value(elements_[key]) : nullptr;
+			return elements_.have(key) ? &Ele::value_Ref(elements_[key]) : nullptr;
 		} else {
 			for (auto& e : elements_) {
 				if ((*elements_.LessThanPtr)(key, e.first)) {
@@ -188,7 +188,7 @@ namespace btree {
 
 				SearchInThisNode:
 					if (!subNodePtr->Middle) {
-						return &Ele::value(maxValueForContent(subNodePtr->elements_));
+						return &Ele::value_Ref(maxValueForContent(subNodePtr->elements_));
 					} else {
 						subNodePtr = Ele::ptr(maxValueForContent(subNodePtr->elements_));
 						goto SearchInThisNode;
@@ -325,7 +325,7 @@ namespace btree {
 		};
 
 		if (!Middle) {
-			return elements_.have(key) ? &Ele::value(elements_[key]) : nullptr;
+			return elements_.have(key) ? &Ele::value_Ref(elements_[key]) : nullptr;
 		} else {
 			for (auto& e : elements_) {
 				if ((*elements_.LessThanPtr)(key, e.first)) {
@@ -337,7 +337,7 @@ namespace btree {
 					trackStack.push_back(subNodePtr);
 
 					if (!subNodePtr->Middle) {
-						return &Ele::value(maxValueForContent(subNodePtr->elements_));
+						return &Ele::value_Ref(maxValueForContent(subNodePtr->elements_));
 					} else {
 						subNodePtr = Ele::ptr(maxValueForContent(subNodePtr->elements_));
 						goto SearchInThisNode;

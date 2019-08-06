@@ -58,7 +58,7 @@ namespace btree {
 	LEAF::operator[](const Key& key)
 	{
 		auto& e = this->elements_[key];
-		return Base::Ele::value(e);
+		return Base::Ele::value_Ref(e);
 	}
 
 	NODE_TEMPLATE
@@ -66,7 +66,7 @@ namespace btree {
 	LEAF::operator[](uint16_t i)
 	{
 		auto& e = Base::elements_[i];
-		return make_pair(e.first, Base::Ele::value(e.second));
+		return make_pair(e.first, Base::Ele::value_Ref(e.second));
 	}
 
 	NODE_TEMPLATE

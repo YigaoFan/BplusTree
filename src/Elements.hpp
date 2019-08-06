@@ -78,25 +78,29 @@ namespace btree {
 		auto     end  () const;
 
 		//TODO should use reference or value? actually is read way and write way and copy way
-		static Value&         value(ValueForContent&);
+		static Value&         value_Ref(ValueForContent&);
+		static const Value&   value_Ref(const ValueForContent&);
+		static Value          value_Copy(const ValueForContent&);
+		static Value          value_Move(ValueForContent&);
 		static PtrType*       ptr  (ValueForContent&);
-		static const Value&   value(const ValueForContent&);
 		static PtrType*       ptr  (const ValueForContent&);
 
 	private:
 		uint16_t                   _count;
 		array<Content, BtreeOrder> _elements;
 
-		void     adjustMemory(int16_t, Content *);
+		void     adjustMemory(int32_t, Content *);
 		uint16_t relatedIndex(const Key&);
 		template <typename T>
 		void     add(pair<Key, T>);
+		auto cloneInternalElements() const;
 
 		static void assign(Content&, pair<Key, Value>&);
 		static void assign(Content&, pair<Key, unique_ptr<PtrType>>&);
 		static Content* moveElement(int16_t, Content*, Content*);
-		static void initialInternalElements(array<Content, BtreeOrder>&, const array<Content, BtreeOrder>&, bool, uint16_t);
-		static unique_ptr<PtrType>& uniquePtr(ValueForContent&);
+
+		static unique_ptr<PtrType>& uniquePtr_Ref (ValueForContent&);
+		static unique_ptr<PtrType>  uniquePtr_Move(ValueForContent&);
 	};
 }
 
@@ -127,17 +131,16 @@ namespace btree {
 	ELE::Elements(const Elements& that) :
 		LeafFlag   (that.LeafFlag),
 		LessThanPtr(that.LessThanPtr),
+		_elements  (that.cloneInternalElements()),
 		_count     (that._count)
-	{
-		initialInternalElements(_elements, that._elements, that.LeafFlag, _count);
-	}
+	{ }
 
 	ELEMENTS_TEMPLATE
 	ELE::Elements(Elements&& that) noexcept :
-		LeafFlag(that.LeafFlag),
+		LeafFlag   (that.LeafFlag),
 		LessThanPtr(that.LessThanPtr),
-		_count(that._count),
-		_elements(std::move(that._elements))
+		_elements  (std::move(that._elements)),
+		_count     (that._count)
 	{
 		that._count = 0;
 	}
@@ -359,8 +362,8 @@ namespace btree {
 	}
 
 #ifdef BTREE_DEBUG
-#define BOUND_CHECK                                                                                                  \
-	if (_count < BtreeOrder) {                                                                                       \
+#define BOUND_CHECK                                                                                              \
+	if (_count < BtreeOrder) {                                                                                   \
 		throw runtime_error("Please invoke exchangeMax when the Elements is full, you can use full to check it");\
 	} else if (have(p.first)) {                                                                                  \
 		throw runtime_error("The Key: " + p.first + " has already existed");                                     \
@@ -380,10 +383,10 @@ namespace btree {
 		auto valueForContent = std::move(maxItem.second);
 
 		--_count;
-		add(p);
+		add(std::move(p));
 		
 		if constexpr (std::is_same<T, Value>::value) {
-			return make_pair<Key, T>(std::move(key), std::move(value(valueForContent)));
+			return make_pair<Key, T>(std::move(key), std::move(value_Ref(valueForContent)));
 		} else {
 			return make_pair<Key, T>(std::move(key), std::move(ptr(valueForContent)));
 		}
@@ -408,7 +411,7 @@ namespace btree {
 		add(p);
 
 		if constexpr (std::is_same<T, Value>::value) {
-			return make_pair<Key, T>(std::move(key), std::move(value(valueForContent)));
+			return make_pair<Key, T>(std::move(key), std::move(value_Ref(valueForContent)));
 		} else {
 			return make_pair<Key, T>(key, ptr(valueForContent));
 		}
@@ -433,8 +436,29 @@ namespace btree {
 	}
 
 	ELEMENTS_TEMPLATE
+	auto
+	ELE::cloneInternalElements() const
+	{
+		decltype(_elements) eles;
+
+		memcpy(&eles, &_elements, _count * sizeof(Content)); // copy all without distinguish
+
+		if (LeafFlag) {
+			for (auto i = 0; i < _count; ++i) {
+				eles[i] = _elements[i];
+			}
+		} else {
+			for (auto i = 0; i < _count; ++i) {
+				eles[i].first = _elements[i].first;
+				eles[i].second = std::move(uniquePtr_Ref(_elements[i].second)->clone());
+			}
+		}
+
+		return std::move(eles);
+	}
+	ELEMENTS_TEMPLATE
 	void
-	ELE::adjustMemory(int16_t direction, Content* begin)
+	ELE::adjustMemory(int32_t direction, Content *begin)
 	{
 		// default Content* end
 		if (_count == 0 || direction == 0) {
@@ -482,34 +506,10 @@ namespace btree {
 
 	ELEMENTS_TEMPLATE
 	void
-	ELE::initialInternalElements(
-		array<Content, BtreeOrder>& thisElements,
-		const array<typename ELE::Content, BtreeOrder>& thatElements,
-		bool isValue,
-		uint16_t count
-	)
-	{
-		auto src = &thatElements;
-		auto des = &thisElements;
-
-		memcpy(des, src, count * sizeof(Content)); // copy all without distinguish
-
-		if (!isValue) {
-			for (auto& e : thisElements) {
-				auto& ptr = std::get<unique_ptr<PtrType>>(e.second);
-				auto deepClone = ptr->clone();
-				ptr.release();
-				ptr.reset(deepClone.release());
-			}
-		}
-	}
-
-	ELEMENTS_TEMPLATE
-	void
 	ELE::assign(Content& e, pair<Key, unique_ptr<PtrType>>& ptrPair)
 	{
 		e.first = ptrPair.first;
-		ELE::uniquePtr(e.second).reset(ptrPair.second.release());
+		ELE::uniquePtr_Ref(e.second).reset(ptrPair.second.release());
 	}
 
 	ELEMENTS_TEMPLATE
@@ -521,14 +521,28 @@ namespace btree {
 
 	ELEMENTS_TEMPLATE
 	Value&
-	ELE::value(ValueForContent& v)
+	ELE::value_Ref(ValueForContent &v)
 	{
 		return std::get<Value>(v);
 	}
 
 	ELEMENTS_TEMPLATE
+	Value
+	ELE::value_Copy(const ValueForContent& v)
+	{
+		return std::get<Value>(v);
+	}
+
+	ELEMENTS_TEMPLATE
+	Value
+	ELE::value_Move(ValueForContent& v)
+	{
+		return std::move(std::get<Value>(v));
+	}
+
+	ELEMENTS_TEMPLATE
 	const Value&
-	ELE::value(const ValueForContent& v)
+	ELE::value_Ref(const ValueForContent &v)
 	{
 		return std::get<const Value>(v);
 	}
@@ -537,24 +551,28 @@ namespace btree {
 	PtrType*
 	ELE::ptr(ValueForContent& v)
 	{
-		return std::get<unique_ptr<PtrType>>(v).get();
+		return uniquePtr_Ref(v).get();
 	}
 
 	ELEMENTS_TEMPLATE
 	PtrType*
 	ELE::ptr(const ValueForContent& v)
 	{
-		// #error which to choose?
-		// return std::get<unique_ptr<PtrType>>(v).get();
 		return std::get<unique_ptr<PtrType>>(v).get();
-		// return std::get<const unique_ptr<PtrType>>(v).get();
 	}
 
 	ELEMENTS_TEMPLATE
 	unique_ptr<PtrType>&
-	ELE::uniquePtr(ValueForContent& v)
+	ELE::uniquePtr_Ref(ValueForContent &v)
 	{
 		return std::get<unique_ptr<PtrType>>(v);
+	}
+
+	ELEMENTS_TEMPLATE
+	unique_ptr<PtrType>
+	ELE::uniquePtr_Move(ValueForContent& v)
+	{
+		return std::move(uniquePtr_Ref(v));
 	}
 
 #undef ELE
