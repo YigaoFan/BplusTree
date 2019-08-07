@@ -99,6 +99,7 @@ namespace btree {
 		static Content* moveElement(int16_t, Content*, Content*);
 
 		static unique_ptr<PtrType>& uniquePtr_Ref (ValueForContent&);
+		static const unique_ptr<PtrType>& uniquePtr_Ref (const ValueForContent&);
 		static unique_ptr<PtrType>  uniquePtr_Move(ValueForContent&);
 	};
 }
@@ -534,7 +535,7 @@ namespace btree {
 	const Value&
 	ELE::value_Ref(const ValueForContent &v)
 	{
-		return std::get<const Value>(v);
+		return std::get<Value>(v);
 	}
 
 	ELEMENTS_TEMPLATE
@@ -553,7 +554,14 @@ namespace btree {
 
 	ELEMENTS_TEMPLATE
 	unique_ptr<PtrType>&
-	ELE::uniquePtr_Ref(ValueForContent &v)
+	ELE::uniquePtr_Ref(ValueForContent& v)
+	{
+		return std::get<unique_ptr<PtrType>>(v);
+	}
+
+	ELEMENTS_TEMPLATE
+	const unique_ptr<PtrType>&
+	ELE::uniquePtr_Ref(const ValueForContent& v)
 	{
 		return std::get<unique_ptr<PtrType>>(v);
 	}
