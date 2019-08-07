@@ -90,10 +90,9 @@ namespace btree {
 		array<Content, BtreeOrder> _elements;
 
 		void     adjustMemory(int32_t, Content *);
-		uint16_t relatedIndex(const Key&);
 		template <typename T>
 		void     add(pair<Key, T>);
-		auto cloneInternalElements() const;
+		auto     cloneInternalElements() const;
 
 		static void assign(Content&, pair<Key, Value>&);
 		static void assign(Content&, pair<Key, unique_ptr<PtrType>>&);
@@ -131,7 +130,7 @@ namespace btree {
 	ELE::Elements(const Elements& that) :
 		LeafFlag   (that.LeafFlag),
 		LessThanPtr(that.LessThanPtr),
-		_elements  (that.cloneInternalElements()),
+		_elements  (std::move(that.cloneInternalElements())),
 		_count     (that._count)
 	{ }
 
@@ -150,12 +149,14 @@ namespace btree {
 	ELE::have(const Key& key) const
 	{
 		auto& lessThan = *LessThanPtr;
-		for (auto i = 0; i < _count; ++i) {
-			auto& eleKey = _elements[i].first;
-			if (lessThan(eleKey, key) == lessThan(key, eleKey)) {
+
+		for (const auto& e: _elements) {
+			auto& k = e.first;
+			if (lessThan(k, key) == lessThan(key, k)) {
 				return true;
 			}
 		}
+
 		return false;
 	}
 
@@ -170,21 +171,27 @@ namespace btree {
 	bool
 	ELE::Elements::full() const
 	{
-		return _count >= BtreeOrder;
+		return _count == BtreeOrder;
 	}
 
+	/**
+	 * If key doesn't exist, will do no work
+	 */
 	ELEMENTS_TEMPLATE
 	bool
 	ELE::remove(const Key& key)
 	{
-		auto i = relatedIndex(key);
-		auto boundChanged{ false };
+		auto boundChanged = false;
+		auto i = indexOf(key);
 
-		adjustMemory(-1, &_elements[i + 1]);
-		if (i == (_count - 1)) {
-			boundChanged = true;
+		if (i != -1) {
+			adjustMemory(-1, &_elements[i + 1]);
+			if (i == (_count - 1)) {
+				boundChanged = true;
+			}
+			--_count;
 		}
-		--_count;
+
 		return boundChanged;
 	}
 
@@ -251,7 +258,7 @@ namespace btree {
 	auto
 	ELE::end()
 	{
-		return _elements.end();
+		return begin() + _count;
 	}
 
 	ELEMENTS_TEMPLATE
@@ -265,7 +272,7 @@ namespace btree {
 	auto
 	ELE::end() const
 	{
-		return _elements.end();
+		return begin() + _count;
 	}
 
 	ELEMENTS_TEMPLATE
@@ -293,7 +300,7 @@ namespace btree {
 		auto& lessThan = *LessThanPtr;
 
 		for (auto i = 0; i < _count; ++i) {
-			if ((!lessThan(key, KEY_OF_ELE)) && (!lessThan(KEY_OF_ELE, key))) {
+			if (lessThan(key, KEY_OF_ELE) == lessThan(KEY_OF_ELE, key)) {
 				return i;
 			}
 		}
@@ -441,8 +448,6 @@ namespace btree {
 	{
 		decltype(_elements) eles;
 
-		memcpy(&eles, &_elements, _count * sizeof(Content)); // copy all without distinguish
-
 		if (LeafFlag) {
 			for (auto i = 0; i < _count; ++i) {
 				eles[i] = _elements[i];
@@ -470,18 +475,6 @@ namespace btree {
 		moveElement(direction, begin, end);
 	}
 
-	ELEMENTS_TEMPLATE
-	uint16_t
-	ELE::relatedIndex(const Key &key)
-	{
-		for (auto i = 0; i < _count; ++i) {
-			if (_elements[i].first == key) {
-				return i;
-			}
-		}
-
-		throw runtime_error("Can't get the related element of the key: " + key);
-	}
 }
 
 namespace btree {
