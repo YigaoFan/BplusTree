@@ -448,17 +448,14 @@ namespace btree {
 	{
 		decltype(_elements) eles;
 
-		if (LeafFlag) {
-			for (auto i = 0; i < _count; ++i) {
-				eles[i] = _elements[i];
-			}
-		} else {
 			for (auto i = 0; i < _count; ++i) {
 				eles[i].first = _elements[i].first;
-				eles[i].second = std::move(uniquePtr_Ref(_elements[i].second)->clone());
+				if (LeafFlag) {
+					eles[i].second = value_Ref(_elements[i].second);
+				} else {
+					eles[i].second = std::move(uniquePtr_Ref(_elements[i].second)->clone());
+				}
 			}
-		}
-
 		return std::move(eles);
 	}
 	ELEMENTS_TEMPLATE
