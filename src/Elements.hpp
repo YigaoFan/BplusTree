@@ -38,7 +38,7 @@ namespace btree {
 		using Content         = pair<Key, ValueForContent>;
 		using LessThan        = function<bool(const Key&, const Key&)>;
 
-		const bool           LeafFlag;
+		const bool           MiddleFlag;
 		shared_ptr<LessThan> LessThanPtr;
 
 		template <typename Iter>
@@ -51,18 +51,19 @@ namespace btree {
 		bool             full()  const;
 
 		// bool means max key changes
+		// all this change caller should promise not out of bound
 		bool             remove(const Key&);
 		bool             remove(uint16_t); // TODO maybe will implement
-		void             removeItemsFrom(bool, uint16_t);
-		template <typename T>
-		void             insert(pair<Key, T>);
-		template <typename T>
-		void             append(pair<Key, T>);
-		template <typename T>
-		pair<Key, T> exchangeMax(pair<Key, T>);
-		template <typename T>
-		pair<Key, T> exchangeMin(pair<Key, T>);
-		// TODO maybe directly use PtrType without * this project every where
+		void             removeItems(bool, uint16_t);
+		void             insert(pair<Key, Value>);
+		void             insert(pair<Key, unique_ptr<PtrType>>);
+		void             append(pair<Key, Value>);
+		void             append(pair<Key, unique_ptr<PtrType>>);
+		pair<Key, Value> exchangeMax(pair<Key, Value>);
+		pair<Key, Value> exchangeMin(pair<Key, Value>);
+		pair<Key, unique_ptr<PtrType>> exchangeMax(pair<Key, unique_ptr<PtrType>>);
+		pair<Key, unique_ptr<PtrType>> exchangeMin(pair<Key, unique_ptr<PtrType>>);
+
 
 		ValueForContent& operator[](const Key&);
 		Content&         operator[](uint16_t);
@@ -89,14 +90,23 @@ namespace btree {
 		uint16_t                   _count;
 		array<Content, BtreeOrder> _elements;
 
-		void     adjustMemory(int32_t, Content *);
 		template <typename T>
-		void     add(pair<Key, T>);
+		pair<Key, T> exchangeMax(pair<Key, T>);
+		template <typename T>
+		pair<Key, T> exchangeMin(pair<Key, T>);
+		template <typename T>
+		void         append(pair<Key, T>);
+		template <typename T>
+		void         insert(pair<Key, T>);
+		template <typename T>
+		void         add(pair<Key, T>);
+
+		void     adjustMemory(int32_t, uint16_t);
 		auto     cloneInternalElements() const;
+		void     moveElement(int32_t, decltype(_elements.begin()));
 
 		static void assign(Content&, pair<Key, Value>&);
 		static void assign(Content&, pair<Key, unique_ptr<PtrType>>&);
-		static Content* moveElement(int16_t, Content*, Content*);
 
 		static unique_ptr<PtrType>& uniquePtr_Ref (ValueForContent&);
 		static const unique_ptr<PtrType>& uniquePtr_Ref (const ValueForContent&);
@@ -107,7 +117,6 @@ namespace btree {
 namespace btree {
 #define ELE Elements<Key, Value, BtreeOrder, PtrType>
 
-	// some are copy, some are not copy
 	ELEMENTS_TEMPLATE
 	template <typename Iter>
 	ELE::Elements(
@@ -115,7 +124,7 @@ namespace btree {
 		Iter end,
 		shared_ptr<LessThan> lessThanPtr
 	) :
-		LeafFlag(std::is_same<typename std::decay<decltype(*begin)>::type, pair<Key, Value>>::value),
+		MiddleFlag(!std::is_same<typename std::decay<decltype(*begin)>::type, pair<Key, Value>>::value),
 		LessThanPtr(lessThanPtr),
 		_count(0)
 	{
@@ -129,7 +138,7 @@ namespace btree {
 
 	ELEMENTS_TEMPLATE
 	ELE::Elements(const Elements& that) :
-		LeafFlag   (that.LeafFlag),
+		MiddleFlag (that.MiddleFlag),
 		LessThanPtr(that.LessThanPtr),
 		_elements  (std::move(that.cloneInternalElements())),
 		_count     (that._count)
@@ -137,7 +146,7 @@ namespace btree {
 
 	ELEMENTS_TEMPLATE
 	ELE::Elements(Elements&& that) noexcept :
-		LeafFlag   (that.LeafFlag),
+		MiddleFlag (that.MiddleFlag),
 		LessThanPtr(that.LessThanPtr),
 		_elements  (std::move(that._elements)),
 		_count     (that._count)
@@ -182,26 +191,31 @@ namespace btree {
 	bool
 	ELE::remove(const Key& key)
 	{
-		auto boundChanged = false;
+		auto maxChanged = false;
 		auto i = indexOf(key);
 
 		if (i != -1) {
-			adjustMemory(-1, &_elements[i + 1]);
+			adjustMemory(-1, i);
+
 			if (i == (_count - 1)) {
-				boundChanged = true;
+				maxChanged = true;
 			}
 			--_count;
 		}
 
-		return boundChanged;
+		return maxChanged;
 	}
 
 	ELEMENTS_TEMPLATE
 	void
-	ELE::removeItemsFrom(bool head, uint16_t count)
+	ELE::removeItems(bool fromHead, uint16_t count)
 	{
-		if (head) {
-			adjustMemory(-count, &_elements[0]);
+		if (fromHead) {
+			adjustMemory(-count, count);
+		} else {
+			for (auto rbegin = _elements.rbegin(); count != 0; --count, --rbegin) {
+				auto destructedOne = std::move(*rbegin);
+			}
 		}
 
 		_count -= count;
@@ -337,7 +351,7 @@ namespace btree {
 		auto& k = p.first;
 		auto& v = p.second;
 
-		int16_t i = 0;
+		uint16_t i = 0;
 		for (; i < _count; ++i) {
 			if ((*LessThanPtr)(k, _elements[i].first) == (*LessThanPtr)(_elements[i].first, k)) {
 				throw runtime_error("The inserting key duplicates: " + k);
@@ -351,7 +365,7 @@ namespace btree {
 							+ */"And please check the max Key to ensure not beyond the bound.");
 
 		Insert:
-		adjustMemory(1, &_elements[i]);
+		adjustMemory(1, i);
 		Elements::assign(_elements[i], p);
 		++_count;
 	}
@@ -411,9 +425,9 @@ namespace btree {
 		auto& minItem = _elements[0];
 		auto key = std::move(minItem.first);
 		auto valueForContent = std::move(minItem.second);
-		// pair<Key, Value> min{ minItem.first, value(minItem.second) };
+
 		// move left
-		adjustMemory(-1, &_elements[1]);
+		adjustMemory(-1, 1);
 		--_count;
 
 		add(p);
@@ -447,54 +461,51 @@ namespace btree {
 	auto
 	ELE::cloneInternalElements() const
 	{
-		decltype(_elements) eles;
+		decltype(_elements) es;
 
-			for (auto i = 0; i < _count; ++i) {
-				eles[i].first = _elements[i].first;
-				if (LeafFlag) {
-					eles[i].second = value_Ref(_elements[i].second);
-				} else {
-					eles[i].second = std::move(uniquePtr_Ref(_elements[i].second)->clone());
-				}
+		for (auto i = 0; i < _count; ++i) {
+			es[i].first = _elements[i].first;
+			if (!MiddleFlag) {
+				es[i].second = value_Ref(_elements[i].second);
+			} else {
+				es[i].second = std::move(uniquePtr_Ref(_elements[i].second)->clone());
 			}
-		return std::move(eles);
+		}
+
+		return std::move(es);
 	}
+
 	ELEMENTS_TEMPLATE
 	void
-	ELE::adjustMemory(int32_t direction, Content *begin)
+	ELE::adjustMemory(int32_t direction, uint16_t index)
 	{
-		// default Content* end
-		if (_count == 0 || direction == 0) {
-			return;
-		} else if (_count >= BtreeOrder && direction > 0) {
-			throw runtime_error("The Elements is full");
-		}
-		auto end = /*(_count >= BtreeOrder) ? _elements.end() : */&_elements[_count]; // end is exclude
-		moveElement(direction, begin, end);
+		moveElement(direction, begin() + index);
 	}
 
+	/**
+	 * start included
+	 */
+	ELEMENTS_TEMPLATE
+	void
+	ELE::moveElement(int32_t direction, decltype(_elements.begin()) start)
+	{
+		if (direction < 0) {
+			auto end = this->end();
+
+			for (auto begin = start; begin != end; ++begin) {
+				*(begin + direction) = std::move(*begin);
+			}
+		} else if (direction > 0) {
+			auto rend = start - 1;
+
+			for (auto rbegin = _elements.rbegin(); rbegin != rend; --rbegin) {
+				*(rbegin + direction) = std::move(*rbegin);
+			}
+		}
+	}
 }
 
 namespace btree {
-	ELEMENTS_TEMPLATE
-	typename ELE::Content*
-	ELE::moveElement(int16_t direction, Content* begin, Content* end)
-	{
-		// depend on different direction, where to start copy is different
-		// in the future, could use WORD_BIT to copy
-		if (direction < 0) {
-			return static_cast<Content *>(
-				memcpy(begin + direction, begin, (end - begin) * sizeof(Content)));
-		} else if (direction > 0) {
-			for (auto current = end - 1; current >= begin; --current) {
-				return static_cast<Content *>(
-					memcpy(current + direction, current, sizeof(Content)));
-			}
-		}
-
-		return begin;
-	}
-
 	ELEMENTS_TEMPLATE
 	void
 	ELE::assign(Content& e, pair<Key, unique_ptr<PtrType>>& ptrPair)

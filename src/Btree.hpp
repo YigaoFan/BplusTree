@@ -264,7 +264,6 @@ namespace btree {
 	BTREE::have(const Key& key) const
 	{
 		if (!empty()) {
-			// should have a simple have in NodeBase
 			return _root->have(key);
 		}
 
@@ -334,7 +333,7 @@ namespace btree {
 	typename BTREE::Leaf*
 	BTREE::recurSelectNode(Base* node, function<Base*(Middle*)>& choose)
 	{
-		while (node->Middle) {
+		while (node->middle()) {
 			node = choose(static_cast<Middle*>(node));
 		}
 

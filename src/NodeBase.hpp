@@ -3,11 +3,6 @@
 #include "Elements.hpp"
 
 namespace btree {
-	using std::make_pair;
-
-	struct LeafFlag   {};
-	struct MiddleFlag {};
-
 #define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 #define BASE NodeBase<Key, Value, BtreeOrder>
 
@@ -16,30 +11,30 @@ namespace btree {
 	public:
 		using Ele      = Elements<Key, Value, BtreeOrder, NodeBase>;
 		using LessThan = typename Ele::LessThan;
-		const bool Middle;
+
 		template <typename Iter>
-		NodeBase(LeafFlag,   Iter, Iter, shared_ptr<LessThan>);
-		template <typename Iter>
-		NodeBase(MiddleFlag, Iter, Iter, shared_ptr<LessThan>);
+		NodeBase(Iter, Iter, shared_ptr<LessThan>);
 		NodeBase(const NodeBase&);
 		NodeBase(NodeBase&&) noexcept;
 		virtual unique_ptr<NodeBase> clone() const = 0;
 		virtual ~NodeBase() = default;
 
+		inline bool        middle() const;
 		inline Key         maxKey() const;
-		uint16_t           childCount() const;
 		inline vector<Key> allKey() const;
 		inline bool        have  (const Key&, vector<NodeBase*>&);
 		inline bool        have  (const Key&) const;
 		Value*             search(const Key&);
-		void               add(pair<Key, Value>, vector<NodeBase*>&);
+		void               add   (pair<Key, Value>, vector<NodeBase*>&);
 		bool               remove(const Key&);
-		void               searchSiblingsIn(vector<NodeBase*> &, NodeBase*&, NodeBase*&) const;
-		inline bool        full()  const;
+		void               searchSiblingsIn(vector<NodeBase*>&, NodeBase*&, NodeBase*&) const;
 
 	protected:
 		Elements<Key, Value, BtreeOrder, NodeBase> elements_;
-		inline bool empty() const;
+
+		uint16_t      childCount() const;
+		inline bool   full()  const;
+		inline bool   empty() const;
 		inline void   changeInSearchDownPath(const Key&, const Key&);
 		inline Value* searchWithSaveTrack(const Key&, vector<NodeBase*>&);
 
@@ -53,30 +48,28 @@ namespace btree {
 		void splitNode(pair<Key, T>, vector<NodeBase*>&);
 		void insertLeafToUpper(unique_ptr<NodeBase>, vector<NodeBase*>&);
 		inline bool haveHelper(const Key&, function<bool(NodeBase*, const Key&)>, function<void(NodeBase*)>);
+
 		static bool spaceFreeIn(const NodeBase*);
 	};
 }
 
 namespace btree {
+	using std::make_pair;
+
 	NODE_TEMPLATE
 	template <typename Iter>
-	BASE::NodeBase(LeafFlag, Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
-		: Middle(false), elements_(begin, end, lessThanPtr)
-	{ }	
-	NODE_TEMPLATE
-	template <typename Iter>
-	BASE::NodeBase(MiddleFlag, Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
-		: Middle(true), elements_(begin, end, funcPtr)
+	BASE::NodeBase(Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
+		: elements_(begin, end, lessThanPtr)
 	{ }
 
 	NODE_TEMPLATE
 	BASE::NodeBase(const NodeBase& that)
-		: Middle(that.Middle), elements_(that.elements_)
+		: elements_(that.elements_)
 	{ }
 
 	NODE_TEMPLATE
 	BASE::NodeBase(NodeBase&& that) noexcept
-		: Middle(that.Middle), elements_(std::move(that.elements_))
+		: elements_(std::move(that.elements_))
 	{ }
 
 	NODE_TEMPLATE
@@ -101,6 +94,13 @@ namespace btree {
 	}
 
 	NODE_TEMPLATE
+	bool
+	BASE::middle() const
+	{
+		return elements_.MiddleFlag;
+	}
+
+	NODE_TEMPLATE
 	Key
 	BASE::maxKey() const
 	{
@@ -119,7 +119,7 @@ namespace btree {
 
 		for (auto& e : elements_) {
 			if (lessThan(key, e.first)) {
-				if (!Middle) {
+				if (middle()) {
 					return lessThanAndMiddleHandler(Ele::ptr(e.second), key);
 				} else {
 					return false;
@@ -150,7 +150,7 @@ namespace btree {
 			auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
 			stack.push_back(maxChildPtr);
 
-			if (node->Middle) {
+			if (node->middle()) {
 				collectMaxDeep(maxChildPtr);
 			}
 		};
@@ -177,7 +177,7 @@ namespace btree {
 			return e[e.count() - 1].second;
 		};
 
-		if (!Middle) {
+		if (!middle()) {
 			return elements_.have(key) ? &Ele::value_Ref(elements_[key]) : nullptr;
 		} else {
 			for (auto& e : elements_) {
@@ -187,7 +187,7 @@ namespace btree {
 					auto subNodePtr = Ele::ptr(e.second);
 
 				SearchInThisNode:
-					if (!subNodePtr->Middle) {
+					if (!subNodePtr->middle()) {
 						return &Ele::value_Ref(maxValueForContent(subNodePtr->elements_));
 					} else {
 						subNodePtr = Ele::ptr(maxValueForContent(subNodePtr->elements_));
@@ -266,7 +266,7 @@ namespace btree {
 
 		// TODO wrong
 		// Keep internal node key count between w/2 and w
-		if (!Middle) {
+		if (!middle()) {
 			elements_.remove(key);
 			// check count
 		} else {
@@ -277,7 +277,7 @@ namespace btree {
 					auto subNodePtr = Ele::ptr(e.second);
 
 				SearchInThisNode:
-					if (!subNodePtr->Middle) {
+					if (!subNodePtr->middle()) {
 						subNodePtr->elements_.remove(key);
 						// Check count
 					} else {
@@ -305,7 +305,7 @@ namespace btree {
 			auto& node = *rIter;
 
 			auto i = node->elements_.indexOf(oldKey);
-			if (i != -1 && node->Middle) { // No need to change leaf
+			if (i != -1 && node->middle()) { // No need to change leaf
 				node->elements_[i].first = newKey;
 			}
 		}
@@ -324,7 +324,7 @@ namespace btree {
 			return e[e.count() - 1].second;
 		};
 
-		if (!Middle) {
+		if (!middle()) {
 			return elements_.have(key) ? &Ele::value_Ref(elements_[key]) : nullptr;
 		} else {
 			for (auto& e : elements_) {
@@ -336,7 +336,7 @@ namespace btree {
 				SearchInThisNode:
 					trackStack.push_back(subNodePtr);
 
-					if (!subNodePtr->Middle) {
+					if (!subNodePtr->middle()) {
 						return &Ele::value_Ref(maxValueForContent(subNodePtr->elements_));
 					} else {
 						subNodePtr = Ele::ptr(maxValueForContent(subNodePtr->elements_));
@@ -458,8 +458,8 @@ namespace btree {
 
 		// [] not need reference if don't have last sentence?
 		auto moveItems = [&] (uint16_t preNodeRemoveCount) {
-			newPrePtr->elements_.removeItemsFrom(false, preNodeRemoveCount);
-			this->elements_.removeItemsFrom(true,  BtreeOrder - preNodeRemoveCount);
+			newPrePtr->elements_.removeItems(false, preNodeRemoveCount);
+			this->elements_.removeItems(true, BtreeOrder - preNodeRemoveCount);
 		};
 
 		auto addIn = [&] (NodeBase* node, bool shouldAppend) {
