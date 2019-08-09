@@ -213,8 +213,9 @@ namespace btree {
 		if (fromHead) {
 			adjustMemory(-count, count);
 		} else {
-			for (auto rbegin = _elements.rbegin(); count != 0; --count, --rbegin) {
-				auto destructedOne = std::move(*rbegin);
+			auto num = count;
+			for (auto rbegin = _elements.rbegin(); num != 0; --num, --rbegin) {
+				auto destructOne = std::move(*rbegin);
 			}
 		}
 
