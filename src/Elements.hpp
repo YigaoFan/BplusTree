@@ -59,6 +59,7 @@ namespace btree {
 		void             insert(pair<Key, unique_ptr<PtrType>>);
 		void             append(pair<Key, Value>);
 		void             append(pair<Key, unique_ptr<PtrType>>);
+		uint16_t changeKeyOf(PtrType *, Key);
 		pair<Key, Value> exchangeMax(pair<Key, Value>);
 		pair<Key, Value> exchangeMin(pair<Key, Value>);
 		pair<Key, unique_ptr<PtrType>> exchangeMax(pair<Key, unique_ptr<PtrType>>);
@@ -83,7 +84,6 @@ namespace btree {
 		static const Value&   value_Ref(const ValueForContent&);
 		static Value          value_Copy(const ValueForContent&);
 		static Value          value_Move(ValueForContent&);
-		static PtrType*       ptr  (ValueForContent&);
 		static PtrType*       ptr  (const ValueForContent&);
 
 	private:
@@ -389,6 +389,19 @@ namespace btree {
 		++_count;
 	}
 
+	/**
+	 * @return matched index
+	 */
+	ELEMENTS_TEMPLATE
+	uint16_t
+	ELE::changeKeyOf(PtrType *ptr, Key newKey)
+	{
+		auto index = _elements.indexOf(ptr);
+		_elements[index].first = std::move(newKey);
+
+		return index;
+	}
+
 #ifdef BTREE_DEBUG
 #define BOUND_CHECK                                                                                              \
 	if (_count < BtreeOrder) {                                                                                   \
@@ -553,13 +566,6 @@ namespace btree {
 	ELE::value_Ref(const ValueForContent &v)
 	{
 		return std::get<Value>(v);
-	}
-
-	ELEMENTS_TEMPLATE
-	PtrType*
-	ELE::ptr(ValueForContent& v)
-	{
-		return uniquePtr_Ref(v).get();
 	}
 
 	ELEMENTS_TEMPLATE

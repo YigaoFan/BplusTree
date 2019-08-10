@@ -27,7 +27,6 @@ namespace btree {
 		const Value*       search(const Key&) const;
 		void               add   (pair<Key, Value>, vector<NodeBase*>&);
 		bool               remove(const Key&);
-		void               searchSiblingsIn(vector<NodeBase*>&, NodeBase*&, NodeBase*&) const;
 
 	protected:
 		Elements<Key, Value, BtreeOrder, NodeBase> elements_;
@@ -42,7 +41,7 @@ namespace btree {
 		void doAdd(pair<Key, T>, vector<NodeBase*>&);
 		template <typename T>
 		void reallocateSiblingElement(bool, NodeBase*, vector<NodeBase*>&, pair<Key, T>);
-		void changeMaxKeyIn(vector<NodeBase*>&, const Key&) const;
+		void changeMaxKeyUpper(vector<NodeBase *> &, Key) const;
 		void replacePreviousNodeMaxKeyInTreeBySearchUpIn(vector<NodeBase*>&, const Key&, const Key&);
 		template <typename T>
 		void splitNode(pair<Key, T>, vector<NodeBase*>&);
@@ -248,11 +247,11 @@ namespace btree {
 				elements_.insert(std::move(p));
 			} else {
 				elements_.append(std::move(p));
-				changeMaxKeyIn(stack, k);
+				changeMaxKeyUpper(stack, k);
 			}
 		} else {
-			BASE *previous = nullptr, *next = nullptr;
-			getSiblings<Key, Value, BtreeOrder, T>(this, stack, previous, next); // some doesn't have one of siblings
+			NodeBase *previous = nullptr, *next = nullptr;
+			getSiblings<Key, Value, BtreeOrder, T>(this, stack, previous, next); // some don't have one of siblings
 
 			if (spaceFreeIn(previous)) {
 				reallocateSiblingElement(true, previous, stack, std::move(p));
@@ -320,6 +319,7 @@ namespace btree {
 
 	}
 
+	// duplicate maybe
 	NODE_TEMPLATE
 	Value*
 	BASE::searchWithSaveTrack(const Key& key, vector<NodeBase*>& trackStack)
@@ -357,12 +357,6 @@ namespace btree {
 		}
 	}
 
-	NODE_TEMPLATE
-	void
-	BASE::searchSiblingsIn(vector<NodeBase*>& passedNodeTrackStack, NodeBase*& previous, NodeBase*& next) const
-	{
-		// TODO
-	}
 
 	NODE_TEMPLATE
 	template <typename T>
@@ -383,30 +377,30 @@ namespace btree {
 			auto&& max = elements_.exchangeMax(std::move(p));
 			// TODO why max not be used
 			// this max change
-			changeMaxKeyIn(stack, maxKey());
+			changeMaxKeyUpper(stack, maxKey());
 			sibling->elements_.insert(std::move(p));
 		}
 	}
 
+	/**
+	 * Key type should be copyable
+	 */
 	NODE_TEMPLATE
 	void
-	BASE::changeMaxKeyIn(vector<NodeBase*>& passedNodeTrackStack, const Key& maxKey) const
+	BASE::changeMaxKeyUpper(vector<NodeBase *> &passedNodeTrackStack, Key newMaxKey) const
 	{
 		auto& stack = passedNodeTrackStack;
-		if (stack.size() < 2) {
-			return;
-		}
 
-		auto  nodePtr = stack.back();
-		stack.pop_back();
-		auto& upperNode = *stack.back();
-		// 以下这个修改 key 的部分可以复用
-		auto  matchIndex = upperNode.elements_.indexOf(nodePtr);
-		(upperNode.elements_)[matchIndex].first = maxKey;
+		while (stack.size() > 1) {
+			auto currentNodePtr = stack.back();
+			stack.pop_back();
+			auto& upperNode = *stack.back();
+			auto matchIndex = upperNode.elements_.changeKeyOf(currentNodePtr, newMaxKey);
 
-		auto maxIndex = upperNode.childCount() - 1;
-		if (matchIndex == maxIndex) {
-			changeMaxKeyIn(stack, maxKey);
+			auto maxIndex = upperNode.childCount() - 1;
+			if (matchIndex != maxIndex) {
+				break;
+			}
 		}
 	}
 
@@ -437,7 +431,7 @@ namespace btree {
 				if (i != -1 && i == maxIndex) {
 					stack.push_back(node);
 					// change upper node
-					changeMaxKeyIn(stack, newKey);
+					changeMaxKeyUpper(stack, newKey);
 					break;
 				}
 			}
@@ -494,7 +488,7 @@ namespace btree {
 			HANDLE_ADD(this, BtreeOrder);
 			if (shouldAppend) {
 				auto stackCopy = stack;
-				changeMaxKeyIn(stackCopy, key);
+				changeMaxKeyUpper(stackCopy, key);
 			}
 		}
 		

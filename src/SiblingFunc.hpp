@@ -8,6 +8,7 @@ namespace btree {
 
 #define BASE   NodeBase  <Key, Value, BtreeOrder>
 #define LEAF   LeafNode  <Key, Value, BtreeOrder>
+#define MIDDLE MiddleNode<Key, Value, BtreeOrder>
 
 	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
 	void
@@ -36,7 +37,7 @@ namespace btree {
 			previous  = leaf->previousLeaf();
 			next      = leaf->nextLeaf();
 		} else {
-			node->searchSiblingsIn(stack, previous, next);
+			static_cast<MIDDLE*>(node)->searchSiblings(stack, previous, next);
 		}
 	}
 
