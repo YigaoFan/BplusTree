@@ -204,7 +204,7 @@ namespace btree {
 			auto leaf = make_unique<Leaf>(&p, &p + 1, _lessThanPtr);
 			_root.reset(leaf.release());
 		} else {
-			vector<Base*> passedNodeTrackStack { };
+			vector<Base*> passedNodeTrackStack;
 			if (_root->have(p.first, passedNodeTrackStack)) {
 				throw runtime_error("The key-value has already existed, can't be added.");
 			} else {
@@ -227,7 +227,7 @@ namespace btree {
 		auto& k = pair.first;
 		auto& v = pair.second;
 		
-		*(_root->search(k)) = v;
+		*(_root->search(k)) = std::move(v);
 	}
 
 	BTREE_TEMPLATE

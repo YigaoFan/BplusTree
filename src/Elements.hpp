@@ -162,8 +162,13 @@ namespace btree {
 
 		for (const auto& e: _elements) {
 			auto& k = e.first;
-			if (lessThan(k, key) == lessThan(key, k)) {
+			auto less = lessThan(key, k);
+			auto notLess = lessThan(k, key);
+
+			if (less == notLess) {
 				return true;
+			} else if (notLess) {
+				break;
 			}
 		}
 
@@ -499,7 +504,7 @@ namespace btree {
 		} else if (direction > 0) {
 			auto rend = start - 1;
 
-			for (auto rbegin = _elements.rbegin(); rbegin != rend; --rbegin) {
+			for (auto rbegin = &_elements[_count - 1]; rbegin != rend; --rbegin) {
 				*(rbegin + direction) = std::move(*rbegin);
 			}
 		}

@@ -37,7 +37,7 @@ namespace btree {
 	NODE_TEMPLATE
 	template <typename Iter>
 	LEAF::LeafNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
-		: Base_CRTP(LeafFlag(), begin, end, funcPtr)
+		: Base_CRTP(begin, end, funcPtr)
 	{ }
 
 	NODE_TEMPLATE

@@ -24,7 +24,7 @@ namespace btree {
 		inline vector<Key> allKey() const;
 		inline bool        have  (const Key&, vector<NodeBase*>&);
 		inline bool        have  (const Key&) const;
-		Value*             search(const Key&);
+		const Value*       search(const Key&) const;
 		void               add   (pair<Key, Value>, vector<NodeBase*>&);
 		bool               remove(const Key&);
 		void               searchSiblingsIn(vector<NodeBase*>&, NodeBase*&, NodeBase*&) const;
@@ -47,7 +47,9 @@ namespace btree {
 		template <typename T>
 		void splitNode(pair<Key, T>, vector<NodeBase*>&);
 		void insertLeafToUpper(unique_ptr<NodeBase>, vector<NodeBase*>&);
-		inline bool haveHelper(const Key&, function<bool(NodeBase*, const Key&)>, function<void(NodeBase*)>);
+		inline bool searchHelper(const Key &, function<void(NodeBase *)>,
+		                                      function<bool(NodeBase *)>,
+		                                      function<bool(NodeBase *)>);
 
 		static bool spaceFreeIn(const NodeBase*);
 	};
@@ -109,29 +111,34 @@ namespace btree {
 
 	NODE_TEMPLATE
 	bool
-	BASE::haveHelper(
-		const Key& key,
-		function<bool(NodeBase*, const Key&)> lessThanAndMiddleHandler,
-		function<void(NodeBase*)>             keyBeyondMaxHandler
-		)
+	BASE::searchHelper(
+		const Key &key,
+		function<void(NodeBase *)> operateOnNode,
+		function<bool(NodeBase *)> equalHandler,
+		function<bool(NodeBase *)> beyondMaxHandler
+	)
 	{
 		auto& lessThan = *(elements_.LessThanPtr);
 
-		for (auto& e : elements_) {
-			if (lessThan(key, e.first)) {
-				if (middle()) {
-					return lessThanAndMiddleHandler(Ele::ptr(e.second), key);
-				} else {
-					return false;
-				}
-			} else if (!lessThan(e.first, key)) {
-				return true;
-			}
-		}
+		function<bool(NodeBase*)> helper = [&] (NodeBase* node) {
+			operateOnNode(node); // record node or other operation
 
-		keyBeyondMaxHandler(this);
-		
-		return false;
+			for (auto& e : elements_) {
+				if (lessThan(key, e.first)) {
+					if (middle()) {
+						return helper(Ele::ptr(e.second));
+					} else {
+						return false;
+					}
+				} else if (!lessThan(e.first, key)) {
+					return equalHandler(this);
+				}
+			}
+
+			return beyondMaxHandler(this);
+		};
+
+		return helper(this);
 	}
 
 	NODE_TEMPLATE
@@ -139,65 +146,65 @@ namespace btree {
 	BASE::have(const Key& key, vector<NodeBase*>& passedNodeTrackStack)
 	{
 		auto& stack = passedNodeTrackStack;
-		stack.push_back(this);
 
-		// these function will be constructed repeatedly, will have some bad effect?
-		function<bool(NodeBase*, const Key&)> callSelf = [&] (NodeBase* node, const Key& key) {
-			return node->have(key, stack);
+		// only need to collect "don't have" situation
+		auto collect = [&] (NodeBase* node) {
+			stack.push_back(node);
 		};
-		function<void(NodeBase*)> collectMaxDeep = [&] (const NodeBase* node) {
-			auto maxIndex = node->childCount() - 1;
-			auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
-			stack.push_back(maxChildPtr);
-
+		function<bool(NodeBase*)> collectDeepMaxOnBeyond = [&] (NodeBase* node) {
 			if (node->middle()) {
-				collectMaxDeep(maxChildPtr);
+				auto maxIndex = node->childCount() - 1;
+				auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
+				collect(maxChildPtr);
+
+				return collectDeepMaxOnBeyond(maxChildPtr);
 			}
+
+			return false;
 		};
+		auto trueOnEqual = [] (auto) { return true; };
 		
-		return haveHelper(key, callSelf, collectMaxDeep);
+		return searchHelper(key, collect, trueOnEqual, collectDeepMaxOnBeyond);
 	}
 
 	NODE_TEMPLATE
 	bool
 	BASE::have(const Key& key) const
 	{
-		auto callSelf = [&] (const NodeBase* node, const Key& key) -> bool {
-			return node->have(key);
-		};
-		auto doNothing = [] (auto) { };
-		return const_cast<NodeBase*>(this)->haveHelper(key, callSelf, doNothing);
+		auto doNothing     = [] (auto) { };
+		auto trueOnEqual   = [] (auto) { return true; };
+		auto falseOnBeyond = [] (auto) { return false; };
+
+		return const_cast<NodeBase *>(this)->searchHelper(key, doNothing, trueOnEqual, falseOnBeyond);
 	}
 
 	NODE_TEMPLATE
-	Value*
-	BASE::search(const Key& key)
+	const Value*
+	BASE::search(const Key& key) const
 	{
-		auto maxValueForContent = [] (Ele& e) -> typename Ele::ValueForContent& {
-			return e[e.count() - 1].second;
+		NodeBase* deepestNode;
+		auto keepDeepest = [&] (NodeBase* node) {
+			deepestNode = node;
 		};
+		auto falseOnBeyond = [] (auto) { return false; };
+		function<bool(NodeBase*)> moveDeepOnEqual = [&] (NodeBase* node) {
+			if (node->middle()) {
+				auto maxIndex = node->childCount() - 1;
+				auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
+				keepDeepest(maxChildPtr);
 
-		if (!middle()) {
-			return elements_.have(key) ? &Ele::value_Ref(elements_[key]) : nullptr;
-		} else {
-			for (auto& e : elements_) {
-				if ((*elements_.LessThanPtr)(key, e.first)) {
-					return Ele::ptr(e.second)->search(key);
-				} else if (!(*elements_.LessThanPtr)(e.first, key)) {
-					auto subNodePtr = Ele::ptr(e.second);
-
-				SearchInThisNode:
-					if (!subNodePtr->middle()) {
-						return &Ele::value_Ref(maxValueForContent(subNodePtr->elements_));
-					} else {
-						subNodePtr = Ele::ptr(maxValueForContent(subNodePtr->elements_));
-						goto SearchInThisNode;
-					}
-				}
+				return moveDeepOnEqual(maxChildPtr);
 			}
 
-			return nullptr;
+			return true;
+		};
+
+		if (const_cast<NodeBase *>(this)->
+			searchHelper(key, keepDeepest, moveDeepOnEqual, falseOnBeyond)) {
+			return &Ele::value_Ref(deepestNode->elements_[key]);
 		}
+
+		return nullptr;
 	}
 
 	NODE_TEMPLATE
@@ -217,8 +224,10 @@ namespace btree {
 	void
 	BASE::add(pair<Key, Value> p, vector<NodeBase*>& passedNodeTrackStack)
 	{
-        // 模板参数匹配顺序
-		doAdd(p, passedNodeTrackStack);
+		auto& stack = passedNodeTrackStack;
+
+		auto finalLeaf = stack.back();
+		finalLeaf->doAdd(std::move(p), stack);
 	}
 
 	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
@@ -228,17 +237,11 @@ namespace btree {
 	NODE_TEMPLATE
 	template<typename T>
 	void
-	BASE::doAdd(pair<Key, T> p, vector<BASE*>& passedNodeTrackStack)
+	BASE::doAdd(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack)
 	{
-		// TODO need use std::move p or not?
 		auto& k = p.first;
 		auto& stack = passedNodeTrackStack;
 		auto& lessThan = *(elements_.LessThanPtr);
-
-		// some doesn't have one of siblings
-
-		BASE *previous = nullptr, *next = nullptr;
-		getSiblings<Key, Value, BtreeOrder, T>(this, stack, previous, next);
 
 		if (!full()) {
 			if (lessThan(k, maxKey())) {
@@ -247,12 +250,17 @@ namespace btree {
 				elements_.append(std::move(p));
 				changeMaxKeyIn(stack, k);
 			}
-		} else if (spaceFreeIn(previous)) {
-			reallocateSiblingElement(true, previous, stack, std::move(p));
-		} else if (spaceFreeIn(next)) {
-			reallocateSiblingElement(false, next, stack, std::move(p));
 		} else {
-			splitNode(std::move(p), stack);
+			BASE *previous = nullptr, *next = nullptr;
+			getSiblings<Key, Value, BtreeOrder, T>(this, stack, previous, next); // some doesn't have one of siblings
+
+			if (spaceFreeIn(previous)) {
+				reallocateSiblingElement(true, previous, stack, std::move(p));
+			} else if (spaceFreeIn(next)) {
+				reallocateSiblingElement(false, next, stack, std::move(p));
+			} else {
+				splitNode(std::move(p), stack);
+			}
 		}
 	}
 
@@ -514,7 +522,7 @@ namespace btree {
 
 	NODE_TEMPLATE
 	bool
-	BASE::spaceFreeIn(const BASE* node)
+	BASE::spaceFreeIn(const NodeBase* node)
 	{
 		if (node != nullptr) {
 			return !node->full();

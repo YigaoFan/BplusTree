@@ -29,7 +29,7 @@ namespace btree {
 	NODE_TEMPLATE
 	template <typename Iter>
 	MIDDLE::MiddleNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
-		: Base_CRTP(MiddleFlag(), begin, end, funcPtr)
+		: Base_CRTP(begin, end, funcPtr)
 	{ }
 
 	NODE_TEMPLATE
