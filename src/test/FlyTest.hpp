@@ -298,7 +298,7 @@ namespace {
 		}
 	}
 
-	static
+	// static
 	const char *
 	justFileName(const char *str) {
 		// TODO need to test Windows compatibility
@@ -329,7 +329,7 @@ namespace {
         try {                                                                                        \
             (void)(EXP);                                                                             \
             throw AssertionFailure(justFileName(__FILE__), __LINE__, "No exception caught in", #EXP);\
-        } catch (TYPE&) { }                                                                        \
+        } catch (TYPE&) { }                                                                          \
           catch (AssertionFailure& e) { throw e; }                                                   \
           catch (...) {                                                                              \
             throw AssertionFailure(                                                                  \

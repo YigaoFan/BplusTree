@@ -17,7 +17,7 @@ namespace btree {
 		LeafNode(Iterator, Iterator, shared_ptr<LessThan>);
 		LeafNode(const LeafNode&, LeafNode* previous=nullptr,LeafNode* next=nullptr);
 		LeafNode(LeafNode&&) noexcept;
-		~LeafNode() override;
+		~LeafNode() override = default;
 
 		const Value&     operator[](const Key&);
 		pair<Key, Value> operator[](uint16_t);
@@ -49,9 +49,6 @@ namespace btree {
 	LEAF::LeafNode(LeafNode&& that) noexcept
 		: Base_CRTP(std::move(that)), _next(that._next)
 	{ }
-
-	NODE_TEMPLATE
-	LEAF::~LeafNode() = default;
 
 	NODE_TEMPLATE
 	const Value&

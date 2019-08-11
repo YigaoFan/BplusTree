@@ -49,8 +49,13 @@ namespace btree {
 		inline bool searchHelper(const Key &, function<void(NodeBase *)>,
 		                                      function<bool(NodeBase *)>,
 		                                      function<bool(NodeBase *)>);
+		template <typename T>
+		inline bool tryPreviousAdd(pair<Key, T>&, vector<NodeBase*>&);
+		template <typename T>
+		inline bool tryNextAdd    (pair<Key, T>&, vector<NodeBase*>&);
 
 		static bool spaceFreeIn(const NodeBase*);
+
 	};
 }
 
@@ -224,14 +229,11 @@ namespace btree {
 	BASE::add(pair<Key, Value> p, vector<NodeBase*>& passedNodeTrackStack)
 	{
 		auto& stack = passedNodeTrackStack;
-
 		auto finalLeaf = stack.back();
+
 		finalLeaf->doAdd(std::move(p), stack);
 	}
 
-	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
-	void
-	getSiblings(BASE*, vector<BASE*>, BASE*&, BASE*&);
 
 	NODE_TEMPLATE
 	template<typename T>
@@ -250,13 +252,10 @@ namespace btree {
 				changeMaxKeyUpper(stack, k);
 			}
 		} else {
-			NodeBase *previous = nullptr, *next = nullptr;
-			getSiblings<Key, Value, BtreeOrder, T>(this, stack, previous, next); // some don't have one of siblings
+			if (tryPreviousAdd<Key, Value, BtreeOrder, T>(p, stack)) {
 
-			if (spaceFreeIn(previous)) {
-				reallocateSiblingElement(true, previous, stack, std::move(p));
-			} else if (spaceFreeIn(next)) {
-				reallocateSiblingElement(false, next, stack, std::move(p));
+			} else if (tryNextAdd<Key, Value, BtreeOrder, T>(p, stack)) {
+
 			} else {
 				splitNode(std::move(p), stack);
 			}
@@ -525,6 +524,47 @@ namespace btree {
 		return false;
 	}
 
+	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
+	void
+	getPrevious(BASE*, vector<BASE*>, BASE*&);
+	/**
+	 * @return means failed or not
+	 */
+	NODE_TEMPLATE
+	template <typename T>
+	bool
+	BASE::tryPreviousAdd(pair<Key, T>& p, vector<NodeBase *> &passedNodeTrackStack)
+	{
+		auto& stack = passedNodeTrackStack;
+		NodeBase *previous = nullptr;
+
+		getPrevious<Key, Value, BtreeOrder, T>(this, stack, previous); // some don't have one of siblings
+
+		if (spaceFreeIn(previous)) {
+			return reallocateSiblingElement(true, previous, stack, std::move(p));
+		}
+	}
+
+	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
+	void
+	getNext(BASE*, vector<BASE*>, BASE*&);
+	/**
+	 * @return means failed or not
+	 */
+	NODE_TEMPLATE
+	template <typename T>
+	bool
+	BASE::tryNextAdd(pair<Key, T>& p, vector<NodeBase*>& passedNodeTrackStack)
+	{
+		auto& stack = passedNodeTrackStack;
+		NodeBase *next = nullptr;
+
+		getNext<Key, Value, BtreeOrder, T>(this, stack, next); // some don't have one of siblings
+
+		if (spaceFreeIn(next)) {
+			reallocateSiblingElement(false, next, stack, std::move(p));
+		}
+	}
 
 #undef BASE
 #undef NODE_TEMPLATE

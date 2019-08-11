@@ -28,16 +28,29 @@ namespace btree {
 
 	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
 	void
-	getSiblings(BASE* node, vector<BASE*> passedNodeTrackStack, BASE*& previous, BASE*& next)
+	getPrevious(BASE* node, vector<BASE*> passedNodeTrackStack, BASE*& previous)
 	{
 		auto& stack = passedNodeTrackStack;
 
 		if constexpr (std::is_same<typename std::decay<T>::type, Value>::value) {
 			auto leaf = static_cast<LEAF*>(node);
 			previous  = leaf->previousLeaf();
+		} else {
+			static_cast<MIDDLE*>(node)->searchPrevious(stack, previous);
+		}
+	}
+
+	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
+	void
+	getNext(BASE* node, vector<BASE*> passedNodeTrackStack, BASE*& next)
+	{
+		auto& stack = passedNodeTrackStack;
+
+		if constexpr (std::is_same<typename std::decay<T>::type, Value>::value) {
+			auto leaf = static_cast<LEAF*>(node);
 			next      = leaf->nextLeaf();
 		} else {
-			static_cast<MIDDLE*>(node)->searchSiblings(stack, previous, next);
+			static_cast<MIDDLE*>(node)->searchNext(stack, next);
 		}
 	}
 

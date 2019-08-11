@@ -17,10 +17,11 @@ namespace btree {
 		MiddleNode(Iter, Iter, shared_ptr<LessThan>);
 		MiddleNode(const MiddleNode&);
 		MiddleNode(MiddleNode&&) noexcept;
-		~MiddleNode() override;
+		~MiddleNode() override = default;
 
 		Base* minSon() const;
-		void  searchSiblings(vector<Base *> &, Base *&, Base *&) const;
+		void  searchPrevious(vector<Base *> &, Base *&) const;
+		void  searchNext    (vector<Base *> &, Base *&) const;
 
 	private:
 		Base* maxSon() const;
@@ -44,9 +45,9 @@ namespace btree {
 		: Base_CRTP(std::move(that))
 	{ }
 
-	NODE_TEMPLATE
-	MIDDLE::~MiddleNode() = default;
-
+	/**
+	 * TODO should check exist at least one
+	 */
 	NODE_TEMPLATE
 	typename MIDDLE::Base*
 	MIDDLE::minSon() const
@@ -56,69 +57,63 @@ namespace btree {
 		return Base::Ele::ptr(es[0].second);
 	}
 
+	NODE_TEMPLATE
+	typename MIDDLE::Base*
+	MIDDLE::maxSon() const
+	{
+		auto& es = Base::elements_;
+
+		return Base::Ele::ptr(es[this->childCount()-1].second);
+	}
+
+#define SEARCH_HELPER_DEF(FUN_NAME, COMPARE_TO_BOUND, OFFSET, CHOOSE_SON) \
+	function<Base*(decltype(rIter))> FUN_NAME = [&] (decltype(rIter) currentNodeIter) -> Base* { \
+		auto upperNodeIter = ++rIter;                                                            \
+		if (upperNodeIter == rEnd) {                                                             \
+			return nullptr;                                                                      \
+		}                                                                                        \
+                                                                                                 \
+		auto& upperElements = upperNodeIter->elements_;                                          \
+		auto i = upperElements.indexOf(*currentNodeIter);                                        \
+                                                                                                 \
+		if (i COMPARE_TO_BOUND) {                                                                \
+			return Base::Ele::ptr(upperElements[i OFFSET].second);                               \
+		} else {                                                                                 \
+			auto previousOfUpper = searchPreHelper(upperNodeIter);                               \
+			return static_cast<MiddleNode*>(previousOfUpper)->CHOOSE_SON();                      \
+		}                                                                                        \
+	};
+
 	/**
 	 * not change the stack
 	 */
 	NODE_TEMPLATE
 	void
-	MIDDLE::searchSiblings(vector<Base *> &passedNodeTrackStack, Base *&previous, Base *&next) const
+	MIDDLE::searchPrevious(vector<Base *> &passedNodeTrackStack, Base *&previous) const
 	{
 		auto& stack = passedNodeTrackStack;
-
 		auto rIter = stack.rbegin();
 		auto rEnd  = stack.rend();
 
-		// Some don't have sibling in Middle?
-		function<Base*(decltype(rIter))> searchPreHelper = [&] (decltype(rIter)) -> Base* {
-			auto currentNodeIter = rIter;
-
-			auto upperNodeIter = ++rIter;
-			auto& upperElements = upperNodeIter->elements_;
-			auto i = upperElements.indexOf(currentNodeIter);
-
-			if (i > 0) {
-				return Base::Ele::ptr(upperElements[i-1].second);
-			} else {
-				if (upperNodeIter == rEnd) {
-					return nullptr;
-				}
-
-				// see in the upper node, this is not min
-				auto previousOfUpper = searchPreHelper(upperNodeIter);
-				return previousOfUpper->maxSon();
-			}
-		};
-
+		SEARCH_HELPER_DEF(searchPreHelper, >0, -1, maxSon)
 		previous = searchPreHelper(rIter);
-
-		// reset
-		rIter = stack.rbegin();
-
-		function<Base*(decltype(rIter))> searchNxtHelper = [&] (decltype(rIter)) -> Base* {
-			auto currentNodeIter = rIter;
-			auto upperNodeIter = ++rIter;
-			auto& upperElements = upperNodeIter->elements_;
-			auto i = upperElements.indexOf(currentNodeIter);
-
-			auto maxI = upperNodeIter->childCount() - 1;
-			// previous and next won't need recur all at one searchSiblings call
-			if (i < maxI) {
-				return Base::Ele::ptr(upperElements[i+1].second);
-			} else {
-				if (upperNodeIter == rEnd) {
-					return nullptr;
-				}
-
-				// see in the upper node, this is not max
-				auto previousOfUpper = searchNxtHelper(upperNodeIter);
-				return previousOfUpper->maxSon();
-			}
-		};
-
-		next = searchNxtHelper(rIter);
-
-
 	}
+
+	/**
+	 * not change the stack
+	 */
+	NODE_TEMPLATE
+	void
+	MIDDLE::searchNext(vector<Base *> &passedNodeTrackStack, Base *&next) const
+	{
+		auto& stack = passedNodeTrackStack;
+		auto rIter = stack.rbegin();
+		auto rEnd  = stack.rend();
+
+		SEARCH_HELPER_DEF(searchNxtHelper, <(upperNodeIter->childCount()-1), +1, minSon)
+		next = searchNxtHelper(rIter);
+	}
+#undef SEARCH_HELPER_DEF
 
 #undef MIDDLE
 #undef NODE_TEMPLATE
