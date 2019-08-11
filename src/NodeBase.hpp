@@ -34,8 +34,6 @@ namespace btree {
 		uint16_t      childCount() const;
 		inline bool   full()  const;
 		inline bool   empty() const;
-		inline void   changeInSearchDownPath(const Key&, const Key&);
-		inline Value* searchWithSaveTrack(const Key&, vector<NodeBase*>&);
 
 		// TODO add not only key-value add, but also key-unique_ptr add
 		template <typename T>
@@ -52,7 +50,6 @@ namespace btree {
 		template <typename T>
 		bool reallocateNxt(NodeBase *, pair<Key, T>);
 		void changeMaxKeyUpper(const vector<NodeBase *> &, const Key&) const;
-		void changePreNodeMaxKeyBySearchUp(const vector<NodeBase *> &, NodeBase *, const Key &, const Key &);
 		void insertLeafToUpper(unique_ptr<NodeBase>, vector<NodeBase*>&);
 		inline bool searchHelper(const Key &, function<void(NodeBase *)>,
 		                                      function<bool(NodeBase *)>,
@@ -302,65 +299,6 @@ namespace btree {
 		return false; // TODO wait to modify
 	}
 
-
-	NODE_TEMPLATE
-	void
-	BASE::changeInSearchDownPath(const Key& oldKey, const Key& newKey)
-	{
-		vector<NodeBase*> trackStack{};
-
-		searchWithSaveTrack(oldKey, trackStack);
-
-		auto rend = trackStack.rend();
-		for (auto rIter = trackStack.rbegin(); rIter != rend; ++rIter) {
-			auto& node = *rIter;
-
-			auto i = node->elements_.indexOf(oldKey);
-			if (i != -1 && node->middle()) { // No need to change leaf
-				node->elements_[i].first = newKey;
-			}
-		}
-
-	}
-
-	// duplicate maybe
-	NODE_TEMPLATE
-	Value*
-	BASE::searchWithSaveTrack(const Key& key, vector<NodeBase*>& trackStack)
-	{
-		// TODO modify, or think of search
-		// TODO maybe not need return value
-		trackStack.push_back(this);
-
-		auto maxValueForContent = [] (Ele& e) -> typename Ele::ValueForContent& {
-			return e[e.count() - 1].second;
-		};
-
-		if (!middle()) {
-			return elements_.have(key) ? &Ele::value_Ref(elements_[key]) : nullptr;
-		} else {
-			for (auto& e : elements_) {
-				if ((*elements_.LessThanPtr)(key, e.first)) {
-					return Ele::ptr(e.second)->searchWithSaveTrack(key, trackStack);
-				} else if (!(*elements_.LessThanPtr)(e.first, key)) {
-					auto subNodePtr = Ele::ptr(e.second);
-
-				SearchInThisNode:
-					trackStack.push_back(subNodePtr);
-
-					if (!subNodePtr->middle()) {
-						return &Ele::value_Ref(maxValueForContent(subNodePtr->elements_));
-					} else {
-						subNodePtr = Ele::ptr(maxValueForContent(subNodePtr->elements_));
-						goto SearchInThisNode;
-					}
-				}
-			}
-
-			return nullptr;
-		}
-	}
-
 	NODE_TEMPLATE
 	template <typename T>
 	bool
@@ -384,7 +322,6 @@ namespace btree {
 		previousNode->elements_.append(std::move(appendPair));
 		auto& newMaxKey = previousNode->maxKey(); // will change previous max
 		changeMaxKeyUpper(previousTrackStack, newMaxKey);
-		// changePreNodeMaxKeyBySearchUp(stack, previousNode, oldMaxKey, newMaxKey);
 
 		return true;
 	}
@@ -449,37 +386,6 @@ namespace btree {
 	// use stack to get root node(maybe not need root node), then use this early max key to search
 	// call record below(for template use check):
 	// first call: change previous leaf related.
-	NODE_TEMPLATE
-	void
-	BASE::changePreNodeMaxKeyBySearchUp(const vector<NodeBase *> &passedNodeTrackStack,
-										NodeBase *previousLeafNode,
-										const Key &oldKey,
-										const Key &newKey)
-	{
-		auto& stack = passedNodeTrackStack;
-		auto rCurrentNodeIter = ++stack.rbegin(); // from not leaf
-		auto rEnd = stack.rend();
-
-		while (rCurrentNodeIter != rEnd) {
-			vector<NodeBase*> trackStack;
-			// same ancestor of this and previous node
-			if (rCurrentNodeIter->have(oldKey, trackStack)) {
-				rCurrentNodeIter->changeInSearchDownPath(previousLeafNode, newKey);
-
-				// wrong rCurrentNodeIter use, not this node
-				auto i = rCurrentNodeIter->elements_.indexOf(previousLeafNode);
-				auto maxI = rCurrentNodeIter->childCount() - 1;
-				// need to change upper node
-				if (i != -1 && i == maxI) {
-					stack.push_back(*rCurrentNodeIter);
-					changeMaxKeyUpper(stack, newKey);
-				}
-				break;
-			}
-
-			++rCurrentNodeIter;
-		}
-	}
 
 	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
 	void
