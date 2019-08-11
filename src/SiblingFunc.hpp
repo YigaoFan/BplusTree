@@ -28,7 +28,7 @@ namespace btree {
 
 	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
 	void
-	getPrevious(BASE* node, vector<BASE*> passedNodeTrackStack, BASE*& previous)
+	getPrevious(BASE* node, const vector<BASE*>& passedNodeTrackStack, BASE*& previous)
 	{
 		auto& stack = passedNodeTrackStack;
 
@@ -42,7 +42,7 @@ namespace btree {
 
 	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
 	void
-	getNext(BASE* node, vector<BASE*> passedNodeTrackStack, BASE*& next)
+	getNext(BASE* node, const vector<BASE*>& passedNodeTrackStack, BASE*& next)
 	{
 		auto& stack = passedNodeTrackStack;
 

@@ -52,13 +52,14 @@ namespace btree {
 		template <typename T>
 		bool reallocateNxt(NodeBase *, pair<Key, T>);
 		void changeMaxKeyUpper(const vector<NodeBase *> &, const Key&) const;
-		void replacePreviousNodeMaxKeyInTreeBySearchUpIn(const vector<NodeBase *> &, NodeBase *, const Key &);
+		void changePreNodeMaxKeyBySearchUp(const vector<NodeBase *> &, NodeBase *, const Key &, const Key &);
 		void insertLeafToUpper(unique_ptr<NodeBase>, vector<NodeBase*>&);
 		inline bool searchHelper(const Key &, function<void(NodeBase *)>,
 		                                      function<bool(NodeBase *)>,
 		                                      function<bool(NodeBase *)>);
 
 		static bool spaceFreeIn(const NodeBase*);
+		static vector<NodeBase*> getPreNodeSearchTrackIn(const vector<NodeBase*>&, const NodeBase*);
 	};
 }
 
@@ -376,17 +377,49 @@ namespace btree {
 	BASE::reallocatePre(NodeBase *previousNode, vector<NodeBase *> &passedNodeTrackStack, pair<Key, T> appendPair)
 	{
 		auto& stack = passedNodeTrackStack;
+		// attention who change the stack or not
 
+		auto oldMaxKey = previousNode->maxKey();
+		auto previousTrackStack = getPreNodeSearchTrackIn(stack, previousNode); // previous is leaf
 		previousNode->elements_.append(std::move(appendPair));
-		auto newMaxKey = previousNode->maxKey(); // will change previous max
-		// TODO could use this stack to get sibling stack, then change upper
-		replacePreviousNodeMaxKeyInTreeBySearchUpIn(stack, previousNode, newMaxKey);
+		auto& newMaxKey = previousNode->maxKey(); // will change previous max
+		changeMaxKeyUpper(previousTrackStack, newMaxKey);
+		// changePreNodeMaxKeyBySearchUp(stack, previousNode, oldMaxKey, newMaxKey);
 
 		return true;
 	}
 
 	/**
-	 * Key type should be copyable
+	 * @return the complete search stack
+	 */
+	NODE_TEMPLATE
+	vector<BASE*>
+	BASE::getPreNodeSearchTrackIn(const vector<NodeBase *>& currentNodePassedTrackStack, const NodeBase * previousNode)
+	{
+		auto& stack = currentNodePassedTrackStack;
+		auto& maxKey = previousNode->maxKey();
+		auto rCurrentNodeIter = ++stack.rbegin(); // from not leaf
+		auto rEnd = stack.rend();
+
+		vector<NodeBase*> trackStack;
+		trackStack.reserve(stack.size());
+
+		while (rCurrentNodeIter != rEnd) {
+			// same ancestor of this and previous node
+			if (!rCurrentNodeIter->have(maxKey, trackStack)) {
+				trackStack.clear();
+			}
+
+			++rCurrentNodeIter;
+		}
+		trackStack.insert(trackStack.begin(), stack.begin(), rCurrentNodeIter.base());
+
+		trackStack.shrink_to_fit();
+		return std::move(trackStack);
+	}
+
+	/**
+	 * Key type should be copyable. Will not change stack. Last one in stack should be leaf actually
 	 */
 	NODE_TEMPLATE
 	void
@@ -414,41 +447,37 @@ namespace btree {
 	}
 
 	// use stack to get root node(maybe not need root node), then use this early max key to search
+	// call record below(for template use check):
+	// first call: change previous leaf related.
 	NODE_TEMPLATE
 	void
-	BASE::replacePreviousNodeMaxKeyInTreeBySearchUpIn(
-		const vector<NodeBase *> &passedNodeTrackStack,
-		NodeBase *previousNode,
-		const Key &newKey)
+	BASE::changePreNodeMaxKeyBySearchUp(const vector<NodeBase *> &passedNodeTrackStack,
+										NodeBase *previousLeafNode,
+										const Key &oldKey,
+										const Key &newKey)
 	{
 		auto& stack = passedNodeTrackStack;
-		// use iterator
-		auto emitUpperNode = [&] {
-			auto last = stack.back();
-			stack.pop_back();
+		auto rCurrentNodeIter = ++stack.rbegin(); // from not leaf
+		auto rEnd = stack.rend();
 
-			return last;
-		};
+		while (rCurrentNodeIter != rEnd) {
+			vector<NodeBase*> trackStack;
+			// same ancestor of this and previous node
+			if (rCurrentNodeIter->have(oldKey, trackStack)) {
+				rCurrentNodeIter->changeInSearchDownPath(previousLeafNode, newKey);
 
-		// TODO sometimes it's not leaf
-		emitUpperNode(); // top pointer is leaf, it's useless
-		
-
-		for (NodeBase* node = emitUpperNode(); stack.size() != 0; node = emitUpperNode()) {
-			// judge if the node is the same ancestor between this and previous node
-			if (node->have(previousNode)) {
-				node->changeInSearchDownPath(previousNode, newKey);
-
-				// judge if need to change upper node
-				auto i = node->elements_.indexOf(previousNode); // should create a method called this layer search
-				auto maxIndex = childCount() - 1;
-				if (i != -1 && i == maxIndex) {
-					stack.push_back(node);
-					// change upper node
+				// wrong rCurrentNodeIter use, not this node
+				auto i = rCurrentNodeIter->elements_.indexOf(previousLeafNode);
+				auto maxI = rCurrentNodeIter->childCount() - 1;
+				// need to change upper node
+				if (i != -1 && i == maxI) {
+					stack.push_back(*rCurrentNodeIter);
 					changeMaxKeyUpper(stack, newKey);
-					break;
 				}
+				break;
 			}
+
+			++rCurrentNodeIter;
 		}
 	}
 
@@ -541,7 +570,7 @@ namespace btree {
 
 	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
 	void
-	getPrevious(BASE*, vector<BASE*>, BASE*&);
+	getPrevious(BASE*, const vector<BASE*>&, BASE*&);
 	/**
 	 * @return means succeed or not
 	 */
@@ -571,7 +600,7 @@ namespace btree {
 
 	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
 	void
-	getNext(BASE*, vector<BASE*>, BASE*&);
+	getNext(BASE*, const vector<BASE*>&, BASE*&);
 	/**
 	 * @return means succeed or not
 	 */
