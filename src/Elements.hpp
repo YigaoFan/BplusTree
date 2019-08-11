@@ -28,6 +28,8 @@ namespace btree {
 
 #define ELEMENTS_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder, typename PtrType>
 
+	// Internal could use ptr to search when know ptr
+	// modify method arg should be pair<Key, Value> without reference
 	/**
 	 * First and second relationship is to public
 	 */
@@ -61,9 +63,9 @@ namespace btree {
 		void             append(pair<Key, unique_ptr<PtrType>>);
 		uint16_t changeKeyOf(PtrType *, Key);
 		pair<Key, Value> exchangeMax(pair<Key, Value>);
-		pair<Key, Value> exchangeMin(pair<Key, Value>);
+		pair<Key, Value> exchangeMin(pair<Key, Value>, bool &maxChanged);
 		pair<Key, unique_ptr<PtrType>> exchangeMax(pair<Key, unique_ptr<PtrType>>);
-		pair<Key, unique_ptr<PtrType>> exchangeMin(pair<Key, unique_ptr<PtrType>>);
+		pair<Key, unique_ptr<PtrType>> exchangeMin(pair<Key, unique_ptr<PtrType>>, bool &maxChanged);
 
 
 		ValueForContent& operator[](const Key&);
@@ -93,13 +95,13 @@ namespace btree {
 		template <typename T>
 		pair<Key, T> exchangeMax(pair<Key, T>);
 		template <typename T>
-		pair<Key, T> exchangeMin(pair<Key, T>);
+		pair<Key, T> exchangeMin(pair<Key, T>, bool &maxChanged);
 		template <typename T>
 		void         append(pair<Key, T>);
 		template <typename T>
 		void         insert(pair<Key, T>);
 		template <typename T>
-		void         add(pair<Key, T>);
+		bool         add(pair<Key, T>);
 
 		void     adjustMemory(int32_t, uint16_t);
 		auto     cloneInternalElements() const;
@@ -436,7 +438,7 @@ namespace btree {
 	ELEMENTS_TEMPLATE
 	template <typename T>
 	pair<Key, T>
-	ELE::exchangeMin(pair<Key, T> p)
+	ELE::exchangeMin(pair<Key, T> p, bool &maxChanged)
 	{
 #ifdef BTREE_DEBUG
 		BOUND_CHECK
@@ -449,12 +451,12 @@ namespace btree {
 		adjustMemory(-1, 1);
 		--_count;
 
-		add(p);
+		maxChanged = add(p);
 
 		if constexpr (std::is_same<T, Value>::value) {
 			return make_pair<Key, T>(std::move(key), std::move(value_Ref(valueForContent)));
 		} else {
-			return make_pair<Key, T>(key, ptr(valueForContent));
+			return make_pair<Key, T>(std::move(key), uniquePtr_Move(valueForContent));
 		}
 	}
 
@@ -462,17 +464,22 @@ namespace btree {
 #undef BOUND_CHECK
 #endif
 
+	/**
+	 * @return max changed or not
+	 */
 	ELEMENTS_TEMPLATE
 	template <typename T>
-	void
+	bool
 	ELE::add(pair<Key, T> p)
 	{
 		auto& lessThan = *LessThanPtr;
 
 		if (lessThan(_elements[_count - 1].first, p.first)) {
 			append(p);
+			return true;
 		} else {
 			insert(p);
+			return false;
 		}
 	}
 

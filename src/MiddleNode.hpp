@@ -20,8 +20,8 @@ namespace btree {
 		~MiddleNode() override = default;
 
 		Base* minSon() const;
-		void  searchPrevious(vector<Base *> &, Base *&) const;
-		void  searchNext    (vector<Base *> &, Base *&) const;
+		void  searchPrevious(const vector<Base *> &, Base *&) const;
+		void  searchNext    (const vector<Base *> &, Base *&) const;
 
 	private:
 		Base* maxSon() const;
@@ -72,10 +72,10 @@ namespace btree {
 		if (upperNodeIter == rEnd) {                                                             \
 			return nullptr;                                                                      \
 		}                                                                                        \
-                                                                                                 \
+    	                                                                                         \
 		auto& upperElements = upperNodeIter->elements_;                                          \
 		auto i = upperElements.indexOf(*currentNodeIter);                                        \
-                                                                                                 \
+		                                                                                         \
 		if (i COMPARE_TO_BOUND) {                                                                \
 			return Base::Ele::ptr(upperElements[i OFFSET].second);                               \
 		} else {                                                                                 \
@@ -89,7 +89,7 @@ namespace btree {
 	 */
 	NODE_TEMPLATE
 	void
-	MIDDLE::searchPrevious(vector<Base *> &passedNodeTrackStack, Base *&previous) const
+	MIDDLE::searchPrevious(const vector<Base *> &passedNodeTrackStack, Base *&previous) const
 	{
 		auto& stack = passedNodeTrackStack;
 		auto rIter = stack.rbegin();
@@ -104,7 +104,7 @@ namespace btree {
 	 */
 	NODE_TEMPLATE
 	void
-	MIDDLE::searchNext(vector<Base *> &passedNodeTrackStack, Base *&next) const
+	MIDDLE::searchNext(const vector<Base *> &passedNodeTrackStack, Base *&next) const
 	{
 		auto& stack = passedNodeTrackStack;
 		auto rIter = stack.rbegin();
