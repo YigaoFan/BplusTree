@@ -105,6 +105,7 @@ namespace btree {
 	void
 	BTREE::constructTreeFromLeafToRoot(array<E, Size>& nodesMaterial)
 	{
+		// TODO should ensure w/2(up bound) to w per node
 		if constexpr (Size <= BtreeOrder) {
 			if constexpr (FirstCall) {
 				_root = make_unique<Leaf>(nodesMaterial.begin(), nodesMaterial.end(), _lessThanPtr);

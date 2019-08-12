@@ -50,7 +50,7 @@ namespace btree {
 		template <typename T>
 		bool reallocateNxt(NodeBase *, pair<Key, T>);
 		void changeMaxKeyUpper(const vector<NodeBase *> &, const Key&) const;
-		void insertLeafToUpper(unique_ptr<NodeBase>, vector<NodeBase*>&);
+		void insertNewPreToUpper(unique_ptr<NodeBase>, vector<NodeBase*>&);
 		inline bool searchHelper(const Key &, function<void(NodeBase *)>,
 		                                      function<bool(NodeBase *)>,
 		                                      function<bool(NodeBase *)>);
@@ -241,7 +241,6 @@ namespace btree {
 	void
 	BASE::doAdd(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack)
 	{
-		// TODO how to keep w/2 to w
 		auto& k = p.first;
 		auto& stack = passedNodeTrackStack;
 		auto& lessThan = *(elements_.LessThanPtr);
@@ -343,13 +342,14 @@ namespace btree {
 
 		while (rCurrentNodeIter != rEnd) {
 			// same ancestor of this and previous node
-			if (!rCurrentNodeIter->have(maxKey, trackStack)) {
-				trackStack.clear();
+			if (rCurrentNodeIter->have(maxKey, trackStack)) {
+				break;
 			}
+			trackStack.clear();
 
 			++rCurrentNodeIter;
 		}
-		trackStack.insert(trackStack.begin(), stack.begin(), rCurrentNodeIter.base());
+		trackStack.insert(trackStack.begin(), stack.begin(), rCurrentNodeIter.base()); // end is excluded
 
 		trackStack.shrink_to_fit();
 		return std::move(trackStack);
@@ -383,7 +383,6 @@ namespace btree {
 		}
 	}
 
-	// use stack to get root node(maybe not need root node), then use this early max key to search
 	// call record below(for template use check):
 	// first call: change previous leaf related.
 
@@ -391,6 +390,7 @@ namespace btree {
 	void
 	setSiblings(BASE*, BASE*);
 
+	// first in: split leaf
 	NODE_TEMPLATE
 	template <typename T>
 	void
@@ -400,14 +400,11 @@ namespace btree {
 		auto& lessThan = *(elements_.LessThanPtr);
 		auto& stack = passedNodeTrackStack;
 
-		auto newPre = this->clone(); // TODO have a problem
+		auto newPre = this->clone();
 		auto newPrePtr = newPre.get();
 		// left is newPre, right is this
 		setSiblings<Key, Value, BtreeOrder, T>(newPrePtr, this);
 
-		auto i = elements_.suitablePosition(key);
-
-		// [] not need reference if don't have last sentence?
 		auto moveItems = [&] (uint16_t preNodeRemoveCount) {
 			newPrePtr->elements_.removeItems(false, preNodeRemoveCount);
 			this->elements_.removeItems(true, BtreeOrder - preNodeRemoveCount);
@@ -425,42 +422,49 @@ namespace btree {
 
 		constexpr bool odd = BtreeOrder % 2;
 		constexpr auto middle = odd ? (BtreeOrder / 2 + 1) : (BtreeOrder / 2);
+		auto i = elements_.suitPosition(key);
 		if (i <= middle) {
 			constexpr auto removeCount = middle;
 			moveItems(removeCount);
 
 			HANDLE_ADD(newPrePtr, middle);
+			// maybe here should judge shouldAppend if the newPre added before
+			// but will use some other time to compute
 		} else {
 			constexpr auto removeCount = BtreeOrder - middle;
 			moveItems(removeCount);
 
 			HANDLE_ADD(this, BtreeOrder);
 			if (shouldAppend) {
-				auto stackCopy = stack;
-				changeMaxKeyUpper(stackCopy, key);
+				changeMaxKeyUpper(stack, key);
 			}
 		}
 		
 #undef HANDLE_ADD
 
-		insertLeafToUpper(std::move(newPre), stack);
+		insertNewPreToUpper(std::move(newPre), stack);
 	}
 
 	NODE_TEMPLATE
 	void
-	BASE::insertLeafToUpper(unique_ptr<NodeBase> node, vector<NodeBase*>& passedNodeTrackStack)
+	BASE::insertNewPreToUpper(unique_ptr<NodeBase> preNode, vector<NodeBase*>& passedNodeTrackStack)
 	{
-#define EMIT_UPPER_NODE() stack.pop_back()
 
-		// reduce useless node, prepare to upper level add, like start new leaf add
 		auto& stack = passedNodeTrackStack;
-		EMIT_UPPER_NODE();
-		
-		auto pair = make_pair<Key, unique_ptr<NodeBase>>(node->maxKey(), std::move(node));
-		doAdd(std::move(pair), stack);
-		// 这部分甚至可能动 root，做好心理准备
+		stack.pop_back(); // reduce lower node, prepare to new upper level add
 
-#undef EMIT_UPPER_NODE
+		if (stack.empty()) { // means arrive root node
+			auto& newLeftSonOfRoot = preNode;
+			auto newRightSonOfRoot = make_unique<NodeBase>(std::move(*this));
+			this->elements_.append(make_pair<Key, unique_ptr<NodeBase>>(newLeftSonOfRoot->maxKey(),
+				                                                        std::move(newLeftSonOfRoot)));
+			this->elements_.append(make_pair<Key, unique_ptr<NodeBase>>(newRightSonOfRoot->maxKey(),
+				                                                        std::move(newRightSonOfRoot)));
+		} else {
+			auto pair = make_pair<Key, unique_ptr<NodeBase>>(preNode->maxKey(), std::move(preNode));
+			stack.back()->doAdd(std::move(pair), stack);
+		}
+
 	}
 
 	NODE_TEMPLATE

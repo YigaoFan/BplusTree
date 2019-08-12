@@ -75,7 +75,7 @@ namespace btree {
 
 		int32_t  indexOf         (const PtrType*) const;
 		int32_t  indexOf         (const Key&)     const;
-		uint16_t suitablePosition(const Key&)     const;
+		uint16_t suitPosition(const Key&)     const;
 		auto     begin();
 		auto     end  ();
 		auto     begin() const;
@@ -334,7 +334,7 @@ namespace btree {
 
 	ELEMENTS_TEMPLATE
 	uint16_t
-	ELE::suitablePosition(const Key& key) const
+	ELE::suitPosition(const Key& key) const
 	{
 #define KEY_OF_ELE _elements[i].first
 		auto& lessThan = *LessThanPtr;
@@ -345,7 +345,7 @@ namespace btree {
 			}
 		}
 
-		return _count + 1;
+		return _count;
 #undef KEY_OF_ELE
 	}
 

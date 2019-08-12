@@ -8,15 +8,14 @@ namespace btree {
 		using Base = NodeBase<Key, Value, BtreeOrder>;
 
 	public:
-		// provide same constructor of NodeBase
+		// provide same constructors of NodeBase
 		using Base::Base;
 
-		// could return Derived type?, I think
+		// could return Derived type, but unique_ptr not allow
 		virtual unique_ptr<Base> clone() const
 		{
 			// how to reduce the const mark
 			return make_unique<Derived>(static_cast<Derived const &>(*this));
-			// return unique_ptr<Derived>(new Derived(*this));
 		}
 	};
 }
