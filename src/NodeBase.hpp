@@ -27,7 +27,7 @@ namespace btree {
 		inline bool        have  (const Key&) const;
 		const Value*       search(const Key&) const;
 		void               add   (pair<Key, Value>, vector<NodeBase*>&);
-		bool               remove(const Key&);
+		void               remove(const Key&, vector<NodeBase*>&);
 
 	protected:
 		Elements<Key, Value, BtreeOrder, NodeBase> elements_;
@@ -55,6 +55,9 @@ namespace btree {
 		inline bool searchHelper(const Key &, function<void(NodeBase *)>,
 		                                      function<bool(NodeBase *)>,
 		                                      function<bool(NodeBase *)>);
+
+		inline void doRemove(const Key&, const vector<NodeBase*>&);
+		void rebalance(const vector<NodeBase*>&);
 
 		static bool spaceFreeIn(const NodeBase*);
 		static vector<NodeBase*> getPreNodeSearchTrackIn(const vector<NodeBase*>&, const NodeBase*);
@@ -265,38 +268,36 @@ namespace btree {
 	}
 
 	NODE_TEMPLATE
-	bool
-	BASE::remove(const Key& key)
+	void
+	BASE::remove(const Key& key, vector<NodeBase*>& passedNodeTrackStack)
 	{
-		auto maxValue = [] (Ele& e) -> typename Ele::ValueForContent& {
-			return e[e.count() - 1].second;
-		};
+		auto& stack = passedNodeTrackStack;
+		auto finalLeaf = stack.back();
+		
+		finalLeaf->doRemove(key, stack);
+		finalLeaf->rebalance(stack);
+	}
 
-		// TODO wrong
-		// Keep internal node key count between w/2 and w
-		if (!middle()) {
-			elements_.remove(key);
-			// check count
-		} else {
-			for (auto& e : elements_) {
-				if ((*elements_.LessThanPtr)(key, e.first)) {
-					// Recursive locate
-				} else if (!(*elements_.LessThanPtr)(e.first, key)) {
-					auto subNodePtr = Ele::ptr(e.second);
+	NODE_TEMPLATE
+	void
+	BASE::doRemove(const Key& key, const vector<NodeBase*>& passedNodeTrackStack)
+	{
+		auto& stack = passedNodeTrackStack;
 
-				SearchInThisNode:
-					if (!subNodePtr->middle()) {
-						subNodePtr->elements_.remove(key);
-						// Check count
-					} else {
-						subNodePtr = Ele::ptr(maxValue(subNodePtr->elements_));
-						goto SearchInThisNode;
-					}
-				}
-			}
+		auto i = elements_.indexOf(key);
+		auto maxI = childCount() - 1;
+		elements_.remove(i);
+		if (i == maxI) {
+			changeMaxKeyUpper(stack, maxKey());
 		}
+	}
 
-		return false; // TODO wait to modify
+	NODE_TEMPLATE
+	void
+	BASE::rebalance(const vector<NodeBase*>& passedNodeTrackStack)
+	{
+		// TODO
+		// Keep internal node key count between w/2 and w
 	}
 
 	NODE_TEMPLATE

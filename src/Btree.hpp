@@ -252,11 +252,14 @@ namespace btree {
 	void
 	BTREE::remove(const Key& key)
 	{
-		if (!have(key)) {
+		vector<Base*> passedNodeTrackStack;
+		auto& stack = passedNodeTrackStack;
+
+		if (!have(key, stack)) {
 			return;
 		}
 
-		_root->remove(key);
+		_root->remove(key, stack);
 		--_keyNum;
 	}
 

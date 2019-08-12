@@ -61,7 +61,7 @@ namespace btree {
 		void             insert(pair<Key, unique_ptr<PtrType>>);
 		void             append(pair<Key, Value>);
 		void             append(pair<Key, unique_ptr<PtrType>>);
-		uint16_t changeKeyOf(PtrType *, Key);
+		uint16_t         changeKeyOf(PtrType *, Key);
 		pair<Key, Value> exchangeMax(pair<Key, Value>);
 		pair<Key, Value> exchangeMin(pair<Key, Value>, bool &maxChanged);
 		pair<Key, unique_ptr<PtrType>> exchangeMax(pair<Key, unique_ptr<PtrType>>);
