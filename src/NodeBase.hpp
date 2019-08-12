@@ -56,8 +56,14 @@ namespace btree {
 		                                      function<bool(NodeBase *)>,
 		                                      function<bool(NodeBase *)>);
 
-		inline void doRemove(const Key&, const vector<NodeBase*>&);
-		void rebalance(const vector<NodeBase*>&);
+		template <typename T>
+		inline void doRemove(const T&, const vector<NodeBase*>&);
+		template <bool IS_LEAF>
+		bool reBalance(const vector<NodeBase*>&);
+		template <bool IS_LEAF>
+		bool tryPreviousBalance(const vector<NodeBase*>&);
+		template <bool IS_LEAF>
+		bool tryNextBalance    (const vector<NodeBase*>&);
 
 		static bool spaceFreeIn(const NodeBase*);
 		static vector<NodeBase*> getPreNodeSearchTrackIn(const vector<NodeBase*>&, const NodeBase*);
@@ -257,6 +263,7 @@ namespace btree {
 				changeMaxKeyUpper(stack, k);
 			}
 		} else {
+			// maybe fine the choose of pre and next
 			if (tryPreviousAdd<Key, Value, BtreeOrder, T>(p, stack)) {
 
 			} else if (tryNextAdd<Key, Value, BtreeOrder, T>(p, stack)) {
@@ -272,32 +279,56 @@ namespace btree {
 	BASE::remove(const Key& key, vector<NodeBase*>& passedNodeTrackStack)
 	{
 		auto& stack = passedNodeTrackStack;
-		auto finalLeaf = stack.back();
+		NodeBase* finalLeaf = stack.back();
 		
 		finalLeaf->doRemove(key, stack);
-		finalLeaf->rebalance(stack);
 	}
 
+	/**
+	 * @tparam T type Key or PtrType*(NodeBase*)
+	 */
 	NODE_TEMPLATE
+	template <typename T>
 	void
-	BASE::doRemove(const Key& key, const vector<NodeBase*>& passedNodeTrackStack)
+	BASE::doRemove(const T& t, const vector<NodeBase*>& passedNodeTrackStack)
 	{
 		auto& stack = passedNodeTrackStack;
 
-		auto i = elements_.indexOf(key);
-		auto maxI = childCount() - 1;
-		elements_.remove(i);
-		if (i == maxI) {
+		auto i = elements_.indexOf(t);
+		if (elements_.remove(i)) {
 			changeMaxKeyUpper(stack, maxKey());
+		}
+
+		// TODO is_same need to verify
+		auto combined = reBalance<std::is_same<T, Key>::value>(stack);
+		if (combined) {
+			// need to remove upper
 		}
 	}
 
+	/**
+	 * @return combined or not
+	 */
 	NODE_TEMPLATE
-	void
-	BASE::rebalance(const vector<NodeBase*>& passedNodeTrackStack)
+	template <bool IS_LEAF>
+	bool
+	BASE::reBalance(const vector<NodeBase*>& passedNodeTrackStack)
 	{
-		// TODO
+		auto& stack = passedNodeTrackStack;
 		// Keep internal node key count between w/2 and w
+		constexpr auto ceil = 1 + ((BtreeOrder - 1) / 2);
+		if (childCount() < ceil) {
+			// TODO add a class of res
+			// maybe fine the choose of pre and next
+			if (auto res = tryPreviousBalance<IS_LEAF>(stack)) {
+				return res.combined;
+				// why shadow?
+			} else if (auto res = tryNextBalance<IS_LEAF>(stack)) {
+				return res.combined;
+			} else {
+				throw runtime_error("Can't re-balance B+ tree which has child count: " + std::to_string(childCount()));
+			}
+		}
 	}
 
 	NODE_TEMPLATE
@@ -466,7 +497,6 @@ namespace btree {
 			auto pair = make_pair<Key, unique_ptr<NodeBase>>(preNode->maxKey(), std::move(preNode));
 			stack.back()->doAdd(std::move(pair), stack);
 		}
-
 	}
 
 	NODE_TEMPLATE
@@ -494,12 +524,12 @@ namespace btree {
 		auto& stack = passedNodeTrackStack;
 		NodeBase *previous = nullptr;
 
-		getPrevious<Key, Value, BtreeOrder, T>(this, stack, previous); // some don't have one of siblings
+		getPrevious<Key, Value, BtreeOrder, std::is_same<T, Value>::value>(this, stack, previous); // some don't have one of siblings
 
 		if (spaceFreeIn(previous)) {
 			// if not free, will not trigger move, so the type is ref
 			auto maxChanged = false;
-			auto&& min = elements_.exchangeMin(std::move(p), maxChanged);
+			auto min = elements_.exchangeMin(std::move(p), maxChanged);
 			if (maxChanged) {
 				changeMaxKeyUpper(stack, maxKey());
 			}
@@ -536,6 +566,51 @@ namespace btree {
 		return false;
 	}
 
+	NODE_TEMPLATE
+	template <bool IS_LEAF>
+	bool
+	BASE::tryPreviousBalance(const vector<NodeBase*>& passedNodeTrackStack)
+	{
+		auto& stack = passedNodeTrackStack;
+
+		NodeBase* previous = nullptr;
+		getPrevious<Key, Value, BtreeOrder, IS_LEAF>(this, stack, previous); // some don't have one of siblings
+
+		if (previous != nullptr) {
+			if (previous->childCount() + childCount() <= BtreeOrder) {
+				// combine
+			} else {
+				// move some from pre to this
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	NODE_TEMPLATE
+	template <bool IS_LEAF>
+	bool
+	BASE::tryNextBalance(const vector<NodeBase*>& passedNodeTrackStack)
+	{
+		auto& stack = passedNodeTrackStack;
+
+		NodeBase* next = nullptr;
+		getNext<Key, Value, BtreeOrder, IS_LEAF>(this, stack, next); // some don't have one of siblings
+
+		if (next != nullptr) {
+			if (next->childCount() + childCount() <= BtreeOrder) {
+				// combine
+			} else {
+				// move some from pre to this
+			}
+
+			return true;
+		}
+
+		return false;
+	}
 #undef BASE
 #undef NODE_TEMPLATE
 }

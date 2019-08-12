@@ -26,13 +26,13 @@ namespace btree {
 		}
 	}
 
-	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
+	template <typename Key, typename Value, uint16_t BtreeOrder, bool IS_LEAF>
 	void
 	getPrevious(BASE* node, const vector<BASE*>& passedNodeTrackStack, BASE*& previous)
 	{
 		auto& stack = passedNodeTrackStack;
 
-		if constexpr (std::is_same<typename std::decay<T>::type, Value>::value) {
+		if constexpr (IS_LEAF) {
 			auto leaf = static_cast<LEAF*>(node);
 			previous  = leaf->previousLeaf();
 		} else {
@@ -40,13 +40,13 @@ namespace btree {
 		}
 	}
 
-	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
+	template <typename Key, typename Value, uint16_t BtreeOrder, bool IS_LEAF>
 	void
 	getNext(BASE* node, const vector<BASE*>& passedNodeTrackStack, BASE*& next)
 	{
 		auto& stack = passedNodeTrackStack;
 
-		if constexpr (std::is_same<typename std::decay<T>::type, Value>::value) {
+		if constexpr (IS_LEAF) {
 			auto leaf = static_cast<LEAF*>(node);
 			next      = leaf->nextLeaf();
 		} else {

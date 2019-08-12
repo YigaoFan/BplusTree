@@ -55,7 +55,7 @@ namespace btree {
 		// bool means max key changes
 		// all this change caller should promise not out of bound
 		bool             remove(const Key&);
-		bool             remove(uint16_t); // TODO maybe will implement
+		bool             remove(uint16_t);
 		void             removeItems(bool, uint16_t);
 		void             insert(pair<Key, Value>);
 		void             insert(pair<Key, unique_ptr<PtrType>>);
@@ -198,17 +198,30 @@ namespace btree {
 	bool
 	ELE::remove(const Key& key)
 	{
-		auto maxChanged = false;
 		auto i = indexOf(key);
 
 		if (i != -1) {
-			adjustMemory(-1, i);
-
-			if (i == (_count - 1)) {
-				maxChanged = true;
-			}
-			--_count;
+			return remove(i);
 		}
+
+		return false;
+	}
+
+	/**
+	 * If key doesn't exist, will do no work
+	 */
+	ELEMENTS_TEMPLATE
+	bool
+	ELE::remove(uint16_t i)
+	{
+		auto maxChanged = false;
+
+		adjustMemory(-1, i+1);
+
+		if (i == (_count - 1)) {
+			maxChanged = true;
+		}
+		--_count;
 
 		return maxChanged;
 	}
@@ -518,13 +531,13 @@ namespace btree {
 		if (direction < 0) {
 			auto end = this->end();
 
-			for (auto begin = start; begin != end; ++begin) {
+			for (auto& begin = start; begin != end; ++begin) {
 				*(begin + direction) = std::move(*begin);
 			}
 		} else if (direction > 0) {
-			auto rend = start - 1;
+			decltype(_elements.rend()) rend{ start - 1 };
 
-			for (auto rbegin = &_elements[_count - 1]; rbegin != rend; --rbegin) {
+			for (auto rbegin = _elements.rbegin(); rbegin != rend; ++rbegin) {
 				*(rbegin + direction) = std::move(*rbegin);
 			}
 		}
