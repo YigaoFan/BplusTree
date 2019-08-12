@@ -17,6 +17,7 @@ namespace btree {
 		NodeBase(const NodeBase&);
 		NodeBase(NodeBase&&) noexcept;
 		virtual unique_ptr<NodeBase> clone() const = 0;
+		virtual unique_ptr<NodeBase> move () const = 0;
 		virtual ~NodeBase() = default;
 
 		inline bool        middle() const;
@@ -455,7 +456,7 @@ namespace btree {
 
 		if (stack.empty()) { // means arrive root node
 			auto& newLeftSonOfRoot = preNode;
-			auto newRightSonOfRoot = make_unique<NodeBase>(std::move(*this));
+			auto newRightSonOfRoot = this->move();
 			this->elements_.append(make_pair<Key, unique_ptr<NodeBase>>(newLeftSonOfRoot->maxKey(),
 				                                                        std::move(newLeftSonOfRoot)));
 			this->elements_.append(make_pair<Key, unique_ptr<NodeBase>>(newRightSonOfRoot->maxKey(),
