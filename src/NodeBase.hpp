@@ -3,6 +3,19 @@
 #include "Elements.hpp"
 
 namespace btree {
+	struct TryResult {
+		bool Successful;
+		bool Combined;
+
+		TryResult(bool successful, bool combined)
+			: Successful(successful), Combined(combined)
+		{ }
+
+		operator bool()
+		{
+			return Successful;
+		}
+	};
 #define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 #define BASE NodeBase<Key, Value, BtreeOrder>
 
@@ -32,9 +45,9 @@ namespace btree {
 	protected:
 		Elements<Key, Value, BtreeOrder, NodeBase> elements_;
 
-		uint16_t      childCount() const;
-		inline bool   full()  const;
-		inline bool   empty() const;
+		inline uint16_t childCount() const;
+		inline bool     full()  const;
+		inline bool     empty() const;
 
 		// TODO add not only key-value add, but also key-unique_ptr add
 		template <typename T>
@@ -61,12 +74,14 @@ namespace btree {
 		template <bool IS_LEAF>
 		bool reBalance(const vector<NodeBase*>&);
 		template <bool IS_LEAF>
-		bool tryPreviousBalance(const vector<NodeBase*>&);
+		TryResult tryPreviousBalance(const vector<NodeBase*>&);
 		template <bool IS_LEAF>
-		bool tryNextBalance    (const vector<NodeBase*>&);
+		TryResult tryNextBalance    (const vector<NodeBase*>&);
 
 		static bool spaceFreeIn(const NodeBase*);
 		static vector<NodeBase*> getPreNodeSearchTrackIn(const vector<NodeBase*>&, const NodeBase*);
+
+
 	};
 }
 
@@ -315,16 +330,15 @@ namespace btree {
 	BASE::reBalance(const vector<NodeBase*>& passedNodeTrackStack)
 	{
 		auto& stack = passedNodeTrackStack;
+
 		// Keep internal node key count between w/2 and w
 		constexpr auto ceil = 1 + ((BtreeOrder - 1) / 2);
 		if (childCount() < ceil) {
-			// TODO add a class of res
 			// maybe fine the choose of pre and next
-			if (auto res = tryPreviousBalance<IS_LEAF>(stack)) {
-				return res.combined;
-				// why shadow?
-			} else if (auto res = tryNextBalance<IS_LEAF>(stack)) {
-				return res.combined;
+			if (auto preRes = tryPreviousBalance<IS_LEAF>(stack)) {
+				return preRes.combined;
+			} else if (auto nxtRes = tryNextBalance<IS_LEAF>(stack)) {
+				return nxtRes.combined;
 			} else {
 				throw runtime_error("Can't re-balance B+ tree which has child count: " + std::to_string(childCount()));
 			}
@@ -347,7 +361,7 @@ namespace btree {
 	BASE::reallocatePre(NodeBase *previousNode, vector<NodeBase *> &passedNodeTrackStack, pair<Key, T> appendPair)
 	{
 		auto& stack = passedNodeTrackStack;
-		// attention who change the stack or not
+		// attention func change the stack or not
 
 		auto oldMaxKey = previousNode->maxKey();
 		auto previousTrackStack = getPreNodeSearchTrackIn(stack, previousNode); // previous is leaf
@@ -365,6 +379,8 @@ namespace btree {
 	vector<BASE*>
 	BASE::getPreNodeSearchTrackIn(const vector<NodeBase *>& currentNodePassedTrackStack, const NodeBase * previousNode)
 	{
+		// TODO when call on Middle, there are duplicates compute
+		// Because the last Middle has already search this(wait to verify)
 		auto& stack = currentNodePassedTrackStack;
 		auto& maxKey = previousNode->maxKey();
 		auto rCurrentNodeIter = ++stack.rbegin(); // from not leaf
@@ -416,9 +432,6 @@ namespace btree {
 		}
 	}
 
-	// call record below(for template use check):
-	// first call: change previous leaf related.
-
 	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
 	void
 	setSiblings(BASE*, BASE*);
@@ -438,7 +451,7 @@ namespace btree {
 		// left is newPre, right is this
 		setSiblings<Key, Value, BtreeOrder, T>(newPrePtr, this);
 
-		auto moveItems = [&] (uint16_t preNodeRemoveCount) {
+		auto removeItems = [&] (uint16_t preNodeRemoveCount) {
 			newPrePtr->elements_.removeItems(false, preNodeRemoveCount);
 			this->elements_.removeItems(true, BtreeOrder - preNodeRemoveCount);
 		};
@@ -458,14 +471,14 @@ namespace btree {
 		auto i = elements_.suitPosition(key);
 		if (i <= middle) {
 			constexpr auto removeCount = middle;
-			moveItems(removeCount);
+			removeItems(removeCount);
 
 			HANDLE_ADD(newPrePtr, middle);
 			// maybe here should judge shouldAppend if the newPre added before
 			// but will use some other time to compute
 		} else {
 			constexpr auto removeCount = BtreeOrder - middle;
-			moveItems(removeCount);
+			removeItems(removeCount);
 
 			HANDLE_ADD(this, BtreeOrder);
 			if (shouldAppend) {
@@ -560,6 +573,7 @@ namespace btree {
 			// if not free, will not trigger move, so the type is ref
 			auto&& oldMax = elements_.exchangeMax(std::move(p));
 			changeMaxKeyUpper(stack, maxKey());
+
 			return reallocateNxt(next, std::move(oldMax));
 		}
 
@@ -568,7 +582,7 @@ namespace btree {
 
 	NODE_TEMPLATE
 	template <bool IS_LEAF>
-	bool
+	TryResult
 	BASE::tryPreviousBalance(const vector<NodeBase*>& passedNodeTrackStack)
 	{
 		auto& stack = passedNodeTrackStack;
@@ -579,19 +593,22 @@ namespace btree {
 		if (previous != nullptr) {
 			if (previous->childCount() + childCount() <= BtreeOrder) {
 				// combine
+
+				return { true, true };
 			} else {
 				// move some from pre to this
+				return { true, false };
 			}
+			// TODO because if-else, the come next will have some disadvantage
 
-			return true;
 		}
 
-		return false;
+		return { false, false };
 	}
 
 	NODE_TEMPLATE
 	template <bool IS_LEAF>
-	bool
+	TryResult
 	BASE::tryNextBalance(const vector<NodeBase*>& passedNodeTrackStack)
 	{
 		auto& stack = passedNodeTrackStack;
@@ -602,14 +619,15 @@ namespace btree {
 		if (next != nullptr) {
 			if (next->childCount() + childCount() <= BtreeOrder) {
 				// combine
+
+				return { true, true };
 			} else {
 				// move some from pre to this
+				return { true, false };
 			}
-
-			return true;
 		}
 
-		return false;
+		return { false, false };
 	}
 #undef BASE
 #undef NODE_TEMPLATE
