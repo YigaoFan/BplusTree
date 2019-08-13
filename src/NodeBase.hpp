@@ -570,7 +570,7 @@ namespace btree {
 		getNext<Key, Value, BtreeOrder, T>(this, stack, next); // some don't have one of siblings
 
 		if (spaceFreeIn(next)) {
-			// if not free, will not trigger move, so the type is ref
+			// if not free, will not trigger move, so the ref type is fine
 			auto&& oldMax = elements_.exchangeMax(std::move(p));
 			changeMaxKeyUpper(stack, maxKey());
 
