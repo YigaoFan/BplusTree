@@ -70,13 +70,15 @@ namespace btree {
 		                                      function<bool(NodeBase *)>);
 
 		template <typename T>
-		inline void doRemove(const T&, const vector<NodeBase*>&);
+		inline void doRemove(const T&, vector<NodeBase*>&);
 		template <bool IS_LEAF>
 		bool reBalance(const vector<NodeBase*>&);
 		template <bool IS_LEAF>
 		TryResult tryPreviousBalance(const vector<NodeBase*>&);
 		template <bool IS_LEAF>
 		TryResult tryNextBalance    (const vector<NodeBase*>&);
+		void      receive(NodeBase&&);
+		void      receive(uint16_t, NodeBase&);
 
 		static bool spaceFreeIn(const NodeBase*);
 		static vector<NodeBase*> getPreNodeSearchTrackIn(const vector<NodeBase*>&, const NodeBase*);
@@ -305,7 +307,7 @@ namespace btree {
 	NODE_TEMPLATE
 	template <typename T>
 	void
-	BASE::doRemove(const T& t, const vector<NodeBase*>& passedNodeTrackStack)
+	BASE::doRemove(const T& t, vector<NodeBase*>& passedNodeTrackStack)
 	{
 		auto& stack = passedNodeTrackStack;
 
@@ -317,7 +319,9 @@ namespace btree {
 		// TODO is_same need to verify
 		auto combined = reBalance<std::is_same<T, Key>::value>(stack);
 		if (combined) {
-			// need to remove upper
+			auto finalNode = stack.back();
+			stack.pop_back();
+			stack.back()->doRemove(finalNode, stack);
 		}
 	}
 
@@ -335,6 +339,7 @@ namespace btree {
 		constexpr auto ceil = 1 + ((BtreeOrder - 1) / 2);
 		if (childCount() < ceil) {
 			// maybe fine the choose of pre and next
+			// 1。 尽量找离 w/2 或者 w 比较远的兄弟进行操作（这三个节点哪个离平均值最远）
 			if (auto preRes = tryPreviousBalance<IS_LEAF>(stack)) {
 				return preRes.combined;
 			} else if (auto nxtRes = tryNextBalance<IS_LEAF>(stack)) {
@@ -434,7 +439,7 @@ namespace btree {
 
 	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
 	void
-	setSiblings(BASE*, BASE*);
+	setNewPreRelation(BASE*, BASE*);
 
 	// first in: split leaf
 	NODE_TEMPLATE
@@ -449,11 +454,11 @@ namespace btree {
 		auto newPre = this->clone();
 		auto newPrePtr = newPre.get();
 		// left is newPre, right is this
-		setSiblings<Key, Value, BtreeOrder, T>(newPrePtr, this);
+		setNewPreRelation<Key, Value, BtreeOrder, std::is_same<typename std::decay<T>::type, Value>::value>(newPrePtr, this);
 
 		auto removeItems = [&] (uint16_t preNodeRemoveCount) {
-			newPrePtr->elements_.removeItems(false, preNodeRemoveCount);
-			this->elements_.removeItems(true, BtreeOrder - preNodeRemoveCount);
+			newPrePtr->elements_.removeItems<false>(preNodeRemoveCount);
+			this->elements_.removeItems<true>(BtreeOrder - preNodeRemoveCount);
 		};
 
 		auto addIn = [&] (NodeBase* node, bool shouldAppend) {
@@ -474,8 +479,6 @@ namespace btree {
 			removeItems(removeCount);
 
 			HANDLE_ADD(newPrePtr, middle);
-			// maybe here should judge shouldAppend if the newPre added before
-			// but will use some other time to compute
 		} else {
 			constexpr auto removeCount = BtreeOrder - middle;
 			removeItems(removeCount);
@@ -580,6 +583,10 @@ namespace btree {
 		return false;
 	}
 
+	template <typename Key, typename Value, uint16_t BtreeOrder, bool IS_LEAF>
+	void
+	setRemoveCurrentRelation(BASE*);
+
 	NODE_TEMPLATE
 	template <bool IS_LEAF>
 	TryResult
@@ -590,17 +597,26 @@ namespace btree {
 		NodeBase* previous = nullptr;
 		getPrevious<Key, Value, BtreeOrder, IS_LEAF>(this, stack, previous); // some don't have one of siblings
 
+		// 这些使用 NodeBase 的操作会不会没有顾及到实际的类型，符合想要的语义吗？应该是符合的。Btree本来就是交给NodeBase来操作
+		// 那 MiddleNode 和 LeafNode 的意义是什么呢？
 		if (previous != nullptr) {
 			if (previous->childCount() + childCount() <= BtreeOrder) {
 				// combine
+				previous->receive(std::move(*this));
+				previous->changeMaxKeyUpper(stack, previous->maxKey());
+				setRemoveCurrentRelation(this);
 
 				return { true, true };
 			} else {
 				// move some from pre to this
+				auto moveCount = (previous->childCount() - childCount()) / 2;
+				receive(moveCount, *previous);
+				// TODO change preNode max upper
+
 				return { true, false };
 			}
-			// TODO because if-else, the come next will have some disadvantage
 
+			// TODO because if-else, the come next will have some disadvantage
 		}
 
 		return { false, false };
@@ -620,6 +636,7 @@ namespace btree {
 			if (next->childCount() + childCount() <= BtreeOrder) {
 				// combine
 
+
 				return { true, true };
 			} else {
 				// move some from pre to this
@@ -628,6 +645,20 @@ namespace btree {
 		}
 
 		return { false, false };
+	}
+
+	NODE_TEMPLATE
+	void
+	BASE::receive(NodeBase&& that)
+	{
+		elements_.receive(that.elements_);
+	}
+
+	NODE_TEMPLATE
+	void
+	BASE::receive(uint16_t count, NodeBase& preNode)
+	{
+		elements_.receive(count, preNode.elements_);
 	}
 #undef BASE
 #undef NODE_TEMPLATE

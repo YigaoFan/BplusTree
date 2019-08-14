@@ -10,19 +10,34 @@ namespace btree {
 #define LEAF   LeafNode  <Key, Value, BtreeOrder>
 #define MIDDLE MiddleNode<Key, Value, BtreeOrder>
 
-	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
+	// for pre, should have nxt version
+	template <typename Key, typename Value, uint16_t BtreeOrder, bool IS_LEAF>
 	void
-	setSiblings(BASE* newPreNode, BASE* currentNode)
+	setNewPreRelation(BASE* newPreNode, BASE* currentNode)
 	{
 		// left is newPre, right is currentNode
-		if constexpr (std::is_same<typename std::decay<T>::type, Value>::value) {
+		if constexpr (IS_LEAF) {
 			auto node = static_cast<LEAF*>(currentNode);
 			auto oldPrevious = node->previousLeaf();
-			auto preNode = static_cast<LEAF*>(newPreNode);
+			auto newPre = static_cast<LEAF*>(newPreNode);
 
-			preNode->previousLeaf(oldPrevious);
-			preNode->nextLeaf(node);
-			node->previousLeaf(preNode);
+			newPre->previousLeaf(oldPrevious);
+			newPre->nextLeaf(node);
+			node->previousLeaf(newPre);
+		}
+	}
+
+	template <typename Key, typename Value, uint16_t BtreeOrder, bool IS_LEAF>
+	void
+	setRemoveCurrentRelation(BASE* currentNode)
+	{
+		if constexpr (IS_LEAF) {
+			auto current = static_cast<LEAF*>(currentNode);
+			auto pre = current->previousLeaf();
+			auto nxt = current->nextLeaf();
+
+			pre->nextLeaf(nxt);
+			nxt->previousLeaf(pre);
 		}
 	}
 

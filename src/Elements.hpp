@@ -56,11 +56,14 @@ namespace btree {
 		// all this change caller should promise not out of bound
 		bool             remove(const Key&);
 		bool             remove(uint16_t);
-		void             removeItems(bool, uint16_t);
+		template <bool FROM_HEAD>
+		void             removeItems(uint16_t);
 		void             insert(pair<Key, Value>);
 		void             insert(pair<Key, unique_ptr<PtrType>>);
 		void             append(pair<Key, Value>);
 		void             append(pair<Key, unique_ptr<PtrType>>);
+		void             receive(Elements&&);
+		void             receive(uint16_t, Elements&);
 		uint16_t         changeKeyOf(PtrType *, Key);
 		pair<Key, Value> exchangeMax(pair<Key, Value>);
 		pair<Key, Value> exchangeMin(pair<Key, Value>, bool &maxChanged);
@@ -227,10 +230,11 @@ namespace btree {
 	}
 
 	ELEMENTS_TEMPLATE
+	template <bool FROM_HEAD>
 	void
-	ELE::removeItems(bool fromHead, uint16_t count)
+	ELE::removeItems(uint16_t count)
 	{
-		if (fromHead) {
+		if constexpr (FROM_HEAD) {
 			adjustMemory(-count, count);
 		} else {
 			auto num = count;
@@ -404,6 +408,34 @@ namespace btree {
 		++_count;
 	}
 
+	ELEMENTS_TEMPLATE
+	void
+	ELE::receive(Elements&& that)
+	{
+		for (auto& e : that) {
+			_elements[_count] = std::move(e);
+			++_count;
+		}
+
+		that._count = 0;
+	}
+
+	ELEMENTS_TEMPLATE
+	void
+	ELE::receive(uint16_t count, Elements& preThat)
+	{
+		// now is for pre Node temporarily
+		adjustMemory(count, count); // TODO check this work right
+		auto rbegin= preThat._elements.rbegin();
+		auto rend = rbegin + count;
+		for (auto i = 0; rbegin != rend; ++rbegin, ++i) {
+			_elements[i] = std::move(*rbegin);
+			++_count;
+		}
+
+		preThat.removeItems<false>(count); // will decrease preThat _count
+	}
+
 	/**
 	 * @return matched index
 	 */
@@ -522,7 +554,7 @@ namespace btree {
 	}
 
 	/**
-	 * start included
+	 * start included, still exist
 	 */
 	ELEMENTS_TEMPLATE
 	void
