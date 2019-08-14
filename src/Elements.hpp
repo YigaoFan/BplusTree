@@ -28,6 +28,8 @@ namespace btree {
 
 #define ELEMENTS_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder, typename PtrType>
 
+	struct TailAppendWay { };
+	struct HeadInsertWay { };
 	// Internal could use ptr to search when know ptr
 	// modify method arg should be pair<Key, Value> without reference
 	/**
@@ -62,8 +64,10 @@ namespace btree {
 		void             insert(pair<Key, unique_ptr<PtrType>>);
 		void             append(pair<Key, Value>);
 		void             append(pair<Key, unique_ptr<PtrType>>);
-		void             receive(Elements&&);
-		void             receive(uint16_t, Elements&);
+		void             receive(TailAppendWay, Elements&&);
+		void             receive(HeadInsertWay, Elements&&);
+		void             receive(HeadInsertWay, uint16_t, Elements&);
+		void             receive(TailAppendWay, uint16_t, Elements&);
 		uint16_t         changeKeyOf(PtrType *, Key);
 		pair<Key, Value> exchangeMax(pair<Key, Value>);
 		pair<Key, Value> exchangeMin(pair<Key, Value>, bool &maxChanged);
@@ -238,7 +242,7 @@ namespace btree {
 			adjustMemory(-count, count);
 		} else {
 			auto num = count;
-			for (auto rbegin = _elements.rbegin(); num != 0; --num, --rbegin) {
+			for (auto rbegin = _elements.start(); num != 0; --num, --rbegin) {
 				auto destructOne = std::move(*rbegin);
 			}
 		}
@@ -410,30 +414,45 @@ namespace btree {
 
 	ELEMENTS_TEMPLATE
 	void
-	ELE::receive(Elements&& that)
+	ELE::receive(TailAppendWay, Elements&& that)
 	{
-		for (auto& e : that) {
-			_elements[_count] = std::move(e);
-			++_count;
-		}
-
-		that._count = 0;
+		receive(TailAppendWay(), that.count(), that);
 	}
 
 	ELEMENTS_TEMPLATE
 	void
-	ELE::receive(uint16_t count, Elements& preThat)
+	ELE::receive(HeadInsertWay, Elements&& that)
 	{
-		// now is for pre Node temporarily
+		receive(HeadInsertWay(), that.count(), that);
+	}
+
+	ELEMENTS_TEMPLATE
+	void
+	ELE::receive(HeadInsertWay, uint16_t count, Elements& that)
+	{
 		adjustMemory(count, count); // TODO check this work right
-		auto rbegin= preThat._elements.rbegin();
-		auto rend = rbegin + count;
-		for (auto i = 0; rbegin != rend; ++rbegin, ++i) {
-			_elements[i] = std::move(*rbegin);
+		decltype(that._elements.begin()) start = (that._elements.end() - count);
+		auto end = start + count;
+
+		for (auto i = 0; start != end; ++start, ++i) {
+			_elements[i] = std::move(*start);
 			++_count;
 		}
 
-		preThat.removeItems<false>(count); // will decrease preThat _count
+		that.removeItems<false>(count); // will decrease preThat _count
+	}
+
+	// start "that" where is not clear
+	ELEMENTS_TEMPLATE
+	void
+	ELE::receive(TailAppendWay, uint16_t count, Elements& that)
+	{
+		for (auto i = 0; i < count; ++i) {
+			_elements[_count] = std::move(that._elements[i]);
+			++_count;
+		}
+
+		that.removeItems<true>(count);
 	}
 
 	/**
@@ -569,7 +588,7 @@ namespace btree {
 		} else if (direction > 0) {
 			decltype(_elements.rend()) rend{ start - 1 };
 
-			for (auto rbegin = _elements.rbegin(); rbegin != rend; ++rbegin) {
+			for (auto rbegin = _elements.start(); rbegin != rend; ++rbegin) {
 				*(rbegin + direction) = std::move(*rbegin);
 			}
 		}

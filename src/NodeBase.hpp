@@ -3,19 +3,6 @@
 #include "Elements.hpp"
 
 namespace btree {
-	struct TryResult {
-		bool Successful;
-		bool Combined;
-
-		TryResult(bool successful, bool combined)
-			: Successful(successful), Combined(combined)
-		{ }
-
-		operator bool()
-		{
-			return Successful;
-		}
-	};
 #define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 #define BASE NodeBase<Key, Value, BtreeOrder>
 
@@ -73,12 +60,15 @@ namespace btree {
 		inline void doRemove(const T&, vector<NodeBase*>&);
 		template <bool IS_LEAF>
 		bool reBalance(const vector<NodeBase*>&);
+		NodeBase* chooseBalanceNode(const NodeBase*, const NodeBase*, const NodeBase*) const;
 		template <bool IS_LEAF>
-		TryResult tryPreviousBalance(const vector<NodeBase*>&);
+		bool reBalanceWithPre(NodeBase*, const vector<NodeBase*>&);
 		template <bool IS_LEAF>
-		TryResult tryNextBalance    (const vector<NodeBase*>&);
-		void      receive(NodeBase&&);
-		void      receive(uint16_t, NodeBase&);
+		bool reBalanceWithNxt    (NodeBase*, const vector<NodeBase*>&);
+		void      receive(TailAppendWay, NodeBase&&);
+		void      receive(HeadInsertWay, NodeBase&&);
+		void      receive(HeadInsertWay, uint16_t, NodeBase&);
+		void      receive(TailAppendWay, uint16_t, NodeBase&);
 
 		static bool spaceFreeIn(const NodeBase*);
 		static vector<NodeBase*> getSiblingSearchTrackIn(const vector<NodeBase*>&, const NodeBase*);
@@ -323,6 +313,13 @@ namespace btree {
 		}
 	}
 
+	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
+	void
+	getPrevious(BASE*, const vector<BASE*>&, BASE*&);
+	
+	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
+	void
+	getNext(BASE*, const vector<BASE*>&, BASE*&);
 	/**
 	 * @return combined or not
 	 */
@@ -333,49 +330,51 @@ namespace btree {
 	{
 		auto& stack = passedNodeTrackStack;
 
-		// Keep internal node key count between w/2 and w
 		constexpr auto ceil = 1 + ((BtreeOrder - 1) / 2);
 		if (childCount() < ceil) {
-			// maybe fine the choose of pre and next
-			NodeBase *previous = nullptr;
+			NodeBase* previous = nullptr;
 			// TODO should save search track？
-			getPrevious<Key, Value, BtreeOrder, IS_LEAF>(this, stack, previous); // some don't have one of siblings
+			getPrevious<Key, Value, BtreeOrder, IS_LEAF>(this, stack, previous);
 			NodeBase* next = nullptr;
-			getNext<Key, Value, BtreeOrder, IS_LEAF>(this, stack, next); // some don't have one of siblings
-			// package as function out
-			auto chooseNode = [] (const NodeBase* pre, const NodeBase* current, const NodeBase* nxt) {
-				if ((auto nullPre = pre == nullptr) || (auto nullNxt = nxt == nullptr)) {
-					if (nullPre && nullNxt) {
-						return current;
-					} else if (nullPre) {
-						return nxt;
-					} else {
-						return pre;
-					}
-				}
-
-				if (pre != nullptr && nxt != nullptr) {
-					auto preChilds = pre->childCount();
-					auto curChilds = current->childCount();
-					auto nxtChilds = nxt->childCount();
-					auto average = (preChilds + curChilds + nxtChilds) / 3;
-
-					// 1. 尽量找离 w/2 或者 w 比较远的兄弟进行操作（这三个节点哪个离平均值最远）
-					return abs(preChilds - average) > abs(nxtChilds - average) ? pre : nxt;
-				}
-			};
-			chooseNode(previous, next, this);
-
-			if (auto preRes = tryPreviousBalance<IS_LEAF>(stack)) {
-				return preRes.combined;
-			} else if (auto nxtRes = tryNextBalance<IS_LEAF>(stack)) {
-				return nxtRes.combined;
+			getNext<Key, Value, BtreeOrder, IS_LEAF>(this, stack, next);
+			auto balanceNode = chooseBalanceNode(previous, this, next);
+			
+			if (balanceNode == this) {
+				return false; // means this root leaf without siblings
+			} else if (balanceNode == previous) {
+				return reBalanceWithPre<IS_LEAF>(previous, stack);
+			} else if (balanceNode == next) {
+				return reBalanceWithNxt<IS_LEAF>(next, stack);
 			} else {
 				throw runtime_error("Can't re-balance B+ tree which has child count: " + std::to_string(childCount()));
 			}
 		}
 	}
 
+	NODE_TEMPLATE
+	BASE*
+	BASE::chooseBalanceNode(const NodeBase* pre, const NodeBase* current, const NodeBase* nxt) const
+	{
+		auto nullPre = (pre == nullptr);
+		auto nullNxt = (nxt == nullptr);
+		if (nullPre || nullNxt) {
+			if (nullPre && nullNxt) {
+				return current;
+			} else if (nullPre) {
+				return nxt;
+			} else {
+				return pre;
+			}
+		}
+
+		auto preChilds = pre->childCount();
+		auto curChilds = current->childCount();
+		auto nxtChilds = nxt->childCount();
+		auto average = (preChilds + curChilds + nxtChilds) / 3;
+
+		return abs(preChilds - average) > abs(nxtChilds - average) ? pre : nxt;
+	}
+	
 	NODE_TEMPLATE
 	template <typename T>
 	bool
@@ -552,9 +551,6 @@ namespace btree {
 		return false;
 	}
 
-	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
-	void
-	getPrevious(BASE*, const vector<BASE*>&, BASE*&);
 	/**
 	 * @return means succeed or not
 	 */
@@ -582,9 +578,6 @@ namespace btree {
 		return false;
 	}
 
-	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
-	void
-	getNext(BASE*, const vector<BASE*>&, BASE*&);
 	/**
 	 * @return means succeed or not
 	 */
@@ -615,82 +608,81 @@ namespace btree {
 
 	NODE_TEMPLATE
 	template <bool IS_LEAF>
-	TryResult
-	BASE::tryPreviousBalance(const vector<NodeBase*>& passedNodeTrackStack)
+	bool
+	BASE::reBalanceWithPre(NodeBase* previous, const vector<NodeBase*>& passedNodeTrackStack)
 	{
 		auto& stack = passedNodeTrackStack;
 
-		NodeBase* previous = nullptr;
-		// TODO should save search track？
-		getPrevious<Key, Value, BtreeOrder, IS_LEAF>(this, stack, previous); // some don't have one of siblings
-
 		// 这些使用 NodeBase 的操作会不会没有顾及到实际的类型，符合想要的语义吗？应该是符合的。Btree本来就是交给NodeBase来操作
 		// 那 MiddleNode 和 LeafNode 的意义是什么呢？
-		if (previous != nullptr) {
-			if (previous->childCount() + childCount() <= BtreeOrder) {
-				// combine
-				previous->receive(std::move(*this));
-				auto preStack = getSiblingSearchTrackIn(stack, previous);
-				previous->changeMaxKeyUpper(preStack, previous->maxKey());
-				setRemoveCurrentRelation(this);
+		if (previous->childCount() + childCount() <= BtreeOrder) {
+			// combine
+			previous->receive(TailAppendWay(), std::move(*this));
+			auto preStack = getSiblingSearchTrackIn(stack, previous);
+			previous->changeMaxKeyUpper(preStack, previous->maxKey());
+			setRemoveCurrentRelation(this);
 
-				return { true, true };
-			} else {
-				// move some from pre to this
-				auto moveCount = (previous->childCount() - childCount()) / 2;
-				receive(moveCount, *previous);
-				auto preStack = getSiblingSearchTrackIn(stack, previous);
-				previous->changeMaxKeyUpper(preStack, previous->maxKey());
+			return true;
+		} else {
+			// move some from pre to this
+			auto moveCount = (previous->childCount() - childCount()) / 2;
+			receive(HeadInsertWay(), moveCount, *previous);
+			auto preStack = getSiblingSearchTrackIn(stack, previous);
+			previous->changeMaxKeyUpper(preStack, previous->maxKey());
 
-				return { true, false };
-			}
-
-			// TODO because if-else, the come next will have some disadvantage
+			return false;
 		}
-
-		return { false, false };
 	}
 
 	NODE_TEMPLATE
 	template <bool IS_LEAF>
-	TryResult
-	BASE::tryNextBalance(const vector<NodeBase*>& passedNodeTrackStack)
+	bool
+	BASE::reBalanceWithNxt(NodeBase* next, const vector<NodeBase*>& passedNodeTrackStack)
 	{
 		auto& stack = passedNodeTrackStack;
 
-		NodeBase* next = nullptr;
-		getNext<Key, Value, BtreeOrder, IS_LEAF>(this, stack, next); // some don't have one of siblings
+		if (next->childCount() + childCount() <= BtreeOrder) {
+			// combine
+			next->receive(HeadInsertWay(), std::move(*this));
+			setRemoveCurrentRelation(this);
 
-		if (next != nullptr) {
-			if (next->childCount() + childCount() <= BtreeOrder) {
-				// combine
-				next->receive(std::move(*this));
-				auto preStack = getSiblingSearchTrackIn(stack, next); 
-				previous->changeMaxKeyUpper(preStack, previous->maxKey());
-				setRemoveCurrentRelation(this);
+			return true;
+		} else {
+			// move some from nxt to this
+			auto moveCount = (next->childCount() - childCount()) / 2;
+			receive(TailAppendWay(), moveCount, *next);
+			changeMaxKeyUpper(stack, maxKey());
 
-				return { true, true };
-			} else {
-				// move some from pre to this
-				return { true, false };
-			}
+			return false;
 		}
-
-		return { false, false };
 	}
 
 	NODE_TEMPLATE
 	void
-	BASE::receive(NodeBase&& that)
+	BASE::receive(TailAppendWay, NodeBase&& that)
 	{
-		elements_.receive(that.elements_);
+		elements_.receive(TailAppendWay(), that.elements_);
 	}
 
 	NODE_TEMPLATE
 	void
-	BASE::receive(uint16_t count, NodeBase& preNode)
+	BASE::receive(HeadInsertWay, NodeBase&& that)
 	{
-		elements_.receive(count, preNode.elements_);
+		elements_.receive(HeadInsertWay(), that.elements_);
+	}
+
+	NODE_TEMPLATE
+	void
+	BASE::receive(HeadInsertWay, uint16_t count, NodeBase& node)
+	{
+		elements_.receive(HeadInsertWay(), count, node.elements_);
+	}
+
+	NODE_TEMPLATE
+	void
+	BASE::receive(TailAppendWay, uint16_t count, NodeBase& node)
+	{
+		elements_.receive(TailAppendWay(), count, node.elements_);
 	}
 #undef BASE
 #undef NODE_TEMPLATE
