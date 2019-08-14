@@ -81,9 +81,7 @@ namespace btree {
 		void      receive(uint16_t, NodeBase&);
 
 		static bool spaceFreeIn(const NodeBase*);
-		static vector<NodeBase*> getPreNodeSearchTrackIn(const vector<NodeBase*>&, const NodeBase*);
-
-
+		static vector<NodeBase*> getSiblingSearchTrackIn(const vector<NodeBase*>&, const NodeBase*);
 	};
 }
 
@@ -339,7 +337,35 @@ namespace btree {
 		constexpr auto ceil = 1 + ((BtreeOrder - 1) / 2);
 		if (childCount() < ceil) {
 			// maybe fine the choose of pre and next
-			// 1。 尽量找离 w/2 或者 w 比较远的兄弟进行操作（这三个节点哪个离平均值最远）
+			NodeBase *previous = nullptr;
+			// TODO should save search track？
+			getPrevious<Key, Value, BtreeOrder, IS_LEAF>(this, stack, previous); // some don't have one of siblings
+			NodeBase* next = nullptr;
+			getNext<Key, Value, BtreeOrder, IS_LEAF>(this, stack, next); // some don't have one of siblings
+			// package as function out
+			auto chooseNode = [] (const NodeBase* pre, const NodeBase* current, const NodeBase* nxt) {
+				if ((auto nullPre = pre == nullptr) || (auto nullNxt = nxt == nullptr)) {
+					if (nullPre && nullNxt) {
+						return current;
+					} else if (nullPre) {
+						return nxt;
+					} else {
+						return pre;
+					}
+				}
+
+				if (pre != nullptr && nxt != nullptr) {
+					auto preChilds = pre->childCount();
+					auto curChilds = current->childCount();
+					auto nxtChilds = nxt->childCount();
+					auto average = (preChilds + curChilds + nxtChilds) / 3;
+
+					// 1. 尽量找离 w/2 或者 w 比较远的兄弟进行操作（这三个节点哪个离平均值最远）
+					return abs(preChilds - average) > abs(nxtChilds - average) ? pre : nxt;
+				}
+			};
+			chooseNode(previous, next, this);
+
 			if (auto preRes = tryPreviousBalance<IS_LEAF>(stack)) {
 				return preRes.combined;
 			} else if (auto nxtRes = tryNextBalance<IS_LEAF>(stack)) {
@@ -369,7 +395,7 @@ namespace btree {
 		// attention func change the stack or not
 
 		auto oldMaxKey = previousNode->maxKey();
-		auto previousTrackStack = getPreNodeSearchTrackIn(stack, previousNode); // previous is leaf
+		auto previousTrackStack = getSiblingSearchTrackIn(stack, previousNode); // previous is leaf
 		previousNode->elements_.append(std::move(appendPair));
 		auto& newMaxKey = previousNode->maxKey(); // will change previous max
 		changeMaxKeyUpper(previousTrackStack, newMaxKey);
@@ -382,12 +408,12 @@ namespace btree {
 	 */
 	NODE_TEMPLATE
 	vector<BASE*>
-	BASE::getPreNodeSearchTrackIn(const vector<NodeBase *>& currentNodePassedTrackStack, const NodeBase * previousNode)
+	BASE::getSiblingSearchTrackIn(const vector<NodeBase *>& currentNodePassedTrackStack, const NodeBase * sibling)
 	{
 		// TODO when call on Middle, there are duplicates compute
 		// Because the last Middle has already search this(wait to verify)
 		auto& stack = currentNodePassedTrackStack;
-		auto& maxKey = previousNode->maxKey();
+		auto& maxKey = sibling->maxKey();
 		auto rCurrentNodeIter = ++stack.rbegin(); // from not leaf
 		auto rEnd = stack.rend();
 
@@ -595,6 +621,7 @@ namespace btree {
 		auto& stack = passedNodeTrackStack;
 
 		NodeBase* previous = nullptr;
+		// TODO should save search track？
 		getPrevious<Key, Value, BtreeOrder, IS_LEAF>(this, stack, previous); // some don't have one of siblings
 
 		// 这些使用 NodeBase 的操作会不会没有顾及到实际的类型，符合想要的语义吗？应该是符合的。Btree本来就是交给NodeBase来操作
@@ -603,7 +630,8 @@ namespace btree {
 			if (previous->childCount() + childCount() <= BtreeOrder) {
 				// combine
 				previous->receive(std::move(*this));
-				previous->changeMaxKeyUpper(stack, previous->maxKey());
+				auto preStack = getSiblingSearchTrackIn(stack, previous);
+				previous->changeMaxKeyUpper(preStack, previous->maxKey());
 				setRemoveCurrentRelation(this);
 
 				return { true, true };
@@ -611,7 +639,8 @@ namespace btree {
 				// move some from pre to this
 				auto moveCount = (previous->childCount() - childCount()) / 2;
 				receive(moveCount, *previous);
-				// TODO change preNode max upper
+				auto preStack = getSiblingSearchTrackIn(stack, previous);
+				previous->changeMaxKeyUpper(preStack, previous->maxKey());
 
 				return { true, false };
 			}
@@ -635,7 +664,10 @@ namespace btree {
 		if (next != nullptr) {
 			if (next->childCount() + childCount() <= BtreeOrder) {
 				// combine
-
+				next->receive(std::move(*this));
+				auto preStack = getSiblingSearchTrackIn(stack, next); 
+				previous->changeMaxKeyUpper(preStack, previous->maxKey());
+				setRemoveCurrentRelation(this);
 
 				return { true, true };
 			} else {
