@@ -60,11 +60,13 @@ namespace btree {
 		inline void doRemove(const T&, vector<NodeBase*>&);
 		template <bool IS_LEAF>
 		bool reBalance(const vector<NodeBase*>&);
-		NodeBase* chooseBalanceNode(const NodeBase*, const NodeBase*, const NodeBase*) const;
+		bool chooseBalanceNodeDo(const NodeBase *, function<bool()>&,
+		                         const NodeBase *, function<bool()>&,
+		                         const NodeBase *, function<bool()>&) const;
 		template <bool IS_LEAF>
 		bool reBalanceWithPre(NodeBase*, const vector<NodeBase*>&);
 		template <bool IS_LEAF>
-		bool reBalanceWithNxt    (NodeBase*, const vector<NodeBase*>&);
+		bool reBalanceWithNxt(NodeBase*, const vector<NodeBase*>&);
 		void      receive(TailAppendWay, NodeBase&&);
 		void      receive(HeadInsertWay, NodeBase&&);
 		void      receive(HeadInsertWay, uint16_t, NodeBase&);
@@ -337,33 +339,33 @@ namespace btree {
 			getPrevious<Key, Value, BtreeOrder, IS_LEAF>(this, stack, previous);
 			NodeBase* next = nullptr;
 			getNext<Key, Value, BtreeOrder, IS_LEAF>(this, stack, next);
-			auto balanceNode = chooseBalanceNode(previous, this, next);
-			
-			if (balanceNode == this) {
-				return false; // means this root leaf without siblings
-			} else if (balanceNode == previous) {
+			auto preHandler = [&] () {
 				return reBalanceWithPre<IS_LEAF>(previous, stack);
-			} else if (balanceNode == next) {
-				return reBalanceWithNxt<IS_LEAF>(next, stack);
-			} else {
-				throw runtime_error("Can't re-balance B+ tree which has child count: " + std::to_string(childCount()));
-			}
+			};
+			auto currentHandler = [] () { return false; };
+			auto nxtHandler = [&] () {
+				return reBalanceWithPre<IS_LEAF>(previous, stack);
+			};
+
+			return chooseBalanceNodeDo(previous, preHandler, this, currentHandler, next, nxtHandler);
 		}
 	}
 
 	NODE_TEMPLATE
-	BASE*
-	BASE::chooseBalanceNode(const NodeBase* pre, const NodeBase* current, const NodeBase* nxt) const
+	bool
+	BASE::chooseBalanceNodeDo(const NodeBase *pre,     function<bool(void)>& preHandler,
+							  const NodeBase *current, function<bool(void)>& currentHandler,
+							  const NodeBase *nxt,     function<bool(void)>& nxtHandler) const
 	{
 		auto nullPre = (pre == nullptr);
 		auto nullNxt = (nxt == nullptr);
 		if (nullPre || nullNxt) {
 			if (nullPre && nullNxt) {
-				return current;
+				return currentHandler();
 			} else if (nullPre) {
-				return nxt;
+				return nxtHandler();
 			} else {
-				return pre;
+				return preHandler();
 			}
 		}
 
@@ -372,7 +374,7 @@ namespace btree {
 		auto nxtChilds = nxt->childCount();
 		auto average = (preChilds + curChilds + nxtChilds) / 3;
 
-		return abs(preChilds - average) > abs(nxtChilds - average) ? pre : nxt;
+		return abs(preChilds - average) > abs(nxtChilds - average) ? preHandler() : nxtHandler();
 	}
 	
 	NODE_TEMPLATE
