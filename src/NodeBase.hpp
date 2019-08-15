@@ -60,9 +60,9 @@ namespace btree {
 		inline void doRemove(const T&, vector<NodeBase*>&);
 		template <bool IS_LEAF>
 		bool reBalance(const vector<NodeBase*>&);
-		bool chooseBalanceNodeDo(const NodeBase *, function<bool()>&,
-		                         const NodeBase *, function<bool()>&,
-		                         const NodeBase *, function<bool()>&) const;
+		bool chooseBalanceNodeDo(const NodeBase *, function<bool(void)>,
+								 const NodeBase *, function<bool(void)>,
+								 const NodeBase *, function<bool(void)>) const;
 		template <bool IS_LEAF>
 		bool reBalanceWithPre(NodeBase*, const vector<NodeBase*>&);
 		template <bool IS_LEAF>
@@ -347,15 +347,15 @@ namespace btree {
 				return reBalanceWithPre<IS_LEAF>(previous, stack);
 			};
 
-			return chooseBalanceNodeDo(previous, preHandler, this, currentHandler, next, nxtHandler);
+			return chooseBalanceNodeDo(previous, std::move(preHandler), this, std::move(currentHandler), next, std::move(nxtHandler));
 		}
 	}
 
 	NODE_TEMPLATE
 	bool
-	BASE::chooseBalanceNodeDo(const NodeBase *pre,     function<bool(void)>& preHandler,
-							  const NodeBase *current, function<bool(void)>& currentHandler,
-							  const NodeBase *nxt,     function<bool(void)>& nxtHandler) const
+	BASE::chooseBalanceNodeDo(const NodeBase *pre, function<bool(void)> preHandler,
+							  const NodeBase *current, function<bool(void)> currentHandler,
+							  const NodeBase *nxt, function<bool(void)> nxtHandler) const
 	{
 		auto nullPre = (pre == nullptr);
 		auto nullNxt = (nxt == nullptr);
