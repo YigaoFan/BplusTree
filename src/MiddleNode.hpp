@@ -66,7 +66,7 @@ namespace btree {
 		return Base::Ele::ptr(es[this->childCount()-1].second);
 	}
 
-#define SEARCH_HELPER_DEF(FUN_NAME, COMPARE_TO_BOUND, OFFSET, CHOOSE_SON) \
+#define SEARCH_HELPER_DEF(FUN_NAME, COMPARE_TO_BOUND, OFFSET, CHOOSE_SON)                        \
 	function<Base*(decltype(rIter))> FUN_NAME = [&] (decltype(rIter) currentNodeIter) -> Base* { \
 		auto upperNodeIter = ++rIter;                                                            \
 		if (upperNodeIter == rEnd) {                                                             \
@@ -74,16 +74,16 @@ namespace btree {
 		}                                                                                        \
     	                                                                                         \
 		auto& upperElements = upperNodeIter->elements_;                                          \
-		auto i = upperElements.indexOf(*currentNodeIter);                                        \
+		auto i = upperElements.indexOf(*currentNodeIter);                                  \
 		                                                                                         \
 		if (i COMPARE_TO_BOUND) {                                                                \
 			return Base::Ele::ptr(upperElements[i OFFSET].second);                               \
 		} else {                                                                                 \
-			auto previousOfUpper = searchPreHelper(upperNodeIter);                               \
-			return static_cast<MiddleNode*>(previousOfUpper)->CHOOSE_SON();                      \
+			auto upperOfSibling = FUN_NAME(upperNodeIter);                                       \
+			return static_cast<MiddleNode*>(upperOfSibling)->CHOOSE_SON();                       \
 		}                                                                                        \
 	};
-
+	// use CPS up?
 	/**
 	 * not change the stack
 	 */

@@ -60,17 +60,17 @@ namespace btree {
 		inline void doRemove(const T&, vector<NodeBase*>&);
 		template <bool IS_LEAF>
 		bool reBalance(const vector<NodeBase*>&);
-		bool chooseBalanceNodeDo(const NodeBase *, function<bool(void)>,
-								 const NodeBase *, function<bool(void)>,
-								 const NodeBase *, function<bool(void)>) const;
+		bool chooseBalanceNodeDo(const NodeBase *, function<bool(NodeBase*)>,
+								 const NodeBase *, function<bool()>,
+								 const NodeBase *, function<bool(NodeBase*)>) const;
 		template <bool IS_LEAF>
 		bool reBalanceWithPre(NodeBase*, const vector<NodeBase*>&);
 		template <bool IS_LEAF>
 		bool reBalanceWithNxt(NodeBase*, const vector<NodeBase*>&);
-		void      receive(TailAppendWay, NodeBase&&);
-		void      receive(HeadInsertWay, NodeBase&&);
-		void      receive(HeadInsertWay, uint16_t, NodeBase&);
-		void      receive(TailAppendWay, uint16_t, NodeBase&);
+		void receive(TailAppendWay, NodeBase&&);
+		void receive(HeadInsertWay, NodeBase&&);
+		void receive(HeadInsertWay, uint16_t, NodeBase&);
+		void receive(TailAppendWay, uint16_t, NodeBase&);
 
 		static bool spaceFreeIn(const NodeBase*);
 		static vector<NodeBase*> getSiblingSearchTrackIn(const vector<NodeBase*>&, const NodeBase*);
@@ -271,9 +271,9 @@ namespace btree {
 			}
 		} else {
 			// maybe fine the choose of pre and next
-			if (tryPreviousAdd<Key, Value, BtreeOrder, T>(p, stack)) {
+			if (tryPreviousAdd<T>(p, stack)) {
 
-			} else if (tryNextAdd<Key, Value, BtreeOrder, T>(p, stack)) {
+			} else if (tryNextAdd<T>(p, stack)) {
 
 			} else {
 				splitNode(std::move(p), stack);
@@ -339,12 +339,12 @@ namespace btree {
 			getPrevious<Key, Value, BtreeOrder, IS_LEAF>(this, stack, previous);
 			NodeBase* next = nullptr;
 			getNext<Key, Value, BtreeOrder, IS_LEAF>(this, stack, next);
-			auto preHandler = [&] () {
-				return reBalanceWithPre<IS_LEAF>(previous, stack);
+			auto preHandler = [&] (NodeBase* pre) {
+				return reBalanceWithPre<IS_LEAF>(pre, stack);
 			};
 			auto currentHandler = [] () { return false; };
-			auto nxtHandler = [&] () {
-				return reBalanceWithPre<IS_LEAF>(previous, stack);
+			auto nxtHandler = [&] (NodeBase* nxt) {
+				return reBalanceWithNxt<IS_LEAF>(nxt, stack);
 			};
 
 			return chooseBalanceNodeDo(previous, std::move(preHandler), this, std::move(currentHandler), next, std::move(nxtHandler));
@@ -353,9 +353,9 @@ namespace btree {
 
 	NODE_TEMPLATE
 	bool
-	BASE::chooseBalanceNodeDo(const NodeBase *pre, function<bool(void)> preHandler,
-							  const NodeBase *current, function<bool(void)> currentHandler,
-							  const NodeBase *nxt, function<bool(void)> nxtHandler) const
+	BASE::chooseBalanceNodeDo(const NodeBase *pre,     function<bool(NodeBase*)> preHandler,
+		                      const NodeBase *current, function<bool()> currentHandler,
+		                      const NodeBase *nxt,     function<bool(NodeBase*)> nxtHandler) const
 	{
 		auto nullPre = (pre == nullptr);
 		auto nullNxt = (nxt == nullptr);
@@ -363,9 +363,9 @@ namespace btree {
 			if (nullPre && nullNxt) {
 				return currentHandler();
 			} else if (nullPre) {
-				return nxtHandler();
+				return nxtHandler(nxt);
 			} else {
-				return preHandler();
+				return preHandler(pre);
 			}
 		}
 
@@ -374,7 +374,7 @@ namespace btree {
 		auto nxtChilds = nxt->childCount();
 		auto average = (preChilds + curChilds + nxtChilds) / 3;
 
-		return abs(preChilds - average) > abs(nxtChilds - average) ? preHandler() : nxtHandler();
+		return abs(preChilds - average) > abs(nxtChilds - average) ? preHandler(pre) : nxtHandler(nxt);
 	}
 	
 	NODE_TEMPLATE
@@ -453,7 +453,8 @@ namespace btree {
 
 		while (rCurrentIter != rEnd) {
 			auto upperNodeIter = rCurrentIter + 1;
-			auto matchIndex = upperNodeIter->elements_.changeKeyOf(*rCurrentIter, newMaxKey);
+			// TODO below code has problem
+			auto matchIndex = upperNodeIter->elements_.changeKeyOf(rCurrentIter, newMaxKey);
 
 			auto maxIndex = upperNodeIter->childCount() - 1;
 			if (matchIndex != maxIndex) {
