@@ -189,12 +189,8 @@ namespace btree {
 		if (empty()) {
 			throw runtime_error("The tree is empty");
 		}
-		auto valuePtr = _root->search(key); // TODO maybe could return Node or ValueForContent ... to make consistency
-		if (valuePtr == nullptr) {
-			throw runtime_error("The key you searched doesn't exist in this tree.");
-		}
 
-		return *valuePtr;
+		return _root->search(key);
 	}
 
 	BTREE_TEMPLATE
@@ -220,15 +216,9 @@ namespace btree {
 	void
 	BTREE::modify(pair<Key, Value> pair)
 	{
-		if (!have(pair.first)) {
-			throw runtime_error(
-				"Unable to modify, because the tree has no that key-value");
+		if (!empty()) {
+			_root->modify(pair.first, std::move(pair.second));
 		}
-
-		auto& k = pair.first;
-		auto& v = pair.second;
-		
-		*(_root->search(k)) = std::move(v);
 	}
 
 	BTREE_TEMPLATE
@@ -255,12 +245,13 @@ namespace btree {
 		vector<Base*> passedNodeTrackStack;
 		auto& stack = passedNodeTrackStack;
 
-		if (!have(key, stack)) {
+		if (empty()) {
 			return;
 		}
-
-		_root->remove(key, stack);
-		--_keyNum;
+		if (_root->have(key, stack)) {
+			_root->remove(key, stack);
+			--_keyNum;
+		}
 	}
 
 	BTREE_TEMPLATE

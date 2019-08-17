@@ -11,7 +11,7 @@ namespace btree {
 #define MIDDLE MiddleNode<Key, Value, BtreeOrder>
 
 	// for pre, should have nxt version
-	template <typename Key, typename Value, uint16_t BtreeOrder, bool IS_LEAF>
+	template <bool IS_LEAF, typename Key, typename Value, uint16_t BtreeOrder>
 	void
 	setNewPreRelation(BASE* newPreNode, BASE* currentNode)
 	{
@@ -27,7 +27,7 @@ namespace btree {
 		}
 	}
 
-	template <typename Key, typename Value, uint16_t BtreeOrder, bool IS_LEAF>
+	template <bool IS_LEAF, typename Key, typename Value, uint16_t BtreeOrder>
 	void
 	setRemoveCurrentRelation(BASE* currentNode)
 	{
@@ -41,7 +41,7 @@ namespace btree {
 		}
 	}
 
-	template <typename Key, typename Value, uint16_t BtreeOrder, bool IS_LEAF>
+	template <bool IS_LEAF, typename Key, typename Value, uint16_t BtreeOrder>
 	void
 	getPrevious(BASE* node, const vector<BASE*>& passedNodeTrackStack, BASE*& previous)
 	{
@@ -55,7 +55,7 @@ namespace btree {
 		}
 	}
 
-	template <typename Key, typename Value, uint16_t BtreeOrder, bool IS_LEAF>
+	template <bool IS_LEAF, typename Key, typename Value, uint16_t BtreeOrder>
 	void
 	getNext(BASE* node, const vector<BASE*>& passedNodeTrackStack, BASE*& next)
 	{

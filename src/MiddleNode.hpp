@@ -73,7 +73,7 @@ namespace btree {
             return callBack(nullptr);                                                                                                                     \
         }                                                                                                                                                 \
                                                                                                                                                           \
-        auto& upperElements = ptrOff(upperNodeIter)->elements_;                                                                                           \
+        auto& upperElements = static_cast<MiddleNode*>(ptrOff(upperNodeIter))->elements_;                                                                                           \
         auto i = upperElements.indexOf(*currentNodeIter);                                                                                                 \
                                                                                                                                                           \
         if (i COMPARE_TO_BOUND) {                                                                                                                         \
@@ -111,7 +111,7 @@ namespace btree {
 		auto rIter = stack.rbegin();
 		auto rEnd  = stack.rend();
 
-		SEARCH_HELPER_DEF(searchNxtHelper, <(ptrOff(upperNodeIter)->childCount()-1), +1, minSon)
+		SEARCH_HELPER_DEF(searchNxtHelper, <(static_cast<MiddleNode*>(ptrOff(upperNodeIter))->childCount()-1), +1, minSon)
 		next = searchNxtHelper(rIter, [] (auto n) { return n; });
 	}
 #undef SEARCH_HELPER_DEF

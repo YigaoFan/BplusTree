@@ -88,7 +88,6 @@ namespace btree {
 		auto     begin() const;
 		auto     end  () const;
 
-		//TODO should use reference or value? actually is read way and write way and copy way
 		static Value&         value_Ref(ValueForContent&);
 		static const Value&   value_Ref(const ValueForContent&);
 		static Value          value_Copy(const ValueForContent&);
@@ -335,7 +334,6 @@ namespace btree {
 #undef PTR_OF_ELE
 	}
 
-
 	ELEMENTS_TEMPLATE
 	int32_t
 	ELE::indexOf(const Key& key) const
@@ -370,6 +368,11 @@ namespace btree {
 #undef KEY_OF_ELE
 	}
 
+#define VOID_RET_MODIFY_METHOD_INSTANCE(METHOD, T) ELEMENTS_TEMPLATE void ELE::METHOD(pair<Key, T> p) { return METHOD<T>(std::move(p)); }
+
+	VOID_RET_MODIFY_METHOD_INSTANCE(insert, Value)
+	VOID_RET_MODIFY_METHOD_INSTANCE(insert, unique_ptr<PtrType>)
+
 	ELEMENTS_TEMPLATE
 	template <typename T>
 	void
@@ -383,7 +386,7 @@ namespace btree {
 		uint16_t i = 0;
 		for (; i < _count; ++i) {
 			if ((*LessThanPtr)(k, _elements[i].first) == (*LessThanPtr)(_elements[i].first, k)) {
-				throw runtime_error("The inserting key duplicates: " + k);
+				throw runtime_error("The inserting key duplicates");
 			} else if ((*LessThanPtr)(k, _elements[i].first)) {
 				goto Insert;
 			}
@@ -399,6 +402,10 @@ namespace btree {
 		++_count;
 	}
 
+	VOID_RET_MODIFY_METHOD_INSTANCE(append, Value)
+	VOID_RET_MODIFY_METHOD_INSTANCE(append, unique_ptr<PtrType>)
+
+#undef VOID_RET_MODIFY_METHOD_INSTANCE
 	ELEMENTS_TEMPLATE
 	template <typename T>
 	void
@@ -473,18 +480,27 @@ namespace btree {
 	if (_count < BtreeOrder) {                                                                                   \
 		throw runtime_error("Please invoke exchangeMax when the Elements is full, you can use full to check it");\
 	} else if (have(p.first)) {                                                                                  \
-		throw runtime_error("The Key: " + p.first + " has already existed");                                     \
+		throw runtime_error("The Key has already existed");                                     \
 	}
+#else
+#define BOUND_CHECK
 #endif
+
+
+#define EXCHANGE_MAX_INSTANCE(T) ELEMENTS_TEMPLATE pair<Key, T> ELE::exchangeMax(pair<Key, T> p) { return exchangeMax<T>(std::move(p)); }
+
+	EXCHANGE_MAX_INSTANCE(Value)
+	EXCHANGE_MAX_INSTANCE(unique_ptr<PtrType>)
+
+#undef EXCHANGE_MAX_INSTANCE
 
 	ELEMENTS_TEMPLATE
 	template <typename T>
 	pair<Key, T>
 	ELE::exchangeMax(pair<Key, T> p)
 	{
-#ifdef BTREE_DEBUG
 		BOUND_CHECK
-#endif
+
 		auto& maxItem = _elements[_count - 1];
 		auto key = maxItem.first;
 		auto valueForContent = std::move(maxItem.second);
@@ -493,20 +509,25 @@ namespace btree {
 		add(std::move(p));
 		
 		if constexpr (std::is_same<T, Value>::value) {
-			return make_pair<Key, T>(std::move(key), std::move(value_Ref(valueForContent)));
+			return make_pair<Key, T>(std::move(key), value_Move(valueForContent));
 		} else {
-			return make_pair<Key, T>(std::move(key), std::move(ptr(valueForContent)));
+			return make_pair<Key, T>(std::move(key), uniquePtr_Move(valueForContent));
 		}
 	}
+#define EXCHANGE_MIN_INSTANCE(T) ELEMENTS_TEMPLATE pair<Key, T> ELE::exchangeMin(pair<Key, T> p, bool &maxChanged) { return exchangeMin<T>(std::move(p), maxChanged); }
+
+	EXCHANGE_MIN_INSTANCE(Value)
+	EXCHANGE_MIN_INSTANCE(unique_ptr<PtrType>)
+
+#undef EXCHANGE_MIN_INSTANCE
 
 	ELEMENTS_TEMPLATE
 	template <typename T>
 	pair<Key, T>
 	ELE::exchangeMin(pair<Key, T> p, bool &maxChanged)
 	{
-#ifdef BTREE_DEBUG
 		BOUND_CHECK
-#endif
+
 		auto& minItem = _elements[0];
 		auto key = std::move(minItem.first);
 		auto valueForContent = std::move(minItem.second);
@@ -515,7 +536,7 @@ namespace btree {
 		adjustMemory(-1, 1);
 		--_count;
 
-		maxChanged = add(p);
+		maxChanged = add(std::move(p));
 
 		if constexpr (std::is_same<T, Value>::value) {
 			return make_pair<Key, T>(std::move(key), std::move(value_Ref(valueForContent)));
@@ -539,10 +560,10 @@ namespace btree {
 		auto& lessThan = *LessThanPtr;
 
 		if (lessThan(_elements[_count - 1].first, p.first)) {
-			append(p);
+			append(std::move(p));
 			return true;
 		} else {
-			insert(p);
+			insert(std::move(p));
 			return false;
 		}
 	}

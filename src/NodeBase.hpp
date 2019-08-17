@@ -26,7 +26,8 @@ namespace btree {
 		inline vector<Key> allKey() const;
 		inline bool        have  (const Key&, vector<NodeBase*>&);
 		inline bool        have  (const Key&) const;
-		const Value*       search(const Key&) const;
+		Value              search(const Key &) const;
+		void               modify(const Key &, Value);
 		void               add   (pair<Key, Value>, vector<NodeBase*>&);
 		void               remove(const Key&, vector<NodeBase*>&);
 
@@ -61,9 +62,9 @@ namespace btree {
 		inline void doRemove(const T&, vector<NodeBase*>&);
 		template <bool IS_LEAF>
 		bool reBalance(const vector<NodeBase*>&);
-		bool chooseBalanceNodeDo(const NodeBase *, function<bool(NodeBase*)>,
-								 const NodeBase *, function<bool()>,
-								 const NodeBase *, function<bool(NodeBase*)>) const;
+		bool chooseBalanceNodeDo(NodeBase *, function<bool(NodeBase*)>,
+								 NodeBase *, function<bool()>,
+								 NodeBase *, function<bool(NodeBase*)>) const;
 		template <bool IS_LEAF>
 		bool reBalanceWithPre(NodeBase*, const vector<NodeBase*>&);
 		template <bool IS_LEAF>
@@ -198,14 +199,16 @@ namespace btree {
 		auto trueOnEqual   = [] (auto) { return true; };
 		auto falseOnBeyond = [] (auto) { return false; };
 
-		return const_cast<NodeBase *>(this)->searchHelper(key, doNothing, trueOnEqual, falseOnBeyond);
+		return const_cast<NodeBase *>(this)->searchHelper(key, std::move(doNothing),
+			                                                   std::move(trueOnEqual),
+			                                                   std::move(falseOnBeyond));
 	}
 
 	NODE_TEMPLATE
-	const Value*
-	BASE::search(const Key& key) const
+	void
+	BASE::modify(const Key &key, Value value)
 	{
-		NodeBase* deepestNode;
+		NodeBase* deepestNode = nullptr;
 		auto keepDeepest = [&] (NodeBase* node) {
 			deepestNode = node;
 		};
@@ -222,12 +225,38 @@ namespace btree {
 			return true;
 		};
 
-		if (const_cast<NodeBase *>(this)->
-			searchHelper(key, keepDeepest, moveDeepOnEqual, falseOnBeyond)) {
-			return &Ele::value_Ref(deepestNode->elements_[key]);
+		if (searchHelper(key, keepDeepest, moveDeepOnEqual, falseOnBeyond)) {
+			Ele::value_Ref(deepestNode->elements_[key]) = value;
+		}
+	}
+
+	NODE_TEMPLATE
+	Value
+	BASE::search(const Key & key) const
+	{
+		NodeBase* deepestNode = nullptr;
+		auto keepDeepest = [&] (NodeBase* node) {
+			deepestNode = node;
+		};
+		auto falseOnBeyond = [] (auto) { return false; };
+		function<bool(NodeBase*)> moveDeepOnEqual = [&] (NodeBase* node) {
+			if (node->middle()) {
+				auto maxIndex = node->childCount() - 1;
+				auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
+				keepDeepest(maxChildPtr);
+
+				return moveDeepOnEqual(maxChildPtr);
+			}
+
+			return true;
+		};
+
+		// TODO 注意检查 stack 是否收集到所需要的节点才停止
+		if (const_cast<NodeBase*>(this)->searchHelper(key, keepDeepest, moveDeepOnEqual, falseOnBeyond)) {
+			return Ele::value_Copy(deepestNode->elements_[key]);
 		}
 
-		return nullptr;
+		throw runtime_error("don't have this key");
 	}
 
 	NODE_TEMPLATE
@@ -316,11 +345,11 @@ namespace btree {
 		}
 	}
 
-	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
+	template <bool IS_LEAF, typename Key, typename Value, uint16_t BtreeOrder>
 	void
 	getPrevious(BASE*, const vector<BASE*>&, BASE*&);
 	
-	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
+	template <bool IS_LEAF, typename Key, typename Value, uint16_t BtreeOrder>
 	void
 	getNext(BASE*, const vector<BASE*>&, BASE*&);
 	/**
@@ -337,9 +366,9 @@ namespace btree {
 		if (childCount() < ceil) {
 			NodeBase* previous = nullptr;
 			// TODO should save search track？
-			getPrevious<Key, Value, BtreeOrder, IS_LEAF>(this, stack, previous);
+			getPrevious<IS_LEAF>(this, stack, previous);
 			NodeBase* next = nullptr;
-			getNext<Key, Value, BtreeOrder, IS_LEAF>(this, stack, next);
+			getNext<IS_LEAF>(this, stack, next);
 
 			auto preHandler = [&] (NodeBase* pre) {
 				return reBalanceWithPre<IS_LEAF>(pre, stack);
@@ -351,13 +380,15 @@ namespace btree {
 
 			return chooseBalanceNodeDo(previous, std::move(preHandler), this, std::move(currentHandler), next, std::move(nxtHandler));
 		}
+
+		return false;
 	}
 
 	NODE_TEMPLATE
 	bool
-	BASE::chooseBalanceNodeDo(const NodeBase *pre,     function<bool(NodeBase*)> preHandler,
-		                      const NodeBase *current, function<bool()> currentHandler,
-		                      const NodeBase *nxt,     function<bool(NodeBase*)> nxtHandler) const
+	BASE::chooseBalanceNodeDo(NodeBase *pre,     function<bool(NodeBase*)> preHandler,
+							  NodeBase *current, function<bool()> currentHandler,
+							  NodeBase *nxt,     function<bool(NodeBase*)> nxtHandler) const
 	{
 		auto nullPre = (pre == nullptr);
 		auto nullNxt = (nxt == nullptr);
@@ -466,7 +497,7 @@ namespace btree {
 		}
 	}
 
-	template <typename Key, typename Value, uint16_t BtreeOrder, typename T>
+	template <bool IS_LEAF, typename Key, typename Value, uint16_t BtreeOrder>
 	void
 	setNewPreRelation(BASE*, BASE*);
 
@@ -483,7 +514,7 @@ namespace btree {
 		auto newPre = this->clone();
 		auto newPrePtr = newPre.get();
 		// left is newPre, right is this
-		setNewPreRelation<Key, Value, BtreeOrder, std::is_same<typename std::decay<T>::type, Value>::value>(newPrePtr, this);
+		setNewPreRelation<std::is_same<typename std::decay<T>::type, Value>::value>(newPrePtr, this);
 
 		auto removeItems = [&] (uint16_t preNodeRemoveCount) {
 			newPrePtr->elements_.template removeItems<false>(preNodeRemoveCount);
@@ -566,7 +597,7 @@ namespace btree {
 		auto& stack = passedNodeTrackStack;
 		NodeBase *previous = nullptr;
 
-		getPrevious<Key, Value, BtreeOrder, std::is_same<T, Value>::value>(this, stack, previous); // some don't have one of siblings
+		getPrevious<std::is_same<T, Value>::value>(this, stack, previous); // some don't have one of siblings
 
 		if (spaceFreeIn(previous)) {
 			// if not free, will not trigger move, so the type is ref
@@ -591,9 +622,9 @@ namespace btree {
 	BASE::tryNextAdd(pair<Key, T>& p, vector<NodeBase*>& passedNodeTrackStack)
 	{
 		auto& stack = passedNodeTrackStack;
-		NodeBase *next = nullptr;
 
-		getNext<Key, Value, BtreeOrder, T>(this, stack, next); // some don't have one of siblings
+		NodeBase *next = nullptr;
+		getNext<std::is_same<Value, T>::value>(this, stack, next); // some don't have one of siblings
 
 		if (spaceFreeIn(next)) {
 			// if not free, will not trigger move, so the ref type is fine
@@ -606,7 +637,7 @@ namespace btree {
 		return false;
 	}
 
-	template <typename Key, typename Value, uint16_t BtreeOrder, bool IS_LEAF>
+	template <bool IS_LEAF, typename Key, typename Value, uint16_t BtreeOrder>
 	void
 	setRemoveCurrentRelation(BASE*);
 
@@ -648,7 +679,7 @@ namespace btree {
 		if (next->childCount() + childCount() <= BtreeOrder) {
 			// combine
 			next->receive(HeadInsertWay(), std::move(*this));
-			setRemoveCurrentRelation(this);
+			setRemoveCurrentRelation<IS_LEAF>(this);
 
 			return true;
 		} else {
@@ -665,14 +696,14 @@ namespace btree {
 	void
 	BASE::receive(TailAppendWay, NodeBase&& that)
 	{
-		elements_.receive(TailAppendWay(), that.elements_);
+		elements_.receive(TailAppendWay(), std::move(that.elements_));
 	}
 
 	NODE_TEMPLATE
 	void
 	BASE::receive(HeadInsertWay, NodeBase&& that)
 	{
-		elements_.receive(HeadInsertWay(), that.elements_);
+		elements_.receive(HeadInsertWay(), std::move(that.elements_));
 	}
 
 	NODE_TEMPLATE
