@@ -242,7 +242,7 @@ namespace btree {
 			adjustMemory(-count, count);
 		} else {
 			auto num = count;
-			for (auto rbegin = _elements.start(); num != 0; --num, --rbegin) {
+			for (auto rbegin = _elements.rbegin(); num != 0; --num, --rbegin) {
 				auto destructOne = std::move(*rbegin);
 			}
 		}
@@ -462,7 +462,7 @@ namespace btree {
 	uint16_t
 	ELE::changeKeyOf(PtrType *ptr, Key newKey)
 	{
-		auto index = _elements.indexOf(ptr);
+		auto index = indexOf(ptr);
 		_elements[index].first = std::move(newKey);
 
 		return index;
@@ -588,7 +588,7 @@ namespace btree {
 		} else if (direction > 0) {
 			decltype(_elements.rend()) rend{ start - 1 };
 
-			for (auto rbegin = _elements.start(); rbegin != rend; ++rbegin) {
+			for (auto rbegin = _elements.rbegin(); rbegin != rend; ++rbegin) {
 				*(rbegin + direction) = std::move(*rbegin);
 			}
 		}

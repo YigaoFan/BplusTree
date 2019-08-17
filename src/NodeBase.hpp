@@ -1,5 +1,6 @@
 #pragma once
 #include <vector> // for vector
+#include "Util.hpp"
 #include "Elements.hpp"
 
 namespace btree {
@@ -339,6 +340,7 @@ namespace btree {
 			getPrevious<Key, Value, BtreeOrder, IS_LEAF>(this, stack, previous);
 			NodeBase* next = nullptr;
 			getNext<Key, Value, BtreeOrder, IS_LEAF>(this, stack, next);
+
 			auto preHandler = [&] (NodeBase* pre) {
 				return reBalanceWithPre<IS_LEAF>(pre, stack);
 			};
@@ -423,7 +425,7 @@ namespace btree {
 
 		while (rCurrentNodeIter != rEnd) {
 			// same ancestor of this and previous node
-			if (rCurrentNodeIter->have(maxKey, trackStack)) {
+			if (ptrOff(rCurrentNodeIter)->have(maxKey, trackStack)) {
 				break;
 			}
 			trackStack.clear();
@@ -453,10 +455,9 @@ namespace btree {
 
 		while (rCurrentIter != rEnd) {
 			auto upperNodeIter = rCurrentIter + 1;
-			// TODO below code has problem
-			auto matchIndex = upperNodeIter->elements_.changeKeyOf(rCurrentIter, newMaxKey);
+			auto matchIndex = ptrOff(upperNodeIter)->elements_.changeKeyOf(*rCurrentIter, newMaxKey);
 
-			auto maxIndex = upperNodeIter->childCount() - 1;
+			auto maxIndex = ptrOff(upperNodeIter)->childCount() - 1;
 			if (matchIndex != maxIndex) {
 				break;
 			}
@@ -485,8 +486,8 @@ namespace btree {
 		setNewPreRelation<Key, Value, BtreeOrder, std::is_same<typename std::decay<T>::type, Value>::value>(newPrePtr, this);
 
 		auto removeItems = [&] (uint16_t preNodeRemoveCount) {
-			newPrePtr->elements_.removeItems<false>(preNodeRemoveCount);
-			this->elements_.removeItems<true>(BtreeOrder - preNodeRemoveCount);
+			newPrePtr->elements_.template removeItems<false>(preNodeRemoveCount);
+			this->elements_.template removeItems<true>(BtreeOrder - preNodeRemoveCount);
 		};
 
 		auto addIn = [&] (NodeBase* node, bool shouldAppend) {
@@ -533,12 +534,12 @@ namespace btree {
 		if (stack.empty()) { // means arrive root node
 			auto& newLeftSonOfRoot = preNode;
 			auto newRightSonOfRoot = this->move();
-			this->elements_.append(make_pair<Key, unique_ptr<NodeBase>>(newLeftSonOfRoot->maxKey(),
+			this->elements_.append(make_pair<Key, unique_ptr<NodeBase>>(copy(newLeftSonOfRoot->maxKey()),
 				                                                        std::move(newLeftSonOfRoot)));
-			this->elements_.append(make_pair<Key, unique_ptr<NodeBase>>(newRightSonOfRoot->maxKey(),
+			this->elements_.append(make_pair<Key, unique_ptr<NodeBase>>(copy(newRightSonOfRoot->maxKey()),
 				                                                        std::move(newRightSonOfRoot)));
 		} else {
-			auto pair = make_pair<Key, unique_ptr<NodeBase>>(preNode->maxKey(), std::move(preNode));
+			auto pair = make_pair<Key, unique_ptr<NodeBase>>(copy(preNode->maxKey()), std::move(preNode));
 			stack.back()->doAdd(std::move(pair), stack);
 		}
 	}
@@ -623,7 +624,7 @@ namespace btree {
 			previous->receive(TailAppendWay(), std::move(*this));
 			auto preStack = getSiblingSearchTrackIn(stack, previous);
 			previous->changeMaxKeyUpper(preStack, previous->maxKey());
-			setRemoveCurrentRelation(this);
+			setRemoveCurrentRelation<IS_LEAF>(this);
 
 			return true;
 		} else {

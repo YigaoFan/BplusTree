@@ -66,24 +66,25 @@ namespace btree {
 		return Base::Ele::ptr(es[this->childCount()-1].second);
 	}
 
-#define SEARCH_HELPER_DEF(FUN_NAME, COMPARE_TO_BOUND, OFFSET, CHOOSE_SON)                        \
-	function<Base*(decltype(rIter))> FUN_NAME = [&] (decltype(rIter) currentNodeIter) -> Base* { \
-		auto upperNodeIter = ++rIter;                                                            \
-		if (upperNodeIter == rEnd) {                                                             \
-			return nullptr;                                                                      \
-		}                                                                                        \
-    	                                                                                         \
-		auto& upperElements = upperNodeIter->elements_;                                          \
-		auto i = upperElements.indexOf(*currentNodeIter);                                  \
-		                                                                                         \
-		if (i COMPARE_TO_BOUND) {                                                                \
-			return Base::Ele::ptr(upperElements[i OFFSET].second);                               \
-		} else {                                                                                 \
-			auto upperOfSibling = FUN_NAME(upperNodeIter);                                       \
-			return static_cast<MiddleNode*>(upperOfSibling)->CHOOSE_SON();                       \
-		}                                                                                        \
+#define SEARCH_HELPER_DEF(FUN_NAME, COMPARE_TO_BOUND, OFFSET, CHOOSE_SON)                                                                                 \
+	function<Base*(decltype(rIter), function<Base*(Base*)>)> FUN_NAME = [&] (decltype(rIter) currentNodeIter, function<Base*(Base*)> callBack) -> Base* { \
+        auto upperNodeIter = ++rIter;                                                                                                                     \
+        if (upperNodeIter == rEnd) {                                                                                                                      \
+            return callBack(nullptr);                                                                                                                     \
+        }                                                                                                                                                 \
+                                                                                                                                                          \
+        auto& upperElements = ptrOff(upperNodeIter)->elements_;                                                                                           \
+        auto i = upperElements.indexOf(*currentNodeIter);                                                                                                 \
+                                                                                                                                                          \
+        if (i COMPARE_TO_BOUND) {                                                                                                                         \
+            return callBack(Base::Ele::ptr(upperElements[i OFFSET].second));                                                                              \
+        } else {                                                                                                                                          \
+            return FUN_NAME(upperNodeIter, [callBack{ std::move(callBack) }] (Base* siblingOfUpper) {                                                     \
+                return callBack(static_cast<MiddleNode*>(siblingOfUpper)->CHOOSE_SON());                                                                  \
+        	});                                                                                                                                           \
+    	}                                                                                                                                                 \
 	};
-	// use CPS up?
+
 	/**
 	 * not change the stack
 	 */
@@ -96,7 +97,7 @@ namespace btree {
 		auto rEnd  = stack.rend();
 
 		SEARCH_HELPER_DEF(searchPreHelper, >0, -1, maxSon)
-		previous = searchPreHelper(rIter);
+		previous = searchPreHelper(rIter, [] (auto n) { return n; });
 	}
 
 	/**
@@ -110,8 +111,8 @@ namespace btree {
 		auto rIter = stack.rbegin();
 		auto rEnd  = stack.rend();
 
-		SEARCH_HELPER_DEF(searchNxtHelper, <(upperNodeIter->childCount()-1), +1, minSon)
-		next = searchNxtHelper(rIter);
+		SEARCH_HELPER_DEF(searchNxtHelper, <(ptrOff(upperNodeIter)->childCount()-1), +1, minSon)
+		next = searchNxtHelper(rIter, [] (auto n) { return n; });
 	}
 #undef SEARCH_HELPER_DEF
 
