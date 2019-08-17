@@ -27,7 +27,6 @@ namespace btree {
 		inline void      previousLeaf(LeafNode*);
 
 	private:
-		// TODO remember to initialize two property below
 		LeafNode* _next    { nullptr };
 		LeafNode* _previous{ nullptr };
 	};

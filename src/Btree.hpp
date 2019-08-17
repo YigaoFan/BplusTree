@@ -130,17 +130,18 @@ namespace btree {
 		do {
 			if constexpr (FirstCall) {
 				auto leaf = make_unique<Leaf>(head, tail, _lessThanPtr);
-				upperNodes[i] = make_pair(leaf->maxKey(), std::move(leaf));
-
+				auto leafPtr = leaf.get();
 				// set previous and next
-				leaf->previousLeaf(lastLeaf);
+				leafPtr->previousLeaf(lastLeaf);
 				if (firstLeaf) {
 					firstLeaf = false;
 				} else {
-					lastLeaf->nextLeaf(leaf.get());
+					lastLeaf->nextLeaf(leafPtr);
 				}
+				lastLeaf = leafPtr;
 
-				lastLeaf = leaf.get();
+				// TODO how does it work? it's Leaf type
+				upperNodes[i] = make_pair(copy(leaf->maxKey()), std::move(leaf));
 			} else {
 				auto middle = make_unique<Middle>(head, tail, _lessThanPtr);
 				upperNodes[i] = make_pair(middle->maxKey(), std::move(middle));

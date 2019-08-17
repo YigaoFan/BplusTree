@@ -142,6 +142,7 @@ namespace btree {
 		function<bool(NodeBase *)> beyondMaxHandler
 	)
 	{
+		// TODO check stack
 		auto& lessThan = *(elements_.LessThanPtr);
 
 		function<bool(NodeBase*)> helper = [&] (NodeBase* node) {
@@ -212,7 +213,7 @@ namespace btree {
 		auto keepDeepest = [&] (NodeBase* node) {
 			deepestNode = node;
 		};
-		auto falseOnBeyond = [] (auto) { return false; };
+		auto falseOnBeyond = [value { std::move(value) }] (auto) { return false; };
 		function<bool(NodeBase*)> moveDeepOnEqual = [&] (NodeBase* node) {
 			if (node->middle()) {
 				auto maxIndex = node->childCount() - 1;
@@ -222,12 +223,12 @@ namespace btree {
 				return moveDeepOnEqual(maxChildPtr);
 			}
 
+
+			Ele::value_Ref(deepestNode->elements_[key]) = value;
 			return true;
 		};
 
-		if (searchHelper(key, keepDeepest, moveDeepOnEqual, falseOnBeyond)) {
-			Ele::value_Ref(deepestNode->elements_[key]) = value;
-		}
+		searchHelper(key, keepDeepest, moveDeepOnEqual, falseOnBeyond);
 	}
 
 	NODE_TEMPLATE
@@ -256,6 +257,7 @@ namespace btree {
 			return Ele::value_Copy(deepestNode->elements_[key]);
 		}
 
+		// use CPS?
 		throw runtime_error("don't have this key");
 	}
 

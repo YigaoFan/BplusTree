@@ -50,8 +50,9 @@ TESTCASE("Btree test") {
 			ASSERT(btree.search(kv8.first) == kv8.second);
 			ASSERT_THROW(runtime_error, btree.search("10"));
 
-			btree.add(make_pair("10", "d")); // TODO
+			btree.add(make_pair("10", "d"));
 			ASSERT(btree.search("10") == "d");
+			ASSERT(btree.have("10"));
 
 			btree.modify(make_pair(kv0.first, "d"));
 			ASSERT(btree.search(kv0.first) == "d");

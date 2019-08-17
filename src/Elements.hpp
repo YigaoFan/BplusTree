@@ -113,9 +113,6 @@ namespace btree {
 		auto     cloneInternalElements() const;
 		void     moveElement(int32_t, decltype(_elements.begin()));
 
-		static void assign(Content&, pair<Key, Value>&);
-		static void assign(Content&, pair<Key, unique_ptr<PtrType>>&);
-
 		static unique_ptr<PtrType>& uniquePtr_Ref (ValueForContent&);
 		static const unique_ptr<PtrType>& uniquePtr_Ref (const ValueForContent&);
 		static unique_ptr<PtrType>  uniquePtr_Move(ValueForContent&);
@@ -137,7 +134,7 @@ namespace btree {
 		_count(0)
 	{
 		do {
-			Elements::assign(_elements[_count], *begin);
+			_elements[_count] = std::move(*begin);
 
 			++_count;
 			++begin;
@@ -398,7 +395,7 @@ namespace btree {
 
 		Insert:
 		adjustMemory(1, i);
-		Elements::assign(_elements[i], p);
+		_elements[i] = std::move(p);
 		++_count;
 	}
 
@@ -415,7 +412,7 @@ namespace btree {
 			throw runtime_error("No free space to add");
 		}
 
-		Elements::assign(_elements[_count], p);
+		_elements[_count] = std::move(p);
 		++_count;
 	}
 
@@ -617,20 +614,6 @@ namespace btree {
 }
 
 namespace btree {
-	ELEMENTS_TEMPLATE
-	void
-	ELE::assign(Content& e, pair<Key, unique_ptr<PtrType>>& ptrPair)
-	{
-		e.first = ptrPair.first;
-		ELE::uniquePtr_Ref(e.second).reset(ptrPair.second.release());
-	}
-
-	ELEMENTS_TEMPLATE
-	void
-	ELE::assign(Content& e, pair<Key, Value>& p)
-	{
-		e = std::move(p);
-	}
 
 	ELEMENTS_TEMPLATE
 	Value&

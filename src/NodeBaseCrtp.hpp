@@ -16,14 +16,12 @@ namespace btree {
 		{
 			// how to reduce the const mark
 			return unique_ptr<Base>{ make_unique<Derived>(static_cast<Derived const &>(*this)).get() };
-			// wait to verify
 		}
 
 		virtual unique_ptr<Base> move() const
 		{
 			// how to reduce the const mark
 			return unique_ptr<Base>{ make_unique<Derived>(std::move(static_cast<Derived const &>(*this))).get() };
-			// wait to verify
 		}
 	};
 }
