@@ -253,6 +253,7 @@ namespace btree {
 		};
 
 		// TODO 注意检查 stack 是否收集到所需要的节点才停止
+		// this method duplicate
 		if (const_cast<NodeBase*>(this)->searchHelper(key, keepDeepest, moveDeepOnEqual, falseOnBeyond)) {
 			return Ele::value_Copy(deepestNode->elements_[key]);
 		}
@@ -342,6 +343,7 @@ namespace btree {
 		auto combined = reBalance<std::is_same<T, Key>::value>(stack);
 		if (combined) {
 			auto finalNode = stack.back();
+			// TODO judge if arrive root?
 			stack.pop_back();
 			stack.back()->doRemove(finalNode, stack);
 		}
