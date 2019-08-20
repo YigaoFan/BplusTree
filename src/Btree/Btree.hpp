@@ -14,7 +14,7 @@
 #include <cassert>
 #endif
 
-namespace btree {
+namespace Btree {
 	using std::function;
 	using std::array;
 	using std::pair;
@@ -73,7 +73,7 @@ namespace btree {
 	};
 }
 
-namespace btree {
+namespace Btree {
 #define BTREE Btree<BtreeOrder, Key, Value>
 
 	BTREE_TEMPLATE

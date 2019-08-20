@@ -1,9 +1,18 @@
 #pragma once
+#include <string>
+#include "Json.hpp"
 
-namespace json {
-	// see other libs provide methods
-	// 支持序列化和反序列化对象和字符串
-	class Parser {
+namespace Json {
+	using std::string;
 
-	};
+	Json
+	parse(const string& jsonStr)
+	{
+
+	}
+
+	// use namespace to hide some functions
+	namespace {
+
+	}
 }

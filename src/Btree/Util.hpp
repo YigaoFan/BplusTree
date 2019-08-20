@@ -1,6 +1,6 @@
 #pragma once
 
-namespace btree {
+namespace Btree {
 	/**
  	* for container which pointer
  	*/

@@ -2,7 +2,7 @@
 #include <utility>
 #include "NodeBaseCrtp.hpp"
 
-namespace btree {
+namespace Btree {
 #define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 #define LEAF LeafNode<Key, Value, BtreeOrder>
 
@@ -32,7 +32,7 @@ namespace btree {
 	};
 }
 
-namespace btree {
+namespace Btree {
 	NODE_TEMPLATE
 	template <typename Iter>
 	LEAF::LeafNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
