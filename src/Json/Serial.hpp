@@ -1,6 +1,10 @@
+#include <string>
+
 namespace Json {
+	using std::string;
+
 	template <typename T>
-	Json
+	string
 	serialize(const T& t)
 	{
 

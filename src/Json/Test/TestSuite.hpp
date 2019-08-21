@@ -1,0 +1,6 @@
+namespace JsonTest {
+	void
+	allTest() {
+
+	}
+}

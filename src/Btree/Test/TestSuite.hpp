@@ -2,10 +2,11 @@
 // extern void nodeTest();
 extern void btreeTest();
 
-void
-allTest()
-{
-	// elementTest();
-	// nodeTest();
-	btreeTest();
+namespace BtreeTest {
+	void
+	allTest() {
+		// elementTest();
+		// nodeTest();
+		btreeTest();
+	}
 }

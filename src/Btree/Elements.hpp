@@ -239,7 +239,7 @@ namespace Btree {
 		} else {
 			auto num = count;
 			for (auto rbegin = _elements.rbegin(); num != 0; --num, --rbegin) {
-				auto destructOne = std::move(*rbegin);
+				rbegin->~Content();
 			}
 		}
 

@@ -9,8 +9,9 @@ namespace Json {
 		Array,
 		Number,
 		String,
-		Bool,
-		// Null?
+		True,
+		False,
+		Null,
 	};
 
 	class Json {
