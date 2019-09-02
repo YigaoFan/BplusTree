@@ -163,7 +163,9 @@ namespace Btree {
 	BTREE_TEMPLATE
 	BTREE::Btree(Btree&& that) noexcept
 		: _keyNum(that._keyNum), _root(that._root.release()), _lessThanPtr(that._lessThanPtr)
-	{ }
+	{
+		that._keyNum = 0;
+	}
 
 	BTREE_TEMPLATE
 	BTREE&

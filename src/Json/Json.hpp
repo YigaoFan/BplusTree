@@ -15,6 +15,7 @@ namespace Json {
 	};
 
 	class Json {
+	private:
 		Type type;
 	public:
 		// below should move to Json.cpp
