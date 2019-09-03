@@ -1,10 +1,14 @@
 #pragma once
 #include <string>
+#include <variant>
+#include <vector>
 
 namespace Json {
 	using std::string;
+	using std::variant;
+	using std::vector;
 
-	enum Type {
+	enum class Type {
 		Object,
 		Array,
 		Number,
@@ -16,10 +20,51 @@ namespace Json {
 
 	class Json {
 	private:
-		Type type;
+		Type _type;
+		variant<string, vector<Json*>> _content;
+
 	public:
+		struct Object {};
+		struct Array  {};
+		struct Number {};
+		struct String {};
+		struct True   {};
+		struct False  {};
+		struct Null   {};
+
 		// below should move to Json.cpp
-		Json(/* Json element maybe */)
+		Json(Object)
+			: _type(Type::Object)
+		{
+		}
+
+		Json(Array)
+			: _type(Type::Array)
+		{
+		}
+
+		Json(Number)
+			: _type(Type::Number)
+		{
+		}
+
+		Json(String)
+			: _type(Type::String)
+		{
+		}
+
+		Json(True)
+			: _type(Type::True)
+		{
+		}
+
+		Json(False)
+			: _type(Type::False)
+		{
+		}
+
+		Json(Null)
+			: _type(Type::Null)
 		{
 		}
 
@@ -33,7 +78,28 @@ namespace Json {
 		string
 		toString()
 		{
+			switch (_type) {
+			case Type::Object:
+				break;
 
+			case Type::Array:
+				break;
+
+			case Type::Number:
+				break;
+
+			case Type::String:
+				break;
+
+			case Type::True:
+				break;
+
+			case Type::False:
+				break;
+
+			case Type::Null:
+				break;
+			}
 		}
 	};
 }
