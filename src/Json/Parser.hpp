@@ -16,7 +16,7 @@ namespace Json {
 		{ }
 
 		void
-		removeBlank()
+		removeWhitespaces()
 		{
 			vector<uint16_t> toBeRemoved; // index included
 			for (auto& c : _str) {
@@ -35,6 +35,12 @@ namespace Json {
 		removeChar(uint16_t i)
 		{
 			// how to remove a char in string
+		}
+
+		Json
+		doParse()
+		{
+			
 		}
 		
 		static
@@ -57,7 +63,7 @@ namespace Json {
 		parse(string str)
 		{
 			auto p = Parser(std::move(str));
-			p.removeBlank();
+			p.removeWhitespaces().doParse();
 		}
 	};
 
