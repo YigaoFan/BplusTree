@@ -8,29 +8,32 @@ namespace Json {
 	using std::variant;
 	using std::vector;
 
-	enum class Type {
-		Object,
-		Array,
-		Number,
-		String,
-		True,
-		False,
-		Null,
-	};
+	struct Object {};
+	struct Array  {};
+	struct Number {};
+	struct String {};
+	struct True   {};
+	struct False  {};
+	struct Null   {};
+	
 
+	// how to read data from Json
 	class Json {
 	private:
+		enum class Type {
+			Object,
+			Array,
+			Number,
+			String,
+			True,
+			False,
+			Null,
+		};
 		Type _type;
 		variant<string, vector<Json*>> _content;
 
 	public:
-		struct Object {};
-		struct Array  {};
-		struct Number {};
-		struct String {};
-		struct True   {};
-		struct False  {};
-		struct Null   {};
+		
 
 		// below should move to Json.cpp
 		Json(Object)
