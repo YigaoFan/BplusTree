@@ -30,43 +30,68 @@ namespace Json {
 			Null,
 		};
 		Type _type;
-		variant<string, vector<Json*>> _content;
+		variant<string, vector<Json*>, double> _content;
 
 	public:
-		
-
 		// below should move to Json.cpp
-		Json(Object)
+		template <typename T>
+		Json
+		makeJson()
+		{
+
+		}
+
+		template <>
+		Json
+		makeJson<String>()
+		{
+
+		}
+
+		template <typename T>
+		Json()
+		{
+			static_assert(fasle, "Not support self-defined type");
+		}
+
+		template
+		Json<Object>()
 			: _type(Type::Object)
 		{
 		}
 
-		Json(Array)
+		template
+		Json<Array>()
 			: _type(Type::Array)
 		{
 		}
 
-		Json(Number)
+		template
+		Json<Number>()
 			: _type(Type::Number)
 		{
 		}
 
-		Json(String)
-			: _type(Type::String)
+		template
+		Json<String>(string str)
+			: _type(Type::String), _content(std::move(str))
 		{
 		}
 
-		Json(True)
+		template
+		Json<True>()
 			: _type(Type::True)
 		{
 		}
 
-		Json(False)
+		template
+		Json<False>
 			: _type(Type::False)
 		{
 		}
 
-		Json(Null)
+		template
+		Json<Null>()
 			: _type(Type::Null)
 		{
 		}

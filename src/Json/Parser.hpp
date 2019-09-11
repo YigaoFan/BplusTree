@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <cctype>
+#include "ParseException.hpp"
 #include "Json.hpp"
 
 namespace Json {
@@ -13,6 +14,9 @@ namespace Json {
 	// 还有一个当前期望的东西存在，如果是数字则期望数字，这样不是数字则能比较容易和清楚的报出语法错误
 	class Parser {
 	private:
+		const string TrueStr = "rue";
+		const string FalseStr = "alse";
+		const string NullStr = "ull";
 		string _str;
 
 		Parser(string str)
@@ -20,53 +24,55 @@ namespace Json {
 		{ }
 
 		Json
-		doParse()
+		doParse(size_t start, size_t end)
 		{
-			for (size_t i = 0; i < _str.length(); i++)
-			{
+			while (true) {
 				auto currentExpect; // 是一个类型，然后有一系列函数可以将一个 char 或者某个输入归为某个类型
 				auto currentSpaceHandle; // Could capture current environment
-				auto c = _str[i];
-				switch (c)
-				{
-				case '{':
-					/* object，这里是否会涉及到 null？*/
-					return parseObject(i);
-				
-				case '[':
-					/* array */
-					return parseArray(i);
+				auto c = _str[i++];
+				// 有语法错误直接抛异常出来，应该没有 try-catch 捕获异常
+				switch (c) {
+					case '{':
+						/* object，这里是否会涉及到 null？*/
+						return parseObject(i);
 
-				case '"':
-					/* string（暂时只支持双引号字符串） */
-					return parseString(i);
+					case '[':
+						/* array */
+						return parseArray(i);
 
-				case 't':
-					/* true */
-					return parseTrue(i);
+					case '"':
+						/* string（暂时只支持双引号字符串） */
+						return parseString(i);
 
-				case 'f':
-					/* false */
-					return parseFalse(i);
+					case 't':
+						/* true */
+						return parseTrue(i);
 
-				case 'n':
-					/* null */
-					return parseNull(i);
+					case 'f':
+						/* false */
+						return parseFalse(i);
 
-				default:
-					if (isSpace(c)) {
-						++i;
-					} else if (isNum(c)) {
-						return parseNum(i);
-					} else {
-						// error, current expect is ...
-					}
+					case 'n':
+						/* null */
+						return parseNull(i);
+
+					default:
+					CheckSpace:
+						if (isSpace(c)) {
+							++i;
+							goto CheckSpace;
+						} else if (isNum(c)) {
+							return parseNum(i);
+						} else {
+							// error, current expect is ...
+							throw InvalidStringException();
+						}
 				}
 			}
 		}
-		
-		static
+
 		inline
+		static
 		bool
 		isSpace(char c)
 		{
@@ -74,25 +80,32 @@ namespace Json {
 			return std::isblank(static_cast<unsigned char>(c));
 		}
 
-		static
 		inline
+		static
 		bool
 		isNum(char c)
 		{
 			return std::isdigit(static_cast<unsigned char>(c));
 		}
 
-		static
 		bool
-		inJsonString(uint16_t i)
+		inJsonString(size_t i)
 		{
 			// search around
 		}
 
+		// 前提是这个是最上层的 JSON 对象
 		Json
 		parseObject(size_t& i)
 		{
 			// search pair and judge
+			auto pairBracket = verifyCurlyBracket(i);
+
+			auto key = parseString(i);
+			// how to get value end point
+			auto value = doParse();
+			// handle ,
+			// continue parse key-value
 		}
 
 		Json
@@ -104,31 +117,84 @@ namespace Json {
 		Json
 		parseString(size_t& i)
 		{
-			// search pair and judge			
+			auto str = "";
+
+			// 一个约定是每一个解析函数处理完后，需要将 i 置到下一个不合法的位置上
+			while ((auto c = _str[i++]) !=  '"') {
+				str.append(c);
+				// 暂时不处理转义的事
+			}
+
+			return Json<String>(std::move(str));
 		}
 
+		inline
 		Json
 		parseTrue(size_t& i)
 		{
-			
+			return parseSimpleType<True>(TrueStr, i);
 		}
 
+		inline
 		Json
 		parseFalse(size_t& i)
 		{
-			
+			return parseSimpleType<False>(FalseStr, i);
 		}
 
+		inline
 		Json
 		parseNull(size_t& i)
 		{
-			
+			return parseSimpleType<Null>(NullStr, i);
 		}
 
 		Json
 		parseNum(size_t& i)
 		{
 			
+		}
+
+		template <typename T>
+		Json
+		parseSimpleType(const string& target, size_t& i)
+		{
+			auto len = target.length();
+			for (int j = 0; j < len; ++j, ++i) {
+				auto t = target[j];
+				auto c = _str[i];
+				if (t != s) {
+					throw WrongCharException(c);
+				}
+			}
+
+			return Json<T>();
+		}
+
+		// 假设是在 JSON 解析的最高层，所以直接从最后开始
+		size_t
+		verifyCurlyBracket(size_t i)
+		{
+			auto end = _str.rend();
+			for (auto i = _str.length()-1; i >= 0; --i) {
+				auto c = _str[i];
+				if (!isSpace(c)) {
+					if (c != '}') {
+						throw WrongCharException(c);
+					} else {
+						return i;
+					}
+				}
+			}
+		}
+
+	public:
+		Json
+		parse(string jsonStr)
+		{
+			auto e = jsonStr.length() - 1;
+			auto p = Parser(std::move(jsonStr));
+			p.doParse(0, e);
 		}
 	};
 
