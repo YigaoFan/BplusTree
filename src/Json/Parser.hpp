@@ -34,7 +34,8 @@ namespace Json {
 				switch (c) {
 					case '{':
 						/* object，这里是否会涉及到 null？*/
-						return parseObject(i);
+						auto subEnd = verifyRightBound('}', end);
+						return parseObject(i, end);
 
 					case '[':
 						/* array */
@@ -115,12 +116,12 @@ namespace Json {
 		}
 
 		Json
-		parseString(size_t& i)
+		parseString(size_t& start, size_t rightBound)
 		{
 			auto str = "";
 
 			// 一个约定是每一个解析函数处理完后，需要将 i 置到下一个不合法的位置上
-			while ((auto c = _str[i++]) !=  '"') {
+			while (i < _str.length() && (auto c = _str[i++]) !=  '"') {
 				str.append(c);
 				// 暂时不处理转义的事
 			}
@@ -186,6 +187,17 @@ namespace Json {
 					}
 				}
 			}
+		}
+
+		size_t
+		verifyRightBound(size_t start, size_t end, char expectChar)
+		{
+			for (auto i = start; i <= end; ++i) {
+				if ((auto c = _str[i]) == expectChar) {
+					return i;
+				}
+			}
+			// throw WrongException
 		}
 
 	public:
