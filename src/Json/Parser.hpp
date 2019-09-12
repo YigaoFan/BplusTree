@@ -17,46 +17,45 @@ namespace Json {
 		const string TrueStr = "rue";
 		const string FalseStr = "alse";
 		const string NullStr = "ull";
-		string _str;
+		const string& _str;
 
-		Parser(string str)
+		Parser(const string& str)
 			: _str(str)
 		{ }
 
 		Json
-		doParse(size_t start, size_t end)
+		doParse(size_t& start, size_t end)
 		{
 			while (true) {
 				auto currentExpect; // 是一个类型，然后有一系列函数可以将一个 char 或者某个输入归为某个类型
 				auto currentSpaceHandle; // Could capture current environment
+				auto i = start;
 				auto c = _str[i++];
 				// 有语法错误直接抛异常出来，应该没有 try-catch 捕获异常
 				switch (c) {
 					case '{':
-						/* object */
 						auto subEnd = verifyRightBound(i, end, '}');
-						return parseObject(i, subEnd);
+						return Json(Object(), parseObject(i, subEnd));
 
 					case '[':
-						/* array */
 						auto subEnd = verifyRightBound(i, end, ']');
-						return parseArray(i);
+						return Json(Array(), parseArray(i));
 
 					case '"':
 						/* string（暂时只支持双引号字符串） */
-						return parseString(i);
+						return Json(String(), parseString(i));
 
 					case 't':
-						/* true */
-						return parseTrue(i);
+						parseTrue(i);
+						return Json(True());
 
 					case 'f':
-						/* false */
-						return parseFalse(i);
+						parseFalse(i);
+						return Json(False());
 
 					case 'n':
-						/* null */
-						return parseNull(i);
+						parseNull(i);
+						return Json(Null());
 
 					default:
 					CheckSpace:
@@ -96,64 +95,62 @@ namespace Json {
 			// search around
 		}
 
-		Json
+		map<string, Json*>
 		parseObject(size_t& start, size_t end)
 		{
-			for (int i = start; i <= end; ++i) {
-				auto c = _str[i++];
-				map<Json/* Json string */, Json> objectContent;
-				if (!isSpace(c) && c == '"') {
-					// 是直接在 Object 里存储 string 还是存储 Json string
-					parseString(i);
-					parseJson()
-				}
-			}
-			auto key = parseString();
-			// how to get value end point
-			auto value = doParse();
-			// handle ,
-			// continue parse key-value
+			auto& i = start;
+			while (isSpace(_str[i])) { ++i; };
+			// 是直接在 Object 里存储 string 还是存储 Json string
+			// 有嵌套、扩展能力的地方都用 Json，嵌套部分中不可扩展的部分
+			// 使用原来的类型
+			map<string, Json> objectMap;
+			auto key = parseString(i, end);
+			auto value = doParse(i, end);
+			objectMap.emplace(key, &value); // use smart ptr
 		}
 
-		Json
+		vector<Json*>
 		parseArray(size_t& i)
 		{
-			// search pair and judge			
+			// search pair and judge	
 		}
 
-		Json
-		parseString(size_t& start, size_t rightBound)
+		string
+		parseString(size_t& start, size_t end)
 		{
-			auto str = "";
-
-			// 一个约定是每一个解析函数处理完后，需要将 i 置到下一个不合法的位置上
-			while (i < _str.length() && (auto c = _str[i++]) !=  '"') {
-				str.append(c);
-				// 暂时不处理转义的事
+			string str { };
+			for (auto& i = start; i < end && _str[i] != '"'; ++i) {
+				auto c = _str[i];
+				str.append(1, c);
 			}
 
-			return Json<String>(std::move(str));
+			auto i = start;
+			if (_str[i] == '"') {
+				return str;
+			} else {
+				// throw Wrong...Exception
+			}
 		}
 
 		inline
-		Json
+		void
 		parseTrue(size_t& i)
 		{
-			return parseSimpleType<True>(TrueStr, i);
+			parseSimpleType<True>(TrueStr, i);
 		}
 
 		inline
-		Json
+		void
 		parseFalse(size_t& i)
 		{
-			return parseSimpleType<False>(FalseStr, i);
+			parseSimpleType<False>(FalseStr, i);
 		}
 
 		inline
-		Json
+		void
 		parseNull(size_t& i)
 		{
-			return parseSimpleType<Null>(NullStr, i);
+			parseSimpleType<Null>(NullStr, i);
 		}
 
 		Json
@@ -163,7 +160,7 @@ namespace Json {
 		}
 
 		template <typename T>
-		Json
+		void
 		parseSimpleType(const string& target, size_t& i)
 		{
 			auto len = target.length();
@@ -174,8 +171,6 @@ namespace Json {
 					throw WrongCharException(c);
 				}
 			}
-
-			return Json<T>();
 		}
 
 		// 这里的 bound 都是不包含 expectChar 的
