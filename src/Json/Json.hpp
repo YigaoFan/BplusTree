@@ -2,11 +2,14 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <map>
 
 namespace Json {
 	using std::string;
 	using std::variant;
 	using std::vector;
+	using std::to_string;
+	using std::map;
 
 	struct Object {};
 	struct Array  {};
@@ -16,7 +19,6 @@ namespace Json {
 	struct False  {};
 	struct Null   {};
 	
-
 	// how to read data from Json
 	class Json {
 	private:
@@ -30,103 +32,200 @@ namespace Json {
 			Null,
 		};
 		Type _type;
-		variant<string, vector<Json*>, double> _content;
+		// TODO use smart pointer
+		variant<string, vector<Json*>, double, map<string, Json*>> _content;
 
 	public:
-		// below should move to Json.cpp
-		template <typename T>
-		Json
-		makeJson()
-		{
+		Json(Object, map<string, Json*> object)
+			: _type(Type::Object), _content(std::move(object))
+		{ }
 
-		}
+		Json(Array, vector<Json*> array)
+			: _type(Type::Array), _content(std::move(array))
+		{ }
 
-		template <>
-		Json
-		makeJson<String>()
-		{
+		Json(Number, double num)
+			: _type(Type::Number), _content(num)
+		{ }
 
-		}
-
-		template <typename T>
-		Json()
-		{
-			static_assert(fasle, "Not support self-defined type");
-		}
-
-		template
-		Json<Object>()
-			: _type(Type::Object)
-		{
-		}
-
-		template
-		Json<Array>()
-			: _type(Type::Array)
-		{
-		}
-
-		template
-		Json<Number>()
-			: _type(Type::Number)
-		{
-		}
-
-		template
-		Json<String>(string str)
+		Json(String, string str)
 			: _type(Type::String), _content(std::move(str))
-		{
-		}
+		{ }
 
-		template
-		Json<True>()
+		Json(True)
 			: _type(Type::True)
-		{
-		}
+		{ }
 
-		template
-		Json<False>
+		Json(False)
 			: _type(Type::False)
-		{
-		}
+		{ }
 
-		template
-		Json<Null>()
+		Json(Null)
 			: _type(Type::Null)
-		{
-		}
+		{ }
 
-		// 这个主要看解析的时候的需求，不用复杂。后期完了可以自己丰富
+		// Json(const Json& that) deep copy?
+		Json(Json&& that)
+			: _type(that._type), _content(std::move(that._content))
+		{ }
+
+		inline
 		bool
-		append(Json json)
+		isObject() const
 		{
-
+			return _type == Type::Object;
 		}
 
+		inline
+		bool
+		isArray() const
+		{
+			return _type == Type::Array;
+		}
+
+		inline
+		bool
+		isNumber() const
+		{
+			return _type == Type::Number;
+		}
+
+		inline
+		bool
+		isString() const
+		{
+			return _type == Type::String;
+		}
+
+		inline
+		bool
+		isTrue() const
+		{
+			return _type == Type::True;
+		}
+
+		inline
+		bool
+		isFalse() const
+		{
+			return _type == Type::False;
+		}
+
+		inline
+		bool
+		isBool() const
+		{
+			return isTrue() || isFalse();
+		}
+
+		inline
+		bool
+		isNull() const
+		{
+			return _type == Type::Null;
+		}
+
+		Json&
+		operator[] (const string& key)
+		{
+			assert(isObject()); // use self define exception?
+			return *(std::get<map<string, Json*>>(_content)[key]);
+		}
+
+		Json&
+		operator[] (const Json& key)
+		{
+			assert(isObject() && key.isString());
+			return *(std::get<map<string, Json*>>(_content)[key]);
+		}
+
+		Json&
+		operator[] (size_t i)
+		{
+			assert(isArray());
+			return *(std::get<vector<Json*>>(_content)[i]);
+		}
+
+		// Json&
+		// operator= (vector<Json*> jsonArray)
+		// {
+		//
+		// }
+		//
+		// Json&
+		// operator= (double num)
+		// {
+		//
+		// }
+
+		const map<string, Json*>&
+		getObject() const
+		{
+			assert(isObject());
+			return std::get<map<string, Json*>>(_content);
+		}
+		// how modify array item external
+		const vector<Json*>&
+		getArray() const
+		{
+			assert(isArray());
+			return std::get<vector<Json*>>(_content);
+		}
+
+		double
+		getNum() const
+		{
+			assert(isNumber());
+			return std::get<double>(_content);
+		}
+
+		const string&
+		getString() const
+		{
+			assert(isString());
+			reutrn std::get<string>(_content);
+		}
+
+		bool
+		getBool() const
+		{
+			return _type == Type::True;
+		}
+
+		// TODO need getNull()?
 		string
 		toString()
 		{
 			switch (_type) {
-			case Type::Object:
-				break;
+				case Type::Object:
+					string str = "{";
+					auto objectMap = std::get<map<string, Json*>>(_content);
+					for (auto& pair : objectMap) {
+						str += pair.first;
+						str += ':';
+						str += pair.value->toString();
+						// need to replace += with string modify method
+					}
+					return str;
 
-			case Type::Array:
-				break;
+				case Type::Array:
+					// TODO
+					break;
 
-			case Type::Number:
-				break;
+				case Type::Number:
+					return to_string(std::get<double>(_content));
 
-			case Type::String:
-				break;
+				case Type::String:
+					return std::get<string>(_content);
 
-			case Type::True:
-				break;
+				case Type::True:
+					return "true";
 
-			case Type::False:
-				break;
+				case Type::False:
+					return "false";
 
-			case Type::Null:
-				break;
+				case Type::Null:
+					return "null";
 			}
 		}
 	};

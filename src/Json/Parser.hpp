@@ -33,12 +33,13 @@ namespace Json {
 				// 有语法错误直接抛异常出来，应该没有 try-catch 捕获异常
 				switch (c) {
 					case '{':
-						/* object，这里是否会涉及到 null？*/
-						auto subEnd = verifyRightBound('}', end);
-						return parseObject(i, end);
+						/* object */
+						auto subEnd = verifyRightBound(i, end, '}');
+						return parseObject(i, subEnd);
 
 					case '[':
 						/* array */
+						auto subEnd = verifyRightBound(i, end, ']');
 						return parseArray(i);
 
 					case '"':
@@ -95,14 +96,19 @@ namespace Json {
 			// search around
 		}
 
-		// 前提是这个是最上层的 JSON 对象
 		Json
-		parseObject(size_t& i)
+		parseObject(size_t& start, size_t end)
 		{
-			// search pair and judge
-			auto pairBracket = verifyCurlyBracket(i);
-
-			auto key = parseString(i);
+			for (int i = start; i <= end; ++i) {
+				auto c = _str[i++];
+				map<Json/* Json string */, Json> objectContent;
+				if (!isSpace(c) && c == '"') {
+					// 是直接在 Object 里存储 string 还是存储 Json string
+					parseString(i);
+					parseJson()
+				}
+			}
+			auto key = parseString();
 			// how to get value end point
 			auto value = doParse();
 			// handle ,
@@ -172,32 +178,17 @@ namespace Json {
 			return Json<T>();
 		}
 
-		// 假设是在 JSON 解析的最高层，所以直接从最后开始
-		size_t
-		verifyCurlyBracket(size_t i)
-		{
-			auto end = _str.rend();
-			for (auto i = _str.length()-1; i >= 0; --i) {
-				auto c = _str[i];
-				if (!isSpace(c)) {
-					if (c != '}') {
-						throw WrongCharException(c);
-					} else {
-						return i;
-					}
-				}
-			}
-		}
-
+		// 这里的 bound 都是不包含 expectChar 的
 		size_t
 		verifyRightBound(size_t start, size_t end, char expectChar)
 		{
-			for (auto i = start; i <= end; ++i) {
+			for (auto i = end; i >= start; --i) {
 				if ((auto c = _str[i]) == expectChar) {
-					return i;
+					return --i;
 				}
 			}
-			// throw WrongException
+
+			throw WrongPairException();
 		}
 
 	public:
