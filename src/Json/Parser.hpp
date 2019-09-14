@@ -2,74 +2,152 @@
 #include <string>
 #include <vector>
 #include <cctype>
+#include <memory>
 #include "ParseException.hpp"
 #include "Json.hpp"
+#include "LocationInfo.hpp"
 
 namespace Json {
 	using std::string;
+	using std::make_shared;
 
 	// 我想的是有针对当前正在处理的对象的情境这个概念，
 	// 比如当前正在处理一个空格（也就是说现在不进行去除空格的处理了），如果是在字符串里的空格，那就加入进去
 	// 如果是项与项之间的，就忽略，如果是其他项内的空格，则报错
 	// 还有一个当前期望的东西存在，如果是数字则期望数字，这样不是数字则能比较容易和清楚的报出语法错误
 	class Parser {
-	private:
-		const string TrueStr = "rue";
-		const string FalseStr = "alse";
-		const string NullStr = "ull";
-		const string& _str;
+	public:
+		inline
+		static
+		Json
+		parse(const string& jsonStr)
+		{
+			return Parser(jsonStr).doParse();
+		}
 
 		Parser(const string& str)
-			: _str(str)
+			: Str(str)
 		{ }
 
+		/**
+		 * should ensure the string to be parsed exists in current scope
+		 */
+		inline
 		Json
-		doParse(size_t& start, size_t end)
+		doParse()
 		{
-			while (true) {
-				auto currentExpect; // 是一个类型，然后有一系列函数可以将一个 char 或者某个输入归为某个类型
-				auto currentSpaceHandle; // Could capture current environment
-				auto i = start;
-				auto c = _str[i++];
-				// 有语法错误直接抛异常出来，应该没有 try-catch 捕获异常
+			_parsingLocation = 0;
+			if (auto len = Str.length()) {
+				return parseJson(_parsingLocation, len - 1);
+			}
+
+			throw ParseEmptyStringException();
+		}
+
+	private:
+		const char* TrueStr = "rue";
+		const char* FalseStr = "alse";
+		const char* NullStr = "ull";
+		const string& Str;
+		size_t _parsingLocation;
+
+		inline
+		LocationInfo
+		parsingLocationInfo() const
+		{
+			return locationInfoAt(_parsingLocation);
+		}
+
+		inline
+		LocationInfo
+		locationInfoAt(size_t i) const
+		{
+			return LocationInfo(Str, i);
+		}
+
+		Json
+		parseJson(size_t& start, size_t end)
+		{
+			size_t e;
+			auto parseType = routeParse(start, e, end)
+			return parseByType(parseType, i, e);
+		}
+
+		inline
+		Json
+		parseByType(Json::Type parseType, size_t& start, size_t end)
+		{
+			switch (parseType) {
+				case Object:
+					return Json(Object(), parseObject(start, e));
+
+				case Array:
+					return Json(Array(), parseArray(start));
+
+				case Number: // TODO
+				case String:
+					return Json(String(), parseString(start));
+
+				case True:
+					return Json(True());
+
+				case False:
+					return Json(False());
+
+				case Null:
+					return Json(Null());
+			}
+		}
+
+		// 所有的位置应该是偏向类型内的，比如 Object 的位置包含}，Number 都在 Number 内部上
+		Json::Type
+		routeParse(size_t& rangeLeftToChange, size_t& rangeRightToSet, size_t rangeEnd)
+		{
+			auto& i = rangeLeftToChange;
+			for (; i < rangeEnd; ++i) {
+				auto c = Str[i++];
 				switch (c) {
 					case '{':
-						auto subEnd = verifyRightBound(i, end, '}');
-						return Json(Object(), parseObject(i, subEnd));
+						rangeRightToSet = findRightPair(i, rangeEnd, '}');
+						return Json::Type::Object;
 
 					case '[':
-						auto subEnd = verifyRightBound(i, end, ']');
-						return Json(Array(), parseArray(i));
+						rangeRightToSet = findRightPair(i, rangeEnd, ']');
+						return Json::Type::Array;
 
 					case '"':
-						/* string（暂时只支持双引号字符串） */
-						return Json(String(), parseString(i));
+						// find " from rangeEnd, because single root
+						rangeRightToSet = findRightPair(i, rangeEnd, '"');
+						reuturn Json::Type::String;
 
 					case 't':
-						parseTrue(i);
-						return Json(True());
+						rangeRightToSet = i + 2; // rue
+						ensureSingleRoot(rangeRightToSet+1, rangeEnd);
+						return Json::Type::True;
 
 					case 'f':
-						parseFalse(i);
-						return Json(False());
+						rangeRightToSet = i + 3; // alse
+						ensureSingleRoot(rangeRightToSet+1, rangeEnd);
+						return Json::Type::False;
 
 					case 'n':
-						parseNull(i);
-						return Json(Null());
+						rangeRightToSet = i + 2; // ull
+						ensureSingleRoot(rangeRightToSet+1, rangeEnd);
+						reuturn Json::Type::Null;
 
 					default:
-					CheckSpace:
 						if (isSpace(c)) {
-							++i;
-							goto CheckSpace;
-						} else if (isNum(c)) {
-							return parseNum(i);
+							continue;
+						} else if (isDigit(c)/* which num includes */) { // TODO handle -1.12
+							// find num or other thing from end
+							return parseNum(i); // TODO move place
 						} else {
-							// error, current expect is ...
-							throw InvalidStringException();
+							throw InvalidStringException(parsingLocationInfo());
 						}
 				}
 			}
+
+			throw ParseExpectValueException();
 		}
 
 		inline
@@ -84,7 +162,7 @@ namespace Json {
 		inline
 		static
 		bool
-		isNum(char c)
+		isDigit(char c)
 		{
 			return std::isdigit(static_cast<unsigned char>(c));
 		}
@@ -95,21 +173,48 @@ namespace Json {
 			// search around
 		}
 
-		map<string, Json*>
+		/**
+		 * Parse the object string without {} on both sides
+		 */
+		Json::_Object
 		parseObject(size_t& start, size_t end)
 		{
-			auto& i = start;
-			while (isSpace(_str[i])) { ++i; };
-			// 是直接在 Object 里存储 string 还是存储 Json string
-			// 有嵌套、扩展能力的地方都用 Json，嵌套部分中不可扩展的部分
-			// 使用原来的类型
 			map<string, Json> objectMap;
-			auto key = parseString(i, end);
-			auto value = doParse(i, end);
-			objectMap.emplace(key, &value); // use smart ptr
+
+			auto expectString = true, expectColon = false, expectJson = false, expectComma = false;
+			string key;
+			shared_ptr<Json> value;
+			for (auto& i = start; i <= end; ++i) {
+				auto c = Str[i];
+				if (isSpace(c)) {
+					continue;
+				} else if (expectString && c == '"') {
+					key = parseString(++i, end);
+					expectString = false;
+					expectColon = true;
+				} else if (expectColon && c == ':') {
+					++i;
+					expectColon = false;
+					expectJson = true;
+				} else if (expectJson) {
+					value = make_shared(parseJson(i, end));
+					objectMap.emplace(std::move(key), std::move(value));
+					key = ""; value.reset();
+					expectComma = true;
+				} else if (expectComma && c == ',') {
+					// maybe object end and support ',' as end
+					++i;
+					expectComma = false;
+					expectString = true;
+				} else {
+					// throw ... exception
+				}
+			}
+
+			return objectMap;
 		}
 
-		vector<Json*>
+		Json::_Array
 		parseArray(size_t& i)
 		{
 			// search pair and judge	
@@ -118,39 +223,35 @@ namespace Json {
 		string
 		parseString(size_t& start, size_t end)
 		{
-			string str { };
-			for (auto& i = start; i < end && _str[i] != '"'; ++i) {
-				auto c = _str[i];
-				str.append(1, c);
+			for (auto& i = start, subStart = start, countOfSub = 0;
+				i <= end; ++i, ++countOfSub) {
+				if (Str[i++] == '"') {
+					return { Str, subStart, countOfSub }
+				}
 			}
 
-			auto i = start;
-			if (_str[i] == '"') {
-				return str;
-			} else {
-				// throw Wrong...Exception
-			}
+			throw InvalidStringException(); // how to record current parse info: mainly position and Str and expect
 		}
 
 		inline
 		void
 		parseTrue(size_t& i)
 		{
-			parseSimpleType<True>(TrueStr, i);
+			parseSimpleType(TrueStr, i);
 		}
 
 		inline
 		void
 		parseFalse(size_t& i)
 		{
-			parseSimpleType<False>(FalseStr, i);
+			parseSimpleType(FalseStr, i);
 		}
 
 		inline
 		void
 		parseNull(size_t& i)
 		{
-			parseSimpleType<Null>(NullStr, i);
+			parseSimpleType(NullStr, i);
 		}
 
 		Json
@@ -159,40 +260,43 @@ namespace Json {
 			
 		}
 
-		template <typename T>
 		void
-		parseSimpleType(const string& target, size_t& i)
+		parseSimpleType(const char* target, size_t& i)
 		{
 			auto len = target.length();
 			for (int j = 0; j < len; ++j, ++i) {
 				auto t = target[j];
-				auto c = _str[i];
+				auto c = Str[i];
 				if (t != s) {
+					// TODO more detail
 					throw WrongCharException(c);
 				}
 			}
 		}
 
-		// 这里的 bound 都是不包含 expectChar 的
+		/**
+		 * will check single root inner
+		 * @return Index of expected char
+		 */
 		size_t
-		verifyRightBound(size_t start, size_t end, char expectChar)
+		findRightPair(size_t start, size_t end, char expected)
 		{
 			for (auto i = end; i >= start; --i) {
-				if ((auto c = _str[i]) == expectChar) {
-					return --i;
+				auto c = Str[i];
+				if (c == expected) {
+					return i;
+				} else if (!isSpace(c)) {
+					throw ParseNotSingleRootException(LocationInfo);
 				}
 			}
 
 			throw WrongPairException();
 		}
 
-	public:
-		Json
-		parse(string jsonStr)
+		void
+		ensureSingleRoot(size_t checkStart, size_t checkEnd)
 		{
-			auto e = jsonStr.length() - 1;
-			auto p = Parser(std::move(jsonStr));
-			p.doParse(0, e);
+
 		}
 	};
 

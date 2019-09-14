@@ -3,6 +3,7 @@
 #include <variant>
 #include <vector>
 #include <map>
+#include <memory>
 
 namespace Json {
 	using std::string;
@@ -10,6 +11,8 @@ namespace Json {
 	using std::vector;
 	using std::to_string;
 	using std::map;
+	using std::shared_ptr;
+	// Because in Json semantic, there are some data will be shared with external, so shared_ptr
 
 	struct Object {};
 	struct Array  {};
@@ -18,9 +21,11 @@ namespace Json {
 	struct True   {};
 	struct False  {};
 	struct Null   {};
-	
+	class Parser;
+
 	// how to read data from Json
 	class Json {
+		friend class Parser;
 	private:
 		enum class Type {
 			Object,
@@ -32,15 +37,16 @@ namespace Json {
 			Null,
 		};
 		Type _type;
-		// TODO use smart pointer
-		variant<string, vector<Json*>, double, map<string, Json*>> _content;
+		using _Array = vector<shared_ptr<Json>>;
+		using _Object = map<string, shared_ptr<Json>>;
+		variant<string, _Array, double, _Object> _content;
 
 	public:
-		Json(Object, map<string, Json*> object)
+		Json(Object, map<string, shared_ptr<Json>> object)
 			: _type(Type::Object), _content(std::move(object))
 		{ }
 
-		Json(Array, vector<Json*> array)
+		Json(Array, vector<shared_ptr<Json>> array)
 			: _type(Type::Array), _content(std::move(array))
 		{ }
 
@@ -129,21 +135,21 @@ namespace Json {
 		operator[] (const string& key)
 		{
 			assert(isObject()); // use self define exception?
-			return *(std::get<map<string, Json*>>(_content)[key]);
+			return *(std::get<_Object>(_content)[key]);
 		}
 
 		Json&
 		operator[] (const Json& key)
 		{
 			assert(isObject() && key.isString());
-			return *(std::get<map<string, Json*>>(_content)[key]);
+			return *(std::get<_Object>(_content)[key]);
 		}
 
 		Json&
 		operator[] (size_t i)
 		{
 			assert(isArray());
-			return *(std::get<vector<Json*>>(_content)[i]);
+			return *(std::get<_Array>(_content)[i]);
 		}
 
 		// Json&
@@ -158,18 +164,18 @@ namespace Json {
 		//
 		// }
 
-		const map<string, Json*>&
+		const _Object&
 		getObject() const
 		{
 			assert(isObject());
-			return std::get<map<string, Json*>>(_content);
+			return std::get<_Object>(_content);
 		}
 		// how modify array item external
-		const vector<Json*>&
+		const _Array&
 		getArray() const
 		{
 			assert(isArray());
-			return std::get<vector<Json*>>(_content);
+			return std::get<_Array>(_content);
 		}
 
 		double

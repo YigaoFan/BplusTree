@@ -1,6 +1,9 @@
+extern void parserTest();
+
 namespace JsonTest {
 	void
-	allTest() {
-
+	allTest()
+	{
+		parserTest();
 	}
 }
