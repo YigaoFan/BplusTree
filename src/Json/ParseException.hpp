@@ -4,6 +4,7 @@
 
 namespace Json {
 	using std::runtime_error;
+	using std::to_string;
 
 	class WrongCharException {
 	public:
@@ -16,9 +17,9 @@ namespace Json {
 
 	class InvalidStringException : public runtime_error {
 	public:
-		InvalidStringException(LocationInfo info)
+		InvalidStringException(LocationInfo info, string message="")
 			: runtime_error("InvalidString: " + info.charAtLocation()
-							+ " at " + info.Location + " of ..." + info.charsAround());
+							+ " at " + to_string(info.Location) + " of ..." + info.charsAround());
 		{ }
 	};
 
@@ -44,7 +45,14 @@ namespace Json {
 	public:
 		ParseNotSingleRootException(LocationInfo info)
 			: runtime_error("JSON string is not a single root: " + info.charAtLocation()
-							+ " at " + info.Location + " of ..." + info.charsAround()); // not worry, chars will be copied
+							+ " at " + to_string(info.Location) + " of ..." + info.charsAround()); // not worry, chars will be copied
+		{ }
+	};
+
+	class PairNotFoundException : public runtime_error {
+	public:
+		PairNotFoundException(size_t start, size_t end, char expected)
+			: runtime_error("Can't find " + expected + " pair between " + to_string(start) + " and " + to_string(end))
 		{ }
 	};
 }

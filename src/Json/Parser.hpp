@@ -3,6 +3,7 @@
 #include <vector>
 #include <cctype>
 #include <memory>
+#include <utility>
 #include "ParseException.hpp"
 #include "Json.hpp"
 #include "LocationInfo.hpp"
@@ -10,7 +11,8 @@
 namespace Json {
 	using std::string;
 	using std::make_shared;
-
+	using std::pair;
+	using std::make_pair;
 	// 我想的是有针对当前正在处理的对象的情境这个概念，
 	// 比如当前正在处理一个空格（也就是说现在不进行去除空格的处理了），如果是在字符串里的空格，那就加入进去
 	// 如果是项与项之间的，就忽略，如果是其他项内的空格，则报错
@@ -45,9 +47,9 @@ namespace Json {
 		}
 
 	private:
-		const char* TrueStr = "rue";
-		const char* FalseStr = "alse";
-		const char* NullStr = "ull";
+		const char* TrueStr = "true";
+		const char* FalseStr = "false";
+		const char* NullStr = "null";
 		const string& Str;
 		size_t _parsingLocation;
 
@@ -68,9 +70,8 @@ namespace Json {
 		Json
 		parseJson(size_t& start, size_t end)
 		{
-			size_t e;
-			auto parseType = routeParse(start, e, end)
-			return parseByType(parseType, i, e);
+			auto typeAndRangeRightPair = routeParse(start, end);
+			return parseByType(typeAndRangeRightPair.first, start, typeAndRangeRightPair.second);
 		}
 
 		inline
@@ -79,68 +80,74 @@ namespace Json {
 		{
 			switch (parseType) {
 				case Object:
-					return Json(Object(), parseObject(start, e));
+					return Json(Object(), parseObject(start, end));
 
 				case Array:
 					return Json(Array(), parseArray(start));
 
-				case Number: // TODO
+				case Number:
+					return Json(Number(), parseNum(start, e));
+
 				case String:
 					return Json(String(), parseString(start));
 
 				case True:
+					parseTrue(/* TODO */);
 					return Json(True());
 
 				case False:
+					parseFalse(/* TODO */);
 					return Json(False());
 
 				case Null:
+					parseNull(/* TODO */);
 					return Json(Null());
 			}
 		}
 
+		/**
+		 * @return pair of Json type and range right roughly from external eye
+		 */
 		// 所有的位置应该是偏向类型内的，比如 Object 的位置包含}，Number 都在 Number 内部上
-		Json::Type
-		routeParse(size_t& rangeLeftToChange, size_t& rangeRightToSet, size_t rangeEnd)
+		pair<Json::Type, size_t>
+		routeParse(size_t& rangeLeftToChange, size_t rangeEnd)
 		{
 			auto& i = rangeLeftToChange;
+			size_t rangeRight;
+
 			for (; i < rangeEnd; ++i) {
 				auto c = Str[i++];
 				switch (c) {
 					case '{':
-						rangeRightToSet = findRightPair(i, rangeEnd, '}');
-						return Json::Type::Object;
+						return make_pair(Json::Type::Object, findRightPair(i, rangeEnd, '}'));
 
 					case '[':
-						rangeRightToSet = findRightPair(i, rangeEnd, ']');
-						return Json::Type::Array;
+						return make_pair(Json::Type::Array, findRightPair(i, rangeEnd, ']'));
 
 					case '"':
 						// find " from rangeEnd, because single root
-						rangeRightToSet = findRightPair(i, rangeEnd, '"');
-						reuturn Json::Type::String;
+						return make_pair(Json::Type::String, findRightPair(i, rangeEnd, '"'));
 
 					case 't':
-						rangeRightToSet = i + 2; // rue
-						ensureSingleRoot(rangeRightToSet+1, rangeEnd);
-						return Json::Type::True;
+						rangeRight = i + 2; // rue
+						ensureSingleRoot(rangeRight+1, rangeEnd);
+						return make_pair(Json::Type::True, rangeRight);
 
 					case 'f':
-						rangeRightToSet = i + 3; // alse
-						ensureSingleRoot(rangeRightToSet+1, rangeEnd);
-						return Json::Type::False;
+						rangeRight = i + 3; // alse
+						ensureSingleRoot(rangeRight+1, rangeEnd);
+						return make_pair(Json::Type::False, rangeRight);
 
 					case 'n':
-						rangeRightToSet = i + 2; // ull
-						ensureSingleRoot(rangeRightToSet+1, rangeEnd);
-						reuturn Json::Type::Null;
+						rangeRight = i + 2; // ull
+						ensureSingleRoot(rangeRight+1, rangeEnd);
+						return make_pair(Json::Type::Null, rangeRight);
 
 					default:
 						if (isSpace(c)) {
 							continue;
-						} else if (isDigit(c)/* which num includes */) { // TODO handle -1.12
-							// find num or other thing from end
-							return parseNum(i); // TODO move place
+						} else if (isNumStart(c)) {
+							return make_pair(Json::Type::Number, findNumStrRightBound(i, rangeEnd));
 						} else {
 							throw InvalidStringException(parsingLocationInfo());
 						}
@@ -162,7 +169,15 @@ namespace Json {
 		inline
 		static
 		bool
-		isDigit(char c)
+		isNumStart(char c)
+		{
+			return std::isdigit(static_cast<unsigned char>(c)) || c == '-';
+		}
+
+		inline
+		static
+		bool
+		isNumTail(char c)
 		{
 			return std::isdigit(static_cast<unsigned char>(c));
 		}
@@ -264,12 +279,12 @@ namespace Json {
 		parseSimpleType(const char* target, size_t& i)
 		{
 			auto len = target.length();
-			for (int j = 0; j < len; ++j, ++i) {
+			// match from second char
+			for (int j = 1; j < len; ++j, ++i) {
 				auto t = target[j];
 				auto c = Str[i];
 				if (t != s) {
-					// TODO more detail
-					throw WrongCharException(c);
+					throw InvalidStringException(locationInfoAt(i), "While matching " + target);
 				}
 			}
 		}
@@ -279,24 +294,41 @@ namespace Json {
 		 * @return Index of expected char
 		 */
 		size_t
-		findRightPair(size_t start, size_t end, char expected)
+		findRightPair(size_t start, size_t end, char expected) const
 		{
 			for (auto i = end; i >= start; --i) {
 				auto c = Str[i];
 				if (c == expected) {
 					return i;
 				} else if (!isSpace(c)) {
-					throw ParseNotSingleRootException(LocationInfo);
+					throw ParseNotSingleRootException(parsingLocationInfo());
 				}
 			}
 
-			throw WrongPairException();
+			throw PairNotFoundException(start, end, expected);
 		}
 
 		void
-		ensureSingleRoot(size_t checkStart, size_t checkEnd)
+		ensureSingleRoot(size_t checkStart, size_t checkEnd) const
 		{
+			for (int i = checkStart; i < checkEnd; ++i) {
+				if (!isSpace(Str[i])) {
+					throw ParseNotSingleRootException(locationInfoAt(i));
+				}
+			}
+		}
 
+		size_t
+		findNumStrRightBound(size_t start, size_t end) const
+		{
+			for (auto i = end; i >=  start; ++i) {
+				auto c = Str[i];
+				if (isNumTail(c)) {
+					return i;
+				} else if (!isSpace(c)) {
+					throw ParseNotSingleRootException(parsingLocationInfo());
+				}
+			}
 		}
 	};
 
