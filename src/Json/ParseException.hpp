@@ -12,6 +12,10 @@ namespace Json {
 			: runtime_error(string {&"InvalidString: " [ info.charAtLocation()]}
 							+ " at " + to_string(info.Location) + " of ..." + info.charsAround() + ": " + message)
 		{ }
+
+		explicit InvalidStringException(const string& message)
+			: runtime_error(message)
+		{}
 	};
 
 	class ProgramError : public runtime_error {

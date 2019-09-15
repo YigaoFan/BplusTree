@@ -13,22 +13,15 @@ namespace Json {
 	using std::make_shared;
 	using std::pair;
 	using std::make_pair;
-	// 我想的是有针对当前正在处理的对象的情境这个概念，
-	// 比如当前正在处理一个空格（也就是说现在不进行去除空格的处理了），如果是在字符串里的空格，那就加入进去
-	// 如果是项与项之间的，就忽略，如果是其他项内的空格，则报错
-	// 还有一个当前期望的东西存在，如果是数字则期望数字，这样不是数字则能比较容易和清楚的报出语法错误
+
 	class Parser {
 	public:
-		inline
-		static
-		Json
-		parse(const string& jsonStr)
+		static Json parse(const string& jsonStr)
 		{
 			return Parser(jsonStr).doParse();
 		}
 
-		Parser(const string& str)
-			: Str(str)
+		explicit Parser(const string& str) : Str(str)
 		{ }
 
 		/**
@@ -51,16 +44,14 @@ namespace Json {
 		const string FalseStr = "false";
 		const string NullStr = "null";
 		const string& Str;
-		size_t _parsingLocation;
+		size_t _parsingLocation = 0;
 
-		inline
 		LocationInfo
 		parsingLocationInfo() const
 		{
 			return locationInfoAt(_parsingLocation);
 		}
 
-		inline
 		LocationInfo
 		locationInfoAt(size_t i) const
 		{
@@ -70,13 +61,13 @@ namespace Json {
 		Json
 		parseJson(size_t& start, size_t end)
 		{
-			auto typeAndRangeRightPair = routeParse(start, end);
-			return parseByType(typeAndRangeRightPair.first, start, typeAndRangeRightPair.second);
+			auto typeAndRangeRightPair = rootRouteParse(start, end);
+			return rootParseByType(typeAndRangeRightPair.first, start, typeAndRangeRightPair.second);
 		}
 
 		inline
 		Json
-		parseByType(Json::Type parseType, size_t& start, size_t end)
+		rootParseByType(Json::Type parseType, size_t& start, size_t end)
 		{
 			switch (parseType) {
 				case Json::Type::Object:
@@ -111,48 +102,44 @@ namespace Json {
 		 */
 		// 所有的位置应该是偏向类型内的，比如 Object 的位置包含}，Number 都在 Number 内部上
 		pair<Json::Type, size_t>
-		routeParse(size_t& rangeLeftToChange, size_t rangeEnd)
+		rootRouteParse(size_t& rangeLeftToChange, size_t rangeEnd)
 		{
-			for (size_t& i = rangeLeftToChange, rangeRight; i < rangeEnd; ++i) {
-				auto c = Str[i++];
-				switch (c) {
-					case '{':
-						return make_pair(Json::Type::Object, findRightPair(i, rangeEnd, '}'));
+			auto type = detectForwardUnitType(rangeLeftToChange, rangeEnd);
+			size_t& i = rangeLeftToChange, rangeRight;
+			switch (type) {
+				case Json::Type::Object:
+					rangeRight = findRightPair(i, rangeEnd, '}');
+					break;
 
-					case '[':
-						return make_pair(Json::Type::Array, findRightPair(i, rangeEnd, ']'));
+				case Json::Type::Array:
+					rangeRight = findRightPair(i, rangeEnd, ']');
+					break;
 
-					case '"':
-						// find " from rangeEnd, because single root
-						return make_pair(Json::Type::String, findRightPair(i, rangeEnd, '"'));
+				case Json::Type::String:
+					rangeRight = findRightPair(i, rangeEnd, '"');
+					break;
 
-					case 't':
-						rangeRight = i + 2; // rue
-						ensureSingleRoot(rangeRight+1, rangeEnd);
-						return make_pair(Json::Type::True, rangeRight);
+				case Json::Type::True:
+					rangeRight = i + 2; // rue
+					ensureSingleRoot(rangeRight+1, rangeEnd);
+					break;
 
-					case 'f':
-						rangeRight = i + 3; // alse
-						ensureSingleRoot(rangeRight+1, rangeEnd);
-						return make_pair(Json::Type::False, rangeRight);
+				case Json::Type::False:
+					rangeRight = i + 3; // alse
+					ensureSingleRoot(rangeRight+1, rangeEnd);
+					break;
 
-					case 'n':
-						rangeRight = i + 2; // ull
-						ensureSingleRoot(rangeRight+1, rangeEnd);
-						return make_pair(Json::Type::Null, rangeRight);
+				case Json::Type::Null:
+					rangeRight = i + 2; // ull
+					ensureSingleRoot(rangeRight+1, rangeEnd);
+					break;
 
-					default:
-						if (isSpace(c)) {
-							continue;
-						} else if (isNumStart(c)) {
-							return make_pair(Json::Type::Number, findNumStrRightBound(i+1, rangeEnd));
-						} else {
-							throw InvalidStringException(parsingLocationInfo());
-						}
-				}
+				case Json::Type::Number:
+					rangeRight = findNumStrRightBound(i+1, rangeEnd);
+					break;
 			}
 
-			throw ParseExpectValueException();
+			return make_pair(type, rangeRight);
 		}
 
 		inline
@@ -160,7 +147,6 @@ namespace Json {
 		bool
 		isSpace(char c)
 		{
-			 // check if work on which char
 			return std::isblank(static_cast<unsigned char>(c));
 		}
 
@@ -210,7 +196,7 @@ namespace Json {
 					expectColon = false;
 					expectJson = true;
 				} else if (expectJson) {
-					value = make_shared<Json>(justParseJsonUnit(i, end-1));
+					value = make_shared<Json>(forwardParseJsonUnit(i, end - 1));
 					objectMap.emplace(std::move(key), std::move(value));
 					key.clear(); value.reset();
 					expectComma = expectBracket = true;
@@ -249,7 +235,7 @@ namespace Json {
 				} else if (expectJson) {
 					// 这里没有加一，所以这里可能是{,[，之后的处理是否正确
 					// this and up object end is a too big range
-					array.emplace_back(make_shared<Json>(justParseJsonUnit(i, end-1)));
+					array.emplace_back(make_shared<Json>(forwardParseJsonUnit(i, end - 1)));
 					expectComma = expectSqrBracket = true;
 					expectJson = false;
 				}
@@ -257,10 +243,76 @@ namespace Json {
 		}
 
 		Json
-		justParseJsonUnit(size_t& start, size_t bound)
+		forwardParseJsonUnit(size_t& start, size_t bound)
 		{
 			auto type = detectForwardUnitType(start, bound);
-			// TODO
+			switch (type) {
+				case Json::Type::Object:
+					return Json(Object(), forwardParseObject());
+
+				case Json::Type::Array:
+					return Json(Array(), forwardParseArray());
+
+				case Json::Type::Number:
+					return Json(Number(), forwardParseNumber());
+
+				case Json::Type::String:
+					return Json(String(), forwardParseString());
+
+				case Json::Type::True:
+					forwardParseTrue(/* TODO */);
+					return Json(True());
+
+				case Json::Type::False:
+					forwardParseFalse(/* TODO */);
+					return Json(False());
+
+				case Json::Type::Null:
+					forwardParseNull(/* TODO */);
+					return Json(Null());
+			}
+		}
+
+		Json::_Object
+		forwardParseObject()
+		{
+
+		}
+
+		Json::_Array
+		forwardParseArray()
+		{
+
+		}
+
+		double
+		forwardParseNumber()
+		{
+
+		}
+
+		string
+		forwardParseString()
+		{
+
+		}
+
+		void
+		forwardParseTrue()
+		{
+
+		}
+
+		void
+		forwardParseFalse()
+		{
+
+		}
+
+		void
+		forwardParseNull()
+		{
+
 		}
 
 		Json::Type
@@ -314,7 +366,9 @@ namespace Json {
 				}
 			}
 
-			throw InvalidStringException("");
+			throw InvalidStringException(string{ "string around " }
+			                                           .append(locationInfoAt(end).charsAround())
+			                                           .append(" doesn't have end"));
 		}
 
 		inline
@@ -341,7 +395,7 @@ namespace Json {
 		double
 		parseNum(size_t& i)
 		{
-			
+
 		}
 
 		void

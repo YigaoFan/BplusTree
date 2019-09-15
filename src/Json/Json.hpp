@@ -21,13 +21,12 @@ namespace Json {
 	struct True   {};
 	struct False  {};
 	struct Null   {};
-	class Parser;
 
 	// how to read data from Json
 	class Json {
 		friend class Parser;
 	private:
-		enum class Type {
+		enum Type {
 			Object,
 			Array,
 			Number,
@@ -42,36 +41,36 @@ namespace Json {
 		variant<string, _Array, double, _Object> _content;
 
 	public:
-		Json(Object, map<string, shared_ptr<Json>> object)
+		explicit Json(struct Object, map<string, shared_ptr<Json>> object)
 			: _type(Type::Object), _content(std::move(object))
 		{ }
 
-		Json(Array, vector<shared_ptr<Json>> array)
+		explicit Json(struct Array, vector<shared_ptr<Json>> array)
 			: _type(Type::Array), _content(std::move(array))
 		{ }
 
-		Json(Number, double num)
+		explicit Json(struct Number, double num)
 			: _type(Type::Number), _content(num)
 		{ }
 
-		Json(String, string str)
+		explicit Json(struct String, string str)
 			: _type(Type::String), _content(std::move(str))
 		{ }
 
-		Json(True)
+		explicit Json(struct True)
 			: _type(Type::True)
 		{ }
 
-		Json(False)
+		explicit Json(struct False)
 			: _type(Type::False)
 		{ }
 
-		Json(Null)
+		explicit Json(struct Null)
 			: _type(Type::Null)
 		{ }
 
 		// Json(const Json& that) deep copy?
-		Json(Json&& that)
+		Json(Json&& that) noexcept
 			: _type(that._type), _content(std::move(that._content))
 		{ }
 
@@ -142,7 +141,7 @@ namespace Json {
 		operator[] (const Json& key)
 		{
 			assert(isObject() && key.isString());
-			return *(std::get<_Object>(_content)[key]);
+			return operator[](key.getString());
 		}
 
 		Json&
@@ -189,7 +188,7 @@ namespace Json {
 		getString() const
 		{
 			assert(isString());
-			reutrn std::get<string>(_content);
+			return std::get<string>(_content);
 		}
 
 		bool
@@ -199,40 +198,40 @@ namespace Json {
 		}
 
 		// TODO need getNull()?
-		string
-		toString()
-		{
-			switch (_type) {
-				case Type::Object:
-					string str = "{";
-					auto objectMap = std::get<map<string, Json*>>(_content);
-					for (auto& pair : objectMap) {
-						str += pair.first;
-						str += ':';
-						str += pair.value->toString();
-						// need to replace += with string modify method
-					}
-					return str;
-
-				case Type::Array:
-					// TODO
-					break;
-
-				case Type::Number:
-					return to_string(std::get<double>(_content));
-
-				case Type::String:
-					return std::get<string>(_content);
-
-				case Type::True:
-					return "true";
-
-				case Type::False:
-					return "false";
-
-				case Type::Null:
-					return "null";
-			}
-		}
+		// string
+		// toString()
+		// {
+		// 	switch (_type) {
+		// 		case Type::Object:
+		// 			string str = "{";
+		// 			auto objectMap = std::get<map<string, Json*>>(_content);
+		// 			for (auto& pair : objectMap) {
+		// 				str += pair.first;
+		// 				str += ':';
+		// 				str += pair.second->toString();
+		// 				// need to replace += with string modify method
+		// 			}
+		// 			return str;
+		//
+		// 		case Type::Array:
+		// 			// TODO
+		// 			break;
+		//
+		// 		case Type::Number:
+		// 			return to_string(std::get<double>(_content));
+		//
+		// 		case Type::String:
+		// 			return std::get<string>(_content);
+		//
+		// 		case Type::True:
+		// 			return "true";
+		//
+		// 		case Type::False:
+		// 			return "false";
+		//
+		// 		case Type::Null:
+		// 			return "null";
+		// 	}
+		// }
 	};
 }
