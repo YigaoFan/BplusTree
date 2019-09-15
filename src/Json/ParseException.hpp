@@ -6,25 +6,19 @@ namespace Json {
 	using std::runtime_error;
 	using std::to_string;
 
-	class WrongCharException {
-	public:
-		// TODO add detail info in constructor
-		WrongCharException(char wrongChar)
-		{
-
-		}
-	};
-
 	class InvalidStringException : public runtime_error {
 	public:
-		InvalidStringException(LocationInfo info, string message="")
-			: runtime_error("InvalidString: " + info.charAtLocation()
-							+ " at " + to_string(info.Location) + " of ..." + info.charsAround());
+		explicit InvalidStringException(LocationInfo info, const string& message="")
+			: runtime_error(string {&"InvalidString: " [ info.charAtLocation()]}
+							+ " at " + to_string(info.Location) + " of ..." + info.charsAround() + ": " + message)
 		{ }
 	};
 
-	class WrongPairException {
-
+	class ProgramError : public runtime_error {
+	public:
+		explicit ProgramError(const string& message)
+			: runtime_error("This is a defense exception, please fix the error with message: " + message) // it will lead bug by use reference?
+		{ }
 	};
 
 	class ParseEmptyStringException : public runtime_error {
@@ -43,16 +37,16 @@ namespace Json {
 
 	class ParseNotSingleRootException : public runtime_error {
 	public:
-		ParseNotSingleRootException(LocationInfo info)
-			: runtime_error("JSON string is not a single root: " + info.charAtLocation()
-							+ " at " + to_string(info.Location) + " of ..." + info.charsAround()); // not worry, chars will be copied
+		explicit ParseNotSingleRootException(LocationInfo info)
+			: runtime_error(string{&"JSON string is not a single root: " [ info.charAtLocation()]} // how this work
+							+ " at " + to_string(info.Location) + " of ..." + info.charsAround()) // not worry, chars will be copied
 		{ }
 	};
 
 	class PairNotFoundException : public runtime_error {
 	public:
 		PairNotFoundException(size_t start, size_t end, char expected)
-			: runtime_error("Can't find " + expected + " pair between " + to_string(start) + " and " + to_string(end))
+			: runtime_error(string{"Can't find "} + expected + " pair between " + to_string(start) + " and " + to_string(end))
 		{ }
 	};
 }

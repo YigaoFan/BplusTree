@@ -47,9 +47,9 @@ namespace Json {
 		}
 
 	private:
-		const char* TrueStr = "true";
-		const char* FalseStr = "false";
-		const char* NullStr = "null";
+		const string TrueStr = "true";
+		const string FalseStr = "false";
+		const string NullStr = "null";
 		const string& Str;
 		size_t _parsingLocation;
 
@@ -79,43 +79,41 @@ namespace Json {
 		parseByType(Json::Type parseType, size_t& start, size_t end)
 		{
 			switch (parseType) {
-				case Object:
+				case Json::Type::Object:
 					return Json(Object(), parseObject(start, end));
 
-				case Array:
-					return Json(Array(), parseArray(start));
+				case Json::Type::Array:
+					return Json(Array(), parseArray(start, end));
 
-				case Number:
+				case Json::Type::Number:
 					return Json(Number(), parseNum(start, e));
 
-				case String:
+				case Json::Type::String:
 					return Json(String(), parseString(start));
 
-				case True:
+				case Json::Type::True:
 					parseTrue(/* TODO */);
 					return Json(True());
 
-				case False:
+				case Json::Type::False:
 					parseFalse(/* TODO */);
 					return Json(False());
 
-				case Null:
+				case Json::Type::Null:
 					parseNull(/* TODO */);
 					return Json(Null());
 			}
 		}
 
 		/**
+		 * change rangeLeftToChange to right start position of corresponding type
 		 * @return pair of Json type and range right roughly from external eye
 		 */
 		// 所有的位置应该是偏向类型内的，比如 Object 的位置包含}，Number 都在 Number 内部上
 		pair<Json::Type, size_t>
 		routeParse(size_t& rangeLeftToChange, size_t rangeEnd)
 		{
-			auto& i = rangeLeftToChange;
-			size_t rangeRight;
-
-			for (; i < rangeEnd; ++i) {
+			for (size_t& i = rangeLeftToChange, rangeRight; i < rangeEnd; ++i) {
 				auto c = Str[i++];
 				switch (c) {
 					case '{':
@@ -147,7 +145,7 @@ namespace Json {
 						if (isSpace(c)) {
 							continue;
 						} else if (isNumStart(c)) {
-							return make_pair(Json::Type::Number, findNumStrRightBound(i, rangeEnd));
+							return make_pair(Json::Type::Number, findNumStrRightBound(i+1, rangeEnd));
 						} else {
 							throw InvalidStringException(parsingLocationInfo());
 						}
@@ -194,9 +192,10 @@ namespace Json {
 		Json::_Object
 		parseObject(size_t& start, size_t end)
 		{
-			map<string, Json> objectMap;
+			Json::_Object objectMap;
 
-			auto expectString = true, expectColon = false, expectJson = false, expectComma = false;
+			auto expectString = true, expectBracket = true, expectColon = false,
+			     expectJson = false, expectComma = false;
 			string key;
 			shared_ptr<Json> value;
 			for (auto& i = start; i <= end; ++i) {
@@ -205,47 +204,117 @@ namespace Json {
 					continue;
 				} else if (expectString && c == '"') {
 					key = parseString(++i, end);
-					expectString = false;
+					expectString = expectBracket = false;
 					expectColon = true;
 				} else if (expectColon && c == ':') {
-					++i;
 					expectColon = false;
 					expectJson = true;
 				} else if (expectJson) {
-					value = make_shared(parseJson(i, end));
+					value = make_shared<Json>(justParseJsonUnit(i, end-1));
 					objectMap.emplace(std::move(key), std::move(value));
-					key = ""; value.reset();
-					expectComma = true;
+					key.clear(); value.reset();
+					expectComma = expectBracket = true;
 				} else if (expectComma && c == ',') {
-					// maybe object end and support ',' as end
-					++i;
+					// support ',' as end of object
 					expectComma = false;
-					expectString = true;
+					expectString = expectBracket = true;
+				} else if (expectBracket && c == '}') {
+					++i;
+					return objectMap;
 				} else {
-					// throw ... exception
+					throw InvalidStringException(parsingLocationInfo());
 				}
 			}
 
-			return objectMap;
+			throw ProgramError("now location is " + to_string(start) + " of ..." + parsingLocationInfo().charsAround());
 		}
 
 		Json::_Array
-		parseArray(size_t& i)
+		parseArray(size_t& start, size_t end)
 		{
-			// search pair and judge	
+			Json::_Array array;
+
+			auto expectJson = true, expectSqrBracket = true, expectComma = false;
+			for (auto& i = start; i <= end; ++i) {
+				auto c = Str[i];
+				if (isSpace(c)) {
+					continue;
+				} else if (expectSqrBracket && c == ']') {
+					// 之后详细处理下嵌套解析之间的解析之后的位置变化的关系
+					++i;
+					return array;
+				} else if (expectComma && c == ',') {
+					expectComma = false;
+					expectJson = expectSqrBracket = true;
+				} else if (expectJson) {
+					// 这里没有加一，所以这里可能是{,[，之后的处理是否正确
+					// this and up object end is a too big range
+					array.emplace_back(make_shared<Json>(justParseJsonUnit(i, end-1)));
+					expectComma = expectSqrBracket = true;
+					expectJson = false;
+				}
+			}
+		}
+
+		Json
+		justParseJsonUnit(size_t& start, size_t bound)
+		{
+			auto type = detectForwardUnitType(start, bound);
+			// TODO
+		}
+
+		Json::Type
+		detectForwardUnitType(size_t& start, size_t bound)
+		{
+			for (auto& i = start; i < bound; ++i) {
+				auto c = Str[i++];
+				switch (c) {
+					case '{':
+						return Json::Type::Object;
+
+					case '[':
+						return Json::Type::Array;
+
+					case '"':
+						return Json::Type::String;
+
+					case 't':
+						return Json::Type::True;
+
+					case 'f':
+						return Json::Type::False;
+
+					case 'n':
+						return Json::Type::Null;
+
+					default:
+						if (isSpace(c)) {
+							continue;
+						} else if (isNumStart(c)) {
+							return Json::Type::Number;
+						} else {
+							throw InvalidStringException(parsingLocationInfo());
+						}
+				}
+			}
+
+			throw ParseExpectValueException();
 		}
 
 		string
 		parseString(size_t& start, size_t end)
 		{
-			for (auto& i = start, subStart = start, countOfSub = 0;
+			// 处理转义
+			// end is ",
+			for (size_t& i = start, subStart = start, countOfSub = 0;
 				i <= end; ++i, ++countOfSub) {
-				if (Str[i++] == '"') {
-					return { Str, subStart, countOfSub }
+				if (Str[i] == '"') {
+					++i;
+					return { Str, subStart, countOfSub };
 				}
 			}
 
-			throw InvalidStringException(); // how to record current parse info: mainly position and Str and expect
+			throw InvalidStringException("");
 		}
 
 		inline
@@ -269,21 +338,21 @@ namespace Json {
 			parseSimpleType(NullStr, i);
 		}
 
-		Json
+		double
 		parseNum(size_t& i)
 		{
 			
 		}
 
 		void
-		parseSimpleType(const char* target, size_t& i)
+		parseSimpleType(const string& target, size_t& i)
 		{
 			auto len = target.length();
 			// match from second char
 			for (int j = 1; j < len; ++j, ++i) {
 				auto t = target[j];
 				auto c = Str[i];
-				if (t != s) {
+				if (t != c) {
 					throw InvalidStringException(locationInfoAt(i), "While matching " + target);
 				}
 			}

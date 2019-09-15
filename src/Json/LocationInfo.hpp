@@ -19,10 +19,10 @@ namespace Json {
 			return AllString[Location];
 		}
 
-		const string&
+		string
 		charsAround() const
 		{
-			return Location >= 4 ? AllString.substr(location-4, 9) : AllString.substr(location, 9);
+			return Location >= 4 ? AllString.substr(Location-4, 9) : AllString.substr(Location, 9);
 		}
 	};
 }
