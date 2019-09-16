@@ -1,5 +1,3 @@
-#pragma once
-
 #include "../../TestFrame/FlyTest.hpp"
 #include "../Parser.hpp"
 using namespace Json;
