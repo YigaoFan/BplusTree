@@ -32,7 +32,7 @@ namespace Json {
 		auto status = Unknown();
 		auto json = Json(); // should add a default constructor to Json
 
-		for(auto i = 0; i < str.length(); ++i) {
+		for (auto i = 0; i < str.length(); ++i) {
 			status.Do(c, status); // json?
 		}
 	}

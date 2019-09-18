@@ -14,11 +14,14 @@ namespace Json {
 			: AllString(str), Location(location)
 		{ }
 
-		char charAtLocation() const
+		inline
+		char
+		charAtLocation() const
 		{
 			return AllString[Location];
 		}
 
+		inline
 		string
 		charsAround() const
 		{

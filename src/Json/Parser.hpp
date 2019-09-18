@@ -46,12 +46,14 @@ namespace Json {
 		const string& Str;
 		size_t _parsingLocation = 0;
 
+		inline
 		LocationInfo
 		parsingLocationInfo() const
 		{
 			return locationInfoAt(_parsingLocation);
 		}
 
+		inline
 		LocationInfo
 		locationInfoAt(size_t i) const
 		{
@@ -61,7 +63,7 @@ namespace Json {
 		Json
 		parseJson(size_t& start, size_t end)
 		{
-			auto typeAndRangeRightPair = rootRouteParse(start, end);
+			auto typeAndRangeRightPair = routeRootParse(start, end);
 			return rootParseByType(typeAndRangeRightPair.first, start, typeAndRangeRightPair.second);
 		}
 
@@ -102,7 +104,7 @@ namespace Json {
 		 */
 		// 所有的位置应该是偏向类型内的，比如 Object 的位置包含}，Number 都在 Number 内部上
 		pair<Json::Type, size_t>
-		rootRouteParse(size_t& rangeLeftToChange, size_t rangeEnd)
+		routeRootParse(size_t& rangeLeftToChange, size_t rangeEnd)
 		{
 			auto type = detectForwardUnitType(rangeLeftToChange, rangeEnd);
 			size_t& i = rangeLeftToChange, rangeRight;
@@ -196,6 +198,7 @@ namespace Json {
 					expectColon = false;
 					expectJson = true;
 				} else if (expectJson) {
+					// 主要是这块的这个递归太伤了
 					value = make_shared<Json>(forwardParseJsonUnit(i, end - 1));
 					objectMap.emplace(std::move(key), std::move(value));
 					key.clear(); value.reset();
@@ -246,73 +249,8 @@ namespace Json {
 		forwardParseJsonUnit(size_t& start, size_t bound)
 		{
 			auto type = detectForwardUnitType(start, bound);
-			switch (type) {
-				case Json::Type::Object:
-					return Json(Object(), forwardParseObject());
-
-				case Json::Type::Array:
-					return Json(Array(), forwardParseArray());
-
-				case Json::Type::Number:
-					return Json(Number(), forwardParseNumber());
-
-				case Json::Type::String:
-					return Json(String(), forwardParseString());
-
-				case Json::Type::True:
-					forwardParseTrue(/* TODO */);
-					return Json(True());
-
-				case Json::Type::False:
-					forwardParseFalse(/* TODO */);
-					return Json(False());
-
-				case Json::Type::Null:
-					forwardParseNull(/* TODO */);
-					return Json(Null());
-			}
-		}
-
-		Json::_Object
-		forwardParseObject()
-		{
-
-		}
-
-		Json::_Array
-		forwardParseArray()
-		{
-
-		}
-
-		double
-		forwardParseNumber()
-		{
-
-		}
-
-		string
-		forwardParseString()
-		{
-
-		}
-
-		void
-		forwardParseTrue()
-		{
-
-		}
-
-		void
-		forwardParseFalse()
-		{
-
-		}
-
-		void
-		forwardParseNull()
-		{
-
+			// 可以把 routeRootParse 里的除了 detect 的代码分出来，这样递归和 root 的差别可以比较明显的看出来了
+			rootParseByType(type, start, bound);
 		}
 
 		Json::Type
