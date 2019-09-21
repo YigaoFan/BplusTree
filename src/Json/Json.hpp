@@ -11,8 +11,7 @@ namespace Json {
 	using std::vector;
 	using std::to_string;
 	using std::map;
-	using std::shared_ptr;
-	// Because in Json semantic, there are some data will be shared with external, so shared_ptr
+	using std::shared_ptr; // In Json semantic, there are some data will be shared with external, so shared_ptr
 
 	struct Object {};
 	struct Array  {};

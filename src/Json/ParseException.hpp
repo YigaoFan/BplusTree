@@ -53,4 +53,18 @@ namespace Json {
 			: runtime_error(string{"Can't find "} + expected + " pair between " + to_string(start) + " and " + to_string(end))
 		{ }
 	};
+
+	class ParseNumberTooBigException : public runtime_error {
+	public:
+		explicit ParseNumberTooBigException(const string& tooBigNum)
+			: runtime_error(string{"Number: "} + tooBigNum + " is too big")
+		{ }
+	};
+
+	class InvalidNumberException : public runtime_error {
+	public:
+		explicit InvalidNumberException(LocationInfo info)
+			: runtime_error(string{"Char "} + info.charAtLocation() + " in " + info.charsAround() + " isn't meet expectation")
+		{ }
+	};
 }
