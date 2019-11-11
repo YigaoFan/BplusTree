@@ -6,7 +6,7 @@
 #include "../../TestFrame/FlyTest.hpp"
 #include "../Elements.hpp"
 #include "Utility.hpp"
-using namespace btree;
+using namespace Btree;
 using std::string;
 using std::array;
 using std::make_pair;

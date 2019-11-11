@@ -1,15 +1,19 @@
 #pragma once
+/**********************************
+   Exception in Json Parser
+***********************************/
+
 #include <exception>
 #include "LocationInfo.hpp"
 
 namespace Json {
-	using std::runtime_error;
-	using std::to_string;
+	using ::std::runtime_error;
+	using ::std::to_string;
 
 	class InvalidStringException : public runtime_error {
 	public:
 		explicit InvalidStringException(LocationInfo info, const string& message="")
-			: runtime_error(string {&"InvalidString: " [ info.charAtLocation()]}
+			: runtime_error(string {&"InvalidString: " [ info.charAtLocation()]} // TODO [] is what grammar?
 							+ " at " + to_string(info.Location) + " of ..." + info.charsAround() + ": " + message)
 		{ }
 

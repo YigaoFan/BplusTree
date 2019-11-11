@@ -48,6 +48,13 @@ namespace Json {
 			throw ParseEmptyStringException();
 		}
 
+		template <typename T>
+		T
+		deserialize(const Json& json)
+		{
+			// 在 T 中实现 deserialize 的方法，或者一些相关信息的代码
+		}
+
 	private:
 		const string TrueStr = "true";
 		const string FalseStr = "false";
@@ -237,6 +244,7 @@ namespace Json {
 		Json::_Object
 		parseObject(size_t& after1stChar, size_t end)
 		{
+			// 写了 JS 解析时间的代码，感觉这里状态的管理极可能是有问题的
 			Json::_Object objectMap;
 			auto expectString = true, expectBracket = true, expectColon = false,
 				expectJson = false, expectComma = false;

@@ -1,7 +1,7 @@
 #include <array>
-using std::array;
 #include "../../TestFrame/FlyTest.hpp"
 #include "../Btree.hpp"
+using std::array;
 using namespace Btree;
 
 // TODO test construct 0 element, then add a lot of element

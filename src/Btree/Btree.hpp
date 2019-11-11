@@ -8,13 +8,12 @@
 #include <exception>    // for exception
 #include "SiblingFunc.hpp"
 
-#ifdef BTREE_DEBUG
-#include <iostream>
-#include "Utility.hpp"
-#include <cassert>
-#endif
-
 namespace Btree {
+	enum class MemoryAllocate {
+		Tight,
+		WithFree,
+	};
+
 	using std::function;
 	using std::array;
 	using std::pair;
@@ -27,30 +26,29 @@ namespace Btree {
 	using std::make_shared;
 	using std::size_t;
 
-	// TODO should in constructor have a arg for "if save some space for future insert"?
 #define BTREE_TEMPLATE template <uint16_t BtreeOrder, typename Key, typename Value>
 
 	BTREE_TEMPLATE
-	class Btree {
+	class Btree final {
+	private:
 		using Base   = NodeBase  <Key, Value, BtreeOrder>;
 		using Leaf   = LeafNode  <Key, Value, BtreeOrder>;
 		using Middle = MiddleNode<Key, Value, BtreeOrder>;
 
 	public:
 		using LessThan = typename Base::LessThan;
-		template <size_t NumOfEle>
+		template <size_t NumOfEle, MemoryAllocate MemoryAlloc=MemoryAllocate::Tight>
+			// not should be array, a type can be iterate is OK?
 		Btree(LessThan, array<pair<Key, Value>, NumOfEle>);
-		// TODO think about different right value or other
 		Btree(const Btree&);
 		Btree(Btree&&) noexcept;
 		Btree& operator=(const Btree&);
 		Btree& operator=(Btree&&) noexcept;
-		~Btree() = default;
 
 		Value       search (const Key&) const;
-		void        add    (pair<Key, Value>); // should without check
-		// void        addWithCheck(pair<Key, Value>);
-		void        modify (pair<Key, Value>); // should without exception
+		void        add    (pair<Key, Value>); // without check
+		// void        tryAdd(pair<Key, Value>);
+		void        modify (pair<Key, Value>); // without exception
 		// void        modifyWithWarn(pair<Key, Value>);
 		vector<Key> explore() const;
 		void        remove (const Key&);
@@ -64,10 +62,10 @@ namespace Btree {
 
 		vector<Leaf*> traverseLeaf(const function<bool(Leaf*)>&) const;
 		template <bool FirstCall=true, typename E, size_t Size>
-		void constructTreeFromLeafToRoot(array<E, Size>&); // When need to use std::move, not mark const
+		void constructTreeFromLeafToRoot(array<E, Size>&) noexcept; // When need to use std::move, not mark const
 
 		template <size_t NumOfEle>
-		static inline bool duplicateIn(const array<pair<Key, Value>, NumOfEle>&);
+		static inline bool duplicateIn(const array<pair<Key, Value>, NumOfEle>&, const Key*&);
 		static Leaf* minLeaf(Base*);
 		static Leaf* recurSelectNode(Base*, function<Base*(Middle*)>&);
 	};
@@ -76,8 +74,18 @@ namespace Btree {
 namespace Btree {
 #define BTREE Btree<BtreeOrder, Key, Value>
 
+	/**
+	 *
+	 * @tparam BtreeOrder
+	 * @tparam Key
+	 * @tparam Value
+	 * @tparam NumOfEle
+	 * @tparam MemoryAlloc
+	 * @param lessThan
+	 * @param pairArray
+	 */
 	BTREE_TEMPLATE
-	template <size_t NumOfEle>
+	template <size_t NumOfEle, MemoryAllocate MemoryAlloc>
 	BTREE::Btree(
 		LessThan lessThan,
 		array<pair<Key, Value>, NumOfEle> pairArray
@@ -88,22 +96,26 @@ namespace Btree {
 
 		sort(pairArray.begin(),
 			 pairArray.end(),
-			 [&] (auto& p1, auto& p2) {
+			 [&] (const auto& p1, const auto& p2) {
 				 return lessThan(p1.first, p2.first);
 			 });
-
-		if (duplicateIn(pairArray)) {
-			throw runtime_error("Please ensure the key-value array doesn't have duplicate key");
+		const Key* duplicateKeyPtr;
+		if (duplicateIn(pairArray, duplicateKeyPtr)) {
+			throw runtime_error("Duplicate key in key-value array");
 		}
 
-		constructTreeFromLeafToRoot(pairArray);
-		_keyNum += NumOfEle;
+		if constexpr (MemoryAlloc == MemoryAllocate::Tight) {
+			constructTreeFromLeafToRoot(pairArray);
+			_keyNum += NumOfEle;
+		} else {
+			// TODO allocate with free space
+		}
 	}
 
 	BTREE_TEMPLATE
 	template <bool FirstCall, typename E, size_t Size>
 	void
-	BTREE::constructTreeFromLeafToRoot(array<E, Size>& nodesMaterial)
+	BTREE::constructTreeFromLeafToRoot(array<E, Size>& nodesMaterial) noexcept
 	{
 		// TODO should ensure w/2(up bound) to w per node
 		if constexpr (Size <= BtreeOrder) {
@@ -299,20 +311,19 @@ namespace Btree {
 	BTREE_TEMPLATE
 	template <size_t NumOfEle>
 	bool
-	BTREE::duplicateIn(const array<pair<Key, Value>, NumOfEle>& sortedPairArray)
+	BTREE::duplicateIn(const array<pair<Key, Value>, NumOfEle>& sortedPairArray, const Key*& duplicateKey)
 	{
 		auto& array = sortedPairArray;
-		const Key* lastKeyPtr = &(sortedPairArray[0].first);
 
 		for (auto i = 1; i < NumOfEle; ++i) {
-			auto& currentKey = array[i].first;
-			if (currentKey == (*lastKeyPtr)) {
+			// should use LessThan ? TODO
+			if (array[i].first == array[i-1].first) {
+				duplicateKey = &array[i].first;
 				return true;
 			}
-
-			lastKeyPtr = &currentKey;
 		}
 
+		duplicateKey = nullptr;
 		return false;
 	}
 
