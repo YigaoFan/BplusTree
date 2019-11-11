@@ -6,9 +6,11 @@
 #include <algorithm>    // for sort
 #include <array>        // for array
 #include <exception>    // for exception
+#include "Exception.hpp"
 #include "SiblingFunc.hpp"
 
 namespace Btree {
+	// TODO use Enumerator to refactor code
 	enum class MemoryAllocate {
 		Tight,
 		WithFree,
@@ -75,14 +77,7 @@ namespace Btree {
 #define BTREE Btree<BtreeOrder, Key, Value>
 
 	/**
-	 *
-	 * @tparam BtreeOrder
-	 * @tparam Key
-	 * @tparam Value
-	 * @tparam NumOfEle
-	 * @tparam MemoryAlloc
-	 * @param lessThan
-	 * @param pairArray
+	 * Possible throw 
 	 */
 	BTREE_TEMPLATE
 	template <size_t NumOfEle, MemoryAllocate MemoryAlloc>
@@ -94,14 +89,13 @@ namespace Btree {
 	{
 		if constexpr (NumOfEle == 0) { return; }
 
-		sort(pairArray.begin(),
-			 pairArray.end(),
+		sort(pairArray.begin(), pairArray.end(),
 			 [&] (const auto& p1, const auto& p2) {
 				 return lessThan(p1.first, p2.first);
 			 });
-		const Key* duplicateKeyPtr;
-		if (duplicateIn(pairArray, duplicateKeyPtr)) {
-			throw runtime_error("Duplicate key in key-value array");
+		
+		if (const Key* dupKeyPtr; duplicateIn(pairArray, dupKeyPtr)) {
+			throw DuplicateKey(*dupKeyPtr, "Duplicate key in constructor arg");
 		}
 
 		if constexpr (MemoryAlloc == MemoryAllocate::Tight) {
@@ -136,7 +130,7 @@ namespace Btree {
 		uint32_t i = 0; // array index
 
 		// construct Leaf need
-		auto  firstLeaf = true;
+		auto  _1stLeafFlag = true;
 		Leaf* lastLeaf  = nullptr;
 
 		do {
@@ -145,8 +139,8 @@ namespace Btree {
 				auto leafPtr = leaf.get();
 				// set previous and next
 				leafPtr->previousLeaf(lastLeaf);
-				if (firstLeaf) {
-					firstLeaf = false;
+				if (_1stLeafFlag) {
+					_1stLeafFlag = false;
 				} else {
 					lastLeaf->nextLeaf(leafPtr);
 				}

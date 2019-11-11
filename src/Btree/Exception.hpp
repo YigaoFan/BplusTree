@@ -6,11 +6,16 @@
 
 namespace Btree {
 	using ::std::runtime_error;
+	using ::std::move;
 
-	class InvalidInput : public runtime_error {
+	template <typename T>
+	class DuplicateKey : public runtime_error {
 	public:
-		explicit InvalidInput(const string& message)
-			: runtime_error(message)
+		T DupKey;
+
+		explicit DuplicateKey(T dupKey, const string& message)
+			: runtime_error(message), DupKey(move(dupKey))
 		{ }
+
 	};
 }
