@@ -9,11 +9,11 @@ namespace Btree {
 	using ::std::move;
 
 	template <typename T>
-	class DuplicateKey : public runtime_error {
+	class DuplicateKeyException : public runtime_error {
 	public:
 		T DupKey;
 
-		explicit DuplicateKey(T dupKey, const string& message)
+		explicit DuplicateKeyException(T dupKey, const string& message)
 			: runtime_error(message), DupKey(move(dupKey))
 		{ }
 

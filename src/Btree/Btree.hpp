@@ -95,7 +95,7 @@ namespace Btree {
 			 });
 		
 		if (const Key* dupKeyPtr; duplicateIn(pairArray, dupKeyPtr)) {
-			throw DuplicateKey(*dupKeyPtr, "Duplicate key in constructor arg");
+			throw DuplicateKeyException(*dupKeyPtr, "Duplicate key in constructor arg");
 		}
 
 		if constexpr (MemoryAlloc == MemoryAllocate::Tight) {
