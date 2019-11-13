@@ -6,6 +6,7 @@
 #include <algorithm>    // for sort
 #include <array>        // for array
 #include <exception>    // for exception
+#include <optional>
 #include "Exception.hpp"
 #include "SiblingFunc.hpp"
 
@@ -48,14 +49,16 @@ namespace Btree {
 		Btree& operator=(Btree&&) noexcept;
 
 		Value       search (const Key&) const;
+		vector<Key> explore() const;
+		bool        have   (const Key &) const;
+		bool        empty  () const;
+
 		void        add    (pair<Key, Value>); // without check
 		// void        tryAdd(pair<Key, Value>);
 		void        modify (pair<Key, Value>); // without exception
 		// void        modifyWithWarn(pair<Key, Value>);
-		vector<Key> explore() const;
+
 		void        remove (const Key&);
-		bool        have   (const Key&) const;
-		bool        empty  () const;
 
 	private:
 		shared_ptr<LessThan> _lessThanPtr;
@@ -64,7 +67,7 @@ namespace Btree {
 
 		vector<Leaf*> traverseLeaf(const function<bool(Leaf*)>&) const;
 		template <bool FirstCall=true, typename E, size_t Size>
-		void constructTreeFromLeafToRoot(array<E, Size>&) noexcept; // When need to use std::move, not mark const
+		void constructFromLeafToRoot(array<E, Size>&) noexcept; // When need to use std::move, not mark const
 
 		template <size_t NumOfEle>
 		static inline bool duplicateIn(const array<pair<Key, Value>, NumOfEle>&, const Key*&);
@@ -85,21 +88,26 @@ namespace Btree {
 		LessThan lessThan,
 		array<pair<Key, Value>, NumOfEle> pairArray
 	) :
-		_lessThanPtr(make_shared<LessThan>(lessThan))
+		_lessThanPtr(make_shared<LessThan>(lessThan)),
+		_root(nullptr)
 	{
 		if constexpr (NumOfEle == 0) { return; }
 
+		// 可以自己实现一个排序算法，这样找重复的容易些
+		// 而且反正 pairArray 是在成功的情况下是要复制的，
+		// 这个构造函数这也要复制，不如构造函数传引用，排序算法确定不重复的情况下，就直接复制到堆上
+		// 可以确定好几个后一起构造
 		sort(pairArray.begin(), pairArray.end(),
 			 [&] (const auto& p1, const auto& p2) {
 				 return lessThan(p1.first, p2.first);
 			 });
-		
+
 		if (const Key* dupKeyPtr; duplicateIn(pairArray, dupKeyPtr)) {
 			throw DuplicateKeyException(*dupKeyPtr, "Duplicate key in constructor arg");
 		}
 
 		if constexpr (MemoryAlloc == MemoryAllocate::Tight) {
-			constructTreeFromLeafToRoot(pairArray);
+			constructFromLeafToRoot(pairArray);
 			_keyNum += NumOfEle;
 		} else {
 			// TODO allocate with free space
@@ -109,7 +117,7 @@ namespace Btree {
 	BTREE_TEMPLATE
 	template <bool FirstCall, typename E, size_t Size>
 	void
-	BTREE::constructTreeFromLeafToRoot(array<E, Size>& nodesMaterial) noexcept
+	BTREE::constructFromLeafToRoot(array<E, Size>& nodesMaterial) noexcept
 	{
 		// TODO should ensure w/2(up bound) to w per node
 		if constexpr (Size <= BtreeOrder) {
@@ -121,7 +129,8 @@ namespace Btree {
 			return;
 		}
 		
-		constexpr auto upperNodeNum =  Size % BtreeOrder == 0 ?  (Size / BtreeOrder) :  (Size / BtreeOrder + 1);
+		// 这里需要写一个平均分布节点的算法函数
+		constexpr auto upperNodeNum = Size % BtreeOrder == 0 ? (Size / BtreeOrder) : (Size / BtreeOrder + 1);
 		array<pair<Key, unique_ptr<Base>>, upperNodeNum> upperNodes;
 
 		auto head = nodesMaterial.begin();
@@ -158,7 +167,7 @@ namespace Btree {
 			++i;
 		} while (end - head > 0);
 
-		constructTreeFromLeafToRoot<false>(upperNodes);
+		constructFromLeafToRoot<false>(upperNodes);
 	}
 
 	BTREE_TEMPLATE

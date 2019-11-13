@@ -26,11 +26,11 @@ namespace Util {
 
 		// TODO: support array, list, raw array? 
 		Enumerator(Container& container)
-			: _current(container.begin()), _start(_current), _end(container.end())
+			: _current(*container.begin()), _start(_current), _end(container.end())
 		{ }
 
 		Enumerator(const char* container)
-			: _current(container.begin()), _start(_current), _end(container.end())
+			: _current(container), _start(_current), _end(container.end())
 		{ }
 
 		Enumerator(Iterator start, Iterator end)
