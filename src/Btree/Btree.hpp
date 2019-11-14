@@ -354,4 +354,17 @@ namespace Btree {
 
 #undef BTREE
 #undef BTREE_TEMPLATE
+
+	template <auto Total, auto DivNum>
+	constexpr
+	auto Cal()
+	{
+		if constexpr (constexpr auto average = Total / DivNum; auto remainder = Total % DivNum == 0) {
+			// make a seq that contains DivNum copies average
+		} else {
+			// make a seq that contains DivNum copies average, too
+			// allocate the remainder to each item in part of seq in suitable way
+		}
+
+	}
 }
