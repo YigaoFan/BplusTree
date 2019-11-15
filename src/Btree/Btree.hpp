@@ -368,3 +368,34 @@ namespace Btree {
 
 	}
 }
+
+template <int Element>
+struct GetEle
+{
+	static constexpr auto get(int n)
+	{
+		return Element;
+	}
+};
+
+template <uint32_t Num, int Item, size_t... I>
+constexpr auto
+ImpDupItem(index_sequence<I...>)
+{
+	return integer_sequence<uint32_t, GetEle<Item>::get(I)...>();
+}
+
+template <uint32_t Num, int Item>
+constexpr auto
+DupEle()
+{
+	constexpr auto indexs = make_index_sequence<Num>();
+	return ImpDupItem<Num, Item, decltype(indexs)>(indexs);
+}
+
+int main()
+{
+	auto eles = DupEle<3, 4>();
+	using T = decltype(eles);
+	static_assert(!is_same_v<T, integer_sequence<int, 4, 4, 4>>, "Not same");
+}
