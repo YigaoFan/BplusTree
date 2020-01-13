@@ -1,10 +1,10 @@
 #pragma once
 /**********************************
-   Exception in Btree
+   Exception in Collections
 ***********************************/
 #include <exception>
 
-namespace Btree {
+namespace Collections {
 	using ::std::runtime_error;
 	using ::std::move;
 
@@ -16,6 +16,5 @@ namespace Btree {
 		explicit DuplicateKeyException(T dupKey, const string& message)
 			: runtime_error(message), DupKey(move(dupKey))
 		{ }
-
 	};
 }

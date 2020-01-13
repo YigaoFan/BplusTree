@@ -2,7 +2,7 @@
 #include "LeafNode.hpp"
 #include "MiddleNode.hpp"
 
-namespace Btree {
+namespace Collections {
 	using std::pair;
 	using std::vector;
 

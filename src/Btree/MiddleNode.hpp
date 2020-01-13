@@ -1,7 +1,7 @@
 #pragma once
 #include "NodeBaseCrtp.hpp"
 
-namespace Btree {
+namespace Collections {
 #define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 #define MIDDLE MiddleNode<Key, Value, BtreeOrder>
 
@@ -28,7 +28,7 @@ namespace Btree {
 	};
 }
 
-namespace Btree {
+namespace Collections {
 	NODE_TEMPLATE
 	template <typename Iter>
 	MIDDLE::MiddleNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)

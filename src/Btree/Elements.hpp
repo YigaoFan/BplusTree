@@ -12,7 +12,7 @@
 #include "Utility.hpp"
 #endif
 
-namespace Btree {
+namespace Collections {
 	using ::std::variant;
 	using ::std::pair;
 	using ::std::vector;
@@ -119,7 +119,7 @@ namespace Btree {
 	};
 }
 
-namespace Btree {
+namespace Collections {
 #define ELE Elements<Key, Value, BtreeOrder, PtrType>
 
 	ELEMENTS_TEMPLATE
@@ -613,7 +613,7 @@ namespace Btree {
 	}
 }
 
-namespace Btree {
+namespace Collections {
 
 	ELEMENTS_TEMPLATE
 	Value&

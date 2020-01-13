@@ -3,7 +3,7 @@
 #include "Util.hpp"
 #include "Elements.hpp"
 
-namespace Btree {
+namespace Collections {
 #define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 #define BASE NodeBase<Key, Value, BtreeOrder>
 
@@ -79,7 +79,7 @@ namespace Btree {
 	};
 }
 
-namespace Btree {
+namespace Collections {
 	using std::make_pair;
 
 	NODE_TEMPLATE

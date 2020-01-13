@@ -2,7 +2,7 @@
 using std::array;
 #include "../../TestFrame/FlyTest.hpp"
 #include "../Btree.hpp"
-using namespace Btree;
+using namespace Collections;
 
 // TODO test construct 0 element, then add a lot of element
 
@@ -34,8 +34,8 @@ TESTCASE("Btree test") {
 	};
 
 	SECTION("Test count more than BtreeOrder btree") {
-		using BTREE = Btree<4, string, string>;
-		BTREE btree{ lessThan, keyValueArray };
+		using BTREE = Collections::Btree<4, string, string>;
+		BTREE btree(lessThan, keyValueArray);
 
 		SECTION("Test move") {
 
