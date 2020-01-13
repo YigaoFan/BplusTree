@@ -83,14 +83,13 @@ namespace Btree {
 	 * Possible throw 
 	 */
 	BTREE_TEMPLATE
-	template <size_t NumOfEle, MemoryAllocate MemoryAlloc>
+	template<size_t NumOfEle, MemoryAllocate MemoryAlloc>
 	BTREE::Btree(
 		LessThan lessThan,
 		array<pair<Key, Value>, NumOfEle> pairArray
 	) :
 		_lessThanPtr(make_shared<LessThan>(lessThan)),
-		_root(nullptr)
-	{
+		_root(nullptr) {
 		if constexpr (NumOfEle == 0) { return; }
 
 		// 可以自己实现一个排序算法，这样找重复的容易些
@@ -98,11 +97,11 @@ namespace Btree {
 		// 这个构造函数这也要复制，不如构造函数传引用，排序算法确定不重复的情况下，就直接复制到堆上
 		// 可以确定好几个后一起构造
 		sort(pairArray.begin(), pairArray.end(),
-			 [&] (const auto& p1, const auto& p2) {
+			 [&](const auto &p1, const auto &p2) {
 				 return lessThan(p1.first, p2.first);
 			 });
 
-		if (const Key* dupKeyPtr; duplicateIn(pairArray, dupKeyPtr)) {
+		if (const Key *dupKeyPtr; duplicateIn(pairArray, dupKeyPtr)) {
 			throw DuplicateKeyException(*dupKeyPtr, "Duplicate key in constructor arg");
 		}
 
@@ -115,10 +114,9 @@ namespace Btree {
 	}
 
 	BTREE_TEMPLATE
-	template <bool FirstCall, typename E, size_t Size>
+	template<bool FirstCall, typename E, size_t Size>
 	void
-	BTREE::constructFromLeafToRoot(array<E, Size>& nodesMaterial) noexcept
-	{
+	BTREE::constructFromLeafToRoot(array<E, Size> &nodesMaterial) noexcept {
 		// TODO should ensure w/2(up bound) to w per node
 		if constexpr (Size <= BtreeOrder) {
 			if constexpr (FirstCall) {
@@ -128,19 +126,19 @@ namespace Btree {
 			}
 			return;
 		}
-		
+
 		// 这里需要写一个平均分布节点的算法函数
 		constexpr auto upperNodeNum = Size % BtreeOrder == 0 ? (Size / BtreeOrder) : (Size / BtreeOrder + 1);
 		array<pair<Key, unique_ptr<Base>>, upperNodeNum> upperNodes;
 
 		auto head = nodesMaterial.begin();
-		auto end  = nodesMaterial.end();
+		auto end = nodesMaterial.end();
 		auto tail = head + BtreeOrder;
 		uint32_t i = 0; // array index
 
 		// construct Leaf need
-		auto  _1stLeafFlag = true;
-		Leaf* lastLeaf  = nullptr;
+		auto _1stLeafFlag = true;
+		Leaf *lastLeaf = nullptr;
 
 		do {
 			if constexpr (FirstCall) {
@@ -171,39 +169,34 @@ namespace Btree {
 	}
 
 	BTREE_TEMPLATE
-	BTREE::Btree(const Btree& that)
-		: _keyNum(that._keyNum), _root(that._root->clone()), _lessThanPtr(that._lessThanPtr)
-	{}
+	BTREE::Btree(const Btree &that)
+		: _keyNum(that._keyNum), _root(that._root->clone()), _lessThanPtr(that._lessThanPtr) {}
 
 	BTREE_TEMPLATE
-	BTREE::Btree(Btree&& that) noexcept
-		: _keyNum(that._keyNum), _root(that._root.release()), _lessThanPtr(that._lessThanPtr)
-	{
+	BTREE::Btree(Btree &&that) noexcept
+		: _keyNum(that._keyNum), _root(that._root.release()), _lessThanPtr(that._lessThanPtr) {
 		that._keyNum = 0;
 	}
 
 	BTREE_TEMPLATE
-	BTREE&
-	BTREE::operator=(const Btree& that)
-	{
+	BTREE &
+	BTREE::operator=(const Btree &that) {
 		this->_root.reset(that._root->clone());
-		this->_keyNum      = that._keyNum;
+		this->_keyNum = that._keyNum;
 		this->_lessThanPtr = that._lessThanPtr;
 	}
 
 	BTREE_TEMPLATE
-	BTREE&
-	BTREE::operator=(Btree&& that) noexcept
-	{
+	BTREE &
+	BTREE::operator=(Btree &&that) noexcept {
 		this->_root.reset(that._root.release());
-		this->_keyNum      = that._keyNum;
+		this->_keyNum = that._keyNum;
 		this->_lessThanPtr = that._lessThanPtr;
 	}
 
 	BTREE_TEMPLATE
 	Value
-	BTREE::search(const Key& key) const
-	{
+	BTREE::search(const Key &key) const {
 		if (empty()) {
 			throw runtime_error("The tree is empty");
 		}
@@ -213,13 +206,12 @@ namespace Btree {
 
 	BTREE_TEMPLATE
 	void
-	BTREE::add(pair<Key, Value> p)
-	{
+	BTREE::add(pair<Key, Value> p) {
 		if (empty()) {
 			auto leaf = make_unique<Leaf>(&p, &p + 1, _lessThanPtr);
 			_root.reset(leaf.release());
 		} else {
-			vector<Base*> passedNodeTrackStack;
+			vector<Base *> passedNodeTrackStack;
 			if (_root->have(p.first, passedNodeTrackStack)) {
 				throw runtime_error("The key-value has already existed, can't be added.");
 			} else {
@@ -232,8 +224,7 @@ namespace Btree {
 
 	BTREE_TEMPLATE
 	void
-	BTREE::modify(pair<Key, Value> pair)
-	{
+	BTREE::modify(pair<Key, Value> pair) {
 		if (!empty()) {
 			_root->modify(pair.first, std::move(pair.second));
 		}
@@ -241,13 +232,12 @@ namespace Btree {
 
 	BTREE_TEMPLATE
 	vector<Key>
-	BTREE::explore() const
-	{
+	BTREE::explore() const {
 		vector<Key> keys;
 		keys.reserve(_keyNum);
 
-		traverseLeaf([&keys](Leaf* l) {
-			auto&& ks = l->allKey();
+		traverseLeaf([&keys](Leaf *l) {
+			auto &&ks = l->allKey();
 			keys.insert(keys.end(), ks.begin(), ks.end());
 
 			return false;
@@ -258,10 +248,9 @@ namespace Btree {
 
 	BTREE_TEMPLATE
 	void
-	BTREE::remove(const Key& key)
-	{
-		vector<Base*> passedNodeTrackStack;
-		auto& stack = passedNodeTrackStack;
+	BTREE::remove(const Key &key) {
+		vector<Base *> passedNodeTrackStack;
+		auto &stack = passedNodeTrackStack;
 
 		if (empty()) {
 			return;
@@ -274,8 +263,7 @@ namespace Btree {
 
 	BTREE_TEMPLATE
 	bool
-	BTREE::have(const Key& key) const
-	{
+	BTREE::have(const Key &key) const {
 		if (!empty()) {
 			return _root->have(key);
 		}
@@ -285,16 +273,14 @@ namespace Btree {
 
 	BTREE_TEMPLATE
 	bool
-	BTREE::empty() const
-	{
+	BTREE::empty() const {
 		return _keyNum == 0;
 	}
 
 	BTREE_TEMPLATE
-	vector<typename BTREE::Leaf*>
-	BTREE::traverseLeaf(const function<bool(Leaf*)>& predicate) const
-	{
-		vector<Leaf*> leafCollection { };
+	vector<typename BTREE::Leaf *>
+	BTREE::traverseLeaf(const function<bool(Leaf *)> &predicate) const {
+		vector<Leaf *> leafCollection{};
 
 		if (empty()) {
 			return leafCollection;
@@ -312,15 +298,14 @@ namespace Btree {
 	}
 
 	BTREE_TEMPLATE
-	template <size_t NumOfEle>
+	template<size_t NumOfEle>
 	bool
-	BTREE::duplicateIn(const array<pair<Key, Value>, NumOfEle>& sortedPairArray, const Key*& duplicateKey)
-	{
-		auto& array = sortedPairArray;
+	BTREE::duplicateIn(const array<pair<Key, Value>, NumOfEle> &sortedPairArray, const Key *&duplicateKey) {
+		auto &array = sortedPairArray;
 
 		for (auto i = 1; i < NumOfEle; ++i) {
 			// should use LessThan ? TODO
-			if (array[i].first == array[i-1].first) {
+			if (array[i].first == array[i - 1].first) {
 				duplicateKey = &array[i].first;
 				return true;
 			}
@@ -331,71 +316,70 @@ namespace Btree {
 	}
 
 	BTREE_TEMPLATE
-	typename BTREE::Leaf*
-	BTREE::minLeaf(Base* node)
-	{
-		function<Base*(Middle*)> min = [] (auto n) {
+	typename BTREE::Leaf *
+	BTREE::minLeaf(Base *node) {
+		function<Base *(Middle *)> min = [](auto n) {
 			return n->minSon();
 		};
-        
+
 		return recurSelectNode(node, min);
 	}
 
 	BTREE_TEMPLATE
-	typename BTREE::Leaf*
-	BTREE::recurSelectNode(Base* node, function<Base*(Middle*)>& choose)
-	{
+	typename BTREE::Leaf *
+	BTREE::recurSelectNode(Base *node, function<Base *(Middle *)> &choose) {
 		while (node->middle()) {
-			node = choose(static_cast<Middle*>(node));
+			node = choose(static_cast<Middle *>(node));
 		}
 
-		return static_cast<Leaf*>(node);
+		return static_cast<Leaf *>(node);
 	}
 
 #undef BTREE
 #undef BTREE_TEMPLATE
-
-	template <auto Total, auto DivNum>
-	constexpr
-	auto Cal()
-	{
-		if constexpr (constexpr auto average = Total / DivNum; auto remainder = Total % DivNum == 0) {
-			// make a seq that contains DivNum copies average
-		} else {
-			// make a seq that contains DivNum copies average, too
-			// allocate the remainder to each item in part of seq in suitable way
-		}
-
-	}
 }
-
-template <int Element>
-struct GetEle
-{
-	static constexpr auto get(int n)
-	{
-		return Element;
-	}
-};
-
-template <uint32_t Num, int Item, size_t... I>
-constexpr auto
-ImpDupItem(index_sequence<I...>)
-{
-	return integer_sequence<uint32_t, GetEle<Item>::get(I)...>();
-}
-
-template <uint32_t Num, int Item>
-constexpr auto
-DupEle()
-{
-	constexpr auto indexs = make_index_sequence<Num>();
-	return ImpDupItem<Num, Item, decltype(indexs)>(indexs);
-}
-
-int main()
-{
-	auto eles = DupEle<3, 4>();
-	using T = decltype(eles);
-	static_assert(!is_same_v<T, integer_sequence<int, 4, 4, 4>>, "Not same");
-}
+//
+// 	template <auto Total, auto DivNum>
+// 	constexpr
+// 	auto Cal()
+// 	{
+// 		if constexpr (constexpr auto average = Total / DivNum; auto remainder = Total % DivNum == 0) {
+// 			// make a seq that contains DivNum copies average
+// 		} else {
+// 			// make a seq that contains DivNum copies average, too
+// 			// allocate the remainder to each item in part of seq in suitable way
+// 		}
+//
+// 	}
+// }
+//
+// template <int Element>
+// struct GetEle
+// {
+// 	static constexpr auto get(int n)
+// 	{
+// 		return Element;
+// 	}
+// };
+//
+// template <uint32_t Num, int Item, size_t... I>
+// constexpr auto
+// ImpDupItem(index_sequence<I...>)
+// {
+// 	return integer_sequence<uint32_t, GetEle<Item>::get(I)...>();
+// }
+//
+// template <uint32_t Num, int Item>
+// constexpr auto
+// DupEle()
+// {
+// 	constexpr auto indexs = make_index_sequence<Num>();
+// 	return ImpDupItem<Num, Item, decltype(indexs)>(indexs);
+// }
+//
+// int main()
+// {
+// 	auto eles = DupEle<3, 4>();
+// 	using T = decltype(eles);
+// 	static_assert(!is_same_v<T, integer_sequence<int, 4, 4, 4>>, "Not same");
+// }

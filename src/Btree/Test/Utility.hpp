@@ -29,3 +29,5 @@ static int test_pass = 0;
         	operation(e);												   \
         }                                                                  \
     } while(0)
+
+// #define

@@ -6,7 +6,7 @@ using std::make_shared;
 #include "../../TestFrame/FlyTest.hpp"
 #include "../MiddleNode.hpp"
 #include "../LeafNode.hpp"
-using namespace Btree;
+using namespace btree;
 
 static auto kv0 = make_pair<string, string>("1", "a");
 static auto kv1 = make_pair<string, string>("2", "b");

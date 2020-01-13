@@ -1,14 +1,14 @@
-#define BTREE_TEST_BUTTON true
-#define JSON_TEST_BUTTON false
+#define BTREE_TEST_SWITCH true
+#define JSON_TEST_SWITCH false
 
-#if BTREE_TEST_BUTTON
+#if BTREE_TEST_SWITCH
 #include "Btree/Test/TestSuite.hpp"
 #define BTREE_TEST(FUNC) FUNC
 #else
 #define BTREE_TEST(FUNC)
 #endif
 
-#if JSON_TEST_BUTTON
+#if JSON_TEST_SWITCH
 #include "Json/Test/TestSuite.hpp"
 #define JSON_TEST(FUNC) FUNC
 #else
