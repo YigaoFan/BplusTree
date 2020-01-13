@@ -21,15 +21,15 @@ namespace Collections {
 		virtual unique_ptr<NodeBase> move () const = 0;
 		virtual ~NodeBase() = default;
 
-		inline bool        middle() const;
-		inline const Key&  maxKey() const;
-		inline vector<Key> allKey() const;
-		inline bool        have  (const Key&, vector<NodeBase*>&);
-		inline bool        have  (const Key&) const;
-		Value              search(const Key &) const;
-		void               modify(const Key &, Value);
-		void               add   (pair<Key, Value>, vector<NodeBase*>&);
-		void               remove(const Key&, vector<NodeBase*>&);
+		bool        middle() const;
+		const Key&  maxKey() const;
+		vector<Key> allKey() const;
+		bool        have  (const Key&, vector<NodeBase*>&);
+		bool        have  (const Key&) const;
+		Value       search(const Key &) const;
+		void        modify(const Key &, Value);
+		void        add   (pair<Key, Value>, vector<NodeBase*>&);
+		void        remove(const Key&, vector<NodeBase*>&);
 
 	protected:
 		Elements<Key, Value, BtreeOrder, NodeBase> elements_;

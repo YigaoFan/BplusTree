@@ -6,7 +6,6 @@
 #include <algorithm>    // for sort
 #include <array>        // for array
 #include <exception>    // for exception
-//#include <optional>
 #include "Exception.hpp"
 #include "SiblingFunc.hpp"
 
@@ -192,7 +191,7 @@ namespace Collections {
 		}
 
 		template <bool FirstCall=true, typename T, size_t Count>
-		void constructFromLeafToRoot(array<T, Count> ItemsToConsNode) noexcept
+		void constructFromLeafToRoot(array<T, Count> ItemsToConsNode)
 		{
 			if constexpr (Count <= BtreeOrder) {
 				if constexpr (FirstCall) {
@@ -211,9 +210,8 @@ namespace Collections {
 			auto head = ItemsToConsNode.begin();
 			auto end = ItemsToConsNode.end();
 			auto tail = head + BtreeOrder;
-			uint32_t i = 0; // array index
+			uint32_t i = 0;
 
-			// construct Leaf need
 			auto firstLeafFlag = true;
 			Leaf *lastLeaf = nullptr;
 

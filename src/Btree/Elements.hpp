@@ -46,18 +46,91 @@ namespace Collections {
 		shared_ptr<LessThan> LessThanPtr;
 
 		template <typename Iter>
-		Elements(Iter, Iter, shared_ptr<LessThan>);
-		Elements(const Elements&);
-		Elements(Elements&&) noexcept;
+		Elements(Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
+			:
+			MiddleFlag(!std::is_same<typename std::decay<decltype(*begin)>::type, pair<Key, Value>>::value),
+			LessThanPtr(lessThanPtr),
+			_count(0)
+		{
+			do {
+				_elements[_count] = std::move(*begin);
 
-		bool             have(const Key&) const;
-		uint16_t         count() const;
-		bool             full()  const;
+				++_count;
+				++begin;
+			} while (begin != end);
+		}
+
+		Elements(const Elements& that)
+			: MiddleFlag(that.MiddleFlag), LessThanPtr(that.LessThanPtr),
+			_elements(std::move(that.cloneInternalElements())), _count(that._count)
+		{ }
+
+		Elements(Elements&& that) noexcept :
+			MiddleFlag(that.MiddleFlag),
+			LessThanPtr(that.LessThanPtr),
+			_elements(std::move(that._elements)),
+			_count(that._count)
+		{
+			that._count = 0;
+		}
+
+		bool have(const Key& key) const
+		{
+			auto& lessThan = *LessThanPtr;
+
+			for (const auto& e : _elements) {
+				auto& k = e.first;
+				auto less = lessThan(key, k);
+				auto notLess = lessThan(k, key);
+
+				if (less == notLess) {
+					return true;
+				}
+				else if (notLess) {
+					break;
+				}
+			}
+
+			return false;
+		}
+
+		uint16_t count() const
+		{
+			return _count;
+		}
+
+		bool full() const
+		{
+			return _count == BtreeOrder;
+		}
 
 		// bool means max key changes
 		// all this change caller should promise not out of bound
-		bool             remove(const Key&);
-		bool             remove(uint16_t);
+		bool remove(const Key& key)
+		{
+			auto i = indexOf(key);
+
+			if (i != -1) {
+				return remove(i);
+			}
+
+			return false;
+		}
+
+		bool remove(uint16_t i)
+		{
+			auto maxChanged = false;
+
+			adjustMemory(-1, i + 1);
+
+			if (i == (_count - 1)) {
+				maxChanged = true;
+			}
+			--_count;
+
+			return maxChanged;
+		}
+
 		template <bool FROM_HEAD>
 		void             removeItems(uint16_t);
 		void             insert(pair<Key, Value>);
@@ -121,113 +194,6 @@ namespace Collections {
 
 namespace Collections {
 #define ELE Elements<Key, Value, BtreeOrder, PtrType>
-
-	ELEMENTS_TEMPLATE
-	template <typename Iter>
-	ELE::Elements(
-		Iter begin,
-		Iter end,
-		shared_ptr<LessThan> lessThanPtr
-	) :
-		MiddleFlag(!std::is_same<typename std::decay<decltype(*begin)>::type, pair<Key, Value>>::value),
-		LessThanPtr(lessThanPtr),
-		_count(0)
-	{
-		do {
-			_elements[_count] = std::move(*begin);
-
-			++_count;
-			++begin;
-		} while (begin != end);
-	}
-
-	ELEMENTS_TEMPLATE
-	ELE::Elements(const Elements& that) :
-		MiddleFlag (that.MiddleFlag),
-		LessThanPtr(that.LessThanPtr),
-		_elements  (std::move(that.cloneInternalElements())),
-		_count     (that._count)
-	{ }
-
-	ELEMENTS_TEMPLATE
-	ELE::Elements(Elements&& that) noexcept :
-		MiddleFlag (that.MiddleFlag),
-		LessThanPtr(that.LessThanPtr),
-		_elements  (std::move(that._elements)),
-		_count     (that._count)
-	{
-		that._count = 0;
-	}
-
-	ELEMENTS_TEMPLATE
-	bool
-	ELE::have(const Key& key) const
-	{
-		auto& lessThan = *LessThanPtr;
-
-		for (const auto& e: _elements) {
-			auto& k = e.first;
-			auto less = lessThan(key, k);
-			auto notLess = lessThan(k, key);
-
-			if (less == notLess) {
-				return true;
-			} else if (notLess) {
-				break;
-			}
-		}
-
-		return false;
-	}
-
-	ELEMENTS_TEMPLATE
-	uint16_t
-	ELE::count() const
-	{
-		return _count;
-	}
-
-	ELEMENTS_TEMPLATE
-	bool
-	ELE::Elements::full() const
-	{
-		return _count == BtreeOrder;
-	}
-
-	/**
-	 * If key doesn't exist, will do no work
-	 */
-	ELEMENTS_TEMPLATE
-	bool
-	ELE::remove(const Key& key)
-	{
-		auto i = indexOf(key);
-
-		if (i != -1) {
-			return remove(i);
-		}
-
-		return false;
-	}
-
-	/**
-	 * If key doesn't exist, will do no work
-	 */
-	ELEMENTS_TEMPLATE
-	bool
-	ELE::remove(uint16_t i)
-	{
-		auto maxChanged = false;
-
-		adjustMemory(-1, i+1);
-
-		if (i == (_count - 1)) {
-			maxChanged = true;
-		}
-		--_count;
-
-		return maxChanged;
-	}
 
 	ELEMENTS_TEMPLATE
 	template <bool FROM_HEAD>
