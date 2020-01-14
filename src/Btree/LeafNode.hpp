@@ -18,9 +18,10 @@ namespace Collections {
 			: Base_CRTP(begin, end, lessThan)
 		{ }
 
-		LeafNode(const LeafNode& that, LeafNode* previous, LeafNode* next)
+		LeafNode(const LeafNode& that, LeafNode* previous=nullptr, LeafNode* next=nullptr)
 			: Base_CRTP(that), _previous(previous), _next(next)
 		{ }
+
 		LeafNode(LeafNode&& that) noexcept
 			: Base_CRTP(std::move(that)), _next(that._next)
 		{ }

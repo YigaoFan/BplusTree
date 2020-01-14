@@ -21,7 +21,7 @@ namespace Collections {
 		virtual unique_ptr<Base> move() const
 		{
 			// how to reduce the const mark
-			return unique_ptr<Base>{ make_unique<Derived>(std::move(static_cast<Derived const &>(*this))).get() };
+			return unique_ptr<Base>{ make_unique<Derived>(::std::move(static_cast<Derived const &>(*this))).get() };
 		}
 	};
 }

@@ -132,7 +132,21 @@ namespace Collections {
 		}
 
 		template <bool FROM_HEAD>
-		void             removeItems(uint16_t);
+		void removeItems(uint16_t count)
+		{
+			if constexpr (FROM_HEAD) {
+				adjustMemory(-count, count);
+			}
+			else {
+				auto num = count;
+				for (auto rbegin = _elements.rbegin(); num != 0; --num, --rbegin) {
+					rbegin->~Content();
+				}
+			}
+
+			_count -= count;
+		}
+
 		void             insert(pair<Key, Value>);
 		void             insert(pair<Key, unique_ptr<PtrType>>);
 		void             append(pair<Key, Value>);
@@ -148,24 +162,128 @@ namespace Collections {
 		pair<Key, unique_ptr<PtrType>> exchangeMin(pair<Key, unique_ptr<PtrType>>, bool &maxChanged);
 
 
-		ValueForContent& operator[](const Key&);
-		Content&         operator[](uint16_t);
-		const ValueForContent& operator[](const Key&) const;
-		const Content&         operator[](uint16_t)   const;
+		ValueForContent& operator[](const Key& key)
+		{
+			return const_cast<ValueForContent&>(
+				(static_cast<const Elements&>(*this))[key]
+				);
+		}
 
-		int32_t  indexOf         (const PtrType*) const;
-		int32_t  indexOf         (const Key&)     const;
-		uint16_t suitPosition(const Key&)     const;
-		auto     begin();
-		auto     end  ();
-		auto     begin() const;
-		auto     end  () const;
+		Content& operator[](uint16_t i)
+		{
+			return const_cast<Content&>(
+				(static_cast<const Elements&>(*this))[i]
+				);
+		}
 
-		static Value&         value_Ref(ValueForContent&);
-		static const Value&   value_Ref(const ValueForContent&);
-		static Value          value_Copy(const ValueForContent&);
-		static Value          value_Move(ValueForContent&);
-		static PtrType*       ptr  (const ValueForContent&);
+		const ValueForContent& operator[](const Key& key) const
+		{
+			auto i = indexOf(key);
+
+			if (i != -1) {
+				return _elements[i].second;
+			}
+
+			throw runtime_error("Can't get the Value correspond"
+				+ key
+				+ ","
+				+ " Please check the key existence.");
+		}
+
+		const Content& operator[](uint16_t i) const
+		{
+			return _elements[i];
+		}
+
+		int32_t indexOf(const PtrType* pointer) const
+		{
+#define PTR_OF_ELE ptr(_elements[i].second)
+
+			for (auto i = 0; i < _count; ++i) {
+				if (PTR_OF_ELE == pointer) {
+					return i;
+				}
+			}
+
+			return -1; // means not found
+#undef PTR_OF_ELE
+		}
+
+		int32_t indexOf(const Key& key) const
+		{
+#define KEY_OF_ELE _elements[i].first
+			auto& lessThan = *LessThanPtr;
+
+			for (auto i = 0; i < _count; ++i) {
+				if (lessThan(key, KEY_OF_ELE) == lessThan(KEY_OF_ELE, key)) {
+					return i;
+				}
+			}
+
+			return -1; // means not found
+#undef KEY_OF_ELE
+		}
+
+		uint16_t suitPosition(const Key& key) const
+		{
+#define KEY_OF_ELE _elements[i].first
+			auto& lessThan = *LessThanPtr;
+
+			for (auto i = 0; i < _count; ++i) {
+				if (lessThan(key, KEY_OF_ELE)) {
+					return i;
+				}
+			}
+
+			return _count;
+#undef KEY_OF_ELE
+		}
+
+		auto begin()
+		{
+			return _elements.begin();
+		}
+
+		auto end()
+		{
+			return begin() + _count;
+		}
+
+		auto begin() const
+		{
+			return _elements.begin();
+		}
+
+		auto end() const
+		{
+			return begin() + _count;
+		}
+
+		static Value& value_Ref(ValueForContent &v)
+		{
+			return std::get<Value>(v);
+		}
+
+		static const Value& value_Ref(const ValueForContent &v)
+		{
+			return std::get<Value>(v);
+		}
+
+		static Value value_Copy(const ValueForContent& v)
+		{
+			return std::get<Value>(v);
+		}
+
+		static Value value_Move(ValueForContent& v)
+		{
+			return std::move(std::get<Value>(v));
+		}
+
+		static PtrType* ptr(const ValueForContent& v)
+		{
+			return std::get<unique_ptr<PtrType>>(v).get();
+		}
+
 
 	private:
 		uint16_t                   _count;
@@ -182,154 +300,33 @@ namespace Collections {
 		template <typename T>
 		bool         add(pair<Key, T>);
 
-		void     adjustMemory(int32_t, uint16_t);
+		void adjustMemory(int32_t direction, uint16_t index)
+		{
+			moveElement(direction, begin() + index);
+		}
+
 		auto     cloneInternalElements() const;
 		void     moveElement(int32_t, decltype(_elements.begin()));
 
-		static unique_ptr<PtrType>& uniquePtr_Ref (ValueForContent&);
-		static const unique_ptr<PtrType>& uniquePtr_Ref (const ValueForContent&);
-		static unique_ptr<PtrType>  uniquePtr_Move(ValueForContent&);
+		static unique_ptr<PtrType>& uniquePtr_Ref(ValueForContent& v)
+		{
+			return std::get<unique_ptr<PtrType>>(v);
+		}
+
+		static const unique_ptr<PtrType>& uniquePtr_Ref(const ValueForContent& v)
+		{
+			return std::get<unique_ptr<PtrType>>(v);
+		}
+
+		static unique_ptr<PtrType> uniquePtr_Move(ValueForContent& v)
+		{
+			return std::move(uniquePtr_Ref(v));
+		}
 	};
 }
 
 namespace Collections {
 #define ELE Elements<Key, Value, BtreeOrder, PtrType>
-
-	ELEMENTS_TEMPLATE
-	template <bool FROM_HEAD>
-	void
-	ELE::removeItems(uint16_t count)
-	{
-		if constexpr (FROM_HEAD) {
-			adjustMemory(-count, count);
-		} else {
-			auto num = count;
-			for (auto rbegin = _elements.rbegin(); num != 0; --num, --rbegin) {
-				rbegin->~Content();
-			}
-		}
-
-		_count -= count;
-	}
-
-	ELEMENTS_TEMPLATE
-	typename ELE::ValueForContent&
-	ELE::operator[](const Key& key)
-	{
-		return const_cast<ValueForContent&>(
-			(static_cast<const Elements&>(*this))[key]
-		);
-	}
-
-	ELEMENTS_TEMPLATE
-	const typename ELE::ValueForContent&
-	ELE::operator[](const Key& key) const
-	{
-		auto i = indexOf(key);
-	
-		if (i != -1) {
-			return _elements[i].second;
-		}
-    
-		throw runtime_error("Can't get the Value correspond"
-							 + key
-							 + ","
-							 + " Please check the key existence.");
-	}
-
-	ELEMENTS_TEMPLATE
-	typename ELE::Content&
-	ELE::operator[](uint16_t i)
-	{
-		return const_cast<Content&>(
-			(static_cast<const Elements&>(*this))[i]
-			);
-	}
-
-	ELEMENTS_TEMPLATE
-	const typename ELE::Content&
-	ELE::operator[](uint16_t i) const
-	{
-		return _elements[i];
-	}
-
-	ELEMENTS_TEMPLATE
-	auto
-	ELE::begin()
-	{
-		return _elements.begin();
-	}
-
-	ELEMENTS_TEMPLATE
-	auto
-	ELE::end()
-	{
-		return begin() + _count;
-	}
-
-	ELEMENTS_TEMPLATE
-	auto
-	ELE::begin() const
-	{
-		return _elements.begin();
-	}
-
-	ELEMENTS_TEMPLATE
-	auto
-	ELE::end() const
-	{
-		return begin() + _count;
-	}
-
-	ELEMENTS_TEMPLATE
-	int32_t
-	ELE::indexOf(const PtrType* pointer) const
-	{
-#define PTR_OF_ELE ptr(_elements[i].second)
-
-		for (auto i = 0; i < _count; ++i) {
-			if (PTR_OF_ELE == pointer) {
-				return i;
-			}
-		}
-
-		return -1; // means not found
-#undef PTR_OF_ELE
-	}
-
-	ELEMENTS_TEMPLATE
-	int32_t
-	ELE::indexOf(const Key& key) const
-	{
-#define KEY_OF_ELE _elements[i].first
-		auto& lessThan = *LessThanPtr;
-
-		for (auto i = 0; i < _count; ++i) {
-			if (lessThan(key, KEY_OF_ELE) == lessThan(KEY_OF_ELE, key)) {
-				return i;
-			}
-		}
-
-		return -1; // means not found
-#undef KEY_OF_ELE
-	}
-
-	ELEMENTS_TEMPLATE
-	uint16_t
-	ELE::suitPosition(const Key& key) const
-	{
-#define KEY_OF_ELE _elements[i].first
-		auto& lessThan = *LessThanPtr;
-
-		for (auto i = 0; i < _count; ++i) {
-			if (lessThan(key, KEY_OF_ELE)) {
-				return i;
-			}
-		}
-
-		return _count;
-#undef KEY_OF_ELE
-	}
 
 #define VOID_RET_MODIFY_METHOD_INSTANCE(METHOD, T) ELEMENTS_TEMPLATE void ELE::METHOD(pair<Key, T> p) { return METHOD<T>(std::move(p)); }
 
@@ -549,13 +546,6 @@ namespace Collections {
 		return std::move(es);
 	}
 
-	ELEMENTS_TEMPLATE
-	void
-	ELE::adjustMemory(int32_t direction, uint16_t index)
-	{
-		moveElement(direction, begin() + index);
-	}
-
 	/**
 	 * start included, still exist
 	 */
@@ -578,65 +568,5 @@ namespace Collections {
 		}
 	}
 }
-
-namespace Collections {
-
-	ELEMENTS_TEMPLATE
-	Value&
-	ELE::value_Ref(ValueForContent &v)
-	{
-		return std::get<Value>(v);
-	}
-
-	ELEMENTS_TEMPLATE
-	Value
-	ELE::value_Copy(const ValueForContent& v)
-	{
-		return std::get<Value>(v);
-	}
-
-	ELEMENTS_TEMPLATE
-	Value
-	ELE::value_Move(ValueForContent& v)
-	{
-		return std::move(std::get<Value>(v));
-	}
-
-	ELEMENTS_TEMPLATE
-	const Value&
-	ELE::value_Ref(const ValueForContent &v)
-	{
-		return std::get<Value>(v);
-	}
-
-	ELEMENTS_TEMPLATE
-	PtrType*
-	ELE::ptr(const ValueForContent& v)
-	{
-		return std::get<unique_ptr<PtrType>>(v).get();
-	}
-
-	ELEMENTS_TEMPLATE
-	unique_ptr<PtrType>&
-	ELE::uniquePtr_Ref(ValueForContent& v)
-	{
-		return std::get<unique_ptr<PtrType>>(v);
-	}
-
-	ELEMENTS_TEMPLATE
-	const unique_ptr<PtrType>&
-	ELE::uniquePtr_Ref(const ValueForContent& v)
-	{
-		return std::get<unique_ptr<PtrType>>(v);
-	}
-
-	ELEMENTS_TEMPLATE
-	unique_ptr<PtrType>
-	ELE::uniquePtr_Move(ValueForContent& v)
-	{
-		return std::move(uniquePtr_Ref(v));
-	}
-
 #undef ELE
 #undef ELEMENTS_TEMPLATE
-}

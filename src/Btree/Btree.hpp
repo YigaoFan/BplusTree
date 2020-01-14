@@ -9,7 +9,49 @@
 #include "Exception.hpp"
 #include "SiblingFunc.hpp"
 
-namespace Collections {
+namespace Collections
+{
+	template <auto Total, auto ItemCapacity>
+	struct PerNodeCountGenerator
+	{
+		constexpr static int Current = Total == 0 ? 
+			0 : (Total % ItemCapacity == 0 ? 
+				ItemCapacity : ((Total % ((Total / ItemCapacity) + 1) == 0 ? 
+					(Total / ((Total / ItemCapacity) + 1)) : ((Total / ((Total / ItemCapacity) + 1)) + 1))));
+		using Next = PerNodeCountGenerator<Total - Current, ItemCapacity>;
+	};
+
+	template <auto ItemCapacity>
+	struct PerNodeCountGenerator<0, ItemCapacity>
+	{
+		constexpr static int Current = 0;
+	};
+
+	template <auto Index, auto Total, auto ItemCapacity>
+	struct PositionGetter
+	{
+		using Position = typename PositionGetter<Index - 1, Total, ItemCapacity>::Position::Next;
+	};
+
+	template <auto Total, auto ItemCapacity>
+	struct PositionGetter<0, Total, ItemCapacity>
+	{
+		using Position = PerNodeCountGenerator<Total, ItemCapacity>;
+	};
+
+	template <auto Total, auto ItemCapacity, auto Index>
+	constexpr auto GetCount()
+	{
+		return PositionGetter<Index, Total, ItemCapacity>::Position::Current;
+	}
+
+	template <auto Total, auto ItemCapacity>
+	constexpr auto GetNodeCount()
+	{
+		return Total == 0 ?
+			0 : (Total % ItemCapacity == 0 ? (Total / ItemCapacity) : (Total / ItemCapacity + 1);
+	}
+
 	// TODO use Enumerator to refactor code
 	using ::std::function;
 	using ::std::array;
@@ -23,9 +65,11 @@ namespace Collections {
 	using ::std::make_shared;
 	using ::std::size_t;
 	using ::std::move;
+	using ::std::make_index_sequence;
 
 	template <uint16_t BtreeOrder, typename Key, typename Value>
-	class Btree {
+	class Btree 
+	{
 	private:
 		using Base   = NodeBase  <Key, Value, BtreeOrder>;
 		using Leaf   = LeafNode  <Key, Value, BtreeOrder>;
@@ -51,11 +95,12 @@ namespace Collections {
 				return (*_lessThanPtr)(p1.first, p2.first);
 			});
 
-			if (const Key *dupKeyPtr; duplicateIn(keyValueArray, dupKeyPtr)) {
+			if (const Key *dupKeyPtr; duplicateIn(keyValueArray, dupKeyPtr))
+			{
 				throw DuplicateKeyException(*dupKeyPtr, "Duplicate key in constructor keyValueArray");
 			}
 
-			constructFromLeafToRoot(move(keyValueArray));
+			ConstructFromLeafToRoot(move(keyValueArray));
 			_keyNum += NumOfEle;
 		}
 
@@ -88,7 +133,8 @@ namespace Collections {
 
 		Value search(const Key &key) const
 		{
-			if (empty()) {
+			if (empty())
+			{
 				throw runtime_error("The tree is empty");
 			}
 
@@ -113,7 +159,8 @@ namespace Collections {
 
 		bool have(const Key &key) const
 		{
-			if (!empty()) {
+			if (!empty())
+			{
 				return _root->have(key);
 			}
 
@@ -127,16 +174,20 @@ namespace Collections {
 
 		void add(pair<Key, Value> p) 
 		{
-			if (empty()) {
+			if (empty())
+			{
 				auto leaf = make_unique<Leaf>(&p, &p + 1, _lessThanPtr);
 				_root.reset(leaf.release());
 			}
-			else {
+			else
+			{
 				vector<Base *> passedNodeTrackStack;
-				if (_root->have(p.first, passedNodeTrackStack)) {
+				if (_root->have(p.first, passedNodeTrackStack))
+				{
 					throw runtime_error("The key-value has already existed, can't be added.");
 				}
-				else {
+				else
+				{
 					_root->add(std::move(p), passedNodeTrackStack);
 				}
 			}
@@ -147,7 +198,8 @@ namespace Collections {
 		// void        tryAdd(pair<Key, Value>);
 		void modify(pair<Key, Value> pair)
 		{
-			if (!empty()) {
+			if (!empty())
+			{
 				_root->modify(pair.first, std::move(pair.second));
 			}
 		}
@@ -157,10 +209,12 @@ namespace Collections {
 			vector<Base *> passedNodeTrackStack;
 			auto &stack = passedNodeTrackStack;
 
-			if (empty()) {
+			if (empty())
+			{
 				return;
 			}
-			if (_root->have(key, stack)) {
+			if (_root->have(key, stack)) 
+			{
 				_root->remove(key, stack);
 				--_keyNum;
 			}
@@ -191,12 +245,16 @@ namespace Collections {
 		}
 
 		template <bool FirstCall=true, typename T, size_t Count>
-		void constructFromLeafToRoot(array<T, Count> ItemsToConsNode)
+		void ConstructFromLeafToRoot(array<T, Count> ItemsToConsNode)
 		{
-			if constexpr (Count <= BtreeOrder) {
-				if constexpr (FirstCall) {
+			if constexpr (Count <= BtreeOrder)
+			{
+				if constexpr (FirstCall) 
+				{
 					_root = make_unique<Leaf>(ItemsToConsNode.begin(), ItemsToConsNode.end(), _lessThanPtr);
-				} else {
+				} 
+				else 
+				{
 					_root = make_unique<Middle>(ItemsToConsNode.begin(), ItemsToConsNode.end(), _lessThanPtr);
 				}
 				return;
@@ -204,6 +262,8 @@ namespace Collections {
 
 			// TODO should ensure w/2(up bound) to w per node
 			// 这里需要写一个平均分布节点的算法函数
+			make_index_sequence<GetNodeCount<Count, BtreeOrder>()>();
+			GetCount<Count, BtreeOrder, 0>();
 			constexpr auto upperNodeNum = Count % BtreeOrder == 0 ? (Count / BtreeOrder) : (Count / BtreeOrder + 1);
 			array<pair<Key, unique_ptr<Base>>, upperNodeNum> upperNodes;
 
@@ -215,22 +275,29 @@ namespace Collections {
 			auto firstLeafFlag = true;
 			Leaf *lastLeaf = nullptr;
 
-			do {
-				if constexpr (FirstCall) {
+			do
+			{
+				if constexpr (FirstCall)
+				{
 					auto leaf = make_unique<Leaf>(head, tail, _lessThanPtr);
 					auto leafPtr = leaf.get();
 					// set previous and next
 					leafPtr->previousLeaf(lastLeaf);
-					if (firstLeafFlag) {
+					if (firstLeafFlag) 
+					{
 						firstLeafFlag = false;
-					} else {
+					} 
+					else
+					{
 						lastLeaf->nextLeaf(leafPtr);
 					}
 					lastLeaf = leafPtr;
 
 					// TODO how does it work? it's Leaf type
 					upperNodes[i] = make_pair(copy(leaf->maxKey()), std::move(leaf));
-				} else {
+				} 
+				else 
+				{
 					auto middle = make_unique<Middle>(head, tail, _lessThanPtr);
 					upperNodes[i] = make_pair(middle->maxKey(), std::move(middle));
 				}
@@ -240,7 +307,7 @@ namespace Collections {
 				++i;
 			} while (end - head > 0);
 
-			constructFromLeafToRoot<false>(move(upperNodes));
+			ConstructFromLeafToRoot<false>(move(upperNodes));
 		}
 
 		template <size_t NumOfEle>
@@ -248,9 +315,11 @@ namespace Collections {
 		{
 			auto &array = sortedPairArray;
 
-			for (auto i = 1; i < NumOfEle; ++i) {
+			for (auto i = 1; i < NumOfEle; ++i) 
+			{
 				// should use LessThan ? TODO
-				if (array[i].first == array[i - 1].first) {
+				if (array[i].first == array[i - 1].first) 
+				{
 					duplicateKey = &array[i].first;
 					return true;
 				}
@@ -262,7 +331,8 @@ namespace Collections {
 
 		static Leaf* minLeaf(Base *node)
 		{
-			function<Base *(Middle *)> min = [](auto n) {
+			function<Base *(Middle *)> min = [](auto n) 
+			{
 				return n->minSon();
 			};
 
@@ -271,7 +341,8 @@ namespace Collections {
 
 		static Leaf* recurSelectNode(Base *node, function<Base *(Middle *)> &choose)
 		{
-			while (node->middle()) {
+			while (node->middle())
+			{
 				node = choose(static_cast<Middle *>(node));
 			}
 
