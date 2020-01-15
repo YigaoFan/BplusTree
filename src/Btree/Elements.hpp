@@ -28,19 +28,20 @@ namespace Collections {
 
 #define ELEMENTS_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder, typename PtrType>
 
-	struct TailAppendWay { };
-	struct HeadInsertWay { };
+	struct TailAppendWay {};
+	struct HeadInsertWay {};
 	// Internal could use ptr to search when know ptr
 	// modify method arg should be pair<Key, Value> without reference
 	/**
 	 * First and second relationship is to public
 	 */
 	ELEMENTS_TEMPLATE
-	class Elements {
+		class Elements
+	{
 	public:
 		using ValueForContent = variant<Value, unique_ptr<PtrType>>;
-		using Content         = pair<Key, ValueForContent>;
-		using LessThan        = function<bool(const Key&, const Key&)>;
+		using Content = pair<Key, ValueForContent>;
+		using LessThan = function<bool(const Key&, const Key&)>;
 
 		const bool           MiddleFlag;
 		shared_ptr<LessThan> LessThanPtr;
@@ -52,7 +53,8 @@ namespace Collections {
 			LessThanPtr(lessThanPtr),
 			_count(0)
 		{
-			do {
+			do
+			{
 				_elements[_count] = std::move(*begin);
 
 				++_count;
@@ -78,15 +80,18 @@ namespace Collections {
 		{
 			auto& lessThan = *LessThanPtr;
 
-			for (const auto& e : _elements) {
+			for (const auto& e : _elements)
+			{
 				auto& k = e.first;
 				auto less = lessThan(key, k);
 				auto notLess = lessThan(k, key);
 
-				if (less == notLess) {
+				if (less == notLess)
+				{
 					return true;
 				}
-				else if (notLess) {
+				else if (notLess)
+				{
 					break;
 				}
 			}
@@ -110,7 +115,8 @@ namespace Collections {
 		{
 			auto i = indexOf(key);
 
-			if (i != -1) {
+			if (i != -1)
+			{
 				return remove(i);
 			}
 
@@ -123,7 +129,8 @@ namespace Collections {
 
 			adjustMemory(-1, i + 1);
 
-			if (i == (_count - 1)) {
+			if (i == (_count - 1))
+			{
 				maxChanged = true;
 			}
 			--_count;
@@ -137,9 +144,11 @@ namespace Collections {
 			if constexpr (FROM_HEAD) {
 				adjustMemory(-count, count);
 			}
-			else {
+			else
+			{
 				auto num = count;
-				for (auto rbegin = _elements.rbegin(); num != 0; --num, --rbegin) {
+				for (auto rbegin = _elements.rbegin(); num != 0; --num, --rbegin)
+				{
 					rbegin->~Content();
 				}
 			}
@@ -180,7 +189,8 @@ namespace Collections {
 		{
 			auto i = indexOf(key);
 
-			if (i != -1) {
+			if (i != -1)
+			{
 				return _elements[i].second;
 			}
 
@@ -199,8 +209,10 @@ namespace Collections {
 		{
 #define PTR_OF_ELE ptr(_elements[i].second)
 
-			for (auto i = 0; i < _count; ++i) {
-				if (PTR_OF_ELE == pointer) {
+			for (auto i = 0; i < _count; ++i)
+			{
+				if (PTR_OF_ELE == pointer)
+				{
 					return i;
 				}
 			}
@@ -214,8 +226,10 @@ namespace Collections {
 #define KEY_OF_ELE _elements[i].first
 			auto& lessThan = *LessThanPtr;
 
-			for (auto i = 0; i < _count; ++i) {
-				if (lessThan(key, KEY_OF_ELE) == lessThan(KEY_OF_ELE, key)) {
+			for (auto i = 0; i < _count; ++i)
+			{
+				if (lessThan(key, KEY_OF_ELE) == lessThan(KEY_OF_ELE, key))
+				{
 					return i;
 				}
 			}
@@ -229,8 +243,10 @@ namespace Collections {
 #define KEY_OF_ELE _elements[i].first
 			auto& lessThan = *LessThanPtr;
 
-			for (auto i = 0; i < _count; ++i) {
-				if (lessThan(key, KEY_OF_ELE)) {
+			for (auto i = 0; i < _count; ++i)
+			{
+				if (lessThan(key, KEY_OF_ELE))
+				{
 					return i;
 				}
 			}
@@ -331,12 +347,12 @@ namespace Collections {
 #define VOID_RET_MODIFY_METHOD_INSTANCE(METHOD, T) ELEMENTS_TEMPLATE void ELE::METHOD(pair<Key, T> p) { return METHOD<T>(std::move(p)); }
 
 	VOID_RET_MODIFY_METHOD_INSTANCE(insert, Value)
-	VOID_RET_MODIFY_METHOD_INSTANCE(insert, unique_ptr<PtrType>)
+		VOID_RET_MODIFY_METHOD_INSTANCE(insert, unique_ptr<PtrType>)
 
-	ELEMENTS_TEMPLATE
-	template <typename T>
+		ELEMENTS_TEMPLATE
+		template <typename T>
 	void
-	ELE::insert(pair<Key, T> p)
+		ELE::insert(pair<Key, T> p)
 	{
 		// maybe only leaf add logic use this Elements method
 		// middle add logic is in middle Node self
@@ -344,10 +360,14 @@ namespace Collections {
 		auto& v = p.second;
 
 		uint16_t i = 0;
-		for (; i < _count; ++i) {
-			if ((*LessThanPtr)(k, _elements[i].first) == (*LessThanPtr)(_elements[i].first, k)) {
+		for (; i < _count; ++i)
+		{
+			if ((*LessThanPtr)(k, _elements[i].first) == (*LessThanPtr)(_elements[i].first, k))
+			{
 				throw runtime_error("The inserting key duplicates");
-			} else if ((*LessThanPtr)(k, _elements[i].first)) {
+			}
+			else if ((*LessThanPtr)(k, _elements[i].first))
+			{
 				goto Insert;
 			}
 		}
@@ -356,22 +376,23 @@ namespace Collections {
 							+ "Now the count of this Elements: " + std::to_string(_count)+ ". "
 							+ */"And please check the max Key to ensure not beyond the bound.");
 
-		Insert:
+	Insert:
 		adjustMemory(1, i);
 		_elements[i] = std::move(p);
 		++_count;
 	}
 
 	VOID_RET_MODIFY_METHOD_INSTANCE(append, Value)
-	VOID_RET_MODIFY_METHOD_INSTANCE(append, unique_ptr<PtrType>)
+		VOID_RET_MODIFY_METHOD_INSTANCE(append, unique_ptr<PtrType>)
 
 #undef VOID_RET_MODIFY_METHOD_INSTANCE
-	ELEMENTS_TEMPLATE
-	template <typename T>
+		ELEMENTS_TEMPLATE
+		template <typename T>
 	void
-	ELE::append(pair<Key, T> p)
+		ELE::append(pair<Key, T> p)
 	{
-		if (full()) {
+		if (full())
+		{
 			throw runtime_error("No free space to add");
 		}
 
@@ -380,28 +401,29 @@ namespace Collections {
 	}
 
 	ELEMENTS_TEMPLATE
-	void
-	ELE::receive(TailAppendWay, Elements&& that)
+		void
+		ELE::receive(TailAppendWay, Elements&& that)
 	{
 		receive(TailAppendWay(), that.count(), that);
 	}
 
 	ELEMENTS_TEMPLATE
-	void
-	ELE::receive(HeadInsertWay, Elements&& that)
+		void
+		ELE::receive(HeadInsertWay, Elements&& that)
 	{
 		receive(HeadInsertWay(), that.count(), that);
 	}
 
 	ELEMENTS_TEMPLATE
-	void
-	ELE::receive(HeadInsertWay, uint16_t count, Elements& that)
+		void
+		ELE::receive(HeadInsertWay, uint16_t count, Elements& that)
 	{
 		adjustMemory(count, count); // TODO check this work right
 		decltype(that._elements.begin()) start = (that._elements.end() - count);
 		auto end = start + count;
 
-		for (auto i = 0; start != end; ++start, ++i) {
+		for (auto i = 0; start != end; ++start, ++i)
+		{
 			_elements[i] = std::move(*start);
 			++_count;
 		}
@@ -411,10 +433,11 @@ namespace Collections {
 
 	// start "that" where is not clear
 	ELEMENTS_TEMPLATE
-	void
-	ELE::receive(TailAppendWay, uint16_t count, Elements& that)
+		void
+		ELE::receive(TailAppendWay, uint16_t count, Elements& that)
 	{
-		for (auto i = 0; i < count; ++i) {
+		for (auto i = 0; i < count; ++i)
+		{
 			_elements[_count] = std::move(that._elements[i]);
 			++_count;
 		}
@@ -426,8 +449,8 @@ namespace Collections {
 	 * @return matched index
 	 */
 	ELEMENTS_TEMPLATE
-	uint16_t
-	ELE::changeKeyOf(PtrType *ptr, Key newKey)
+		uint16_t
+		ELE::changeKeyOf(PtrType *ptr, Key newKey)
 	{
 		auto index = indexOf(ptr);
 		_elements[index].first = std::move(newKey);
@@ -450,45 +473,48 @@ namespace Collections {
 #define EXCHANGE_MAX_INSTANCE(T) ELEMENTS_TEMPLATE pair<Key, T> ELE::exchangeMax(pair<Key, T> p) { return exchangeMax<T>(std::move(p)); }
 
 	EXCHANGE_MAX_INSTANCE(Value)
-	EXCHANGE_MAX_INSTANCE(unique_ptr<PtrType>)
+		EXCHANGE_MAX_INSTANCE(unique_ptr<PtrType>)
 
 #undef EXCHANGE_MAX_INSTANCE
 
-	ELEMENTS_TEMPLATE
-	template <typename T>
+		ELEMENTS_TEMPLATE
+		template <typename T>
 	pair<Key, T>
-	ELE::exchangeMax(pair<Key, T> p)
+		ELE::exchangeMax(pair<Key, T> p)
 	{
 		BOUND_CHECK
 
-		auto& maxItem = _elements[_count - 1];
+			auto& maxItem = _elements[_count - 1];
 		auto key = maxItem.first;
 		auto valueForContent = std::move(maxItem.second);
 
 		--_count;
 		add(std::move(p));
-		
-		if constexpr (std::is_same<T, Value>::value) {
+
+		if constexpr (std::is_same<T, Value>::value)
+		{
 			return make_pair<Key, T>(std::move(key), value_Move(valueForContent));
-		} else {
+		}
+		else
+		{
 			return make_pair<Key, T>(std::move(key), uniquePtr_Move(valueForContent));
 		}
 	}
 #define EXCHANGE_MIN_INSTANCE(T) ELEMENTS_TEMPLATE pair<Key, T> ELE::exchangeMin(pair<Key, T> p, bool &maxChanged) { return exchangeMin<T>(std::move(p), maxChanged); }
 
 	EXCHANGE_MIN_INSTANCE(Value)
-	EXCHANGE_MIN_INSTANCE(unique_ptr<PtrType>)
+		EXCHANGE_MIN_INSTANCE(unique_ptr<PtrType>)
 
 #undef EXCHANGE_MIN_INSTANCE
 
-	ELEMENTS_TEMPLATE
-	template <typename T>
+		ELEMENTS_TEMPLATE
+		template <typename T>
 	pair<Key, T>
-	ELE::exchangeMin(pair<Key, T> p, bool &maxChanged)
+		ELE::exchangeMin(pair<Key, T> p, bool &maxChanged)
 	{
 		BOUND_CHECK
 
-		auto& minItem = _elements[0];
+			auto& minItem = _elements[0];
 		auto key = std::move(minItem.first);
 		auto valueForContent = std::move(minItem.second);
 
@@ -500,7 +526,9 @@ namespace Collections {
 
 		if constexpr (std::is_same<T, Value>::value) {
 			return make_pair<Key, T>(std::move(key), std::move(value_Ref(valueForContent)));
-		} else {
+		}
+		else
+		{
 			return make_pair<Key, T>(std::move(key), uniquePtr_Move(valueForContent));
 		}
 	}
@@ -513,32 +541,39 @@ namespace Collections {
 	 * @return max changed or not
 	 */
 	ELEMENTS_TEMPLATE
-	template <typename T>
+		template <typename T>
 	bool
-	ELE::add(pair<Key, T> p)
+		ELE::add(pair<Key, T> p)
 	{
 		auto& lessThan = *LessThanPtr;
 
-		if (lessThan(_elements[_count - 1].first, p.first)) {
+		if (lessThan(_elements[_count - 1].first, p.first))
+		{
 			append(std::move(p));
 			return true;
-		} else {
+		}
+		else
+		{
 			insert(std::move(p));
 			return false;
 		}
 	}
 
 	ELEMENTS_TEMPLATE
-	auto
-	ELE::cloneInternalElements() const
+		auto
+		ELE::cloneInternalElements() const
 	{
 		decltype(_elements) es;
 
-		for (auto i = 0; i < _count; ++i) {
+		for (auto i = 0; i < _count; ++i)
+		{
 			es[i].first = _elements[i].first;
-			if (!MiddleFlag) {
+			if (!MiddleFlag)
+			{
 				es[i].second = value_Ref(_elements[i].second);
-			} else {
+			}
+			else
+			{
 				es[i].second = std::move(uniquePtr_Ref(_elements[i].second)->clone());
 			}
 		}
@@ -550,19 +585,24 @@ namespace Collections {
 	 * start included, still exist
 	 */
 	ELEMENTS_TEMPLATE
-	void
-	ELE::moveElement(int32_t direction, decltype(_elements.begin()) start)
+		void
+		ELE::moveElement(int32_t direction, decltype(_elements.begin()) start)
 	{
-		if (direction < 0) {
+		if (direction < 0)
+		{
 			auto end = this->end();
 
-			for (auto& begin = start; begin != end; ++begin) {
+			for (auto& begin = start; begin != end; ++begin)
+			{
 				*(begin + direction) = std::move(*begin);
 			}
-		} else if (direction > 0) {
+		}
+		else if (direction > 0)
+		{
 			decltype(_elements.rend()) rend{ start - 1 };
 
-			for (auto rbegin = _elements.rbegin(); rbegin != rend; ++rbegin) {
+			for (auto rbegin = _elements.rbegin(); rbegin != rend; ++rbegin)
+			{
 				*(rbegin + direction) = std::move(*rbegin);
 			}
 		}
