@@ -11,6 +11,21 @@
 
 namespace Collections
 {
+	using ::std::function;
+	using ::std::array;
+	using ::std::pair;
+	using ::std::make_pair;
+	using ::std::vector;
+	using ::std::sort;
+	using ::std::exception;
+	using ::std::runtime_error;
+	using ::std::unique_ptr;
+	using ::std::make_shared;
+	using ::std::size_t;
+	using ::std::move;
+	using ::std::make_index_sequence;
+	using ::std::index_sequence;
+
 	template <auto Total, auto ItemCapacity>
 	struct PerNodeCountGenerator
 	{
@@ -40,32 +55,47 @@ namespace Collections
 	};
 
 	template <auto Total, auto ItemCapacity, auto Index>
-	constexpr auto GetCount()
+	constexpr auto GetItemsCount()
 	{
 		return PositionGetter<Index, Total, ItemCapacity>::Position::Current;
+	}
+
+	/*template <auto Total, auto ItemCapacity, size_t I, size_t... Is>
+	constexpr auto GetPreItemsCountHelper()
+	{
+		if constexpr (sizeof...(Is) == 0) 
+		{
+			return GetItemsCount<Total, ItemCapacity, I>();
+		}
+		else
+		{
+			return GetItemsCount<Total, ItemCapacity, I>() + GetPreItemsCountHelper<Total, ItemCapacity, Is...>();
+		}
+
+	}*/
+
+	template <auto Total, auto ItemCapacity, size_t... Is>
+	constexpr auto GetPreItemsCountImp(index_sequence<Is...>)
+	{
+		return (0 + ... + GetItemsCount<Total, ItemCapacity, Is>());
+		//return GetPreItemsCountHelper<Total, ItemCapacity, Is...>();
+	}
+
+	template <auto Total, auto ItemCapacity, auto Index>
+	constexpr auto GetPreItemsCount()
+	{
+		return GetPreItemsCountImp<Total, ItemCapacity>(make_index_sequence<Index>());
 	}
 
 	template <auto Total, auto ItemCapacity>
 	constexpr auto GetNodeCount()
 	{
 		return Total == 0 ?
-			0 : (Total % ItemCapacity == 0 ? (Total / ItemCapacity) : (Total / ItemCapacity + 1);
+			0 : (Total % ItemCapacity == 0 ? (Total / ItemCapacity) : (Total / ItemCapacity + 1));
 	}
 
 	// TODO use Enumerator to refactor code
-	using ::std::function;
-	using ::std::array;
-	using ::std::pair;
-	using ::std::make_pair;
-	using ::std::vector;
-	using ::std::sort;
-	using ::std::exception;
-	using ::std::runtime_error;
-	using ::std::unique_ptr;
-	using ::std::make_shared;
-	using ::std::size_t;
-	using ::std::move;
-	using ::std::make_index_sequence;
+	
 
 	template <uint16_t BtreeOrder, typename Key, typename Value>
 	class Btree 
@@ -95,7 +125,7 @@ namespace Collections
 				return (*_lessThanPtr)(p1.first, p2.first);
 			});
 
-			if (const Key *dupKeyPtr; duplicateIn(keyValueArray, dupKeyPtr))
+			if (const Key *dupKeyPtr; DuplicateIn(keyValueArray, dupKeyPtr))
 			{
 				throw DuplicateKeyException(*dupKeyPtr, "Duplicate key in constructor keyValueArray");
 			}
@@ -227,7 +257,7 @@ namespace Collections
 
 		vector<Leaf*> traverseLeaf(const function<bool(Leaf *)>& predicate) const
 		{
-			vector<Leaf *> leafCollection{};
+			vector<Leaf*> leafCollection{};
 
 			if (empty()) {
 				return leafCollection;
@@ -242,6 +272,31 @@ namespace Collections
 			}
 
 			return leafCollection;
+		}
+		
+		template <auto Total, auto Num, auto... nums>
+		static void ForEach(function<void(int, int, int)> func)
+		{
+			func(Num, GetItemsCount<Total, BtreeOrder, Num>(), GetPreItemsCount<Total, BtreeOrder, Num>());
+			if constexpr (sizeof...(nums) > 0)
+			{
+				ForEach<Total, nums...>(func);
+			}
+		}
+
+		template <typename T, auto Count, size_t... Is>
+		static auto ConsNodeInArrayImp(array<T, Count> const& array, index_sequence<Is...>)
+		{
+			ForEach<Count, Is...>([](auto index, auto itemsCount, auto preItemsCount)
+			{
+
+			});
+		}
+
+		template <typename T, auto Count>
+		static auto ConsNodeInArray(array<T, Count> src)
+		{
+			ConsNodeInArrayImp(src, make_index_sequence<GetNodeCount<Count, BtreeOrder>()>());
 		}
 
 		template <bool FirstCall=true, typename T, size_t Count>
@@ -262,8 +317,9 @@ namespace Collections
 
 			// TODO should ensure w/2(up bound) to w per node
 			// 这里需要写一个平均分布节点的算法函数
-			make_index_sequence<GetNodeCount<Count, BtreeOrder>()>();
-			GetCount<Count, BtreeOrder, 0>();
+			
+			ConsNodeInArray(ItemsToConsNode);
+			GetItemsCount<Count, BtreeOrder, 0>();
 			constexpr auto upperNodeNum = Count % BtreeOrder == 0 ? (Count / BtreeOrder) : (Count / BtreeOrder + 1);
 			array<pair<Key, unique_ptr<Base>>, upperNodeNum> upperNodes;
 
@@ -311,7 +367,7 @@ namespace Collections
 		}
 
 		template <size_t NumOfEle>
-		static bool duplicateIn(const array<pair<Key, Value>, NumOfEle> &sortedPairArray, const Key *&duplicateKey)
+		static bool DuplicateIn(const array<pair<Key, Value>, NumOfEle> &sortedPairArray, const Key *&duplicateKey)
 		{
 			auto &array = sortedPairArray;
 

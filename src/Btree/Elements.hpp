@@ -146,8 +146,8 @@ namespace Collections {
 			}
 			else
 			{
-				auto num = count;
-				for (auto rbegin = _elements.rbegin(); num != 0; --num, --rbegin)
+				auto Num = count;
+				for (auto rbegin = _elements.rbegin(); Num != 0; --Num, --rbegin)
 				{
 					rbegin->~Content();
 				}
