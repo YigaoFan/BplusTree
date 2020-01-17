@@ -49,7 +49,7 @@ namespace Collections {
 		template <typename Iter>
 		Elements(Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
 			:
-			MiddleFlag(!std::is_same<typename std::decay<decltype(*begin)>::type, pair<Key, Value>>::value),
+			MiddleFlag(!std::is_same<typename std::decay_t<decltype(*begin)>, pair<Key, Value>>::value),
 			LessThanPtr(lessThanPtr),
 			_count(0)
 		{
@@ -299,7 +299,6 @@ namespace Collections {
 		{
 			return std::get<unique_ptr<PtrType>>(v).get();
 		}
-
 
 	private:
 		uint16_t                   _count;

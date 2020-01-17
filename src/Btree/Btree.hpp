@@ -6,6 +6,8 @@
 #include <algorithm>    // for sort
 #include <array>        // for array
 #include <exception>    // for exception
+#include "Basic.hpp"
+#include "NodeFactory.hpp"
 #include "Exception.hpp"
 #include "SiblingFunc.hpp"
 
@@ -94,16 +96,31 @@ namespace Collections
 			0 : (Total % ItemCapacity == 0 ? (Total / ItemCapacity) : (Total / ItemCapacity + 1));
 	}
 
+	/*template <bool Condition, typename A, typename B>
+	struct CompileIf;
+
+	template <typename A, typename B>
+	struct CompileIf<true, A, B>
+	{
+		using Type = A;
+	};
+
+	template <typename A, typename B>
+	struct CompileIf<true, A, B>
+	{
+		using Type = B;
+	};*/
 	// TODO use Enumerator to refactor code
 	
 
-	template <uint16_t BtreeOrder, typename Key, typename Value>
+	template <order_int BtreeOrder, typename Key, typename Value>
 	class Btree 
 	{
 	private:
 		using Base   = NodeBase  <Key, Value, BtreeOrder>;
 		using Leaf   = LeafNode  <Key, Value, BtreeOrder>;
 		using Middle = MiddleNode<Key, Value, BtreeOrder>;
+		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
 
 	public:
 		using LessThan = typename Base::LessThan;
@@ -120,7 +137,7 @@ namespace Collections
 			// 这个构造函数这也要复制，不如构造函数传引用，排序算法确定不重复的情况下，就直接复制到堆上
 			// 可以确定好几个后一起构造
 			sort(keyValueArray.begin(), keyValueArray.end(),
-				[&](const auto &p1, const auto &p2)
+				 [&](const auto& p1, const auto& p2)
 			{
 				return (*_lessThanPtr)(p1.first, p2.first);
 			});
@@ -176,7 +193,7 @@ namespace Collections
 			vector<Key> keys;
 			keys.reserve(_keyNum);
 
-			traverseLeaf([&keys](Leaf *l)
+			TraverseLeaf([&keys](Leaf *l)
 			{
 				auto &&ks = l->allKey();
 				keys.insert(keys.end(), ks.begin(), ks.end());
@@ -255,16 +272,20 @@ namespace Collections
 		uint32_t             _keyNum{ 0 };
 		unique_ptr<Base>     _root  { nullptr };
 
-		vector<Leaf*> traverseLeaf(const function<bool(Leaf *)>& predicate) const
+		vector<Leaf*> TraverseLeaf(const function<bool(Leaf *)>& predicate) const
 		{
 			vector<Leaf*> leafCollection{};
 
-			if (empty()) {
+			if (empty())
+			{
 				return leafCollection;
 			}
+
 			auto current = minLeaf(_root.get());
-			while (current != nullptr) {
-				if (predicate(current)) {
+			while (current != nullptr)
+			{
+				if (predicate(current))
+				{
 					leafCollection.emplace_back(current);
 				}
 
@@ -275,28 +296,32 @@ namespace Collections
 		}
 		
 		template <auto Total, auto Num, auto... nums>
-		static void ForEach(function<void(int, int, int)> func)
+		static void ForEachCons(function<void(int, int, int)> func)
 		{
 			func(Num, GetItemsCount<Total, BtreeOrder, Num>(), GetPreItemsCount<Total, BtreeOrder, Num>());
 			if constexpr (sizeof...(nums) > 0)
 			{
-				ForEach<Total, nums...>(func);
+				ForEachCons<Total, nums...>(func);
 			}
 		}
 
 		template <typename T, auto Count, size_t... Is>
-		static auto ConsNodeInArrayImp(array<T, Count> const& array, index_sequence<Is...>)
+		static auto ConsNodeInArrayImp(array<T, Count> srcArray, shared_ptr<LessThan> lessThan, index_sequence<Is...> is)
 		{
-			ForEach<Count, Is...>([](auto index, auto itemsCount, auto preItemsCount)
+			array<pair<Key, unique_ptr<Base>>, is.size()> consNodes;
+			ForEachCons<Count, Is...>([&srcArray, &consNodes, &lessThan](auto index, auto itemsCount, auto preItemsCount)
 			{
-
+				auto node = NodeFactoryType::MakeNode(&srcArray[preItemsCount], &srcArray[preItemsCount + itemsCount], lessThan);
+				consNodes[index] = make_pair(move(node->maxKey()), move(node));
 			});
+
+			return consNodes;
 		}
 
 		template <typename T, auto Count>
-		static auto ConsNodeInArray(array<T, Count> src)
+		static auto ConsNodeInArray(array<T, Count> src, shared_ptr<LessThan> lessThan)
 		{
-			ConsNodeInArrayImp(src, make_index_sequence<GetNodeCount<Count, BtreeOrder>()>());
+			return ConsNodeInArrayImp(move(src), move(lessThan), make_index_sequence<GetNodeCount<Count, BtreeOrder>()>());
 		}
 
 		template <bool FirstCall=true, typename T, size_t Count>
@@ -304,70 +329,17 @@ namespace Collections
 		{
 			if constexpr (Count <= BtreeOrder)
 			{
-				if constexpr (FirstCall) 
-				{
-					_root = make_unique<Leaf>(ItemsToConsNode.begin(), ItemsToConsNode.end(), _lessThanPtr);
-				} 
-				else 
-				{
-					_root = make_unique<Middle>(ItemsToConsNode.begin(), ItemsToConsNode.end(), _lessThanPtr);
-				}
+				_root = NodeFactoryType::MakeNode(ItemsToConsNode.begin(), ItemsToConsNode.end(), _lessThanPtr);
 				return;
 			}
 
-			// TODO should ensure w/2(up bound) to w per node
-			// 这里需要写一个平均分布节点的算法函数
-			
-			ConsNodeInArray(ItemsToConsNode);
-			GetItemsCount<Count, BtreeOrder, 0>();
-			constexpr auto upperNodeNum = Count % BtreeOrder == 0 ? (Count / BtreeOrder) : (Count / BtreeOrder + 1);
-			array<pair<Key, unique_ptr<Base>>, upperNodeNum> upperNodes;
-
-			auto head = ItemsToConsNode.begin();
-			auto end = ItemsToConsNode.end();
-			auto tail = head + BtreeOrder;
-			uint32_t i = 0;
-
-			auto firstLeafFlag = true;
-			Leaf *lastLeaf = nullptr;
-
-			do
-			{
-				if constexpr (FirstCall)
-				{
-					auto leaf = make_unique<Leaf>(head, tail, _lessThanPtr);
-					auto leafPtr = leaf.get();
-					// set previous and next
-					leafPtr->previousLeaf(lastLeaf);
-					if (firstLeafFlag) 
-					{
-						firstLeafFlag = false;
-					} 
-					else
-					{
-						lastLeaf->nextLeaf(leafPtr);
-					}
-					lastLeaf = leafPtr;
-
-					// TODO how does it work? it's Leaf type
-					upperNodes[i] = make_pair(copy(leaf->maxKey()), std::move(leaf));
-				} 
-				else 
-				{
-					auto middle = make_unique<Middle>(head, tail, _lessThanPtr);
-					upperNodes[i] = make_pair(middle->maxKey(), std::move(middle));
-				}
-
-				head = tail;
-				tail = (end - tail > BtreeOrder) ? (tail + BtreeOrder) : end;
-				++i;
-			} while (end - head > 0);
-
-			ConstructFromLeafToRoot<false>(move(upperNodes));
+			auto newNodes = ConsNodeInArray(move(ItemsToConsNode), _lessThanPtr);
+			// TODO wait to set next leaf of leaf
+			ConstructFromLeafToRoot<false>(move(newNodes));
 		}
 
 		template <size_t NumOfEle>
-		static bool DuplicateIn(const array<pair<Key, Value>, NumOfEle> &sortedPairArray, const Key *&duplicateKey)
+		static bool DuplicateIn(array<pair<Key, Value>, NumOfEle> const &sortedPairArray, Key const *&duplicateKey)
 		{
 			auto &array = sortedPairArray;
 

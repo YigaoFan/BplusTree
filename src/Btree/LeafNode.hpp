@@ -1,11 +1,12 @@
 #pragma once
 #include <utility>
+#include "Basic.hpp"
 #include "NodeBaseCrtp.hpp"
 
 namespace Collections {
 #define LEAF LeafNode<Key, Value, BtreeOrder>
 
-	template <typename Key, typename Value, uint16_t BtreeOrder>
+	template <typename Key, typename Value, order_int BtreeOrder>
 	class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder> {
 	private:
 		using Base       = NodeBase<Key, Value, BtreeOrder>;
