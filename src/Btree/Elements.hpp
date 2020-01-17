@@ -1,18 +1,19 @@
 ﻿#pragma once
 #include <functional> // for function
 #include <variant>    // variant
-#include <cstring>    // for memcpy
 #include <exception>  // for runtime_error
 #include <string>     // for to_string
 #include <vector>     // for vector
 #include <memory>     // for unique_ptr, shared_ptr
 #include <iterator>
 #include <utility>
+#include "Basic.hpp"
 #ifdef BTREE_DEBUG
 #include "Utility.hpp"
 #endif
 
-namespace Collections {
+namespace Collections 
+{
 	using ::std::variant;
 	using ::std::pair;
 	using ::std::vector;
@@ -20,13 +21,13 @@ namespace Collections {
 	using ::std::unique_ptr;
 	using ::std::shared_ptr;
 	using ::std::array;
-	using ::std::memcpy;
 	using ::std::runtime_error;
 	using ::std::make_unique;
 	using ::std::forward_iterator_tag;
 	using ::std::make_pair;
+	using ::std::move;
 
-#define ELEMENTS_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder, typename PtrType>
+#define ELEMENTS_TEMPLATE template <typename Key, typename Value, order_int BtreeOrder, typename PtrType>
 
 	struct TailAppendWay {};
 	struct HeadInsertWay {};
@@ -35,8 +36,8 @@ namespace Collections {
 	/**
 	 * First and second relationship is to public
 	 */
-	ELEMENTS_TEMPLATE
-		class Elements
+	template <typename Key, typename Value, order_int BtreeOrder, typename PtrType>
+	class Elements
 	{
 	public:
 		using ValueForContent = variant<Value, unique_ptr<PtrType>>;
@@ -48,14 +49,12 @@ namespace Collections {
 
 		template <typename Iter>
 		Elements(Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
-			:
-			MiddleFlag(!std::is_same<typename std::decay_t<decltype(*begin)>, pair<Key, Value>>::value),
-			LessThanPtr(lessThanPtr),
-			_count(0)
+			: MiddleFlag(!std::is_same_v<typename std::decay_t<decltype(*begin)>, pair<Key, Value>>),
+			LessThanPtr(lessThanPtr)
 		{
 			do
 			{
-				_elements[_count] = std::move(*begin);
+				_elements[_count] = move(*begin);
 
 				++_count;
 				++begin;
@@ -64,13 +63,13 @@ namespace Collections {
 
 		Elements(const Elements& that)
 			: MiddleFlag(that.MiddleFlag), LessThanPtr(that.LessThanPtr),
-			_elements(std::move(that.cloneInternalElements())), _count(that._count)
+			_elements(move(that.cloneInternalElements())), _count(that._count)
 		{ }
 
 		Elements(Elements&& that) noexcept :
 			MiddleFlag(that.MiddleFlag),
 			LessThanPtr(that.LessThanPtr),
-			_elements(std::move(that._elements)),
+			_elements(move(that._elements)),
 			_count(that._count)
 		{
 			that._count = 0;
@@ -99,7 +98,7 @@ namespace Collections {
 			return false;
 		}
 
-		uint16_t count() const
+		key_int count() const
 		{
 			return _count;
 		}
@@ -243,7 +242,7 @@ namespace Collections {
 #define KEY_OF_ELE _elements[i].first
 			auto& lessThan = *LessThanPtr;
 
-			for (auto i = 0; i < _count; ++i)
+			for (decltype(_count) i = 0; i < _count; ++i)
 			{
 				if (lessThan(key, KEY_OF_ELE))
 				{
@@ -292,7 +291,7 @@ namespace Collections {
 
 		static Value value_Move(ValueForContent& v)
 		{
-			return std::move(std::get<Value>(v));
+			return move(std::get<Value>(v));
 		}
 
 		static PtrType* ptr(const ValueForContent& v)
@@ -301,7 +300,7 @@ namespace Collections {
 		}
 
 	private:
-		uint16_t                   _count;
+		key_int                    _count{ 0 };
 		array<Content, BtreeOrder> _elements;
 
 		template <typename T>
@@ -335,7 +334,7 @@ namespace Collections {
 
 		static unique_ptr<PtrType> uniquePtr_Move(ValueForContent& v)
 		{
-			return std::move(uniquePtr_Ref(v));
+			return move(uniquePtr_Ref(v));
 		}
 	};
 }
@@ -343,7 +342,7 @@ namespace Collections {
 namespace Collections {
 #define ELE Elements<Key, Value, BtreeOrder, PtrType>
 
-#define VOID_RET_MODIFY_METHOD_INSTANCE(METHOD, T) ELEMENTS_TEMPLATE void ELE::METHOD(pair<Key, T> p) { return METHOD<T>(std::move(p)); }
+#define VOID_RET_MODIFY_METHOD_INSTANCE(METHOD, T) ELEMENTS_TEMPLATE void ELE::METHOD(pair<Key, T> p) { return METHOD<T>(move(p)); }
 
 	VOID_RET_MODIFY_METHOD_INSTANCE(insert, Value)
 		VOID_RET_MODIFY_METHOD_INSTANCE(insert, unique_ptr<PtrType>)
@@ -377,7 +376,7 @@ namespace Collections {
 
 	Insert:
 		adjustMemory(1, i);
-		_elements[i] = std::move(p);
+		_elements[i] = move(p);
 		++_count;
 	}
 
@@ -395,7 +394,7 @@ namespace Collections {
 			throw runtime_error("No free space to add");
 		}
 
-		_elements[_count] = std::move(p);
+		_elements[_count] = move(p);
 		++_count;
 	}
 
@@ -423,7 +422,7 @@ namespace Collections {
 
 		for (auto i = 0; start != end; ++start, ++i)
 		{
-			_elements[i] = std::move(*start);
+			_elements[i] = move(*start);
 			++_count;
 		}
 
@@ -437,7 +436,7 @@ namespace Collections {
 	{
 		for (auto i = 0; i < count; ++i)
 		{
-			_elements[_count] = std::move(that._elements[i]);
+			_elements[_count] = move(that._elements[i]);
 			++_count;
 		}
 
@@ -452,7 +451,7 @@ namespace Collections {
 		ELE::changeKeyOf(PtrType *ptr, Key newKey)
 	{
 		auto index = indexOf(ptr);
-		_elements[index].first = std::move(newKey);
+		_elements[index].first = move(newKey);
 
 		return index;
 	}
@@ -469,7 +468,7 @@ namespace Collections {
 #endif
 
 
-#define EXCHANGE_MAX_INSTANCE(T) ELEMENTS_TEMPLATE pair<Key, T> ELE::exchangeMax(pair<Key, T> p) { return exchangeMax<T>(std::move(p)); }
+#define EXCHANGE_MAX_INSTANCE(T) ELEMENTS_TEMPLATE pair<Key, T> ELE::exchangeMax(pair<Key, T> p) { return exchangeMax<T>(move(p)); }
 
 	EXCHANGE_MAX_INSTANCE(Value)
 		EXCHANGE_MAX_INSTANCE(unique_ptr<PtrType>)
@@ -485,21 +484,21 @@ namespace Collections {
 
 			auto& maxItem = _elements[_count - 1];
 		auto key = maxItem.first;
-		auto valueForContent = std::move(maxItem.second);
+		auto valueForContent = move(maxItem.second);
 
 		--_count;
-		add(std::move(p));
+		add(move(p));
 
 		if constexpr (std::is_same<T, Value>::value)
 		{
-			return make_pair<Key, T>(std::move(key), value_Move(valueForContent));
+			return make_pair<Key, T>(move(key), value_Move(valueForContent));
 		}
 		else
 		{
-			return make_pair<Key, T>(std::move(key), uniquePtr_Move(valueForContent));
+			return make_pair<Key, T>(move(key), uniquePtr_Move(valueForContent));
 		}
 	}
-#define EXCHANGE_MIN_INSTANCE(T) ELEMENTS_TEMPLATE pair<Key, T> ELE::exchangeMin(pair<Key, T> p, bool &maxChanged) { return exchangeMin<T>(std::move(p), maxChanged); }
+#define EXCHANGE_MIN_INSTANCE(T) ELEMENTS_TEMPLATE pair<Key, T> ELE::exchangeMin(pair<Key, T> p, bool &maxChanged) { return exchangeMin<T>(move(p), maxChanged); }
 
 	EXCHANGE_MIN_INSTANCE(Value)
 		EXCHANGE_MIN_INSTANCE(unique_ptr<PtrType>)
@@ -514,21 +513,21 @@ namespace Collections {
 		BOUND_CHECK
 
 			auto& minItem = _elements[0];
-		auto key = std::move(minItem.first);
-		auto valueForContent = std::move(minItem.second);
+		auto key = move(minItem.first);
+		auto valueForContent = move(minItem.second);
 
 		// move left
 		adjustMemory(-1, 1);
 		--_count;
 
-		maxChanged = add(std::move(p));
+		maxChanged = add(move(p));
 
 		if constexpr (std::is_same<T, Value>::value) {
-			return make_pair<Key, T>(std::move(key), std::move(value_Ref(valueForContent)));
+			return make_pair<Key, T>(move(key), move(value_Ref(valueForContent)));
 		}
 		else
 		{
-			return make_pair<Key, T>(std::move(key), uniquePtr_Move(valueForContent));
+			return make_pair<Key, T>(move(key), uniquePtr_Move(valueForContent));
 		}
 	}
 
@@ -548,12 +547,12 @@ namespace Collections {
 
 		if (lessThan(_elements[_count - 1].first, p.first))
 		{
-			append(std::move(p));
+			append(move(p));
 			return true;
 		}
 		else
 		{
-			insert(std::move(p));
+			insert(move(p));
 			return false;
 		}
 	}
@@ -573,11 +572,11 @@ namespace Collections {
 			}
 			else
 			{
-				es[i].second = std::move(uniquePtr_Ref(_elements[i].second)->clone());
+				es[i].second = move(uniquePtr_Ref(_elements[i].second)->clone());
 			}
 		}
 
-		return std::move(es);
+		return move(es);
 	}
 
 	/**
@@ -593,7 +592,7 @@ namespace Collections {
 
 			for (auto& begin = start; begin != end; ++begin)
 			{
-				*(begin + direction) = std::move(*begin);
+				*(begin + direction) = move(*begin);
 			}
 		}
 		else if (direction > 0)
@@ -602,7 +601,7 @@ namespace Collections {
 
 			for (auto rbegin = _elements.rbegin(); rbegin != rend; ++rbegin)
 			{
-				*(rbegin + direction) = std::move(*rbegin);
+				*(rbegin + direction) = move(*rbegin);
 			}
 		}
 	}

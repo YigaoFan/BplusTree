@@ -1,12 +1,16 @@
 #pragma once
 #include "NodeBaseCrtp.hpp"
 
-namespace Collections {
+namespace Collections 
+{
+	using ::std::move;
+
 #define NODE_TEMPLATE 
 #define MIDDLE MiddleNode<Key, Value, BtreeOrder>
 
 	template <typename Key, typename Value, uint16_t BtreeOrder>
-	class MiddleNode : public NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder> {
+	class MiddleNode : public NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder> 
+	{
 	private:
 		using          Base = NodeBase<Key, Value, BtreeOrder>;
 		using          Base_CRTP = NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder>;
@@ -28,17 +32,17 @@ namespace Collections {
 
 		~MiddleNode() override = default;
 
-		Base* minSon() const
+		Base* MinSon() const
 		{
 			auto& es = Base::elements_;
-
 			return Base::Ele::ptr(es[0].second);
 		}
 
 #define SEARCH_HELPER_DEF(FUN_NAME, COMPARE_TO_BOUND, OFFSET, CHOOSE_SON)                                                                                 \
 	function<Base*(decltype(rIter), function<Base*(Base*)>)> FUN_NAME = [&] (decltype(rIter) currentNodeIter, function<Base*(Base*)> callBack) -> Base* { \
         auto upperNodeIter = ++rIter;                                                                                                                     \
-        if (upperNodeIter == rEnd) {                                                                                                                      \
+        if (upperNodeIter == rEnd)                                                                                                                        \
+		{                                                                                                                                                 \
             return callBack(nullptr);                                                                                                                     \
         }                                                                                                                                                 \
                                                                                                                                                           \
@@ -70,7 +74,7 @@ namespace Collections {
 			auto rIter = stack.rbegin();
 			auto rEnd = stack.rend();
 
-			SEARCH_HELPER_DEF(searchNxtHelper, < (static_cast<MiddleNode*>(ptrOff(upperNodeIter))->childCount() - 1), +1, minSon);
+			SEARCH_HELPER_DEF(searchNxtHelper, < (static_cast<MiddleNode*>(ptrOff(upperNodeIter))->childCount() - 1), +1, MinSon);
 			next = searchNxtHelper(rIter, [](auto n) { return n; });
 		}
 #undef SEARCH_HELPER_DEF

@@ -3,29 +3,31 @@
 #include "Basic.hpp"
 #include "NodeBaseCrtp.hpp"
 
-namespace Collections {
+namespace Collections
+{
 #define LEAF LeafNode<Key, Value, BtreeOrder>
 
 	template <typename Key, typename Value, order_int BtreeOrder>
-	class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder> {
+	class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>
+	{
 	private:
-		using Base       = NodeBase<Key, Value, BtreeOrder>;
-		using Base_CRTP  = NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>;
+		using Base = NodeBase<Key, Value, BtreeOrder>;
+		using Base_CRTP = NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>;
 		using typename Base::LessThan;
 
 	public:
 		template <typename Iter>
 		LeafNode(Iter begin, Iter end, shared_ptr<LessThan> lessThan)
 			: Base_CRTP(begin, end, lessThan)
-		{ }
+		{}
 
-		LeafNode(const LeafNode& that, LeafNode* previous=nullptr, LeafNode* next=nullptr)
+		LeafNode(const LeafNode& that, LeafNode* previous = nullptr, LeafNode* next = nullptr)
 			: Base_CRTP(that), _previous(previous), _next(next)
-		{ }
+		{}
 
 		LeafNode(LeafNode&& that) noexcept
 			: Base_CRTP(std::move(that)), _next(that._next)
-		{ }
+		{}
 
 		~LeafNode() override = default;
 
@@ -62,7 +64,7 @@ namespace Collections {
 		}
 
 	private:
-		LeafNode* _next    { nullptr };
+		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
 	};
 #undef LEAF

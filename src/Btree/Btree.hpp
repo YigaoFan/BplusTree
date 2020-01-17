@@ -110,9 +110,7 @@ namespace Collections
 	{
 		using Type = B;
 	};*/
-	// TODO use Enumerator to refactor code
 	
-
 	template <order_int BtreeOrder, typename Key, typename Value>
 	class Btree 
 	{
@@ -126,7 +124,6 @@ namespace Collections
 		using LessThan = typename Base::LessThan;
 
 		template <size_t NumOfEle>
-			// not should be array, a type can be iterate is OK?
 		Btree(LessThan lessThan, array<pair<Key, Value>, NumOfEle> keyValueArray)
 			: _lessThanPtr(make_shared<LessThan>(move(lessThan)))
 		{
@@ -158,13 +155,13 @@ namespace Collections
 			: _keyNum(that._keyNum), _root(that._root->clone()), _lessThanPtr(that._lessThanPtr)
 		{ }
 
-		Btree(Btree &&that) noexcept
+		Btree(Btree&& that) noexcept
 			: _keyNum(that._keyNum), _root(that._root.release()), _lessThanPtr(that._lessThanPtr)
 		{
 			that._keyNum = 0;
 		}
 
-		Btree& operator=(const Btree& that)
+		Btree& operator=(Btree const & that)
 		{
 			this->_root.reset(that._root->clone());
 			this->_keyNum = that._keyNum;
@@ -178,50 +175,48 @@ namespace Collections
 			this->_lessThanPtr = that._lessThanPtr;
 		}
 
-		Value search(const Key &key) const
+		Value Search(Key const &key) const
 		{
-			if (empty())
+			if (Empty())
 			{
 				throw runtime_error("The tree is empty");
 			}
 
-			return _root->search(key);
+			return _root->Search(key);
 		}
 
-		vector<Key> explore() const 
+		vector<Key> Explore() const 
 		{
 			vector<Key> keys;
 			keys.reserve(_keyNum);
 
 			TraverseLeaf([&keys](Leaf *l)
 			{
-				auto &&ks = l->allKey();
+				auto ks = l->AllKey();
 				keys.insert(keys.end(), ks.begin(), ks.end());
-
-				return false;
 			});
 
 			return keys;
 		}
 
-		bool have(const Key &key) const
+		bool Have(const Key &key) const
 		{
-			if (!empty())
+			if (!Empty())
 			{
-				return _root->have(key);
+				return _root->Have(key);
 			}
 
 			return false;
 		}
 
-		bool empty() const
+		bool Empty() const
 		{
 			return _keyNum == 0;
 		}
 
-		void add(pair<Key, Value> p) 
+		void Add(pair<Key, Value> p) 
 		{
-			if (empty())
+			if (Empty())
 			{
 				auto leaf = make_unique<Leaf>(&p, &p + 1, _lessThanPtr);
 				_root.reset(leaf.release());
@@ -229,70 +224,66 @@ namespace Collections
 			else
 			{
 				vector<Base *> passedNodeTrackStack;
-				if (_root->have(p.first, passedNodeTrackStack))
+				if (_root->Have(p.first, passedNodeTrackStack))
 				{
 					throw runtime_error("The key-value has already existed, can't be added.");
 				}
 				else
 				{
-					_root->add(std::move(p), passedNodeTrackStack);
+					_root->Add(move(p), passedNodeTrackStack);
 				}
 			}
 
 			++_keyNum;
 		}
 
-		// void        tryAdd(pair<Key, Value>);
-		void modify(pair<Key, Value> pair)
+		// TODO tryAdd(pair<Key, Value>);
+		void Modify(pair<Key, Value> pair)
 		{
-			if (!empty())
+			if (!Empty())
 			{
-				_root->modify(pair.first, std::move(pair.second));
+				_root->Modify(pair.first, move(pair.second));
 			}
 		}
 
-		void remove(const Key &key)
+		void Remove(const Key &key)
 		{
-			vector<Base *> passedNodeTrackStack;
-			auto &stack = passedNodeTrackStack;
-
-			if (empty())
+			if (Empty())
 			{
 				return;
 			}
-			if (_root->have(key, stack)) 
+			if (vector<Base*> passedNodeTrackStack;
+				_root->Have(key, passedNodeTrackStack))
 			{
-				_root->remove(key, stack);
+				_root->Remove(key, passedNodeTrackStack);
 				--_keyNum;
 			}
 		}
 
 	private:
 		shared_ptr<LessThan> _lessThanPtr;
-		uint32_t             _keyNum{ 0 };
+		key_int              _keyNum{ 0 };
 		unique_ptr<Base>     _root  { nullptr };
 
-		vector<Leaf*> TraverseLeaf(const function<bool(Leaf *)>& predicate) const
+		void TraverseLeaf(function<void (Leaf *)> func) const
 		{
-			vector<Leaf*> leafCollection{};
-
-			if (empty())
+			if (Empty())
 			{
-				return leafCollection;
+				return;
 			}
 
-			auto current = minLeaf(_root.get());
-			while (current != nullptr)
+			for (auto current = MinLeaf(); current != nullptr; current = current->nextLeaf())
 			{
-				if (predicate(current))
-				{
-					leafCollection.emplace_back(current);
-				}
-
-				current = current->nextLeaf();
+				func(current);
 			}
+		}
 
-			return leafCollection;
+		Leaf* MinLeaf() const
+		{
+			return RecurSelectToGetLeaf(_root.get(), [](auto n)
+			{
+				return n->MinSon();
+			});
 		}
 		
 		template <auto Total, auto Num, auto... nums>
@@ -312,7 +303,7 @@ namespace Collections
 			ForEachCons<Count, Is...>([&srcArray, &consNodes, &lessThan](auto index, auto itemsCount, auto preItemsCount)
 			{
 				auto node = NodeFactoryType::MakeNode(&srcArray[preItemsCount], &srcArray[preItemsCount + itemsCount], lessThan);
-				consNodes[index] = make_pair(move(node->maxKey()), move(node));
+				consNodes[index] = make_pair(move(node->MaxKey()), move(node));
 			});
 
 			return consNodes;
@@ -343,7 +334,7 @@ namespace Collections
 		{
 			auto &array = sortedPairArray;
 
-			for (auto i = 1; i < NumOfEle; ++i) 
+			for (decltype(NumOfEle) i = 1; i < NumOfEle; ++i) 
 			{
 				// should use LessThan ? TODO
 				if (array[i].first == array[i - 1].first) 
@@ -357,19 +348,9 @@ namespace Collections
 			return false;
 		}
 
-		static Leaf* minLeaf(Base *node)
+		static Leaf* RecurSelectToGetLeaf(Base *node, function<Base* (Middle*)> choose)
 		{
-			function<Base *(Middle *)> min = [](auto n) 
-			{
-				return n->minSon();
-			};
-
-			return recurSelectNode(node, min);
-		}
-
-		static Leaf* recurSelectNode(Base *node, function<Base *(Middle *)> &choose)
-		{
-			while (node->middle())
+			while (node->Middle())
 			{
 				node = choose(static_cast<Middle *>(node));
 			}
@@ -378,48 +359,3 @@ namespace Collections
 		}
 	};
 }
-//
-// 	template <auto Total, auto DivNum>
-// 	constexpr
-// 	auto Cal()
-// 	{
-// 		if constexpr (constexpr auto average = Total / DivNum; auto remainder = Total % DivNum == 0) {
-// 			// make a seq that contains DivNum copies average
-// 		} else {
-// 			// make a seq that contains DivNum copies average, too
-// 			// allocate the remainder to each item in part of seq in suitable way
-// 		}
-//
-// 	}
-// }
-//
-// template <int Element>
-// struct GetEle
-// {
-// 	static constexpr auto get(int n)
-// 	{
-// 		return Element;
-// 	}
-// };
-//
-// template <uint32_t Num, int Item, size_t... I>
-// constexpr auto
-// ImpDupItem(index_sequence<I...>)
-// {
-// 	return integer_sequence<uint32_t, GetEle<Item>::get(I)...>();
-// }
-//
-// template <uint32_t Num, int Item>
-// constexpr auto
-// DupEle()
-// {
-// 	constexpr auto indexs = make_index_sequence<Num>();
-// 	return ImpDupItem<Num, Item, decltype(indexs)>(indexs);
-// }
-//
-// int main()
-// {
-// 	auto eles = DupEle<3, 4>();
-// 	using T = decltype(eles);
-// 	static_assert(!is_same_v<T, integer_sequence<int, 4, 4, 4>>, "Not same");
-// }

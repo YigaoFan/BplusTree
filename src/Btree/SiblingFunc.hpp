@@ -71,4 +71,5 @@ namespace Collections {
 
 #undef LEAF
 #undef BASE
+#undef MIDDLE
 }

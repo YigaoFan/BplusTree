@@ -6,6 +6,8 @@
 
 namespace Collections
 {
+	using ::std::move;
+
 #define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 #define BASE NodeBase<Key, Value, BtreeOrder>
 
@@ -26,24 +28,24 @@ namespace Collections
 		{}
 
 		NodeBase(NodeBase&& that) noexcept
-			: elements_(std::move(that.elements_))
+			: elements_(move(that.elements_))
 		{}
 
 		virtual unique_ptr<NodeBase> clone() const = 0;
 		virtual unique_ptr<NodeBase> move() const = 0;
 		virtual ~NodeBase() = default;
 
-		bool middle() const
+		bool Middle() const
 		{
 			return elements_.MiddleFlag;
 		}
 
-		Key maxKey() const
+		Key MaxKey() const
 		{
 			return elements_[elements_.count() - 1].first;
 		}
 
-		vector<Key> allKey() const
+		vector<Key> AllKey() const
 		{
 			vector<Key> keys;
 			keys.reserve(elements_.count());
@@ -55,7 +57,7 @@ namespace Collections
 			return keys;
 		}
 
-		bool have(const Key& key, vector<NodeBase*>& passedNodeTrackStack)
+		bool Have(const Key& key, vector<NodeBase*>& passedNodeTrackStack)
 		{
 			auto& stack = passedNodeTrackStack;
 
@@ -66,7 +68,7 @@ namespace Collections
 			};
 			function<bool(NodeBase*)> collectDeepMaxOnBeyond = [&](NodeBase* node)
 			{
-				if (node->middle())
+				if (node->Middle())
 				{
 					auto maxIndex = node->childCount() - 1;
 					auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
@@ -82,7 +84,7 @@ namespace Collections
 			return searchHelper(key, collect, trueOnEqual, collectDeepMaxOnBeyond);
 		}
 
-		bool have(const Key& key) const
+		bool Have(const Key& key) const
 		{
 			auto doNothing = [](auto) {};
 			auto trueOnEqual = [](auto) { return true; };
@@ -93,7 +95,7 @@ namespace Collections
 															 std::move(falseOnBeyond));
 		}
 
-		Value search(const Key& key) const
+		Value Search(const Key& key) const
 		{
 			NodeBase* deepestNode = nullptr;
 			auto keepDeepest = [&](NodeBase* node)
@@ -103,7 +105,7 @@ namespace Collections
 			auto falseOnBeyond = [](auto) { return false; };
 			function<bool(NodeBase*)> moveDeepOnEqual = [&](NodeBase* node)
 			{
-				if (node->middle())
+				if (node->Middle())
 				{
 					auto maxIndex = node->childCount() - 1;
 					auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
@@ -126,7 +128,7 @@ namespace Collections
 			throw runtime_error("don't have this key");
 		}
 
-		void modify(const Key& key, Value value)
+		void Modify(const Key& key, Value value)
 		{
 			NodeBase* deepestNode = nullptr;
 			auto keepDeepest = [&](NodeBase* node)
@@ -136,7 +138,7 @@ namespace Collections
 			auto falseOnBeyond = [value{ std::move(value) }](auto) { return false; };
 			function<bool(NodeBase*)> moveDeepOnEqual = [&](NodeBase* node)
 			{
-				if (node->middle())
+				if (node->Middle())
 				{
 					auto maxIndex = node->childCount() - 1;
 					auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
@@ -153,15 +155,15 @@ namespace Collections
 			searchHelper(key, keepDeepest, moveDeepOnEqual, falseOnBeyond);
 		}
 
-		void add(pair<Key, Value> p, vector<NodeBase*>& passedNodeTrackStack)
+		void Add(pair<Key, Value> p, vector<NodeBase*>& passedNodeTrackStack)
 		{
 			auto& stack = passedNodeTrackStack;
 			auto finalLeaf = stack.back();
 
-			finalLeaf->doAdd(std::move(p), stack);
+			finalLeaf->DoAdd(std::move(p), stack);
 		}
 
-		void remove(const Key& key, vector<NodeBase*>& passedNodeTrackStack)
+		void Remove(const Key& key, vector<NodeBase*>& passedNodeTrackStack)
 		{
 			auto& stack = passedNodeTrackStack;
 			NodeBase* finalLeaf = stack.back();
@@ -172,7 +174,7 @@ namespace Collections
 	protected:
 		Elements<Key, Value, BtreeOrder, NodeBase> elements_;
 
-		uint16_t childCount() const
+		key_int childCount() const
 		{
 			return elements_.count();
 		}
@@ -189,7 +191,41 @@ namespace Collections
 
 		// TODO add not only key-value add, but also key-unique_ptr add
 		template <typename T>
-		void doAdd(pair<Key, T>, vector<NodeBase*>&);
+		void DoAdd(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack)
+		{
+			auto& k = p.first;
+			auto& stack = passedNodeTrackStack;
+			auto& lessThan = *(elements_.LessThanPtr);
+
+			if (!full())
+			{
+				if (lessThan(k, MaxKey()))
+				{
+					elements_.insert(std::move(p));
+				}
+				else
+				{
+					elements_.append(std::move(p));
+					changeMaxKeyUpper(stack, k);
+				}
+			}
+			else
+			{
+				// maybe fine the choose of pre and next
+				if (tryPreviousAdd<T>(p, stack))
+				{
+
+				}
+				else if (tryNextAdd<T>(p, stack))
+				{
+
+				}
+				else
+				{
+					splitNode(std::move(p), stack);
+				}
+			}
+		}
 		template <typename T>
 		inline bool tryPreviousAdd(pair<Key, T>&, vector<NodeBase*>&);
 		template <typename T>
@@ -200,7 +236,11 @@ namespace Collections
 		template <typename T>
 		bool reallocatePre(NodeBase*, vector<NodeBase*>&, pair<Key, T>);
 		template <typename T>
-		bool reallocateNxt(NodeBase*, pair<Key, T>);
+		bool reallocateNxt(NodeBase* nextNode, pair<Key, T> insertPair)
+		{
+			nextNode->elements_.insert(std::move(insertPair));
+			return true;
+		}
 		void changeMaxKeyUpper(const vector<NodeBase*>&, const Key&) const;
 		void insertNewPreToUpper(unique_ptr<NodeBase>, vector<NodeBase*>&);
 		inline bool searchHelper(const Key&, function<void(NodeBase*)>,
@@ -251,7 +291,7 @@ namespace Collections {
 			{
 				if (lessThan(key, e.first))
 				{
-					if (middle())
+					if (Middle())
 					{
 						return helper(Ele::ptr(e.second));
 					}
@@ -272,45 +312,6 @@ namespace Collections {
 		return helper(this);
 	}
 
-	NODE_TEMPLATE
-		template<typename T>
-	void
-		BASE::doAdd(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack)
-	{
-		auto& k = p.first;
-		auto& stack = passedNodeTrackStack;
-		auto& lessThan = *(elements_.LessThanPtr);
-
-		if (!full())
-		{
-			if (lessThan(k, maxKey()))
-			{
-				elements_.insert(std::move(p));
-			}
-			else
-			{
-				elements_.append(std::move(p));
-				changeMaxKeyUpper(stack, k);
-			}
-		}
-		else
-		{
-			// maybe fine the choose of pre and next
-			if (tryPreviousAdd<T>(p, stack))
-			{
-
-			}
-			else if (tryNextAdd<T>(p, stack))
-			{
-
-			}
-			else
-			{
-				splitNode(std::move(p), stack);
-			}
-		}
-	}
-
 	/**
 	 * @tparam T type Key or PtrType*(NodeBase*)
 	 */
@@ -324,7 +325,7 @@ namespace Collections {
 		auto i = elements_.indexOf(t);
 		if (elements_.remove(i))
 		{
-			changeMaxKeyUpper(stack, maxKey());
+			changeMaxKeyUpper(stack, MaxKey());
 		}
 
 		// TODO is_same need to verify
@@ -415,25 +416,15 @@ namespace Collections {
 	NODE_TEMPLATE
 		template <typename T>
 	bool
-		BASE::reallocateNxt(NodeBase* nextNode, pair<Key, T> insertPair)
-	{
-		nextNode->elements_.insert(std::move(insertPair));
-
-		return true;
-	}
-
-	NODE_TEMPLATE
-		template <typename T>
-	bool
 		BASE::reallocatePre(NodeBase* previousNode, vector<NodeBase*>& passedNodeTrackStack, pair<Key, T> appendPair)
 	{
 		auto& stack = passedNodeTrackStack;
 		// attention func change the stack or not
 
-		auto oldMaxKey = previousNode->maxKey();
+		auto oldMaxKey = previousNode->MaxKey();
 		auto previousTrackStack = getSiblingSearchTrackIn(stack, previousNode); // previous is leaf
 		previousNode->elements_.append(std::move(appendPair));
-		auto newMaxKey = previousNode->maxKey(); // will change previous max
+		auto newMaxKey = previousNode->MaxKey(); // will change previous max
 		changeMaxKeyUpper(previousTrackStack, newMaxKey);
 
 		return true;
@@ -449,7 +440,7 @@ namespace Collections {
 		// TODO when call on Middle, there are duplicates compute
 		// Because the last Middle has already search this(wait to verify)
 		auto& stack = currentNodePassedTrackStack;
-		auto maxKey = sibling->maxKey();
+		auto maxKey = sibling->MaxKey();
 		auto rCurrentNodeIter = ++stack.rbegin(); // from not leaf
 		auto rEnd = stack.rend();
 
@@ -459,7 +450,7 @@ namespace Collections {
 		while (rCurrentNodeIter != rEnd)
 		{
 			// same ancestor of this and previous node
-			if (ptrOff(rCurrentNodeIter)->have(maxKey, trackStack))
+			if (ptrOff(rCurrentNodeIter)->Have(maxKey, trackStack))
 			{
 				break;
 			}
@@ -582,15 +573,15 @@ namespace Collections {
 		{ // means arrive root node
 			auto& newLeftSonOfRoot = preNode;
 			auto newRightSonOfRoot = this->move();
-			this->elements_.append(make_pair<Key, unique_ptr<NodeBase>>(copy(newLeftSonOfRoot->maxKey()),
+			this->elements_.append(make_pair<Key, unique_ptr<NodeBase>>(copy(newLeftSonOfRoot->MaxKey()),
 																		std::move(newLeftSonOfRoot)));
-			this->elements_.append(make_pair<Key, unique_ptr<NodeBase>>(copy(newRightSonOfRoot->maxKey()),
+			this->elements_.append(make_pair<Key, unique_ptr<NodeBase>>(copy(newRightSonOfRoot->MaxKey()),
 																		std::move(newRightSonOfRoot)));
 		}
 		else
 		{
-			auto pair = make_pair<Key, unique_ptr<NodeBase>>(copy(preNode->maxKey()), std::move(preNode));
-			stack.back()->doAdd(std::move(pair), stack);
+			auto pair = make_pair<Key, unique_ptr<NodeBase>>(copy(preNode->MaxKey()), std::move(preNode));
+			stack.back()->DoAdd(std::move(pair), stack);
 		}
 	}
 
@@ -626,7 +617,7 @@ namespace Collections {
 			auto min = elements_.exchangeMin(std::move(p), maxChanged);
 			if (maxChanged)
 			{
-				changeMaxKeyUpper(stack, maxKey());
+				changeMaxKeyUpper(stack, MaxKey());
 			}
 
 			return reallocatePre(previous, stack, std::move(min)); // trigger optimize
@@ -652,7 +643,7 @@ namespace Collections {
 		{
 			// if not free, will not trigger move, so the ref type is fine
 			auto&& oldMax = elements_.exchangeMax(std::move(p));
-			changeMaxKeyUpper(stack, maxKey());
+			changeMaxKeyUpper(stack, MaxKey());
 
 			return reallocateNxt(next, std::move(oldMax));
 		}
@@ -678,7 +669,7 @@ namespace Collections {
 			// combine
 			previous->receive(TailAppendWay(), std::move(*this));
 			auto preStack = getSiblingSearchTrackIn(stack, previous);
-			previous->changeMaxKeyUpper(preStack, previous->maxKey());
+			previous->changeMaxKeyUpper(preStack, previous->MaxKey());
 			setRemoveCurrentRelation<IS_LEAF>(this);
 
 			return true;
@@ -689,7 +680,7 @@ namespace Collections {
 			auto moveCount = (previous->childCount() - childCount()) / 2;
 			receive(HeadInsertWay(), moveCount, *previous);
 			auto preStack = getSiblingSearchTrackIn(stack, previous);
-			previous->changeMaxKeyUpper(preStack, previous->maxKey());
+			previous->changeMaxKeyUpper(preStack, previous->MaxKey());
 
 			return false;
 		}
@@ -715,7 +706,7 @@ namespace Collections {
 			// move some from nxt to this
 			auto moveCount = (next->childCount() - childCount()) / 2;
 			receive(TailAppendWay(), moveCount, *next);
-			changeMaxKeyUpper(stack, maxKey());
+			changeMaxKeyUpper(stack, MaxKey());
 
 			return false;
 		}

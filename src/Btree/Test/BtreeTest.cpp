@@ -46,21 +46,21 @@ TESTCASE("Btree test") {
 		}
 
 		SECTION("Test normal function") {
-			ASSERT(btree.search(kv0.first) == kv0.second);
-			ASSERT(btree.search(kv8.first) == kv8.second);
-			ASSERT_THROW(runtime_error, btree.search("10"));
+			ASSERT(btree.Search(kv0.first) == kv0.second);
+			ASSERT(btree.Search(kv8.first) == kv8.second);
+			ASSERT_THROW(runtime_error, btree.Search("10"));
 
-			btree.add(make_pair("10", "d"));
-			ASSERT(btree.search("10") == "d");
-			ASSERT(btree.have("10"));
+			btree.Add(make_pair("10", "d"));
+			ASSERT(btree.Search("10") == "d");
+			ASSERT(btree.Have("10"));
 
-			btree.modify(make_pair(kv0.first, "d"));
-			ASSERT(btree.search(kv0.first) == "d");
+			btree.Modify(make_pair(kv0.first, "d"));
+			ASSERT(btree.Search(kv0.first) == "d");
 
-			auto keys = btree.explore();
+			auto keys = btree.Explore();
 
-			btree.remove("10");
-			ASSERT_THROW(runtime_error, btree.have("10"));
+			btree.Remove("10");
+			ASSERT_THROW(runtime_error, btree.Have("10"));
 		}
 	}
 
