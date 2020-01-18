@@ -1,5 +1,5 @@
 #pragma once
-#include <vector> // for vector
+#include <vector>
 #include "Basic.hpp"
 #include "Util.hpp"
 #include "Elements.hpp"
@@ -14,6 +14,8 @@ namespace Collections
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeBase
 	{
+	protected:
+		Elements<Key, Value, BtreeOrder, NodeBase> elements_;
 	public:
 		using Ele = Elements<Key, Value, BtreeOrder, NodeBase>;
 		using LessThan = typename Ele::LessThan;
@@ -21,6 +23,11 @@ namespace Collections
 		template <typename Iter>
 		NodeBase(Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
 			: elements_(begin, end, lessThanPtr)
+		{}
+
+		template <typename T, typename Iterator>
+		NodeBase(Enumerator<pair<Key, T>, Iterator> enumerator, shared_ptr<LessThan> lessThan)
+			: elements_(enumerator, lessThan)
 		{}
 
 		NodeBase(const NodeBase& that)
@@ -70,7 +77,7 @@ namespace Collections
 			{
 				if (node->Middle())
 				{
-					auto maxIndex = node->childCount() - 1;
+					auto maxIndex = node->ChildCount() - 1;
 					auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
 					collect(maxChildPtr);
 
@@ -107,7 +114,7 @@ namespace Collections
 			{
 				if (node->Middle())
 				{
-					auto maxIndex = node->childCount() - 1;
+					auto maxIndex = node->ChildCount() - 1;
 					auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
 					keepDeepest(maxChildPtr);
 
@@ -140,7 +147,7 @@ namespace Collections
 			{
 				if (node->Middle())
 				{
-					auto maxIndex = node->childCount() - 1;
+					auto maxIndex = node->ChildCount() - 1;
 					auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
 					keepDeepest(maxChildPtr);
 
@@ -172,19 +179,17 @@ namespace Collections
 		}
 
 	protected:
-		Elements<Key, Value, BtreeOrder, NodeBase> elements_;
-
-		order_int childCount() const
+		order_int ChildCount() const
 		{
 			return elements_.Count();
 		}
 
-		bool full() const
+		bool Full() const
 		{
 			return elements_.Full();
 		}
 
-		bool empty() const
+		bool Empty() const
 		{
 			return elements_.Count() == 0;
 		}
@@ -197,15 +202,15 @@ namespace Collections
 			auto& stack = passedNodeTrackStack;
 			auto& lessThan = *(elements_.LessThanPtr);
 
-			if (!full())
+			if (!Full())
 			{
 				if (lessThan(k, MaxKey()))
 				{
-					elements_.insert(std::move(p));
+					elements_.Insert(std::move(p));
 				}
 				else
 				{
-					elements_.append(std::move(p));
+					elements_.Append(std::move(p));
 					changeMaxKeyUpper(stack, k);
 				}
 			}
@@ -238,12 +243,12 @@ namespace Collections
 		template <typename T>
 		bool reallocateNxt(NodeBase* nextNode, pair<Key, T> insertPair)
 		{
-			nextNode->elements_.insert(std::move(insertPair));
+			nextNode->elements_.Insert(std::move(insertPair));
 			return true;
 		}
 		void changeMaxKeyUpper(const vector<NodeBase*>&, const Key&) const;
 		void insertNewPreToUpper(unique_ptr<NodeBase>, vector<NodeBase*>&);
-		inline bool searchHelper(const Key&, function<void(NodeBase*)>,
+		bool searchHelper(const Key&, function<void(NodeBase*)>,
 								 function<bool(NodeBase*)>,
 								 function<bool(NodeBase*)>);
 
@@ -268,8 +273,9 @@ namespace Collections
 	};
 }
 
-namespace Collections {
-	using std::make_pair;
+namespace Collections
+{
+	using ::std::make_pair;
 
 	NODE_TEMPLATE
 		bool
@@ -357,7 +363,7 @@ namespace Collections {
 		auto& stack = passedNodeTrackStack;
 
 		constexpr auto ceil = 1 + ((BtreeOrder - 1) / 2);
-		if (childCount() < ceil)
+		if (ChildCount() < ceil)
 		{
 			NodeBase* previous = nullptr;
 			// TODO should save search track？
@@ -405,9 +411,9 @@ namespace Collections {
 			}
 		}
 
-		auto preChilds = (long)pre->childCount();
-		auto curChilds = (long)current->childCount();
-		auto nxtChilds = (long)nxt->childCount();
+		auto preChilds = (long) pre->ChildCount();
+		auto curChilds = (long) current->ChildCount();
+		auto nxtChilds = (long) nxt->ChildCount();
 		auto average = (preChilds + curChilds + nxtChilds) / 3;
 
 		return abs(preChilds - average) > abs(nxtChilds - average) ? preHandler(pre) : nxtHandler(nxt);
@@ -423,7 +429,7 @@ namespace Collections {
 
 		auto oldMaxKey = previousNode->MaxKey();
 		auto previousTrackStack = getSiblingSearchTrackIn(stack, previousNode); // previous is leaf
-		previousNode->elements_.append(std::move(appendPair));
+		previousNode->elements_.Append(std::move(appendPair));
 		auto newMaxKey = previousNode->MaxKey(); // will change previous max
 		changeMaxKeyUpper(previousTrackStack, newMaxKey);
 
@@ -483,9 +489,9 @@ namespace Collections {
 		while (rCurrentIter != rEnd)
 		{
 			auto upperNodeIter = rCurrentIter + 1;
-			auto matchIndex = ptrOff(upperNodeIter)->elements_.changeKeyOf(*rCurrentIter, newMaxKey);
+			auto matchIndex = ptrOff(upperNodeIter)->elements_.ChangeKeyOf(*rCurrentIter, newMaxKey);
 
-			auto maxIndex = ptrOff(upperNodeIter)->childCount() - 1;
+			auto maxIndex = ptrOff(upperNodeIter)->ChildCount() - 1;
 			if (matchIndex != maxIndex)
 			{
 				break;
@@ -516,19 +522,19 @@ namespace Collections {
 
 		auto removeItems = [&](uint16_t preNodeRemoveCount)
 		{
-			newPrePtr->elements_.template removeItems<false>(preNodeRemoveCount);
-			this->elements_.template removeItems<true>(BtreeOrder - preNodeRemoveCount);
+			newPrePtr->elements_.template RemoveItems<false>(preNodeRemoveCount);
+			this->elements_.template RemoveItems<true>(BtreeOrder - preNodeRemoveCount);
 		};
 
 		auto addIn = [&](NodeBase* node, bool shouldAppend)
 		{
 			if (shouldAppend)
 			{
-				node->elements_.append(std::move(p));
+				node->elements_.Append(std::move(p));
 			}
 			else
 			{
-				node->elements_.insert(std::move(p));
+				node->elements_.Insert(std::move(p));
 			}
 		};
 
@@ -536,7 +542,7 @@ namespace Collections {
 
 		constexpr bool odd = BtreeOrder % 2;
 		constexpr auto middle = odd ? (BtreeOrder / 2 + 1) : (BtreeOrder / 2);
-		auto i = elements_.suitPosition(key);
+		auto i = elements_.SuitPosition(key);
 		if (i <= middle)
 		{
 			constexpr auto removeCount = middle;
@@ -573,9 +579,9 @@ namespace Collections {
 		{ // means arrive root node
 			auto& newLeftSonOfRoot = preNode;
 			auto newRightSonOfRoot = this->move();
-			this->elements_.append(make_pair<Key, unique_ptr<NodeBase>>(copy(newLeftSonOfRoot->MaxKey()),
+			this->elements_.Append(make_pair<Key, unique_ptr<NodeBase>>(copy(newLeftSonOfRoot->MaxKey()),
 																		std::move(newLeftSonOfRoot)));
-			this->elements_.append(make_pair<Key, unique_ptr<NodeBase>>(copy(newRightSonOfRoot->MaxKey()),
+			this->elements_.Append(make_pair<Key, unique_ptr<NodeBase>>(copy(newRightSonOfRoot->MaxKey()),
 																		std::move(newRightSonOfRoot)));
 		}
 		else
@@ -591,7 +597,7 @@ namespace Collections {
 	{
 		if (node != nullptr)
 		{
-			return !node->full();
+			return !node->Full();
 		}
 
 		return false;
@@ -614,7 +620,7 @@ namespace Collections {
 		{
 			// if not free, will not trigger move, so the type is ref
 			auto maxChanged = false;
-			auto min = elements_.exchangeMin(std::move(p), maxChanged);
+			auto min = elements_.ExchangeMin(std::move(p), maxChanged);
 			if (maxChanged)
 			{
 				changeMaxKeyUpper(stack, MaxKey());
@@ -642,7 +648,7 @@ namespace Collections {
 		if (spaceFreeIn(next))
 		{
 			// if not free, will not trigger move, so the ref type is fine
-			auto&& oldMax = elements_.exchangeMax(std::move(p));
+			auto&& oldMax = elements_.ExchangeMax(std::move(p));
 			changeMaxKeyUpper(stack, MaxKey());
 
 			return reallocateNxt(next, std::move(oldMax));
@@ -664,7 +670,7 @@ namespace Collections {
 
 		// 这些使用 NodeBase 的操作会不会没有顾及到实际的类型，符合想要的语义吗？应该是符合的。Btree本来就是交给NodeBase来操作
 		// 那 MiddleNode 和 LeafNode 的意义是什么呢？
-		if (previous->childCount() + childCount() <= BtreeOrder)
+		if (previous->ChildCount() + ChildCount() <= BtreeOrder)
 		{
 			// combine
 			previous->receive(TailAppendWay(), std::move(*this));
@@ -677,7 +683,7 @@ namespace Collections {
 		else
 		{
 			// move some from pre to this
-			auto moveCount = (previous->childCount() - childCount()) / 2;
+			auto moveCount = (previous->ChildCount() - ChildCount()) / 2;
 			receive(HeadInsertWay(), moveCount, *previous);
 			auto preStack = getSiblingSearchTrackIn(stack, previous);
 			previous->changeMaxKeyUpper(preStack, previous->MaxKey());
@@ -693,7 +699,7 @@ namespace Collections {
 	{
 		auto& stack = passedNodeTrackStack;
 
-		if (next->childCount() + childCount() <= BtreeOrder)
+		if (next->ChildCount() + ChildCount() <= BtreeOrder)
 		{
 			// combine
 			next->receive(HeadInsertWay(), std::move(*this));
@@ -704,7 +710,7 @@ namespace Collections {
 		else
 		{
 			// move some from nxt to this
-			auto moveCount = (next->childCount() - childCount()) / 2;
+			auto moveCount = (next->ChildCount() - ChildCount()) / 2;
 			receive(TailAppendWay(), moveCount, *next);
 			changeMaxKeyUpper(stack, MaxKey());
 
@@ -716,28 +722,28 @@ namespace Collections {
 		void
 		BASE::receive(TailAppendWay, NodeBase&& that)
 	{
-		elements_.receive(TailAppendWay(), std::move(that.elements_));
+		elements_.Receive(TailAppendWay(), std::move(that.elements_));
 	}
 
 	NODE_TEMPLATE
 		void
 		BASE::receive(HeadInsertWay, NodeBase&& that)
 	{
-		elements_.receive(HeadInsertWay(), std::move(that.elements_));
+		elements_.Receive(HeadInsertWay(), std::move(that.elements_));
 	}
 
 	NODE_TEMPLATE
 		void
 		BASE::receive(HeadInsertWay, uint16_t count, NodeBase& node)
 	{
-		elements_.receive(HeadInsertWay(), count, node.elements_);
+		elements_.Receive(HeadInsertWay(), count, node.elements_);
 	}
 
 	NODE_TEMPLATE
 		void
 		BASE::receive(TailAppendWay, uint16_t count, NodeBase& node)
 	{
-		elements_.receive(TailAppendWay(), count, node.elements_);
+		elements_.Receive(TailAppendWay(), count, node.elements_);
 	}
 #undef BASE
 #undef NODE_TEMPLATE

@@ -1,6 +1,7 @@
 #pragma once
 #include <utility>
 #include "Basic.hpp"
+#include "Enumerator.hpp"
 #include "NodeBaseCrtp.hpp"
 
 namespace Collections
@@ -19,6 +20,11 @@ namespace Collections
 		template <typename Iter>
 		LeafNode(Iter begin, Iter end, shared_ptr<LessThan> lessThan)
 			: Base_CRTP(begin, end, lessThan)
+		{}
+
+		template <typename Iterator>
+		LeafNode(Enumerator<pair<Key, Value>, Iterator> enumerator, shared_ptr<LessThan> lessThan)
+			: Base_CRTP(enumerator, lessThan)
 		{}
 
 		LeafNode(const LeafNode& that, LeafNode* previous = nullptr, LeafNode* next = nullptr)

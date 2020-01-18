@@ -2,6 +2,7 @@
 #include <memory>
 #include <utility>
 #include "Basic.hpp"
+#include "Enumerator.hpp"
 #include "LeafNode.hpp"
 #include "MiddleNode.hpp"
 
@@ -19,6 +20,8 @@ namespace Collections
 	{
 	private:
 		using Node = NodeBase<Key, Value, BtreeOrder>;
+		using Leaf = LeafNode<Key, Value, BtreeOrder>;
+		using Middle = MiddleNode<Key, Value, BtreeOrder>;
 		using LessThan = typename Node::LessThan;
 
 	public:
@@ -27,11 +30,24 @@ namespace Collections
 		{
 			if constexpr (is_same_v<decay_t<decltype(*begin)>, pair<Key, Value>>)
 			{
-				return make_unique<LeafNode<Key, Value, BtreeOrder>>(begin, end, lessThan);
+				return make_unique<Leaf>(begin, end, lessThan);
 			}
 			else
 			{
-				return make_unique<MiddleNode<Key, Value, BtreeOrder>>(begin, end, lessThan);
+				return make_unique<Middle>(begin, end, lessThan);
+			}
+		}
+
+		template <typename... Ts>
+		static unique_ptr<Node> MakeNode(Enumerator<Ts...> enumerator, shared_ptr<LessThan> lessThan)
+		{
+			if constexpr (is_same_v<Enumerator<Ts...>::ValueType, pair<Key, Value>>)
+			{
+				return make_unique<Leaf>(enumerator, lessThan);
+			}
+			else
+			{
+				return make_unique<Middle>(enumerator, lessThan);
 			}
 		}
 	};

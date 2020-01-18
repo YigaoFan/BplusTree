@@ -57,6 +57,17 @@ namespace Collections
 			} while (begin != end);
 		}
 
+		template <typename T, typename Iterator>
+		Elements(Enumerator<pair<Key, T>, Iterator> enumerator, shared_ptr<LessThan> lessThanPtr)
+			: MiddleFlag(!std::is_same_v<typename std::decay_t<pair<Key, T>>, pair<Key, Value>>),
+			  LessThanPtr(lessThanPtr)
+		{
+			while (enumerator.MoveNext())
+			{
+				_elements[_count++] = move(enumerator.Current());
+			}
+		}
+
 		Elements(Elements const& that)
 			: MiddleFlag(that.MiddleFlag), LessThanPtr(that.LessThanPtr),
 			_elements(move(that.CloneInternalElements())), _count(that._count)
@@ -127,7 +138,7 @@ namespace Collections
 		}
 
 		template <bool FROM_HEAD>
-		void removeItems(uint16_t count)
+		void RemoveItems(order_int count)
 		{
 			if constexpr (FROM_HEAD) {
 				AdjustMemory(-count, count);
@@ -144,22 +155,22 @@ namespace Collections
 			_count -= count;
 		}
 
-		void insert(pair<Key, Value>);
-		void insert(pair<Key, unique_ptr<Ptr>>);
-		void append(pair<Key, Value>);
-		void append(pair<Key, unique_ptr<Ptr>>);
+		void Insert(pair<Key, Value>);
+		void Insert(pair<Key, unique_ptr<Ptr>>);
+		void Append(pair<Key, Value>);
+		void Append(pair<Key, unique_ptr<Ptr>>);
 
-		void receive(TailAppendWay, Elements&& that)
+		void Receive(TailAppendWay, Elements&& that)
 		{
-			receive(TailAppendWay(), that.Count(), that);
+			Receive(TailAppendWay(), that.Count(), that);
 		}
 
-		void receive(HeadInsertWay, Elements&& that)
+		void Receive(HeadInsertWay, Elements&& that)
 		{
-			receive(HeadInsertWay(), that.Count(), that);
+			Receive(HeadInsertWay(), that.Count(), that);
 		}
 
-		void receive(HeadInsertWay, order_int count, Elements& that)
+		void Receive(HeadInsertWay, order_int count, Elements& that)
 		{
 			AdjustMemory(count, count); // TODO check this work right
 			decltype(that._elements.begin()) start = (that._elements.end() - count);
@@ -171,11 +182,11 @@ namespace Collections
 				++_count;
 			}
 
-			that.removeItems<false>(count); // will decrease preThat _count
+			that.RemoveItems<false>(count); // will decrease preThat _count
 		}
 
 		// start "that" where is not clear
-		void receive(TailAppendWay, order_int count, Elements& that)
+		void Receive(TailAppendWay, order_int count, Elements& that)
 		{
 			for (auto i = 0; i < count; ++i)
 			{
@@ -183,10 +194,10 @@ namespace Collections
 				++_count;
 			}
 
-			that.removeItems<true>(count);
+			that.RemoveItems<true>(count);
 		}
 
-		order_int changeKeyOf(Ptr *ptr, Key newKey)
+		order_int ChangeKeyOf(Ptr *ptr, Key newKey)
 		{
 			auto index = IndexOf(ptr);
 			_elements[index].first = move(newKey);
@@ -194,26 +205,26 @@ namespace Collections
 			return index;
 		}
 
-		pair<Key, Value> exchangeMax(pair<Key, Value>);
-		pair<Key, unique_ptr<Ptr>> exchangeMax(pair<Key, unique_ptr<Ptr>>);
-		pair<Key, Value> exchangeMin(pair<Key, Value>, bool &maxChanged);
-		pair<Key, unique_ptr<Ptr>> exchangeMin(pair<Key, unique_ptr<Ptr>>, bool &maxChanged);
+		pair<Key, Value> ExchangeMax(pair<Key, Value>);
+		pair<Key, unique_ptr<Ptr>> ExchangeMax(pair<Key, unique_ptr<Ptr>>);
+		pair<Key, Value> ExchangeMin(pair<Key, Value>, bool &maxChanged);
+		pair<Key, unique_ptr<Ptr>> ExchangeMin(pair<Key, unique_ptr<Ptr>>, bool &maxChanged);
 
-		VariantValue& operator[](const Key& key)
+		VariantValue& operator[](Key const& key)
 		{
 			return const_cast<VariantValue&>(
 				(static_cast<const Elements&>(*this))[key]
 				);
 		}
 
-		Item& operator[](uint16_t i)
+		Item& operator[](order_int i)
 		{
 			return const_cast<Item&>(
 				(static_cast<const Elements&>(*this))[i]
 				);
 		}
 
-		VariantValue const& operator[](const Key& key) const
+		VariantValue const& operator[](Key const& key) const
 		{
 			auto i = IndexOf(key);
 			if (i != -1)
@@ -227,7 +238,7 @@ namespace Collections
 				+ " Please check the key existence.");
 		}
 
-		const Item& operator[](uint16_t i) const
+		const Item& operator[](order_int i) const
 		{
 			return _elements[i];
 		}
@@ -259,7 +270,7 @@ namespace Collections
 			throw KeyNotFoundException();
 		}
 
-		order_int suitPosition(const Key& key) const
+		order_int SuitPosition(Key const& key) const
 		{
 			for (decltype(_count) i = 0; i < _count; ++i)
 			{
@@ -334,15 +345,14 @@ namespace Collections
 
 	private:
 		template <typename T>
-		pair<Key, T>
-		exchangeMax(pair<Key, T> p)
+		pair<Key, T> ExchangeMax(pair<Key, T> p)
 		{
 			auto& maxItem = _elements[_count - 1];
 			auto key = maxItem.first;
 			auto valueForContent = move(maxItem.second);
 
 			--_count;
-			add(move(p));
+			Add(move(p));
 
 			if constexpr (std::is_same<T, Value>::value)
 			{
@@ -355,8 +365,7 @@ namespace Collections
 		}
 
 		template <typename T>
-		pair<Key, T>
-		exchangeMin(pair<Key, T> p, bool &maxChanged)
+		pair<Key, T> ExchangeMin(pair<Key, T> p, bool &maxChanged)
 		{
 			auto& minItem = _elements[0];
 			auto key = move(minItem.first);
@@ -366,7 +375,7 @@ namespace Collections
 			AdjustMemory(-1, 1);
 			--_count;
 
-			maxChanged = add(move(p));
+			maxChanged = Add(move(p));
 
 			if constexpr (std::is_same<T, Value>::value) {
 				return make_pair<Key, T>(move(key), move(value_Ref(valueForContent)));
@@ -378,8 +387,7 @@ namespace Collections
 		}
 
 		template <typename T>
-		void
-		append(pair<Key, T> p)
+		void Append(pair<Key, T> p)
 		{
 			if (Full())
 			{
@@ -391,8 +399,7 @@ namespace Collections
 		}
 
 		template <typename T>
-		void
-		insert(pair<Key, T> p)
+		void Insert(pair<Key, T> p)
 		{
 			// maybe only leaf add logic use this Elements method
 			// middle add logic is in middle Node self
@@ -423,26 +430,25 @@ namespace Collections
 		}
 
 		template <typename T>
-		bool
-		add(pair<Key, T> p)
+		bool Add(pair<Key, T> p)
 		{
 			auto& lessThan = *LessThanPtr;
 
 			if (lessThan(_elements[_count - 1].first, p.first))
 			{
-				append(move(p));
+				Append(move(p));
 				return true;
 			}
 			else
 			{
-				insert(move(p));
+				Insert(move(p));
 				return false;
 			}
 		}
 
 		void AdjustMemory(int32_t direction, uint16_t index)
 		{
-			moveElement(direction, begin() + index);
+			MoveElement(direction, begin() + index);
 		}
 
 		auto CloneInternalElements() const
@@ -467,7 +473,7 @@ namespace Collections
 		/// Start included, still exist
 		/// \param direction
 		/// \param start
-		void moveElement(int32_t direction, decltype(_elements.begin()) start)
+		void MoveElement(int32_t direction, decltype(_elements.begin()) start)
 		{
 			if (direction < 0)
 			{
@@ -510,24 +516,25 @@ namespace Collections
 {
 #define ELEMENTS_TEMPLATE template <typename Key, typename Value, order_int BtreeOrder, typename Ptr>
 #define ELE Elements<Key, Value, BtreeOrder, Ptr>
+
 #define VOID_RET_MODIFY_METHOD_INSTANCE(METHOD, T) ELEMENTS_TEMPLATE void ELE::METHOD(pair<Key, T> p) { return METHOD<T>(move(p)); }
 
-	VOID_RET_MODIFY_METHOD_INSTANCE(insert, Value)
-	VOID_RET_MODIFY_METHOD_INSTANCE(insert, unique_ptr<Ptr>)
+	VOID_RET_MODIFY_METHOD_INSTANCE(Insert, Value)
+	VOID_RET_MODIFY_METHOD_INSTANCE(Insert, unique_ptr<Ptr>)
 
-	VOID_RET_MODIFY_METHOD_INSTANCE(append, Value)
-	VOID_RET_MODIFY_METHOD_INSTANCE(append, unique_ptr<Ptr>)
+	VOID_RET_MODIFY_METHOD_INSTANCE(Append, Value)
+	VOID_RET_MODIFY_METHOD_INSTANCE(Append, unique_ptr<Ptr>)
 
 #undef VOID_RET_MODIFY_METHOD_INSTANCE
 
-#define EXCHANGE_MAX_INSTANCE(T) ELEMENTS_TEMPLATE pair<Key, T> ELE::exchangeMax(pair<Key, T> p) { return exchangeMax<T>(move(p)); }
+#define EXCHANGE_MAX_INSTANCE(T) ELEMENTS_TEMPLATE pair<Key, T> ELE::ExchangeMax(pair<Key, T> p) { return ExchangeMax<T>(move(p)); }
 
 	EXCHANGE_MAX_INSTANCE(Value)
 	EXCHANGE_MAX_INSTANCE(unique_ptr<Ptr>)
 
 #undef EXCHANGE_MAX_INSTANCE
 
-#define EXCHANGE_MIN_INSTANCE(T) ELEMENTS_TEMPLATE pair<Key, T> ELE::exchangeMin(pair<Key, T> p, bool &maxChanged) { return exchangeMin<T>(move(p), maxChanged); }
+#define EXCHANGE_MIN_INSTANCE(T) ELEMENTS_TEMPLATE pair<Key, T> ELE::ExchangeMin(pair<Key, T> p, bool &maxChanged) { return ExchangeMin<T>(move(p), maxChanged); }
 
 	EXCHANGE_MIN_INSTANCE(Value)
 	EXCHANGE_MIN_INSTANCE(unique_ptr<Ptr>)

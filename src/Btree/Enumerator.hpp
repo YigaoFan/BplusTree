@@ -7,94 +7,89 @@
 #include <optional>
 #include <memory>
 
-namespace Util
+namespace Collections
 {
-	using ::std::ref;
-	using ::std::move;
 	using ::std::optional;
 	using ::std::shared_ptr;
 
 	/**
 	 * Enumerator is just like iterator, will not copy
 	 */
-	template <typename Container, bool OutOfScopeUse=false>
+	template <typename Item, typename Iterator>
 	class Enumerator
 	{
 	private:
-		using T = Container::value_type; // should use a type trait to support some type like raw array
-		using Iterator = Container::iterator; // TODO have problem
+		Iterator _current;
+		Iterator _begin;
+		Iterator _end;
 	public:
-		ref<T> Current;
+		using ValueType = Item;
+		// TODO: support array, list, raw array?
+		// TODO how to direct use constructor(arg is container) to deduce Item and Iterator type
+		template <typename Container>
+		static
+		Enumerator<typename Container::value_type, typename Container::iterator>
+		GetEnumerator(Container& container)
+		{
+			return { container.begin(), container.end() };
+		}
 
-		// TODO: support array, list, raw array? 
-		Enumerator(Container& container)
-			: _current(*container.begin()), _start(_current), _end(container.end())
+		Item& Current()
+		{
+			return *_current;
+		}
+
+		Enumerator(Iterator begin, Iterator end)
+			: _begin(begin), _end(end)
 		{ }
 
-		Enumerator(const char* container)
-			: _current(container), _start(_current), _end(container.end())
-		{ }
-
-		Enumerator(Iterator start, Iterator end)
-			: _current(move(start)), _start(_current), _end(move(end))
-		{ }
-
-		bool MoveNext() const
+		bool MoveNext()
 		{
 			if (_current != _end)
 			{
-				Current = ref(*(++_current));
+				++_current;
 				return true;
 			}
 
 			return false;
 		}
 
-		uint32_t Count() const
-		{
-
-		}
-
 		Enumerator CreateNewEnumeratorByRelativeRange(int32_t end) const
 		{
-			// TODO not very familar with this init way
 			return { _current, _current+end };
 		}
 
-		optional<Enumerator> TryCreateNewEnumeratorByRelativeRange(int32_t end) const
-		{
-			if (_current+end < _end) { return GetNewEnumeratorByRelativeRange(end); }
-			return {};
-		}
+		// optional<Enumerator> TryCreateNewEnumeratorByRelativeRange(int32_t end) const
+		// {
+		// 	if (_current+end < _end) { return GetNewEnumeratorByRelativeRange(end); }
+		// 	return {};
+		// }
+		//
+		// Enumerator CreateNewEnumeratorByRelativeRange(int32_t start, int32_t end) const
+		// {
+		// 	return { _current+start, _current+end };
+		// }
+		//
+		// optional<Enumerator> TryCreateNewEnumeratorByRelativeRange(int32_t start, int32_t end) const
+		// {
+		// 	if (_current+start < _start || _current+end > end) { return {}; }
+		// 	return GetNewEnumeratorByRelativeRange(start, end);
+		// }
 
-		Enumerator CreateNewEnumeratorByRelativeRange(int32_t start, int32_t end) const
-		{
-			return { _current+start, _current+end };
-		}
 
-		optional<Enumerator> TryCreateNewEnumeratorByRelativeRange(int32_t start, int32_t end) const
-		{
-			if (_current+start < _start || _current+end > end) { return {}; }
-			return GetNewEnumeratorByRelativeRange(start, end);
-		}
-
-	private:
-		Iterator _current;
-		Iterator _start;
-		Iterator _end;
 	};
 
-	template <typename Container>
-	class Enumerator<Container, true>
-	{
-	public:
-		// TODO
-	private:
-		shared_ptr<Container> _containerPtr;
-		Iterator _current;
-		Iterator _start;
-		Iterator _end;
-	};
+	// template <typename Container>
+	// class Enumerator<Container, true>
+	// {
+	// public:
+	// 	// TODO
+	// private:
+	// 	shared_ptr<Container> _containerPtr;
+	// 	Iterator _current;
+	// 	Iterator _start;
+	// 	Iterator _end;
+	// };
 
 	// external method to implement common part method
 }

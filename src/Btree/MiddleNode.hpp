@@ -18,9 +18,14 @@ namespace Collections
 
 	public:
 		template <typename Iter>
-		MiddleNode(Iter begin, Iter end, shared_ptr<LessThan> funcPtr)
-			: Base_CRTP(begin, end, funcPtr)
+		MiddleNode(Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
+			: Base_CRTP(begin, end, lessThanPtr)
 		{ }
+
+		template <typename Iterator>
+		MiddleNode(Enumerator<pair<Key, Value>, Iterator> enumerator, shared_ptr<LessThan> lessThanPtr)
+			: Base_CRTP(enumerator, lessThanPtr)
+		{}
 
 		MiddleNode(const MiddleNode& that)
 			: Base_CRTP(that)
@@ -74,7 +79,7 @@ namespace Collections
 			auto rIter = stack.rbegin();
 			auto rEnd = stack.rend();
 
-			SEARCH_HELPER_DEF(searchNxtHelper, < (static_cast<MiddleNode*>(ptrOff(upperNodeIter))->childCount() - 1),
+			SEARCH_HELPER_DEF(searchNxtHelper, < (static_cast<MiddleNode*>(ptrOff(upperNodeIter))->ChildCount() - 1),
 							  +1, MinSon);
 			next = searchNxtHelper(rIter, [](auto n) { return n; });
 		}
@@ -84,7 +89,7 @@ namespace Collections
 		Base* maxSon() const
 		{
 			auto& es = Base::elements_;
-			return Base::Ele::ptr(es[this->childCount() - 1].second);
+			return Base::Ele::ptr(es[this->ChildCount() - 1].second);
 		}
 	};
 }
