@@ -47,7 +47,7 @@ namespace Collections
         }                                                                                                                                                 \
                                                                                                                                                           \
         auto& upperElements = static_cast<MiddleNode*>(ptrOff(upperNodeIter))->elements_;                                                                 \
-        auto i = upperElements.indexOf(*currentNodeIter);                                                                                                 \
+        auto i = upperElements.IndexOf(*currentNodeIter);                                                                                                 \
                                                                                                                                                           \
         if (i COMPARE_TO_BOUND) {                                                                                                                         \
             return callBack(Base::Ele::ptr(upperElements[i OFFSET].second));                                                                              \
@@ -74,7 +74,8 @@ namespace Collections
 			auto rIter = stack.rbegin();
 			auto rEnd = stack.rend();
 
-			SEARCH_HELPER_DEF(searchNxtHelper, < (static_cast<MiddleNode*>(ptrOff(upperNodeIter))->childCount() - 1), +1, MinSon);
+			SEARCH_HELPER_DEF(searchNxtHelper, < (static_cast<MiddleNode*>(ptrOff(upperNodeIter))->childCount() - 1),
+							  +1, MinSon);
 			next = searchNxtHelper(rIter, [](auto n) { return n; });
 		}
 #undef SEARCH_HELPER_DEF

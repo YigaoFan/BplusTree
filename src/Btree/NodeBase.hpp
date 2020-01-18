@@ -42,13 +42,13 @@ namespace Collections
 
 		Key MaxKey() const
 		{
-			return elements_[elements_.count() - 1].first;
+			return elements_[elements_.Count() - 1].first;
 		}
 
 		vector<Key> AllKey() const
 		{
 			vector<Key> keys;
-			keys.reserve(elements_.count());
+			keys.reserve(elements_.Count());
 			for (auto& e : elements_)
 			{
 				keys.emplace_back(e.first);
@@ -174,19 +174,19 @@ namespace Collections
 	protected:
 		Elements<Key, Value, BtreeOrder, NodeBase> elements_;
 
-		key_int childCount() const
+		order_int childCount() const
 		{
-			return elements_.count();
+			return elements_.Count();
 		}
 
 		bool full() const
 		{
-			return elements_.full();
+			return elements_.Full();
 		}
 
 		bool empty() const
 		{
-			return elements_.count() == 0;
+			return elements_.Count() == 0;
 		}
 
 		// TODO add not only key-value add, but also key-unique_ptr add
@@ -322,8 +322,8 @@ namespace Collections {
 	{
 		auto& stack = passedNodeTrackStack;
 
-		auto i = elements_.indexOf(t);
-		if (elements_.remove(i))
+		auto i = elements_.IndexOf(t);
+		if (elements_.Remove(i))
 		{
 			changeMaxKeyUpper(stack, MaxKey());
 		}
@@ -405,9 +405,9 @@ namespace Collections {
 			}
 		}
 
-		auto preChilds = pre->childCount();
-		auto curChilds = current->childCount();
-		auto nxtChilds = nxt->childCount();
+		auto preChilds = (long)pre->childCount();
+		auto curChilds = (long)current->childCount();
+		auto nxtChilds = (long)nxt->childCount();
 		auto average = (preChilds + curChilds + nxtChilds) / 3;
 
 		return abs(preChilds - average) > abs(nxtChilds - average) ? preHandler(pre) : nxtHandler(nxt);

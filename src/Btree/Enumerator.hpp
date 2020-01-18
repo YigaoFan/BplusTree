@@ -7,7 +7,8 @@
 #include <optional>
 #include <memory>
 
-namespace Util {
+namespace Util
+{
 	using ::std::ref;
 	using ::std::move;
 	using ::std::optional;
@@ -17,7 +18,8 @@ namespace Util {
 	 * Enumerator is just like iterator, will not copy
 	 */
 	template <typename Container, bool OutOfScopeUse=false>
-	class Enumerator {
+	class Enumerator
+	{
 	private:
 		using T = Container::value_type; // should use a type trait to support some type like raw array
 		using Iterator = Container::iterator; // TODO have problem
@@ -39,12 +41,18 @@ namespace Util {
 
 		bool MoveNext() const
 		{
-			if (_current != _end) {
+			if (_current != _end)
+			{
 				Current = ref(*(++_current));
 				return true;
 			}
 
 			return false;
+		}
+
+		uint32_t Count() const
+		{
+
 		}
 
 		Enumerator CreateNewEnumeratorByRelativeRange(int32_t end) const
@@ -55,10 +63,7 @@ namespace Util {
 
 		optional<Enumerator> TryCreateNewEnumeratorByRelativeRange(int32_t end) const
 		{
-			if (_current+end < _end) {
-				return GetNewEnumeratorByRelativeRange(end);
-			}
-
+			if (_current+end < _end) { return GetNewEnumeratorByRelativeRange(end); }
 			return {};
 		}
 
@@ -69,10 +74,7 @@ namespace Util {
 
 		optional<Enumerator> TryCreateNewEnumeratorByRelativeRange(int32_t start, int32_t end) const
 		{
-			if (_current+start < _start || _current+end > end) {
-				return {};
-			}
-
+			if (_current+start < _start || _current+end > end) { return {}; }
 			return GetNewEnumeratorByRelativeRange(start, end);
 		}
 
@@ -83,7 +85,8 @@ namespace Util {
 	};
 
 	template <typename Container>
-	class Enumerator<Container, true> {
+	class Enumerator<Container, true>
+	{
 	public:
 		// TODO
 	private:

@@ -114,18 +114,22 @@ namespace Collections
 	template <order_int BtreeOrder, typename Key, typename Value>
 	class Btree 
 	{
+	public:
 	private:
 		using Base   = NodeBase  <Key, Value, BtreeOrder>;
 		using Leaf   = LeafNode  <Key, Value, BtreeOrder>;
 		using Middle = MiddleNode<Key, Value, BtreeOrder>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
+		shared_ptr<typename Base::LessThan> _lessThanPtr;
+		key_int              _keyNum{ 0 };
+		unique_ptr<Base>     _root  { nullptr };
 
 	public:
 		using LessThan = typename Base::LessThan;
 
 		template <size_t NumOfEle>
 		Btree(LessThan lessThan, array<pair<Key, Value>, NumOfEle> keyValueArray)
-			: _lessThanPtr(make_shared<LessThan>(move(lessThan)))
+			: _lessThanPtr(make_shared<LessThan>(lessThan))
 		{
 			if constexpr (NumOfEle == 0) { return; }
 
@@ -136,10 +140,10 @@ namespace Collections
 			sort(keyValueArray.begin(), keyValueArray.end(),
 				 [&](const auto& p1, const auto& p2)
 			{
-				return (*_lessThanPtr)(p1.first, p2.first);
+				return lessThan(p1.first, p2.first);
 			});
 
-			if (const Key *dupKeyPtr; DuplicateIn(keyValueArray, dupKeyPtr))
+			if (const Key *dupKeyPtr; DuplicateIn(keyValueArray, lessThan, dupKeyPtr))
 			{
 				throw DuplicateKeyException(*dupKeyPtr, "Duplicate key in constructor keyValueArray");
 			}
@@ -152,11 +156,11 @@ namespace Collections
 		// Btree(LessThan lessThan, )
 
 		Btree(const Btree& that)
-			: _keyNum(that._keyNum), _root(that._root->clone()), _lessThanPtr(that._lessThanPtr)
+			: _keyNum(that._keyNum), _root(that._root->clone())
 		{ }
 
 		Btree(Btree&& that) noexcept
-			: _keyNum(that._keyNum), _root(that._root.release()), _lessThanPtr(that._lessThanPtr)
+			: _keyNum(that._keyNum), _root(that._root.release())
 		{
 			that._keyNum = 0;
 		}
@@ -261,9 +265,7 @@ namespace Collections
 		}
 
 	private:
-		shared_ptr<LessThan> _lessThanPtr;
-		key_int              _keyNum{ 0 };
-		unique_ptr<Base>     _root  { nullptr };
+
 
 		void TraverseLeaf(function<void (Leaf *)> func) const
 		{
@@ -330,14 +332,14 @@ namespace Collections
 		}
 
 		template <size_t NumOfEle>
-		static bool DuplicateIn(array<pair<Key, Value>, NumOfEle> const &sortedPairArray, Key const *&duplicateKey)
+		static bool DuplicateIn(array<pair<Key, Value>, NumOfEle> const &sortedPairArray, LessThan const&
+			lessThan, Key const *&duplicateKey)
 		{
 			auto &array = sortedPairArray;
 
 			for (decltype(NumOfEle) i = 1; i < NumOfEle; ++i) 
 			{
-				// should use LessThan ? TODO
-				if (array[i].first == array[i - 1].first) 
+				if (lessThan(array[i].first, array[i - 1].first) == lessThan(array[i - 1].first, array[i].first))
 				{
 					duplicateKey = &array[i].first;
 					return true;

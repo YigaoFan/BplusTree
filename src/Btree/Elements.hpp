@@ -1,16 +1,14 @@
 ﻿#pragma once
-#include <functional> // for function
-#include <variant>    // variant
-#include <exception>  // for runtime_error
-#include <string>     // for to_string
-#include <vector>     // for vector
-#include <memory>     // for unique_ptr, shared_ptr
+#include <functional>
+#include <variant>
+#include <exception>
+#include <string> // For to_string
+#include <vector>
+#include <memory>
 #include <iterator>
 #include <utility>
 #include "Basic.hpp"
-#ifdef BTREE_DEBUG
-#include "Utility.hpp"
-#endif
+#include "Exception.hpp"
 
 namespace Collections 
 {
@@ -27,26 +25,25 @@ namespace Collections
 	using ::std::make_pair;
 	using ::std::move;
 
-#define ELEMENTS_TEMPLATE template <typename Key, typename Value, order_int BtreeOrder, typename PtrType>
-
 	struct TailAppendWay {};
 	struct HeadInsertWay {};
-	// Internal could use ptr to search when know ptr
-	// modify method arg should be pair<Key, Value> without reference
 	/**
 	 * First and second relationship is to public
 	 */
-	template <typename Key, typename Value, order_int BtreeOrder, typename PtrType>
+	template <typename Key, typename Value, order_int BtreeOrder, typename Ptr>
 	class Elements
 	{
 	public:
-		using ValueForContent = variant<Value, unique_ptr<PtrType>>;
-		using Content = pair<Key, ValueForContent>;
-		using LessThan = function<bool(const Key&, const Key&)>;
-
+		using VariantValue = variant<Value, unique_ptr<Ptr>>;
+		using Item = pair<Key, VariantValue>;
+		using LessThan = function<bool(Key const&, Key const&)>;
 		const bool           MiddleFlag;
 		shared_ptr<LessThan> LessThanPtr;
+	private:
+		order_int               _count{ 0 };
+		array<Item, BtreeOrder> _elements;
 
+	public:
 		template <typename Iter>
 		Elements(Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
 			: MiddleFlag(!std::is_same_v<typename std::decay_t<decltype(*begin)>, pair<Key, Value>>),
@@ -55,19 +52,18 @@ namespace Collections
 			do
 			{
 				_elements[_count] = move(*begin);
-
 				++_count;
 				++begin;
 			} while (begin != end);
 		}
 
-		Elements(const Elements& that)
+		Elements(Elements const& that)
 			: MiddleFlag(that.MiddleFlag), LessThanPtr(that.LessThanPtr),
-			_elements(move(that.cloneInternalElements())), _count(that._count)
+			_elements(move(that.CloneInternalElements())), _count(that._count)
 		{ }
 
-		Elements(Elements&& that) noexcept :
-			MiddleFlag(that.MiddleFlag),
+		Elements(Elements&& that) noexcept
+			: MiddleFlag(that.MiddleFlag),
 			LessThanPtr(that.LessThanPtr),
 			_elements(move(that._elements)),
 			_count(that._count)
@@ -75,17 +71,12 @@ namespace Collections
 			that._count = 0;
 		}
 
-		bool have(const Key& key) const
+		bool Have(Key const& key) const
 		{
-			auto& lessThan = *LessThanPtr;
-
-			for (const auto& e : _elements)
+			for (auto const& e : _elements)
 			{
-				auto& k = e.first;
-				auto less = lessThan(key, k);
-				auto notLess = lessThan(k, key);
-
-				if (less == notLess)
+				auto& lessThan = *LessThanPtr;
+				if (auto less = lessThan(key, e.first), notLess = lessThan(e.first, key); less == notLess)
 				{
 					return true;
 				}
@@ -98,35 +89,33 @@ namespace Collections
 			return false;
 		}
 
-		key_int count() const
+		order_int Count() const
 		{
 			return _count;
 		}
 
-		bool full() const
+		bool Full() const
 		{
 			return _count == BtreeOrder;
 		}
 
-		// bool means max key changes
-		// all this change caller should promise not out of bound
-		bool remove(const Key& key)
+		/// Remove the item corresponding to the key.
+		/// Invoker should ensure key exists in this Elements.
+		/// \param key
+		/// \return bool means max item changes or not
+		bool Remove(Key const& key)
 		{
-			auto i = indexOf(key);
-
-			if (i != -1)
-			{
-				return remove(i);
-			}
-
-			return false;
+			return Remove(IndexOf(key));
 		}
 
-		bool remove(uint16_t i)
+		/// Remove the item corresponding to the key.
+		/// Invoker should ensure i is within range.
+		/// \param i index
+		/// \return bool means max item changes or not
+		bool Remove(order_int i)
 		{
 			auto maxChanged = false;
-
-			adjustMemory(-1, i + 1);
+			AdjustMemory(-1, i + 1);
 
 			if (i == (_count - 1))
 			{
@@ -141,53 +130,92 @@ namespace Collections
 		void removeItems(uint16_t count)
 		{
 			if constexpr (FROM_HEAD) {
-				adjustMemory(-count, count);
+				AdjustMemory(-count, count);
 			}
 			else
 			{
 				auto Num = count;
 				for (auto rbegin = _elements.rbegin(); Num != 0; --Num, --rbegin)
 				{
-					rbegin->~Content();
+					rbegin->~Item();
 				}
 			}
 
 			_count -= count;
 		}
 
-		void             insert(pair<Key, Value>);
-		void             insert(pair<Key, unique_ptr<PtrType>>);
-		void             append(pair<Key, Value>);
-		void             append(pair<Key, unique_ptr<PtrType>>);
-		void             receive(TailAppendWay, Elements&&);
-		void             receive(HeadInsertWay, Elements&&);
-		void             receive(HeadInsertWay, uint16_t, Elements&);
-		void             receive(TailAppendWay, uint16_t, Elements&);
-		uint16_t         changeKeyOf(PtrType *, Key);
-		pair<Key, Value> exchangeMax(pair<Key, Value>);
-		pair<Key, Value> exchangeMin(pair<Key, Value>, bool &maxChanged);
-		pair<Key, unique_ptr<PtrType>> exchangeMax(pair<Key, unique_ptr<PtrType>>);
-		pair<Key, unique_ptr<PtrType>> exchangeMin(pair<Key, unique_ptr<PtrType>>, bool &maxChanged);
+		void insert(pair<Key, Value>);
+		void insert(pair<Key, unique_ptr<Ptr>>);
+		void append(pair<Key, Value>);
+		void append(pair<Key, unique_ptr<Ptr>>);
 
-
-		ValueForContent& operator[](const Key& key)
+		void receive(TailAppendWay, Elements&& that)
 		{
-			return const_cast<ValueForContent&>(
+			receive(TailAppendWay(), that.Count(), that);
+		}
+
+		void receive(HeadInsertWay, Elements&& that)
+		{
+			receive(HeadInsertWay(), that.Count(), that);
+		}
+
+		void receive(HeadInsertWay, order_int count, Elements& that)
+		{
+			AdjustMemory(count, count); // TODO check this work right
+			decltype(that._elements.begin()) start = (that._elements.end() - count);
+			auto end = start + count;
+
+			for (auto i = 0; start != end; ++start, ++i)
+			{
+				_elements[i] = move(*start);
+				++_count;
+			}
+
+			that.removeItems<false>(count); // will decrease preThat _count
+		}
+
+		// start "that" where is not clear
+		void receive(TailAppendWay, order_int count, Elements& that)
+		{
+			for (auto i = 0; i < count; ++i)
+			{
+				_elements[_count] = move(that._elements[i]);
+				++_count;
+			}
+
+			that.removeItems<true>(count);
+		}
+
+		order_int changeKeyOf(Ptr *ptr, Key newKey)
+		{
+			auto index = IndexOf(ptr);
+			_elements[index].first = move(newKey);
+
+			return index;
+		}
+
+		pair<Key, Value> exchangeMax(pair<Key, Value>);
+		pair<Key, unique_ptr<Ptr>> exchangeMax(pair<Key, unique_ptr<Ptr>>);
+		pair<Key, Value> exchangeMin(pair<Key, Value>, bool &maxChanged);
+		pair<Key, unique_ptr<Ptr>> exchangeMin(pair<Key, unique_ptr<Ptr>>, bool &maxChanged);
+
+		VariantValue& operator[](const Key& key)
+		{
+			return const_cast<VariantValue&>(
 				(static_cast<const Elements&>(*this))[key]
 				);
 		}
 
-		Content& operator[](uint16_t i)
+		Item& operator[](uint16_t i)
 		{
-			return const_cast<Content&>(
+			return const_cast<Item&>(
 				(static_cast<const Elements&>(*this))[i]
 				);
 		}
 
-		const ValueForContent& operator[](const Key& key) const
+		VariantValue const& operator[](const Key& key) const
 		{
-			auto i = indexOf(key);
-
+			auto i = IndexOf(key);
 			if (i != -1)
 			{
 				return _elements[i].second;
@@ -199,59 +227,49 @@ namespace Collections
 				+ " Please check the key existence.");
 		}
 
-		const Content& operator[](uint16_t i) const
+		const Item& operator[](uint16_t i) const
 		{
 			return _elements[i];
 		}
 
-		int32_t indexOf(const PtrType* pointer) const
+		order_int IndexOf(Ptr* pointer) const
 		{
-#define PTR_OF_ELE ptr(_elements[i].second)
-
-			for (auto i = 0; i < _count; ++i)
-			{
-				if (PTR_OF_ELE == pointer)
-				{
-					return i;
-				}
-			}
-
-			return -1; // means not found
-#undef PTR_OF_ELE
-		}
-
-		int32_t indexOf(const Key& key) const
-		{
-#define KEY_OF_ELE _elements[i].first
-			auto& lessThan = *LessThanPtr;
-
-			for (auto i = 0; i < _count; ++i)
-			{
-				if (lessThan(key, KEY_OF_ELE) == lessThan(KEY_OF_ELE, key))
-				{
-					return i;
-				}
-			}
-
-			return -1; // means not found
-#undef KEY_OF_ELE
-		}
-
-		uint16_t suitPosition(const Key& key) const
-		{
-#define KEY_OF_ELE _elements[i].first
-			auto& lessThan = *LessThanPtr;
-
 			for (decltype(_count) i = 0; i < _count; ++i)
 			{
-				if (lessThan(key, KEY_OF_ELE))
+				if (ptr(_elements[i].second) == pointer)
+				{
+					return i;
+				}
+			}
+
+			throw KeyNotFoundException();
+		}
+
+		order_int IndexOf(Key const& key) const
+		{
+			auto& lessThan = *LessThanPtr;
+			for (decltype(_count) i = 0; i < _count; ++i)
+			{
+				if (lessThan(key, _elements[i].first) == lessThan(_elements[i].first, key))
+				{
+					return i;
+				}
+			}
+
+			throw KeyNotFoundException();
+		}
+
+		order_int suitPosition(const Key& key) const
+		{
+			for (decltype(_count) i = 0; i < _count; ++i)
+			{
+				if ((*LessThanPtr)(key, _elements[i].first))
 				{
 					return i;
 				}
 			}
 
 			return _count;
-#undef KEY_OF_ELE
 		}
 
 		auto begin()
@@ -274,337 +292,247 @@ namespace Collections
 			return begin() + _count;
 		}
 
-		static Value& value_Ref(ValueForContent &v)
+		/// Get Value reference in VariantValue
+		/// \param v
+		/// \return Value reference
+		static Value& value_Ref(VariantValue& v)
 		{
 			return std::get<Value>(v);
 		}
 
-		static const Value& value_Ref(const ValueForContent &v)
+		/// Const version of value_Ref
+		/// \param v
+		/// \return
+		static Value const& value_Ref(const VariantValue &v)
 		{
 			return std::get<Value>(v);
 		}
 
-		static Value value_Copy(const ValueForContent& v)
+		/// Get Value copy in VariantValue
+		/// \param v
+		/// \return Value copy
+		static Value value_Copy(const VariantValue& v)
 		{
 			return std::get<Value>(v);
 		}
 
-		static Value value_Move(ValueForContent& v)
+		/// Move the Value out in VariantValue
+		/// \param v
+		/// \return Value moved from VariantValue
+		static Value value_Move(VariantValue& v)
 		{
 			return move(std::get<Value>(v));
 		}
 
-		static PtrType* ptr(const ValueForContent& v)
+		/// Get the pointer in VariantValue
+		/// \param v
+		/// \return Pointer
+		static Ptr* ptr(VariantValue const& v)
 		{
-			return std::get<unique_ptr<PtrType>>(v).get();
+			return std::get<unique_ptr<Ptr>>(v).get();
 		}
 
 	private:
-		key_int                    _count{ 0 };
-		array<Content, BtreeOrder> _elements;
+		template <typename T>
+		pair<Key, T>
+		exchangeMax(pair<Key, T> p)
+		{
+			auto& maxItem = _elements[_count - 1];
+			auto key = maxItem.first;
+			auto valueForContent = move(maxItem.second);
+
+			--_count;
+			add(move(p));
+
+			if constexpr (std::is_same<T, Value>::value)
+			{
+				return make_pair<Key, T>(move(key), value_Move(valueForContent));
+			}
+			else
+			{
+				return make_pair<Key, T>(move(key), uniquePtr_Move(valueForContent));
+			}
+		}
 
 		template <typename T>
-		pair<Key, T> exchangeMax(pair<Key, T>);
-		template <typename T>
-		pair<Key, T> exchangeMin(pair<Key, T>, bool &maxChanged);
-		template <typename T>
-		void         append(pair<Key, T>);
-		template <typename T>
-		void         insert(pair<Key, T>);
-		template <typename T>
-		bool         add(pair<Key, T>);
+		pair<Key, T>
+		exchangeMin(pair<Key, T> p, bool &maxChanged)
+		{
+			auto& minItem = _elements[0];
+			auto key = move(minItem.first);
+			auto valueForContent = move(minItem.second);
 
-		void adjustMemory(int32_t direction, uint16_t index)
+			// move left
+			AdjustMemory(-1, 1);
+			--_count;
+
+			maxChanged = add(move(p));
+
+			if constexpr (std::is_same<T, Value>::value) {
+				return make_pair<Key, T>(move(key), move(value_Ref(valueForContent)));
+			}
+			else
+			{
+				return make_pair<Key, T>(move(key), uniquePtr_Move(valueForContent));
+			}
+		}
+
+		template <typename T>
+		void
+		append(pair<Key, T> p)
+		{
+			if (Full())
+			{
+				throw runtime_error("No free space to add");
+			}
+
+			_elements[_count] = move(p);
+			++_count;
+		}
+
+		template <typename T>
+		void
+		insert(pair<Key, T> p)
+		{
+			// maybe only leaf add logic use this Elements method
+			// middle add logic is in middle Node self
+			auto& k = p.first;
+			auto& v = p.second;
+
+			uint16_t i = 0;
+			for (; i < _count; ++i)
+			{
+				if ((*LessThanPtr)(k, _elements[i].first) == (*LessThanPtr)(_elements[i].first, k))
+				{
+					throw runtime_error("The inserting key duplicates");
+				}
+				else if ((*LessThanPtr)(k, _elements[i].first))
+				{
+					goto Insert;
+				}
+			}
+			// when equal and bigger than the bound, throw the error
+			throw runtime_error(/*"\nWrong adding Key-Value: " + k + " " + v + ". "
+							+ "Now the count of this Elements: " + std::to_string(_count)+ ". "
+							+ */"And please check the max Key to ensure not beyond the bound.");
+
+			Insert:
+			AdjustMemory(1, i);
+			_elements[i] = move(p);
+			++_count;
+		}
+
+		template <typename T>
+		bool
+		add(pair<Key, T> p)
+		{
+			auto& lessThan = *LessThanPtr;
+
+			if (lessThan(_elements[_count - 1].first, p.first))
+			{
+				append(move(p));
+				return true;
+			}
+			else
+			{
+				insert(move(p));
+				return false;
+			}
+		}
+
+		void AdjustMemory(int32_t direction, uint16_t index)
 		{
 			moveElement(direction, begin() + index);
 		}
 
-		auto     cloneInternalElements() const;
-		void     moveElement(int32_t, decltype(_elements.begin()));
-
-		static unique_ptr<PtrType>& uniquePtr_Ref(ValueForContent& v)
+		auto CloneInternalElements() const
 		{
-			return std::get<unique_ptr<PtrType>>(v);
+			decltype(_elements) copy;
+			for (auto i = 0; i < _count; ++i)
+			{
+				copy[i].first = _elements[i].first;
+				if (MiddleFlag)
+				{
+					copy[i].second = move(uniquePtr_Ref(_elements[i].second)->clone());
+				}
+				else
+				{
+					copy[i].second = value_Ref(_elements[i].second);
+				}
+			}
+
+			return move(copy);
 		}
 
-		static const unique_ptr<PtrType>& uniquePtr_Ref(const ValueForContent& v)
+		/// Start included, still exist
+		/// \param direction
+		/// \param start
+		void moveElement(int32_t direction, decltype(_elements.begin()) start)
 		{
-			return std::get<unique_ptr<PtrType>>(v);
+			if (direction < 0)
+			{
+				auto end = this->end();
+
+				for (auto& begin = start; begin != end; ++begin)
+				{
+					*(begin + direction) = move(*begin);
+				}
+			}
+			else if (direction > 0)
+			{
+				decltype(_elements.rend()) rend{ start - 1 };
+
+				for (auto rbegin = _elements.rbegin(); rbegin != rend; ++rbegin)
+				{
+					*(rbegin + direction) = move(*rbegin);
+				}
+			}
 		}
 
-		static unique_ptr<PtrType> uniquePtr_Move(ValueForContent& v)
+		static unique_ptr<Ptr>& uniquePtr_Ref(VariantValue& v)
+		{
+			return std::get<unique_ptr<Ptr>>(v);
+		}
+
+		static const unique_ptr<Ptr>& uniquePtr_Ref(const VariantValue& v)
+		{
+			return std::get<unique_ptr<Ptr>>(v);
+		}
+
+		static unique_ptr<Ptr> uniquePtr_Move(VariantValue& v)
 		{
 			return move(uniquePtr_Ref(v));
 		}
 	};
 }
 
-namespace Collections {
-#define ELE Elements<Key, Value, BtreeOrder, PtrType>
-
+namespace Collections
+{
+#define ELEMENTS_TEMPLATE template <typename Key, typename Value, order_int BtreeOrder, typename Ptr>
+#define ELE Elements<Key, Value, BtreeOrder, Ptr>
 #define VOID_RET_MODIFY_METHOD_INSTANCE(METHOD, T) ELEMENTS_TEMPLATE void ELE::METHOD(pair<Key, T> p) { return METHOD<T>(move(p)); }
 
 	VOID_RET_MODIFY_METHOD_INSTANCE(insert, Value)
-		VOID_RET_MODIFY_METHOD_INSTANCE(insert, unique_ptr<PtrType>)
-
-		ELEMENTS_TEMPLATE
-		template <typename T>
-	void
-		ELE::insert(pair<Key, T> p)
-	{
-		// maybe only leaf add logic use this Elements method
-		// middle add logic is in middle Node self
-		auto& k = p.first;
-		auto& v = p.second;
-
-		uint16_t i = 0;
-		for (; i < _count; ++i)
-		{
-			if ((*LessThanPtr)(k, _elements[i].first) == (*LessThanPtr)(_elements[i].first, k))
-			{
-				throw runtime_error("The inserting key duplicates");
-			}
-			else if ((*LessThanPtr)(k, _elements[i].first))
-			{
-				goto Insert;
-			}
-		}
-		// when equal and bigger than the bound, throw the error
-		throw runtime_error(/*"\nWrong adding Key-Value: " + k + " " + v + ". "
-							+ "Now the count of this Elements: " + std::to_string(_count)+ ". "
-							+ */"And please check the max Key to ensure not beyond the bound.");
-
-	Insert:
-		adjustMemory(1, i);
-		_elements[i] = move(p);
-		++_count;
-	}
+	VOID_RET_MODIFY_METHOD_INSTANCE(insert, unique_ptr<Ptr>)
 
 	VOID_RET_MODIFY_METHOD_INSTANCE(append, Value)
-		VOID_RET_MODIFY_METHOD_INSTANCE(append, unique_ptr<PtrType>)
+	VOID_RET_MODIFY_METHOD_INSTANCE(append, unique_ptr<Ptr>)
 
 #undef VOID_RET_MODIFY_METHOD_INSTANCE
-		ELEMENTS_TEMPLATE
-		template <typename T>
-	void
-		ELE::append(pair<Key, T> p)
-	{
-		if (full())
-		{
-			throw runtime_error("No free space to add");
-		}
-
-		_elements[_count] = move(p);
-		++_count;
-	}
-
-	ELEMENTS_TEMPLATE
-		void
-		ELE::receive(TailAppendWay, Elements&& that)
-	{
-		receive(TailAppendWay(), that.count(), that);
-	}
-
-	ELEMENTS_TEMPLATE
-		void
-		ELE::receive(HeadInsertWay, Elements&& that)
-	{
-		receive(HeadInsertWay(), that.count(), that);
-	}
-
-	ELEMENTS_TEMPLATE
-		void
-		ELE::receive(HeadInsertWay, uint16_t count, Elements& that)
-	{
-		adjustMemory(count, count); // TODO check this work right
-		decltype(that._elements.begin()) start = (that._elements.end() - count);
-		auto end = start + count;
-
-		for (auto i = 0; start != end; ++start, ++i)
-		{
-			_elements[i] = move(*start);
-			++_count;
-		}
-
-		that.removeItems<false>(count); // will decrease preThat _count
-	}
-
-	// start "that" where is not clear
-	ELEMENTS_TEMPLATE
-		void
-		ELE::receive(TailAppendWay, uint16_t count, Elements& that)
-	{
-		for (auto i = 0; i < count; ++i)
-		{
-			_elements[_count] = move(that._elements[i]);
-			++_count;
-		}
-
-		that.removeItems<true>(count);
-	}
-
-	/**
-	 * @return matched index
-	 */
-	ELEMENTS_TEMPLATE
-		uint16_t
-		ELE::changeKeyOf(PtrType *ptr, Key newKey)
-	{
-		auto index = indexOf(ptr);
-		_elements[index].first = move(newKey);
-
-		return index;
-	}
-
-#ifdef BTREE_DEBUG
-#define BOUND_CHECK                                                                                              \
-	if (_count < BtreeOrder) {                                                                                   \
-		throw runtime_error("Please invoke exchangeMax when the Elements is full, you can use full to check it");\
-	} else if (have(p.first)) {                                                                                  \
-		throw runtime_error("The Key has already existed");                                     \
-	}
-#else
-#define BOUND_CHECK
-#endif
-
 
 #define EXCHANGE_MAX_INSTANCE(T) ELEMENTS_TEMPLATE pair<Key, T> ELE::exchangeMax(pair<Key, T> p) { return exchangeMax<T>(move(p)); }
 
 	EXCHANGE_MAX_INSTANCE(Value)
-		EXCHANGE_MAX_INSTANCE(unique_ptr<PtrType>)
+	EXCHANGE_MAX_INSTANCE(unique_ptr<Ptr>)
 
 #undef EXCHANGE_MAX_INSTANCE
 
-		ELEMENTS_TEMPLATE
-		template <typename T>
-	pair<Key, T>
-		ELE::exchangeMax(pair<Key, T> p)
-	{
-		BOUND_CHECK
-
-			auto& maxItem = _elements[_count - 1];
-		auto key = maxItem.first;
-		auto valueForContent = move(maxItem.second);
-
-		--_count;
-		add(move(p));
-
-		if constexpr (std::is_same<T, Value>::value)
-		{
-			return make_pair<Key, T>(move(key), value_Move(valueForContent));
-		}
-		else
-		{
-			return make_pair<Key, T>(move(key), uniquePtr_Move(valueForContent));
-		}
-	}
 #define EXCHANGE_MIN_INSTANCE(T) ELEMENTS_TEMPLATE pair<Key, T> ELE::exchangeMin(pair<Key, T> p, bool &maxChanged) { return exchangeMin<T>(move(p), maxChanged); }
 
 	EXCHANGE_MIN_INSTANCE(Value)
-		EXCHANGE_MIN_INSTANCE(unique_ptr<PtrType>)
+	EXCHANGE_MIN_INSTANCE(unique_ptr<Ptr>)
 
 #undef EXCHANGE_MIN_INSTANCE
-
-		ELEMENTS_TEMPLATE
-		template <typename T>
-	pair<Key, T>
-		ELE::exchangeMin(pair<Key, T> p, bool &maxChanged)
-	{
-		BOUND_CHECK
-
-			auto& minItem = _elements[0];
-		auto key = move(minItem.first);
-		auto valueForContent = move(minItem.second);
-
-		// move left
-		adjustMemory(-1, 1);
-		--_count;
-
-		maxChanged = add(move(p));
-
-		if constexpr (std::is_same<T, Value>::value) {
-			return make_pair<Key, T>(move(key), move(value_Ref(valueForContent)));
-		}
-		else
-		{
-			return make_pair<Key, T>(move(key), uniquePtr_Move(valueForContent));
-		}
-	}
-
-#ifdef BOUND_CHECK
-#undef BOUND_CHECK
-#endif
-
-	/**
-	 * @return max changed or not
-	 */
-	ELEMENTS_TEMPLATE
-		template <typename T>
-	bool
-		ELE::add(pair<Key, T> p)
-	{
-		auto& lessThan = *LessThanPtr;
-
-		if (lessThan(_elements[_count - 1].first, p.first))
-		{
-			append(move(p));
-			return true;
-		}
-		else
-		{
-			insert(move(p));
-			return false;
-		}
-	}
-
-	ELEMENTS_TEMPLATE
-		auto
-		ELE::cloneInternalElements() const
-	{
-		decltype(_elements) es;
-
-		for (auto i = 0; i < _count; ++i)
-		{
-			es[i].first = _elements[i].first;
-			if (!MiddleFlag)
-			{
-				es[i].second = value_Ref(_elements[i].second);
-			}
-			else
-			{
-				es[i].second = move(uniquePtr_Ref(_elements[i].second)->clone());
-			}
-		}
-
-		return move(es);
-	}
-
-	/**
-	 * start included, still exist
-	 */
-	ELEMENTS_TEMPLATE
-		void
-		ELE::moveElement(int32_t direction, decltype(_elements.begin()) start)
-	{
-		if (direction < 0)
-		{
-			auto end = this->end();
-
-			for (auto& begin = start; begin != end; ++begin)
-			{
-				*(begin + direction) = move(*begin);
-			}
-		}
-		else if (direction > 0)
-		{
-			decltype(_elements.rend()) rend{ start - 1 };
-
-			for (auto rbegin = _elements.rbegin(); rbegin != rend; ++rbegin)
-			{
-				*(rbegin + direction) = move(*rbegin);
-			}
-		}
-	}
 }
 #undef ELE
 #undef ELEMENTS_TEMPLATE
