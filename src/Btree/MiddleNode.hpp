@@ -22,8 +22,8 @@ namespace Collections
 			: Base_CRTP(begin, end, lessThanPtr)
 		{ }
 
-		template <typename Iterator>
-		MiddleNode(Enumerator<pair<Key, Value>, Iterator> enumerator, shared_ptr<LessThan> lessThanPtr)
+		template <typename Iterator, typename T>
+		MiddleNode(Enumerator<pair<Key, T>, Iterator> enumerator, shared_ptr<LessThan> lessThanPtr)
 			: Base_CRTP(enumerator, lessThanPtr)
 		{}
 

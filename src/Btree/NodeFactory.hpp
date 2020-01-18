@@ -41,7 +41,7 @@ namespace Collections
 		template <typename... Ts>
 		static unique_ptr<Node> MakeNode(Enumerator<Ts...> enumerator, shared_ptr<LessThan> lessThan)
 		{
-			if constexpr (is_same_v<Enumerator<Ts...>::ValueType, pair<Key, Value>>)
+			if constexpr (is_same_v<typename Enumerator<Ts...>::ValueType, pair<Key, Value>>)
 			{
 				return make_unique<Leaf>(enumerator, lessThan);
 			}

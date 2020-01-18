@@ -12,9 +12,25 @@ namespace Collections
 	using ::std::optional;
 	using ::std::shared_ptr;
 
-	/**
-	 * Enumerator is just like iterator, will not copy
-	 */
+	template <typename Item, typename Iterator>
+	class Enumerator;
+
+	template <typename Container>
+	static
+	Enumerator<typename Container::value_type, typename Container::iterator>
+	CreateEnumerator(Container& container)
+	{
+		return { container.begin(), container.end() };
+	}
+
+	template <typename Iter>
+	static
+	auto
+	CreateEnumerator(Iter begin, Iter end) -> Enumerator<decltype(*begin), Iter>
+	{
+		return { begin, end };
+	}
+
 	template <typename Item, typename Iterator>
 	class Enumerator
 	{
@@ -26,13 +42,7 @@ namespace Collections
 		using ValueType = Item;
 		// TODO: support array, list, raw array?
 		// TODO how to direct use constructor(arg is container) to deduce Item and Iterator type
-		template <typename Container>
-		static
-		Enumerator<typename Container::value_type, typename Container::iterator>
-		GetEnumerator(Container& container)
-		{
-			return { container.begin(), container.end() };
-		}
+
 
 		Item& Current()
 		{

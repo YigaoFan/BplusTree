@@ -7,6 +7,7 @@
 #include <array>        // for array
 #include <exception>    // for exception
 #include "Basic.hpp"
+#include "Enumerator.hpp"
 #include "NodeFactory.hpp"
 #include "Exception.hpp"
 #include "SiblingFunc.hpp"
@@ -304,7 +305,8 @@ namespace Collections
 			array<pair<Key, unique_ptr<Base>>, is.size()> consNodes;
 			ForEachCons<Count, Is...>([&srcArray, &consNodes, &lessThan](auto index, auto itemsCount, auto preItemsCount)
 			{
-				auto node = NodeFactoryType::MakeNode(&srcArray[preItemsCount], &srcArray[preItemsCount + itemsCount], lessThan);
+				auto node = NodeFactoryType::MakeNode(CreateEnumerator(&srcArray[preItemsCount], &srcArray[preItemsCount + itemsCount]),
+					lessThan);
 				consNodes[index] = make_pair(move(node->MaxKey()), move(node));
 			});
 
