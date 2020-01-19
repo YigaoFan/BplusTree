@@ -3,6 +3,7 @@
    Exception in Collections
 ***********************************/
 #include <exception>
+#include <string>
 
 namespace Collections
 {
@@ -25,6 +26,10 @@ namespace Collections
 	public:
 		explicit KeyNotFoundException()
 			: runtime_error("Key not found in this container")
+		{}
+		
+		explicit KeyNotFoundException(string message)
+			: runtime_error(message + "Key not found in this container")
 		{}
 	};
 

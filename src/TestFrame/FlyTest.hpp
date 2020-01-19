@@ -31,6 +31,7 @@ namespace {
 	using ::std::flush;
 	using ::std::function;
 	using ::std::runtime_error;
+	using ::std::size_t;
 
 	class SectionRouteTrack;
 
@@ -41,25 +42,25 @@ namespace {
 	struct Info {
 	public:
 		string fileName;
-		int16_t line{};
+		size_t line{};
 		string description;
 
 		Info() = default;
 
-		Info(string fileName, int16_t line, string description)
+		Info(string fileName, size_t line, string description)
 			: fileName(::std::move(fileName)), line(line), description(::std::move(description)) {}
 	};
 
 	class SectionRouteTrack {
 	private:
 		vector<Info> _route{};
-		int16_t _currentSectionIndex = -1;
+		int32_t _currentSectionIndex = -1;
 	public:
 		SectionRouteTrack() = default;
 
 		SectionRouteTrack &pushBack(Info info) {
 			_route.emplace_back(::std::move(info));
-			_currentSectionIndex = _route.size() - 1; // TODO use a cast to solve this problem
+			_currentSectionIndex = (int32_t)(_route.size() - 1);
 
 			return *this;
 		}
@@ -238,7 +239,7 @@ namespace {
 	private:
 		string _failureInfo;
 	public:
-		AssertionFailure(const string &fileName, int16_t line, const string &description, const string &expression)
+		AssertionFailure(const string &fileName, size_t line, const string &description, const string &expression)
 			: _failureInfo(fileName + ":" + ::std::to_string(line) + " " + description + "\n" + expression) {}
 
 		const char *what() const noexcept override {

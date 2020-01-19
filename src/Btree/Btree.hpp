@@ -1,11 +1,11 @@
 #pragma once
-#include <vector>       // for vector
-#include <functional>   // for function
-#include <memory>       // for unique_ptr
-#include <utility>      // for pair
-#include <algorithm>    // for sort
-#include <array>        // for array
-#include <exception>    // for exception
+#include <vector>
+#include <functional>
+#include <memory>
+#include <utility>
+#include <algorithm>
+#include <array>
+#include <exception>
 #include "Basic.hpp"
 #include "Enumerator.hpp"
 #include "NodeFactory.hpp"
@@ -157,7 +157,7 @@ namespace Collections
 		// Btree(LessThan lessThan, )
 
 		Btree(const Btree& that)
-			: _keyNum(that._keyNum), _root(that._root->clone())
+			: _keyNum(that._keyNum), _root(that._root->Clone())
 		{ }
 
 		Btree(Btree&& that) noexcept
@@ -168,7 +168,7 @@ namespace Collections
 
 		Btree& operator=(Btree const & that)
 		{
-			this->_root.reset(that._root->clone());
+			this->_root.reset(that._root->Clone());
 			this->_keyNum = that._keyNum;
 			this->_lessThanPtr = that._lessThanPtr;
 		}
@@ -184,7 +184,7 @@ namespace Collections
 		{
 			if (Empty())
 			{
-				throw runtime_error("The tree is empty");
+				throw KeyNotFoundException("The tree is empty");
 			}
 
 			return _root->Search(key);
@@ -194,7 +194,6 @@ namespace Collections
 		{
 			vector<Key> keys;
 			keys.reserve(_keyNum);
-
 			TraverseLeaf([&keys](Leaf *l)
 			{
 				auto ks = l->AllKey();
@@ -223,8 +222,8 @@ namespace Collections
 		{
 			if (Empty())
 			{
-				auto leaf = make_unique<Leaf>(&p, &p + 1, _lessThanPtr);
-				_root.reset(leaf.release());
+				auto node = NodeFactoryType::MakeNode(&p, &p + 1, _lessThanPtr);
+				_root.reset(node.release());
 			}
 			else
 			{
@@ -266,8 +265,6 @@ namespace Collections
 		}
 
 	private:
-
-
 		void TraverseLeaf(function<void (Leaf *)> func) const
 		{
 			if (Empty())

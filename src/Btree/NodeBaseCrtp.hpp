@@ -13,13 +13,13 @@ namespace Collections {
 		using Base::Base;
 
 		// could return Derived type, but unique_ptr not allow
-		virtual unique_ptr<Base> clone() const
+		virtual unique_ptr<Base> Clone() const
 		{
 			// how to reduce the const mark
 			return unique_ptr<Base>{ make_unique<Derived>(static_cast<Derived const &>(*this)).get() };
 		}
 
-		virtual unique_ptr<Base> move() const
+		virtual unique_ptr<Base> Move() const
 		{
 			// how to reduce the const mark
 			return unique_ptr<Base>{ make_unique<Derived>(::std::move(static_cast<Derived const &>(*this))).get() };

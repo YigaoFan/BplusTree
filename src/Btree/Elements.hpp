@@ -384,7 +384,7 @@ namespace Collections
 				copy[i].first = _elements[i].first;
 				if (MiddleFlag)
 				{
-					copy[i].second = move(uniquePtr_Ref(_elements[i].second)->clone());
+					copy[i].second = move(uniquePtr_Ref(_elements[i].second)->Clone());
 				}
 				else
 				{
@@ -483,6 +483,8 @@ namespace Collections
 
 namespace Collections
 {
+	using ::std::move;
+
 #define ELEMENTS_TEMPLATE template <typename Key, typename Value, order_int BtreeOrder, typename PtrTo>
 #define ELE Elements<Key, Value, BtreeOrder, PtrTo>
 

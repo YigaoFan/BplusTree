@@ -30,11 +30,11 @@ namespace Collections
 		{
 			if constexpr (is_same_v<decay_t<decltype(*begin)>, pair<Key, Value>>)
 			{
-				return make_unique<Leaf>(begin, end, lessThan);
+				return make_unique<Leaf>(CreateEnumerator(begin, end), lessThan);
 			}
 			else
 			{
-				return make_unique<Middle>(begin, end, lessThan);
+				return make_unique<Middle>(CreateEnumerator(begin, end), lessThan);
 			}
 		}
 
