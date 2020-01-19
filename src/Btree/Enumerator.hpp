@@ -1,6 +1,6 @@
 #pragma once
 /**********************************
-   Enumerator in Util
+   Enumerator in Collections
 ***********************************/
 
 #include <functional>
@@ -11,6 +11,7 @@ namespace Collections
 {
 	using ::std::optional;
 	using ::std::shared_ptr;
+	using ::std::decay_t;
 
 	template <typename Item, typename Iterator>
 	class Enumerator;
@@ -26,7 +27,7 @@ namespace Collections
 	template <typename Iter>
 	static
 	auto
-	CreateEnumerator(Iter begin, Iter end) -> Enumerator<decltype(*begin), Iter>
+	CreateEnumerator(Iter begin, Iter end) -> Enumerator<decay_t<decltype(*begin)>, Iter>
 	{
 		return { begin, end };
 	}
