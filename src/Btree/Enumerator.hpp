@@ -6,48 +6,61 @@
 #include <functional>
 #include <optional>
 #include <memory>
+#include "Exception.hpp"
 
 namespace Collections
 {
 	using ::std::optional;
 	using ::std::shared_ptr;
-	using ::std::decay_t;
+	using ::std::size_t;
+	using ::std::remove_reference_t;
 
 	template <typename Item, typename Iterator>
 	class Enumerator;
 
 	template <typename Container>
 	static
-	Enumerator<typename Container::value_type, typename Container::iterator>
-	CreateEnumerator(Container& container)
+	auto
+	CreateEnumerator(Container& container) -> Enumerator<remove_reference_t<decltype(*container.begin())>, decltype(container.begin())>
 	{
 		return { container.begin(), container.end() };
 	}
 
-	template <typename Iter>
+	template <typename Iterator>
 	static
 	auto
-	CreateEnumerator(Iter begin, Iter end) -> Enumerator<decay_t<decltype(*begin)>, Iter>
+	CreateEnumerator(Iterator begin, Iterator end) -> Enumerator<remove_reference_t<decltype(*begin)>, Iterator>
 	{
 		return { begin, end };
 	}
 
+	// TODO how to remove the Iterator type in template args
 	template <typename Item, typename Iterator>
 	class Enumerator
 	{
 	private:
+		bool _firstMove{ true };
 		Iterator _current;
-		Iterator _begin;
-		Iterator _end;
+		Iterator const _begin;
+		Iterator const _end;
 	public:
 		using ValueType = Item;
 		// TODO: support array, list, raw array?
 		// TODO how to direct use constructor(arg is container) to deduce Item and Iterator type
 
-
 		Item& Current()
 		{
+			if (_firstMove) 
+			{
+				throw InvalidAccessException();
+			}
+
 			return *_current;
+		}
+
+		size_t CurrentIndexFromStart()
+		{
+			return _current - _begin;
 		}
 
 		Enumerator(Iterator begin, Iterator end)
@@ -56,6 +69,18 @@ namespace Collections
 
 		bool MoveNext()
 		{
+			if (_begin == _end)
+			{
+				return false;
+			}
+
+			if (_firstMove)
+			{
+				_current = _begin;
+				_firstMove = false;
+				return true;
+			}
+
 			if (_current != _end)
 			{
 				++_current;
@@ -65,10 +90,10 @@ namespace Collections
 			return false;
 		}
 
-		Enumerator CreateNewEnumeratorByRelativeRange(int32_t end) const
+		/*Enumerator CreateNewEnumeratorByRelativeRange(int32_t end) const
 		{
 			return { _current, _current+end };
-		}
+		}*/
 
 		// optional<Enumerator> TryCreateNewEnumeratorByRelativeRange(int32_t end) const
 		// {
@@ -86,8 +111,6 @@ namespace Collections
 		// 	if (_current+start < _start || _current+end > end) { return {}; }
 		// 	return GetNewEnumeratorByRelativeRange(start, end);
 		// }
-
-
 	};
 
 	// template <typename Container>

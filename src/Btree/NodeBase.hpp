@@ -329,7 +329,7 @@ namespace Collections
 		auto& stack = passedNodeTrackStack;
 
 		auto i = elements_.IndexOf(t);
-		if (elements_.Remove(i))
+		if (elements_.RemoveAt(i))
 		{
 			changeMaxKeyUpper(stack, MaxKey());
 		}
@@ -722,14 +722,14 @@ namespace Collections
 		void
 		BASE::receive(TailAppendWay, NodeBase&& that)
 	{
-		elements_.Receive(TailAppendWay(), std::move(that.elements_));
+		elements_.Receive<false>(std::move(that.elements_));
 	}
 
 	NODE_TEMPLATE
 		void
 		BASE::receive(HeadInsertWay, NodeBase&& that)
 	{
-		elements_.Receive(HeadInsertWay(), std::move(that.elements_));
+		elements_.Receive<true>(std::move(that.elements_));
 	}
 
 	NODE_TEMPLATE

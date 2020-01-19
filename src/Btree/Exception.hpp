@@ -23,7 +23,7 @@ namespace Collections
 	class KeyNotFoundException : public runtime_error
 	{
 	public:
-		KeyNotFoundException()
+		explicit KeyNotFoundException()
 			: runtime_error("Key not found in this container")
 		{}
 	};
@@ -31,8 +31,16 @@ namespace Collections
 	class AccessOutOfRangeException : public runtime_error
 	{
 	public:
-		AccessOutOfRangeException()
+		explicit AccessOutOfRangeException()
 			: runtime_error("Access out of the range")
+		{}
+	};
+
+	class InvalidAccessException : public runtime_error
+	{
+	public:
+		explicit InvalidAccessException()
+			: runtime_error("Invalid access")
 		{}
 	};
 }
