@@ -9,6 +9,13 @@ namespace Collections
 {
 	using ::std::move;
 
+	enum RetValue
+	{
+		Bool,
+		SearchValue,
+		Void,
+	};
+
 #define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
 #define BASE NodeBase<Key, Value, BtreeOrder>
 
@@ -65,98 +72,70 @@ namespace Collections
 			return keys;
 		}
 
-		bool Have(const Key& key, vector<NodeBase*>& passedNodeTrackStack)
-		{
-			auto& stack = passedNodeTrackStack;
-			// only need to collect "don't have" situation
-			auto collect = [&stack](NodeBase* node)
-			{
-				stack.push_back(node);
-			};
-			function<bool(NodeBase*)> collectDeepMaxOnBeyond = [&](NodeBase* node)
-			{
-				if (node->Middle())
-				{
-					auto maxIndex = node->ChildCount() - 1;
-					auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
-					collect(maxChildPtr);
-					return collectDeepMaxOnBeyond(maxChildPtr);
-				}
+		//bool Have(const Key& key, vector<NodeBase*>& passedNodeTrackStack)
+		//{
+		//	auto& stack = passedNodeTrackStack;
+		//	// only need to collect "don't have" situation
+		//	auto collect = [&stack](NodeBase* node)
+		//	{
+		//		stack.push_back(node);
+		//	};
+		//	function<bool(NodeBase*)> collectDeepMaxOnBeyond = [&](NodeBase* node)
+		//	{
+		//		if (node->Middle())
+		//		{
+		//			auto maxIndex = node->ChildCount() - 1;
+		//			auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
+		//			collect(maxChildPtr);
+		//			return collectDeepMaxOnBeyond(maxChildPtr);
+		//		}
 
-				return false;
-			};
-			auto trueOnEqual = [](auto) { return true; };
+		//		return false;
+		//	};
+		//	auto trueOnEqual = [](auto) { return true; };
 
-			return searchHelper(key, collect, trueOnEqual, collectDeepMaxOnBeyond);
-		}
+		//	return searchHelper<RetValue::Bool>(key, collect, trueOnEqual, collectDeepMaxOnBeyond);
+		//}
 
 		bool Have(const Key& key) const
 		{
-			auto doNothing = [](auto) {};
-			auto trueOnEqual = [](auto) { return true; };
-			auto falseOnBeyond = [](auto) { return false; };
-			return const_cast<NodeBase*>(this)->searchHelper(key, move(doNothing), move(trueOnEqual),
-															 move(falseOnBeyond));
+			return const_cast<NodeBase*>(this)->SearchHelper<RetValue::Bool>(key, [](auto) { return true; });
 		}
 
 		Value Search(const Key& key) const
 		{
-			NodeBase* deepestNode = nullptr;
-			auto keepDeepest = [&](NodeBase* node)
-			{
-				deepestNode = node;
-			};
-			auto falseOnBeyond = [](auto) { return false; };
-			function<bool(NodeBase*)> moveDeepOnEqual = [&](NodeBase* node)
+			function<Value(NodeBase*)> moveDeepOnEqual = [&](NodeBase* node)
 			{
 				if (node->Middle())
 				{
 					auto maxIndex = node->ChildCount() - 1;
 					auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
-					keepDeepest(maxChildPtr);
-
 					return moveDeepOnEqual(maxChildPtr);
 				}
 
-				return true;
+				return (*node)[key];
 			};
 
 			// TODO 注意检查 stack 是否收集到所需要的节点才停止
-			// this method duplicate
-			return const_cast<NodeBase*>(this)->searchHelper(key, keepDeepest, moveDeepOnEqual, falseOnBeyond);
-			if (const_cast<NodeBase*>(this)->searchHelper(key, keepDeepest, moveDeepOnEqual, falseOnBeyond))
-			{
-				return Ele::value_Copy(deepestNode->elements_[key]);
-			}
-
-			// use CPS?
-			throw KeyNotFoundException();
+			return const_cast<NodeBase*>(this)->SearchHelper<RetValue::SearchValue>(key, keepDeepest, moveDeepOnEqual);
 		}
 
-		void Modify(Key const key, Value value)
+		void Modify(Key const& key, Value value)
 		{
-			NodeBase* deepestNode = nullptr;
-			auto keepDeepest = [&](NodeBase* node)
-			{
-				deepestNode = node;
-			};
-			auto falseOnBeyond = [value{ move(value) }](auto) { return false; };
-			function<bool(NodeBase*)> moveDeepOnEqual = [&](NodeBase* node)
+			function<void(NodeBase*)> moveDeepOnEqual = [value = move(value), &moveDeepOnEqual, &key](NodeBase* node)
 			{
 				if (node->Middle())
 				{
 					auto maxIndex = node->ChildCount() - 1;
 					auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
-					keepDeepest(maxChildPtr);
-
-					return moveDeepOnEqual(maxChildPtr);
+					moveDeepOnEqual(maxChildPtr);
+					return;
 				}
 
-				Ele::value_Ref(deepestNode->elements_[key]) = value;
-				return true;
+				node->elements_[key] = value;
 			};
 
-			searchHelper(key, keepDeepest, moveDeepOnEqual, falseOnBeyond);
+			SearchHelper<RetValue::Void>(key, moveDeepOnEqual);
 		}
 
 		void Add(pair<Key, Value> p, vector<NodeBase*>& passedNodeTrackStack)
@@ -184,35 +163,19 @@ namespace Collections
 			return elements_.Full();
 		}
 
-		enum RetValue
+		template <RetValue ReturnValue, typename T>
+		auto SearchHelper(const Key& key, function<T(NodeBase*)> onEqualDo)
 		{
-			Bool,
-			SearchValue,
-			Void,
-		};
-
-		template <RetValue ReturnValue>
-		bool searchHelper(const Key& key, function<void(NodeBase*)> operateOnNode,
-						  function<bool(NodeBase*)> equalHandler, function<bool(NodeBase*)> beyondMaxHandler)
-		{
-			// TODO check stack
-			function<bool(NodeBase*)> helper = [ // TODO this is correct syntax
-					operateOnNode{ move(operateOnNode) },
-					equalHandler{ move(equalHandler) },
-					beyondMaxHandler{ move(beyondMaxHandler) },
-					&key,
-					&helper]template <typename T1>(NodeBase* node)
+			auto& lessThan = *(node->elements_.LessThanPtr);
+			function<T(NodeBase*)> imp = [equalHandler = move(onEqualDo), &key, &imp, &lessThan](NodeBase* node)
 			{
-				auto& lessThan = *(node->elements_.LessThanPtr);
-				operateOnNode(node); // Record node or other operation
-
 				for (auto& e : node->elements_)
 				{
 					if (lessThan(key, e.first))
 					{
 						if (node->Middle())
 						{
-							return helper(Ele::ptr(e.second));
+							return imp(Ele::ptr(e.second));
 						}
 						else
 						{
@@ -224,16 +187,14 @@ namespace Collections
 							{
 								throw KeyNotFoundException();
 							}
-							return false; // Modify and Search throw exception, Have return false
 						}
 					}
 					else if (!lessThan(e.first, key))
 					{
-						return equalHandler(node); // Do Modify and Search, Have return true
+						return onEqualDo(Ele::ptr(e.second));
 					}
 				}
 
-				//return beyondMaxHandler(node); // Modify and Search throw exception, Have return false
 				if constexpr (ReturnValue == RetValue::Bool)
 				{
 					return false;
@@ -244,7 +205,7 @@ namespace Collections
 				}
 			};
 
-			return helper(this);
+			return imp(this);
 		}
 
 		// TODO add not only key-value add, but also key-unique_ptr add
