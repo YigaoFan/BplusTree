@@ -81,7 +81,7 @@ namespace Collections
 			that._count = 0;
 		}
 
-		bool Have(Key const& key) const
+		bool ContainsKey(Key const& key) const
 		{
 			auto enumerator = GetEnumerator();
 			while (enumerator.MoveNext())
@@ -109,6 +109,18 @@ namespace Collections
 		bool Full() const
 		{
 			return _count == BtreeOrder;
+		}
+		
+		vector<Key> Keys() const
+		{
+			vector<Key> keys;
+			auto enumerator = GetEnumerator();
+			while (enumerator.MoveNext())
+			{
+				keys.push_back(enumerator.Current().first);
+			}
+
+			return keys;
 		}
 
 		/// Remove the item corresponding to the key.

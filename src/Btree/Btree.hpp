@@ -181,7 +181,7 @@ namespace Collections
 		bool ContainsKey(Key const& key) const
 		{
 			if (Empty()) { return false; }
-			return _root->Have(key);
+			return _root->ContainsKey(key);
 		}
 
 		bool Empty() const
@@ -196,15 +196,7 @@ namespace Collections
 
 		vector<Key> Keys() const
 		{
-			vector<Key> keys;
-			keys.reserve(_keyCount);
-			TraverseLeaf([&keys](Leaf* l)
-			{
-				auto ks = l->Keys();
-				keys.insert(keys.end(), ks.begin(), ks.end());
-			});
-
-			return keys;
+			return _root->Keys();
 		}
 
 #define EMPTY_CHECK if (Empty()) { throw KeyNotFoundException("The B+ tree is empty"); }
@@ -224,7 +216,7 @@ namespace Collections
 		void Remove(Key const&key)
 		{
 			EMPTY_CHECK;
-			if (vector<Base*> passedNodeTrackStack; _root->Have(key, passedNodeTrackStack))
+			if (vector<Base*> passedNodeTrackStack; _root->ContainsKey(key, passedNodeTrackStack))
 			{
 				_root->Remove(key, passedNodeTrackStack);
 				--_keyCount;
@@ -236,9 +228,9 @@ namespace Collections
 		void Add(pair<Key, Value> p)
 		{
 			vector<Base*> passedNodeTrackStack;
-			if (_root->Have(p.first, passedNodeTrackStack))
+			if (_root->ContainsKey(p.first, passedNodeTrackStack))
 			{
-				throw DuplicateKeyException(p.first, "The key-value has already existed, can't be added")；
+				throw DuplicateKeyException(p.first, "The key-value has already existed, can't be added");
 			}
 			else
 			{
@@ -248,24 +240,7 @@ namespace Collections
 			++_keyCount;
 		}
 
-	private:
-		void TraverseLeaf(function<void (Leaf *)> func) const
-		{
-			if (Empty()) { return; }
-			for (auto current = MinLeaf(); current != nullptr; current = current->nextLeaf())
-			{
-				func(current);
-			}
-		}
-
-		Leaf* MinLeaf() const
-		{
-			return RecurSelectToGetLeaf(_root.get(), [](auto n)
-			{
-				return n->MinSon();
-			});
-		}
-		
+	private:		
 		template <auto Total, auto Num, auto... nums>
 		static void ForEachCons(function<void(int, int, int)> func)
 		{
@@ -329,16 +304,6 @@ namespace Collections
 
 			duplicateKey = nullptr;
 			return false;
-		}
-
-		static Leaf* RecurSelectToGetLeaf(Base *node, function<Base* (Middle*)> choose)
-		{
-			while (node->Middle())
-			{
-				node = choose(static_cast<Middle *>(node));
-			}
-
-			return static_cast<Leaf *>(node);
 		}
 	};
 }

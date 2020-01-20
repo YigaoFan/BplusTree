@@ -36,11 +36,17 @@ namespace Collections
 		{ }
 
 		~MiddleNode() override = default;
-
-		Base* MinSon() const
+		
+		vector<Key> Keys() const override
 		{
-			auto& es = Base::elements_;
-			return Base::Ele::ptr(es[0].second);
+			vector<Keys> keys;
+			for (auto& e : this->elements_) // TODO why can not use elements directly?
+			{
+				auto&& ks = Base::Ele::ptr(e.second)->Keys();
+				keys.insert(keys.end(), ks.begin(), ks.end());
+			}
+
+			return keys;
 		}
 
 #define SEARCH_HELPER_DEF(FUN_NAME, COMPARE_TO_BOUND, OFFSET, CHOOSE_SON)                                                                                 \
@@ -90,6 +96,12 @@ namespace Collections
 		{
 			auto& es = Base::elements_;
 			return Base::Ele::ptr(es[this->ChildCount() - 1].second);
+		}
+
+		Base* MinSon() const
+		{
+			auto& es = this->elements_;
+			return Base::Ele::ptr(es[0].second);
 		}
 	};
 }

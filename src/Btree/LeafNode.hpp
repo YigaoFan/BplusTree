@@ -37,6 +37,11 @@ namespace Collections
 
 		~LeafNode() override = default;
 
+		vector<Key> Keys() const override
+		{
+			return this->elements_.Keys();
+		}
+
 		const Value& operator[](const Key& key)
 		{
 			auto& e = this->elements_[key];

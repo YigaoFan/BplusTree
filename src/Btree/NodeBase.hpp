@@ -16,9 +16,6 @@ namespace Collections
 		Void,
 	};
 
-#define NODE_TEMPLATE template <typename Key, typename Value, uint16_t BtreeOrder>
-#define BASE NodeBase<Key, Value, BtreeOrder>
-
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeBase
 	{
@@ -38,7 +35,7 @@ namespace Collections
 			: elements_(enumerator, lessThan)
 		{}
 
-		NodeBase(const NodeBase& that)
+		NodeBase(NodeBase const& that)
 			: elements_(that.elements_)
 		{}
 
@@ -49,6 +46,7 @@ namespace Collections
 		virtual unique_ptr<NodeBase> Clone() const = 0;
 		virtual unique_ptr<NodeBase> Move() const = 0;
 		virtual ~NodeBase() = default;
+		virtual vector<Key> Keys() const = 0;
 
 		bool Middle() const
 		{
@@ -60,19 +58,7 @@ namespace Collections
 			return elements_[elements_.Count() - 1].first;
 		}
 
-		vector<Key> Keys() const
-		{
-			vector<Key> keys{};
-			keys.reserve(elements_.Count());
-			for (auto& e : elements_)
-			{
-				keys.emplace_back(e.first);
-			}
-
-			return keys;
-		}
-
-		//bool Have(const Key& key, vector<NodeBase*>& passedNodeTrackStack)
+		//bool ContainsKey(const Key& key, vector<NodeBase*>& passedNodeTrackStack)
 		//{
 		//	auto& stack = passedNodeTrackStack;
 		//	// only need to collect "don't have" situation
@@ -116,7 +102,7 @@ namespace Collections
 				return node->elements_[key];
 			};
 
-			return const_cast<NodeBase*>(this)->FindHelper<RetValue::SearchValue>(key, keepDeepest, moveDeepOnEqual);
+			return const_cast<NodeBase*>(this)->FindHelper<RetValue::SearchValue>(key, moveDeepOnEqual);
 		}
 
 		void ModifyValue(Key const& key, Value value)
@@ -165,7 +151,7 @@ namespace Collections
 		template <RetValue ReturnValue, typename T>
 		auto FindHelper(Key const& key, function<T(NodeBase*)> onEqualDo)
 		{
-			auto& lessThan = *(node->elements_.LessThanPtr);
+			auto& lessThan = *(elements_.LessThanPtr);
 			function<T(NodeBase*)> imp = [equalHandler = move(onEqualDo), &key, &imp, &lessThan](NodeBase* node)
 			{
 				for (auto& e : node->elements_)
@@ -316,6 +302,9 @@ namespace Collections
 namespace Collections
 {
 	using ::std::make_pair;
+
+#define NODE_TEMPLATE template <typename Key, typename Value, order_int BtreeOrder>
+#define BASE NodeBase<Key, Value, BtreeOrder>
 
 	template <bool IS_LEAF, typename Key, typename Value, uint16_t BtreeOrder>
 	void

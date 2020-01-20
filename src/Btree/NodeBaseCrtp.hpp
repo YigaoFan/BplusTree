@@ -1,8 +1,9 @@
 #pragma once
+#include "Basic.hpp"
 #include "NodeBase.hpp"
 
 namespace Collections {
-	template<typename Derived, typename Key, typename Value, uint16_t BtreeOrder>
+	template<typename Derived, typename Key, typename Value, order_int BtreeOrder>
 	class NodeBase_CRTP : public NodeBase<Key, Value, BtreeOrder>
 	{
 	protected:
