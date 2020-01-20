@@ -1,17 +1,21 @@
 #pragma once
+#include <utility>
+#include <vector>
+#include "Basic.hpp"
 #include "LeafNode.hpp"
 #include "MiddleNode.hpp"
 
-namespace Collections {
-	using std::pair;
-	using std::vector;
+namespace Collections 
+{
+	using ::std::pair;
+	using ::std::vector;
 
 #define BASE   NodeBase  <Key, Value, BtreeOrder>
 #define LEAF   LeafNode  <Key, Value, BtreeOrder>
 #define MIDDLE MiddleNode<Key, Value, BtreeOrder>
 
 	// for pre, should have nxt version
-	template <bool IS_LEAF, typename Key, typename Value, uint16_t BtreeOrder>
+	template <bool IS_LEAF, typename Key, typename Value, order_int BtreeOrder>
 	void
 	setNewPreRelation(BASE* newPreNode, BASE* currentNode)
 	{
@@ -27,7 +31,7 @@ namespace Collections {
 		}
 	}
 
-	template <bool IS_LEAF, typename Key, typename Value, uint16_t BtreeOrder>
+	template <bool IS_LEAF, typename Key, typename Value, order_int BtreeOrder>
 	void
 	setRemoveCurrentRelation(BASE* currentNode)
 	{
@@ -41,7 +45,7 @@ namespace Collections {
 		}
 	}
 
-	template <bool IS_LEAF, typename Key, typename Value, uint16_t BtreeOrder>
+	template <bool IS_LEAF, typename Key, typename Value, order_int BtreeOrder>
 	void
 	getPrevious(BASE* node, const vector<BASE*>& passedNodeTrackStack, BASE*& previous)
 	{
@@ -55,7 +59,7 @@ namespace Collections {
 		}
 	}
 
-	template <bool IS_LEAF, typename Key, typename Value, uint16_t BtreeOrder>
+	template <bool IS_LEAF, typename Key, typename Value, order_int BtreeOrder>
 	void
 	getNext(BASE* node, const vector<BASE*>& passedNodeTrackStack, BASE*& next)
 	{

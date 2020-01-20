@@ -200,8 +200,7 @@ namespace Collections
 		}
 
 #define EMPTY_CHECK if (Empty()) { throw KeyNotFoundException("The B+ tree is empty"); }
- 
-		Value GetValue(Key const &key) const
+ 		Value GetValue(Key const &key) const
 		{
 			EMPTY_CHECK;
 			return _root->GetValue(key);
@@ -286,8 +285,8 @@ namespace Collections
 		}
 
 		template <size_t Count>
-		static bool DuplicateIn(array<pair<Key, Value>, Count> const & sortedPairArray, 
-								LessThan const& lessThan, Key const *& duplicateKey)
+		static bool DuplicateIn(array<pair<Key, Value>, Count> const& sortedPairArray, 
+								LessThan const& lessThan, Key const*& duplicateKey)
 		{
 			auto& array = sortedPairArray;
 			if constexpr (Count > 1)

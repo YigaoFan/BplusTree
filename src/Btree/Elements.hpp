@@ -160,6 +160,21 @@ namespace Collections
 			}
 		}
 
+		template <typename T>
+		bool Add(pair<Key, T> p)
+		{
+			if ((*LessThanPtr)(_elements[_count - 1].first, p.first))
+			{
+				Append(move(p));
+				return true;
+			}
+			else
+			{
+				Insert(move(p));
+				return false;
+			}
+		}
+
 		void Insert(pair<Key, Value>);
 		void Insert(pair<Key, unique_ptr<PtrTo>>);
 		void Append(pair<Key, Value>);
@@ -373,20 +388,7 @@ namespace Collections
 			}
 		}
 
-		template <typename T>
-		bool Add(pair<Key, T> p)
-		{
-			if ((*LessThanPtr)(_elements[_count - 1].first, p.first))
-			{
-				Append(move(p));
-				return true;
-			}
-			else
-			{
-				Insert(move(p));
-				return false;
-			}
-		}
+		
 
 		auto CloneInternalElements() const
 		{
