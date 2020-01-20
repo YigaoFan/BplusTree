@@ -1,19 +1,18 @@
 #pragma once
 
-namespace Collections {
+namespace Collections 
+{
 	/**
  	* for container which pointer
  	*/
 	template <typename Iter>
-	auto
-	ptrOff(Iter iter)
+	auto ptrOff(Iter iter)
 	{
 		return *iter;
 	}
 
 	template <typename T>
-	T
-	copy(const T& t)
+	T copy(T const& t)
 	{
 		return t;
 	}

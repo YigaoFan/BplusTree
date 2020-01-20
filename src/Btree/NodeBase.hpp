@@ -2,6 +2,7 @@
 #include <vector>
 #include "Basic.hpp"
 #include "Util.hpp"
+#include "Enumerator.hpp"
 #include "Exception.hpp"
 #include "Elements.hpp"
 
@@ -9,12 +10,15 @@ namespace Collections
 {
 	using ::std::move;
 
-	enum RetValue
+	namespace 
 	{
-		Bool,
-		SearchValue,
-		Void,
-	};
+		enum RetValue
+		{
+			Bool,
+			SearchValue,
+			Void,
+		};
+	}
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeBase
@@ -148,6 +152,8 @@ namespace Collections
 			return elements_.Full();
 		}
 
+		//void ChangeKey
+
 		template <RetValue ReturnValue, typename T>
 		auto FindHelper(Key const& key, function<T(NodeBase*)> onEqualDo)
 		{
@@ -186,45 +192,29 @@ namespace Collections
 		template <typename T>
 		void DoAdd(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack)
 		{
-			auto& k = p.first;
 			auto& stack = passedNodeTrackStack;
-			auto& lessThan = *(elements_.LessThanPtr);
-
 			if (!Full())
 			{
-				if (elements_.Add(move(p))) // true means max key changed
+				if (auto maxChange = elements_.Add(move(p)))
 				{
-					changeMaxKeyUpper(stack, k);
+					ChangeMaxKeyFromBottomToRoot(stack, MaxKey());
 				}
 			}
-			else
-			{
-				// maybe fine the choose of pre and next
-				if (tryPreviousAdd<T>(p, stack))
-				{
 
-				}
-				else if (tryNextAdd<T>(p, stack))
-				{
-
-				}
-				else
-				{
-					splitNode(move(p), stack);
-				}
-			}
+			tryPreviousAdd<T>(move(p), stack, tryNextAdd<T>, splitNode<T>);
 		}
 
-		template <bool IS_LEAF, typename Key, typename Value, order_int BtreeOrder>
+		template <bool IsLeaf, typename Key, typename Value, order_int BtreeOrder>
 		void getPrevious(NodeBase*, const vector<NodeBase*>&, NodeBase*&);
 
 		// return means succeed or not
 		template <typename T>
-		bool tryPreviousAdd(pair<Key, T>& p, vector<NodeBase*>& passedNodeTrackStack)
+		void tryPreviousAdd(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack, 
+							function<void(pair<Key, T>, vector<NodeBase*>&, function<void(pair<Key, T>, vector<NodeBase*>&)>)> continuation1,
+							function<void(pair<Key, T>, vector<NodeBase*>&)> continuation2)
 		{
 			auto& stack = passedNodeTrackStack;
 			NodeBase* previous = nullptr;
-
 			getPrevious<std::is_same<T, Value>::value>(this, stack, previous); // some don't have one of siblings
 
 			if (spaceFreeIn(previous))
@@ -234,24 +224,24 @@ namespace Collections
 				auto min = elements_.ExchangeMin(move(p), maxChanged);
 				if (maxChanged)
 				{
-					changeMaxKeyUpper(stack, MaxKey());
+					ChangeMaxKeyFromBottomToRoot(stack, MaxKey());
 				}
 
 				return reallocatePre(previous, stack, move(min)); // trigger optimize
+				// TODO up code meanings?
 			}
 
-			return false;
+			continuation1(move(p), stack, continuation2);
 		}
 
-		template <bool IS_LEAF, typename Key, typename Value, order_int BtreeOrder>
+		template <bool IsLeaf, typename Key, typename Value, order_int BtreeOrder>
 		void getNext(NodeBase*, const vector<NodeBase*>&, NodeBase*&);
 
 		// return means succeed or not
 		template <typename T>
-		bool tryNextAdd(pair<Key, T>& p, vector<NodeBase*>& passedNodeTrackStack)
+		void tryNextAdd(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack, function<void(pair<Key, T>, vector<NodeBase*>&)> continuation)
 		{
 			auto& stack = passedNodeTrackStack;
-
 			NodeBase* next = nullptr;
 			getNext<std::is_same<Value, T>::value>(this, stack, next); // some don't have one of siblings
 
@@ -259,15 +249,15 @@ namespace Collections
 			{
 				// if not free, will not trigger move, so the ref type is fine
 				auto&& oldMax = elements_.ExchangeMax(move(p));
-				changeMaxKeyUpper(stack, MaxKey());
-
+				ChangeMaxKeyFromBottomToRoot(stack, MaxKey());
 				return reallocateNxt(next, move(oldMax));
 			}
 
-			return false;
+			// TODO also should think of up return value
+			continuation(move(p), passedNodeTrackStack);
 		}
 
-		template <bool IS_LEAF, typename Key, typename Value, order_int BtreeOrder>
+		template <bool IsLeaf, typename Key, typename Value, order_int BtreeOrder>
 		void setNewPreRelation(NodeBase*, NodeBase*);
 
 		// first in: split leaf
@@ -283,7 +273,7 @@ namespace Collections
 			// left is newPre, right is this
 			setNewPreRelation<std::is_same<typename std::decay<T>::type, Value>::value>(newPrePtr, this);
 
-			auto removeItems = [&](uint16_t preNodeRemoveCount)
+			auto removeItems = [&](order_int preNodeRemoveCount)
 			{
 				newPrePtr->elements_.template RemoveItems<false>(preNodeRemoveCount);
 				this->elements_.template RemoveItems<true>(BtreeOrder - preNodeRemoveCount);
@@ -302,7 +292,6 @@ namespace Collections
 			};
 
 #define HANDLE_ADD(leaf, maxBound) auto shouldAppend = (i == maxBound); do { addIn(leaf, shouldAppend); } while(0)
-
 			constexpr bool odd = BtreeOrder % 2;
 			constexpr auto middle = odd ? (BtreeOrder / 2 + 1) : (BtreeOrder / 2);
 			auto i = elements_.SuitPosition(key);
@@ -321,10 +310,9 @@ namespace Collections
 				HANDLE_ADD(this, BtreeOrder);
 				if (shouldAppend)
 				{
-					changeMaxKeyUpper(stack, key);
+					ChangeMaxKeyFromBottomToRoot(stack, key);
 				}
 			}
-
 #undef HANDLE_ADD
 
 			insertNewPreToUpper(move(newPre), stack);
@@ -340,7 +328,7 @@ namespace Collections
 			auto previousTrackStack = getSiblingSearchTrackIn(stack, previousNode); // previous is leaf
 			previousNode->elements_.Append(move(appendPair));
 			auto newMaxKey = previousNode->MaxKey(); // will change previous max
-			changeMaxKeyUpper(previousTrackStack, newMaxKey);
+			ChangeMaxKeyFromBottomToRoot(previousTrackStack, newMaxKey);
 
 			return true;
 		}
@@ -352,30 +340,19 @@ namespace Collections
 			return true;
 		}
 
-		// Key type should be copyable.Will not change stack.Last one in stack should be leaf actually
-		void changeMaxKeyUpper(const vector<NodeBase*>& passedNodeTrackStack, const Key& newMaxKey) const
+		void ChangeMaxKeyFromBottomToRoot(vector<NodeBase*> const& passedNodeTrackStack, Key const& newMaxKey) const
 		{
+			if (passedNodeTrackStack.size() == 1) { return; }
+
 			auto& stack = passedNodeTrackStack;
 			auto rCurrentIter = stack.rbegin();
 			auto rEnd = stack.rend();
-
-			if ((rEnd - rCurrentIter) == 1)
+			for (auto upperNodeIter = rCurrentIter + 1; rCurrentIter != rEnd; ++rCurrentIter, upperNodeIter = rCurrentIter + 1)
 			{
-				return;
-			}
-
-			while (rCurrentIter != rEnd)
-			{
-				auto upperNodeIter = rCurrentIter + 1;
+				// Up node here is MiddleNode already
 				auto matchIndex = ptrOff(upperNodeIter)->elements_.ChangeKeyOf(*rCurrentIter, newMaxKey);
-
 				auto maxIndex = ptrOff(upperNodeIter)->ChildCount() - 1;
-				if (matchIndex != maxIndex)
-				{
-					break;
-				}
-
-				++rCurrentIter;
+				if (matchIndex != maxIndex) { break; }
 			}
 		}
 
@@ -410,7 +387,7 @@ namespace Collections
 			auto i = elements_.IndexOf(t);
 			if (elements_.RemoveAt(i))
 			{
-				changeMaxKeyUpper(stack, MaxKey());
+				ChangeMaxKeyFromBottomToRoot(stack, MaxKey());
 			}
 
 			// TODO is_same need to verify
@@ -425,7 +402,7 @@ namespace Collections
 		}
 
 		// return combined or not
-		template <bool IS_LEAF>
+		template <bool IsLeaf>
 		bool reBalance(const vector<NodeBase*>& passedNodeTrackStack)
 		{
 			auto& stack = passedNodeTrackStack;
@@ -435,18 +412,18 @@ namespace Collections
 			{
 				NodeBase* previous = nullptr;
 				// TODO should save search track？
-				getPrevious<IS_LEAF>(this, stack, previous);
+				getPrevious<IsLeaf>(this, stack, previous);
 				NodeBase* next = nullptr;
-				getNext<IS_LEAF>(this, stack, next);
+				getNext<IsLeaf>(this, stack, next);
 
 				auto preHandler = [&](NodeBase* pre)
 				{
-					return reBalanceWithPre<IS_LEAF>(pre, stack);
+					return reBalanceWithPre<IsLeaf>(pre, stack);
 				};
 				auto currentHandler = []() { return false; };
 				auto nxtHandler = [&](NodeBase* nxt)
 				{
-					return reBalanceWithNxt<IS_LEAF>(nxt, stack);
+					return reBalanceWithNxt<IsLeaf>(nxt, stack);
 				};
 
 				return chooseBalanceNodeDo(previous, move(preHandler), this, move(currentHandler), next, move(nxtHandler));
@@ -485,7 +462,7 @@ namespace Collections
 			return abs(preChilds - average) > abs(nxtChilds - average) ? preHandler(pre) : nxtHandler(nxt);
 		}
 
-		template <bool IS_LEAF>
+		template <bool IsLeaf>
 		bool reBalanceWithPre(NodeBase* previous, const vector<NodeBase*>& passedNodeTrackStack)
 		{
 			auto& stack = passedNodeTrackStack;
@@ -495,10 +472,10 @@ namespace Collections
 			if (previous->ChildCount() + ChildCount() <= BtreeOrder)
 			{
 				// combine
-				previous->receive(TailAppendWay(), move(*this));
+				previous->Receive(TailAppendWay(), move(*this));
 				auto preStack = getSiblingSearchTrackIn(stack, previous);
-				previous->changeMaxKeyUpper(preStack, previous->MaxKey());
-				setRemoveCurrentRelation<IS_LEAF>(this);
+				previous->ChangeMaxKeyFromBottomToRoot(preStack, previous->MaxKey());
+				setRemoveCurrentRelation<IsLeaf>(this);
 
 				return true;
 			}
@@ -506,73 +483,67 @@ namespace Collections
 			{
 				// move some from pre to this
 				auto moveCount = (previous->ChildCount() - ChildCount()) / 2;
-				receive(HeadInsertWay(), moveCount, *previous);
+				Receive(HeadInsertWay(), moveCount, *previous);
 				auto preStack = getSiblingSearchTrackIn(stack, previous);
-				previous->changeMaxKeyUpper(preStack, previous->MaxKey());
+				previous->ChangeMaxKeyFromBottomToRoot(preStack, previous->MaxKey());
 
 				return false;
 			}
 		}
 
-		template <bool IS_LEAF, typename Key, typename Value, order_int BtreeOrder>
+		template <bool IsLeaf, typename Key, typename Value, order_int BtreeOrder>
 		void setRemoveCurrentRelation(NodeBase*);
 
-		template <bool IS_LEAF>
+		template <bool IsLeaf>
 		bool reBalanceWithNxt(NodeBase* next, const vector<NodeBase*>& passedNodeTrackStack)
 		{
 			auto& stack = passedNodeTrackStack;
-
 			if (next->ChildCount() + ChildCount() <= BtreeOrder)
 			{
 				// combine
-				next->receive(HeadInsertWay(), move(*this));
-				setRemoveCurrentRelation<IS_LEAF>(this);
-
+				next->Receive(HeadInsertWay(), move(*this));
+				setRemoveCurrentRelation<IsLeaf>(this);
 				return true;
 			}
 			else
 			{
 				// move some from nxt to this
 				auto moveCount = (next->ChildCount() - ChildCount()) / 2;
-				receive(TailAppendWay(), moveCount, *next);
-				changeMaxKeyUpper(stack, MaxKey());
-
+				Receive(TailAppendWay(), moveCount, *next);
+				ChangeMaxKeyFromBottomToRoot(stack, MaxKey());
 				return false;
 			}
 		}
 
-		void receive(TailAppendWay, NodeBase&& that)
+		void Receive(TailAppendWay, NodeBase&& that)
 		{
 			elements_.Receive<false>(move(that.elements_));
 		}
 
-		void receive(HeadInsertWay, NodeBase&& that)
+		void Receive(HeadInsertWay, NodeBase&& that)
 		{
 			elements_.Receive<true>(move(that.elements_));
 		}
 
-		void receive(HeadInsertWay, uint16_t count, NodeBase& node)
+		void Receive(HeadInsertWay, uint16_t count, NodeBase& node)
 		{
 			elements_.Receive(HeadInsertWay(), count, node.elements_);
 		}
 
-		void receive(TailAppendWay, uint16_t count, NodeBase& node)
+		void Receive(TailAppendWay, uint16_t count, NodeBase& node)
 		{
 			elements_.Receive(TailAppendWay(), count, node.elements_);
 		}
 
 		static bool spaceFreeIn(NodeBase const* node)
 		{
-			if (node != nullptr)
-			{
-				return !node->Full();
-			}
-
-			return false;
+			if (node == nullptr) { return false; }
+			return !node->Full();
 		}
 
 		// return the complete search 
-		static vector<NodeBase*> getSiblingSearchTrackIn(const vector<NodeBase*>& currentNodePassedTrackStack, const NodeBase* sibling)
+		static vector<NodeBase*> getSiblingSearchTrackIn(vector<NodeBase*> const& currentNodePassedTrackStack,
+														 NodeBase const* sibling)
 		{
 			// TODO when call on Middle, there are duplicates compute
 			// Because the last Middle has already search this(wait to verify)
