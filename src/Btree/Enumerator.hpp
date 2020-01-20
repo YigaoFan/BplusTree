@@ -64,7 +64,7 @@ namespace Collections
 		}
 
 		Enumerator(Iterator begin, Iterator end)
-			: _begin(begin), _end(end)
+			: _current(_begin), _begin(begin), _end(end)
 		{ }
 
 		bool MoveNext()
@@ -76,7 +76,6 @@ namespace Collections
 
 			if (_firstMove)
 			{
-				_current = _begin;
 				_firstMove = false;
 				return true;
 			}

@@ -60,7 +60,7 @@ namespace Collections
 			return elements_[elements_.Count() - 1].first;
 		}
 
-		vector<Key> AllKey() const
+		vector<Key> Keys() const
 		{
 			vector<Key> keys{};
 			keys.reserve(elements_.Count());
@@ -97,30 +97,29 @@ namespace Collections
 		//	return searchHelper<RetValue::Bool>(key, collect, trueOnEqual, collectDeepMaxOnBeyond);
 		//}
 
-		bool Have(const Key& key) const
+		bool ContainsKey(Key const& key) const
 		{
-			return const_cast<NodeBase*>(this)->SearchHelper<RetValue::Bool>(key, [](auto) { return true; });
+			if (ChildCount() == 0) { return false; }
+			return const_cast<NodeBase*>(this)->FindHelper<RetValue::Bool>(key, [](auto) { return true; });
 		}
 
-		Value Search(const Key& key) const
+		Value GetValue(Key const& key) const
 		{
 			function<Value(NodeBase*)> moveDeepOnEqual = [&](NodeBase* node)
 			{
 				if (node->Middle())
 				{
 					auto maxIndex = node->ChildCount() - 1;
-					auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
-					return moveDeepOnEqual(maxChildPtr);
+					return moveDeepOnEqual(Ele::ptr(node->elements_[maxIndex].second));
 				}
 
-				return (*node)[key];
+				return node->elements_[key];
 			};
 
-			// TODO 注意检查 stack 是否收集到所需要的节点才停止
-			return const_cast<NodeBase*>(this)->SearchHelper<RetValue::SearchValue>(key, keepDeepest, moveDeepOnEqual);
+			return const_cast<NodeBase*>(this)->FindHelper<RetValue::SearchValue>(key, keepDeepest, moveDeepOnEqual);
 		}
 
-		void Modify(Key const& key, Value value)
+		void ModifyValue(Key const& key, Value value)
 		{
 			function<void(NodeBase*)> moveDeepOnEqual = [value = move(value), &moveDeepOnEqual, &key](NodeBase* node)
 			{
@@ -135,7 +134,7 @@ namespace Collections
 				node->elements_[key] = value;
 			};
 
-			SearchHelper<RetValue::Void>(key, moveDeepOnEqual);
+			FindHelper<RetValue::Void>(key, moveDeepOnEqual);
 		}
 
 		void Add(pair<Key, Value> p, vector<NodeBase*>& passedNodeTrackStack)
@@ -145,7 +144,7 @@ namespace Collections
 			finalLeaf->DoAdd(move(p), stack);
 		}
 
-		void Remove(const Key& key, vector<NodeBase*>& passedNodeTrackStack)
+		void Remove(Key const& key, vector<NodeBase*>& passedNodeTrackStack)
 		{
 			auto& stack = passedNodeTrackStack;
 			NodeBase* finalLeaf = stack.back();
@@ -164,7 +163,7 @@ namespace Collections
 		}
 
 		template <RetValue ReturnValue, typename T>
-		auto SearchHelper(const Key& key, function<T(NodeBase*)> onEqualDo)
+		auto FindHelper(Key const& key, function<T(NodeBase*)> onEqualDo)
 		{
 			auto& lessThan = *(node->elements_.LessThanPtr);
 			function<T(NodeBase*)> imp = [equalHandler = move(onEqualDo), &key, &imp, &lessThan](NodeBase* node)
@@ -246,9 +245,9 @@ namespace Collections
 			}
 		}
 		template <typename T>
-		inline bool tryPreviousAdd(pair<Key, T>&, vector<NodeBase*>&);
+		bool tryPreviousAdd(pair<Key, T>&, vector<NodeBase*>&);
 		template <typename T>
-		inline bool tryNextAdd(pair<Key, T>&, vector<NodeBase*>&);
+		bool tryNextAdd(pair<Key, T>&, vector<NodeBase*>&);
 		template <typename T>
 		void        splitNode(pair<Key, T>, vector<NodeBase*>&);
 
@@ -300,7 +299,7 @@ namespace Collections
 		void receive(HeadInsertWay, uint16_t, NodeBase&);
 		void receive(TailAppendWay, uint16_t, NodeBase&);
 
-		static bool spaceFreeIn(const NodeBase* node)
+		static bool spaceFreeIn(NodeBase const* node)
 		{
 			if (node != nullptr)
 			{
@@ -429,7 +428,7 @@ namespace Collections
 		while (rCurrentNodeIter != rEnd)
 		{
 			// same ancestor of this and previous node
-			if (ptrOff(rCurrentNodeIter)->Have(maxKey, trackStack))
+			if (ptrOff(rCurrentNodeIter)->ContainsKey(maxKey, trackStack))
 			{
 				break;
 			}

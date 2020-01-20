@@ -115,14 +115,13 @@ namespace Collections
 	template <order_int BtreeOrder, typename Key, typename Value>
 	class Btree 
 	{
-	public:
 	private:
 		using Base   = NodeBase  <Key, Value, BtreeOrder>;
 		using Leaf   = LeafNode  <Key, Value, BtreeOrder>;
 		using Middle = MiddleNode<Key, Value, BtreeOrder>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
 		shared_ptr<typename Base::LessThan> _lessThanPtr;
-		key_int              _keyNum{ 0 };
+		key_int              _keyCount{ 0 };
 		unique_ptr<Base>     _root  { nullptr };
 
 	public:
@@ -132,8 +131,6 @@ namespace Collections
 		Btree(LessThan lessThan, array<pair<Key, Value>, NumOfEle> keyValueArray)
 			: _lessThanPtr(make_shared<LessThan>(lessThan))
 		{
-			if constexpr (NumOfEle == 0) { return; }
-
 			// 可以自己实现一个排序算法，这样找重复的容易些
 			// 而且反正 pairArray 是在成功的情况下是要复制的，
 			// 这个构造函数这也要复制，不如构造函数传引用，排序算法确定不重复的情况下，就直接复制到堆上
@@ -150,128 +147,111 @@ namespace Collections
 			}
 
 			ConstructFromLeafToRoot(move(keyValueArray));
-			_keyNum += NumOfEle;
+			_keyCount += NumOfEle;
 		}
 
 		// TODO Enumerator constructor
 		// Btree(LessThan lessThan, )
 
 		Btree(const Btree& that)
-			: _keyNum(that._keyNum), _root(that._root->Clone())
+			: _keyCount(that._keyCount), _root(that._root->Clone())
 		{ }
 
 		Btree(Btree&& that) noexcept
-			: _keyNum(that._keyNum), _root(that._root.release())
+			: _keyCount(that._keyCount), _root(that._root.release())
 		{
-			that._keyNum = 0;
+			that._keyCount = 0;
 		}
 
 		Btree& operator=(Btree const & that)
 		{
 			this->_root.reset(that._root->Clone());
-			this->_keyNum = that._keyNum;
+			this->_keyCount = that._keyCount;
 			this->_lessThanPtr = that._lessThanPtr;
 		}
 
 		Btree& operator=(Btree&& that) noexcept 
 		{
 			this->_root.reset(that._root.release());
-			this->_keyNum = that._keyNum;
+			this->_keyCount = that._keyCount;
+			that._keyCount = 0;
 			this->_lessThanPtr = that._lessThanPtr;
 		}
 
-		Value Search(Key const &key) const
+		bool ContainsKey(Key const& key) const
 		{
-			if (Empty())
-			{
-				throw KeyNotFoundException("The tree is empty");
-			}
-
-			return _root->Search(key);
+			if (Empty()) { return false; }
+			return _root->Have(key);
 		}
 
-		vector<Key> Explore() const 
+		bool Empty() const
+		{
+			return _keyCount == 0;
+		}
+
+		key_int Count() const
+		{
+			return _keyCount;
+		}
+
+		vector<Key> Keys() const
 		{
 			vector<Key> keys;
-			keys.reserve(_keyNum);
-			TraverseLeaf([&keys](Leaf *l)
+			keys.reserve(_keyCount);
+			TraverseLeaf([&keys](Leaf* l)
 			{
-				auto ks = l->AllKey();
+				auto ks = l->Keys();
 				keys.insert(keys.end(), ks.begin(), ks.end());
 			});
 
 			return keys;
 		}
 
-		bool Have(const Key &key) const
+#define EMPTY_CHECK if (Empty()) { throw KeyNotFoundException("The B+ tree is empty"); }
+ 
+		Value GetValue(Key const &key) const
 		{
-			if (!Empty())
+			EMPTY_CHECK;
+			return _root->GetValue(key);
+		}
+
+		void ModifyValue(Key const& key, Value newValue)
+		{
+			EMPTY_CHECK;
+			_root->ModifyValue(key, move(newValue));
+		}
+
+		void Remove(Key const&key)
+		{
+			EMPTY_CHECK;
+			if (vector<Base*> passedNodeTrackStack; _root->Have(key, passedNodeTrackStack))
 			{
-				return _root->Have(key);
+				_root->Remove(key, passedNodeTrackStack);
+				--_keyCount;
 			}
-
-			return false;
 		}
+#undef EMPTY_CHECK
 
-		bool Empty() const
+		// TODO tryAdd(pair<Key, Value>);
+		void Add(pair<Key, Value> p)
 		{
-			return _keyNum == 0;
-		}
-
-		void Add(pair<Key, Value> p) 
-		{
-			if (Empty())
+			vector<Base*> passedNodeTrackStack;
+			if (_root->Have(p.first, passedNodeTrackStack))
 			{
-				auto node = NodeFactoryType::MakeNode(&p, &p + 1, _lessThanPtr);
-				_root.reset(node.release());
+				throw DuplicateKeyException(p.first, "The key-value has already existed, can't be added")；
 			}
 			else
 			{
-				vector<Base *> passedNodeTrackStack;
-				if (_root->Have(p.first, passedNodeTrackStack))
-				{
-					throw runtime_error("The key-value has already existed, can't be added.");
-				}
-				else
-				{
-					_root->Add(move(p), passedNodeTrackStack);
-				}
+				_root->Add(move(p), passedNodeTrackStack);
 			}
 
-			++_keyNum;
-		}
-
-		// TODO tryAdd(pair<Key, Value>);
-		void Modify(pair<Key, Value> pair)
-		{
-			if (!Empty())
-			{
-				_root->Modify(pair.first, move(pair.second));
-			}
-		}
-
-		void Remove(const Key &key)
-		{
-			if (Empty())
-			{
-				return;
-			}
-			if (vector<Base*> passedNodeTrackStack;
-				_root->Have(key, passedNodeTrackStack))
-			{
-				_root->Remove(key, passedNodeTrackStack);
-				--_keyNum;
-			}
+			++_keyCount;
 		}
 
 	private:
 		void TraverseLeaf(function<void (Leaf *)> func) const
 		{
-			if (Empty())
-			{
-				return;
-			}
-
+			if (Empty()) { return; }
 			for (auto current = MinLeaf(); current != nullptr; current = current->nextLeaf())
 			{
 				func(current);
@@ -302,7 +282,7 @@ namespace Collections
 			array<pair<Key, unique_ptr<Base>>, is.size()> consNodes;
 			ForEachCons<Count, Is...>([&srcArray, &consNodes, &lessThan](auto index, auto itemsCount, auto preItemsCount)
 			{
-				auto node = NodeFactoryType::MakeNode(CreateEnumerator(&srcArray[preItemsCount], &srcArray[preItemsCount + itemsCount]),
+				auto node = NodeFactoryType::MakeNode(CreateEnumerator(&srcArray[preItemsCount], &srcArray[/*TODO (size_t)*/preItemsCount + itemsCount]),
 					lessThan);
 				consNodes[index] = make_pair(move(node->MaxKey()), move(node));
 			});
@@ -330,18 +310,20 @@ namespace Collections
 			ConstructFromLeafToRoot<false>(move(newNodes));
 		}
 
-		template <size_t NumOfEle>
-		static bool DuplicateIn(array<pair<Key, Value>, NumOfEle> const &sortedPairArray, LessThan const&
-			lessThan, Key const *&duplicateKey)
+		template <size_t Count>
+		static bool DuplicateIn(array<pair<Key, Value>, Count> const & sortedPairArray, 
+								LessThan const& lessThan, Key const *& duplicateKey)
 		{
-			auto &array = sortedPairArray;
-
-			for (decltype(NumOfEle) i = 1; i < NumOfEle; ++i) 
+			auto& array = sortedPairArray;
+			if constexpr (Count > 1)
 			{
-				if (lessThan(array[i].first, array[i - 1].first) == lessThan(array[i - 1].first, array[i].first))
+				for (decltype(Count) i = 1; i < Count; ++i)
 				{
-					duplicateKey = &array[i].first;
-					return true;
+					if (lessThan(array[i].first, array[i - 1].first) == lessThan(array[i - 1].first, array[i].first))
+					{
+						duplicateKey = &array[i].first;
+						return true;
+					}
 				}
 			}
 

@@ -9,6 +9,7 @@ namespace Collections
 {
 	using ::std::runtime_error;
 	using ::std::move;
+	using ::std::string;
 
 	template <typename T>
 	class DuplicateKeyException : public runtime_error
@@ -16,7 +17,7 @@ namespace Collections
 	public:
 		T DupKey;
 
-		explicit DuplicateKeyException(T dupKey, const string& message)
+		explicit DuplicateKeyException(T dupKey, string message)
 			: runtime_error(message), DupKey(move(dupKey))
 		{ }
 	};

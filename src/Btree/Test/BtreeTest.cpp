@@ -46,21 +46,21 @@ TESTCASE("Btree test") {
 		}
 
 		SECTION("Test normal function") {
-			ASSERT(btree.Search(kv0.first) == kv0.second);
-			ASSERT(btree.Search(kv8.first) == kv8.second);
-			ASSERT_THROW(runtime_error, btree.Search("10"));
+			ASSERT(btree.GetValue(kv0.first) == kv0.second);
+			ASSERT(btree.GetValue(kv8.first) == kv8.second);
+			ASSERT_THROW(runtime_error, btree.GetValue("10"));
 
 			btree.Add(make_pair("10", "d"));
-			ASSERT(btree.Search("10") == "d");
-			ASSERT(btree.Have("10"));
+			ASSERT(btree.GetValue("10") == "d");
+			ASSERT(btree.ContainsKey("10"));
 
-			btree.Modify(make_pair(kv0.first, "d"));
-			ASSERT(btree.Search(kv0.first) == "d");
+			btree.ModifyValue(make_pair(kv0.first, "d"));
+			ASSERT(btree.GetValue(kv0.first) == "d");
 
-			auto keys = btree.Explore();
+			auto keys = btree.Keys();
 
 			btree.Remove("10");
-			ASSERT_THROW(runtime_error, btree.Have("10"));
+			ASSERT_THROW(runtime_error, btree.ContainsKey("10"));
 		}
 	}
 
