@@ -39,14 +39,7 @@ namespace Collections
 		
 		vector<Key> Keys() const override
 		{
-			vector<Keys> keys;
-			for (auto& e : this->elements_) // TODO why can not use elements directly?
-			{
-				auto&& ks = Base::Ele::ptr(e.second)->Keys();
-				keys.insert(keys.end(), ks.begin(), ks.end());
-			}
-
-			return keys;
+			return MinSon()->Keys();
 		}
 
 #define SEARCH_HELPER_DEF(FUN_NAME, COMPARE_TO_BOUND, OFFSET, CHOOSE_SON)                                                                                 \
@@ -75,7 +68,7 @@ namespace Collections
 			auto rIter = stack.rbegin();
 			auto rEnd = stack.rend();
 
-			SEARCH_HELPER_DEF(searchPreHelper, > 0, -1, maxSon);
+			SEARCH_HELPER_DEF(searchPreHelper, > 0, -1, MaxSon);
 			previous = searchPreHelper(rIter, [](auto n) { return n; });
 		}
 
@@ -92,7 +85,7 @@ namespace Collections
 #undef SEARCH_HELPER_DEF
 
 	private:
-		Base* maxSon() const
+		Base* MaxSon() const
 		{
 			auto& es = Base::elements_;
 			return Base::Ele::ptr(es[this->ChildCount() - 1].second);

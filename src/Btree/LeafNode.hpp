@@ -6,7 +6,7 @@
 
 namespace Collections
 {
-#define LEAF LeafNode<Key, Value, BtreeOrder>
+	using ::std::move;
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>
@@ -15,6 +15,8 @@ namespace Collections
 		using Base = NodeBase<Key, Value, BtreeOrder>;
 		using Base_CRTP = NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>;
 		using typename Base::LessThan;
+		LeafNode* _next{ nullptr };
+		LeafNode* _previous{ nullptr };
 
 	public:
 		template <typename Iter>
@@ -39,7 +41,8 @@ namespace Collections
 
 		vector<Key> Keys() const override
 		{
-			return this->elements_.Keys();
+			//return this->elements_.Keys();// TODO why can not use elements directly?
+			return CollectKeys(move(vector<Key>{}));
 		}
 
 		const Value& operator[](const Key& key)
@@ -75,8 +78,17 @@ namespace Collections
 		}
 
 	private:
-		LeafNode* _next{ nullptr };
-		LeafNode* _previous{ nullptr };
+		vector<Key> CollectKeys(vector<Key> previousNodesKeys)
+		{
+			auto&& ks = Base::Ele::ptr(e.second)->Keys();
+			previousNodesKeys.insert(keys.end(), ks.begin(), ks.end());
+			if (_next == nullptr)
+			{
+				return move(previousNodesKeys);
+			}
+
+			return _next->CollectKeys(move(previousNodesKeys));
+		}
 	};
 #undef LEAF
 }
