@@ -242,7 +242,7 @@ namespace Collections
 				);
 		}
 
-		const Item& operator[](order_int i) const
+		Item const& operator[](order_int i) const
 		{
 			return _elements[i];
 		}

@@ -7,6 +7,7 @@
 namespace Collections
 {
 	using ::std::move;
+#define LEAF LeafNode<Key, Value, BtreeOrder>
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>
@@ -29,7 +30,7 @@ namespace Collections
 			: Base_CRTP(enumerator, lessThan)
 		{}
 
-		LeafNode(const LeafNode& that, LeafNode* previous = nullptr, LeafNode* next = nullptr)
+		LeafNode(LeafNode const& that, LeafNode* previous = nullptr, LeafNode* next = nullptr)
 			: Base_CRTP(that), _previous(previous), _next(next)
 		{}
 
@@ -42,10 +43,11 @@ namespace Collections
 		vector<Key> Keys() const override
 		{
 			//return this->elements_.Keys();// TODO why can not use elements directly?
+			// I test struct can use this.
 			return CollectKeys(move(vector<Key>{}));
 		}
 
-		const Value& operator[](const Key& key)
+		Value const& operator[](Key const& key)
 		{
 			auto& e = this->elements_[key];
 			return Base::Ele::value_Ref(e);
@@ -57,22 +59,22 @@ namespace Collections
 			return make_pair(e.first, Base::Ele::value_Ref(e.second));
 		}
 
-		LeafNode* nextLeaf() const
+		LeafNode* NextLeaf() const
 		{
 			return _next;
 		}
 
-		void nextLeaf(LeafNode* next)
+		void NextLeaf(LeafNode* next)
 		{
 			_next = next;
 		}
 
-		LeafNode* previousLeaf() const
+		LeafNode* PreviousLeaf() const
 		{
 			return _previous;
 		}
 
-		void  previousLeaf(LeafNode* previous)
+		void PreviousLeaf(LeafNode* previous)
 		{
 			_previous = previous;
 		}
@@ -80,8 +82,8 @@ namespace Collections
 	private:
 		vector<Key> CollectKeys(vector<Key> previousNodesKeys)
 		{
-			auto&& ks = Base::Ele::ptr(e.second)->Keys();
-			previousNodesKeys.insert(keys.end(), ks.begin(), ks.end());
+			auto&& ks = this->elements_->Keys();
+			previousNodesKeys.insert(previousNodesKeys.end(), ks.begin(), ks.end());
 			if (_next == nullptr)
 			{
 				return move(previousNodesKeys);

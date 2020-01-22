@@ -23,12 +23,12 @@ namespace Collections
 		if constexpr (IsLeaf)
 		{
 			auto node = static_cast<LEAF*>(currentNode);
-			auto oldPrevious = node->previousLeaf();
+			auto oldPrevious = node->PreviousLeaf();
 			auto newPre = static_cast<LEAF*>(newPreNode);
 
-			newPre->previousLeaf(oldPrevious);
-			newPre->nextLeaf(node);
-			node->previousLeaf(newPre);
+			newPre->PreviousLeaf(oldPrevious);
+			newPre->NextLeaf(node);
+			node->PreviousLeaf(newPre);
 		}
 	}
 
@@ -38,11 +38,11 @@ namespace Collections
 		if constexpr (IsLeaf)
 		{
 			auto current = static_cast<LEAF*>(currentNode);
-			auto pre = current->previousLeaf();
-			auto nxt = current->nextLeaf();
+			auto pre = current->PreviousLeaf();
+			auto nxt = current->NextLeaf();
 
-			pre->nextLeaf(nxt);
-			nxt->previousLeaf(pre);
+			pre->NextLeaf(nxt);
+			nxt->PreviousLeaf(pre);
 		}
 	}
 
@@ -53,7 +53,7 @@ namespace Collections
 		if constexpr (IsLeaf)
 		{
 			auto leaf = static_cast<LEAF*>(node);
-			previous = leaf->previousLeaf();
+			previous = leaf->PreviousLeaf();
 		}
 		else
 		{
@@ -68,7 +68,7 @@ namespace Collections
 		if constexpr (IsLeaf)
 		{
 			auto leaf = static_cast<LEAF*>(node);
-			next = leaf->nextLeaf();
+			next = leaf->NextLeaf();
 		}
 		else
 		{

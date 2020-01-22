@@ -54,7 +54,7 @@ TESTCASE("Btree test") {
 			ASSERT(btree.GetValue("10") == "d");
 			ASSERT(btree.ContainsKey("10"));
 
-			btree.ModifyValue(make_pair(kv0.first, "d"));
+			btree.ModifyValue(kv0.first, "d");
 			ASSERT(btree.GetValue(kv0.first) == "d");
 
 			auto keys = btree.Keys();
