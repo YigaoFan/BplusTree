@@ -24,7 +24,7 @@ namespace Collections
 	class NodeBase
 	{
 	protected:
-		Elements<Key, Value, BtreeOrder, NodeBase> elements_;
+		Elements<Key, Value, BtreeOrder> elements_;
 	public:
 		using Ele = Elements<Key, Value, BtreeOrder, NodeBase>;
 		using LessThan = typename Ele::LessThan;
@@ -50,15 +50,12 @@ namespace Collections
 		virtual unique_ptr<NodeBase> Clone() const = 0;
 		virtual unique_ptr<NodeBase> Move() const = 0;
 		virtual ~NodeBase() = default;
+		virtual bool Middle() const = 0;
 		virtual vector<Key> Keys() const = 0;
 
-		bool Middle() const
+		Key MinKey() const
 		{
-			return elements_.MiddleFlag;
-		}
-
-		Key MaxKey() const
-		{
+			// TODO should be a ref
 			return elements_[elements_.Count() - 1].first;
 		}
 
@@ -152,15 +149,13 @@ namespace Collections
 			return elements_.Full();
 		}
 
-		//void ChangeKey
-
 		template <RetValue ReturnValue, typename T>
 		auto FindHelper(Key const& key, function<T(NodeBase*)> onEqualDo)
 		{
 			auto& lessThan = *(elements_.LessThanPtr);
 #define ON_NOT_FOUND if constexpr (ReturnValue == RetValue::Bool) { return false; } else { throw KeyNotFoundException(); }
 
-			function<T(NodeBase*)> imp = [equalHandler = move(onEqualDo), &key, &imp, &lessThan](NodeBase* node)
+			function<T(NodeBase*)> imp = [onEqualDo = move(onEqualDo), &key, &imp, &lessThan](NodeBase* node)
 			{
 				for (auto& e : node->elements_)
 				{
@@ -197,7 +192,7 @@ namespace Collections
 			{
 				if (auto maxChange = elements_.Add(move(p)))
 				{
-					ChangeMaxKeyFromBottomToRoot(stack, MaxKey());
+					ChangeMaxKeyFromBottomToRoot(stack, MinKey());
 				}
 			}
 
@@ -224,7 +219,7 @@ namespace Collections
 				auto min = elements_.ExchangeMin(move(p), maxChanged);
 				if (maxChanged)
 				{
-					ChangeMaxKeyFromBottomToRoot(stack, MaxKey());
+					ChangeMaxKeyFromBottomToRoot(stack, MinKey());
 				}
 
 				return reallocatePre(previous, stack, move(min)); // trigger optimize
@@ -249,7 +244,7 @@ namespace Collections
 			{
 				// if not free, will not trigger move, so the ref type is fine
 				auto&& oldMax = elements_.ExchangeMax(move(p));
-				ChangeMaxKeyFromBottomToRoot(stack, MaxKey());
+				ChangeMaxKeyFromBottomToRoot(stack, MinKey());
 				return reallocateNxt(next, move(oldMax));
 			}
 
@@ -324,10 +319,10 @@ namespace Collections
 			auto& stack = passedNodeTrackStack;
 			// attention func change the stack or not
 
-			auto oldMaxKey = previousNode->MaxKey();
+			auto oldMaxKey = previousNode->MinKey();
 			auto previousTrackStack = getSiblingSearchTrackIn(stack, previousNode); // previous is leaf
 			previousNode->elements_.Append(move(appendPair));
-			auto newMaxKey = previousNode->MaxKey(); // will change previous max
+			auto newMaxKey = previousNode->MinKey(); // will change previous max
 			ChangeMaxKeyFromBottomToRoot(previousTrackStack, newMaxKey);
 
 			return true;
@@ -366,14 +361,14 @@ namespace Collections
 			{ // means arrive root node
 				auto& newLeftSonOfRoot = preNode;
 				auto newRightSonOfRoot = this->Move();
-				this->elements_.Append(make_pair<Key, unique_ptr<NodeBase>>(copy(newLeftSonOfRoot->MaxKey()),
+				this->elements_.Append(make_pair<Key, unique_ptr<NodeBase>>(copy(newLeftSonOfRoot->MinKey()),
 																			move(newLeftSonOfRoot)));
-				this->elements_.Append(make_pair<Key, unique_ptr<NodeBase>>(copy(newRightSonOfRoot->MaxKey()),
+				this->elements_.Append(make_pair<Key, unique_ptr<NodeBase>>(copy(newRightSonOfRoot->MinKey()),
 																			move(newRightSonOfRoot)));
 			}
 			else
 			{
-				auto pair = make_pair<Key, unique_ptr<NodeBase>>(copy(preNode->MaxKey()), move(preNode));
+				auto pair = make_pair<Key, unique_ptr<NodeBase>>(copy(preNode->MinKey()), move(preNode));
 				stack.back()->DoAdd(move(pair), stack);
 			}
 		}
@@ -387,7 +382,7 @@ namespace Collections
 			auto i = elements_.IndexOf(t);
 			if (elements_.RemoveAt(i))
 			{
-				ChangeMaxKeyFromBottomToRoot(stack, MaxKey());
+				ChangeMaxKeyFromBottomToRoot(stack, MinKey());
 			}
 
 			// TODO is_same need to verify
@@ -474,7 +469,7 @@ namespace Collections
 				// combine
 				previous->Receive(TailAppendWay(), move(*this));
 				auto preStack = getSiblingSearchTrackIn(stack, previous);
-				previous->ChangeMaxKeyFromBottomToRoot(preStack, previous->MaxKey());
+				previous->ChangeMaxKeyFromBottomToRoot(preStack, previous->MinKey());
 				setRemoveCurrentRelation<IsLeaf>(this);
 
 				return true;
@@ -485,7 +480,7 @@ namespace Collections
 				auto moveCount = (previous->ChildCount() - ChildCount()) / 2;
 				Receive(HeadInsertWay(), moveCount, *previous);
 				auto preStack = getSiblingSearchTrackIn(stack, previous);
-				previous->ChangeMaxKeyFromBottomToRoot(preStack, previous->MaxKey());
+				previous->ChangeMaxKeyFromBottomToRoot(preStack, previous->MinKey());
 
 				return false;
 			}
@@ -510,7 +505,7 @@ namespace Collections
 				// move some from nxt to this
 				auto moveCount = (next->ChildCount() - ChildCount()) / 2;
 				Receive(TailAppendWay(), moveCount, *next);
-				ChangeMaxKeyFromBottomToRoot(stack, MaxKey());
+				ChangeMaxKeyFromBottomToRoot(stack, MinKey());
 				return false;
 			}
 		}
@@ -548,7 +543,7 @@ namespace Collections
 			// TODO when call on Middle, there are duplicates compute
 			// Because the last Middle has already search this(wait to verify)
 			auto& stack = currentNodePassedTrackStack;
-			auto maxKey = sibling->MaxKey();
+			auto maxKey = sibling->MinKey();
 			auto rCurrentNodeIter = ++stack.rbegin(); // from not leaf
 			auto rEnd = stack.rend();
 

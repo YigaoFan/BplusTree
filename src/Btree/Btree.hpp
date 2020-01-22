@@ -117,8 +117,6 @@ namespace Collections
 	{
 	private:
 		using Base   = NodeBase  <Key, Value, BtreeOrder>;
-		using Leaf   = LeafNode  <Key, Value, BtreeOrder>;
-		using Middle = MiddleNode<Key, Value, BtreeOrder>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
 		shared_ptr<typename Base::LessThan> _lessThanPtr;
 		key_int              _keyCount{ 0 };
@@ -258,7 +256,7 @@ namespace Collections
 			{
 				auto node = NodeFactoryType::MakeNode(CreateEnumerator(&srcArray[preItemsCount], &srcArray[/*TODO (size_t)*/preItemsCount + itemsCount]),
 					lessThan);
-				consNodes[index] = make_pair(move(node->MaxKey()), move(node));
+				consNodes[index] = make_pair(move(node->MinKey()), move(node));
 			});
 
 			return consNodes;

@@ -50,5 +50,7 @@ namespace Collections
 				return make_unique<Middle>(enumerator, lessThan);
 			}
 		}
+
+		// TODO should handle when use LeafNode to cons MiddleNode
 	};
 }

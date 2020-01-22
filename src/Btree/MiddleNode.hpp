@@ -1,9 +1,11 @@
 #pragma once
+#include <memory>
 #include "NodeBaseCrtp.hpp"
 
 namespace Collections 
 {
 	using ::std::move;
+	using ::std::unique_ptr;
 
 #define NODE_TEMPLATE 
 #define MIDDLE MiddleNode<Key, Value, BtreeOrder>
@@ -15,6 +17,7 @@ namespace Collections
 		using          Base = NodeBase<Key, Value, BtreeOrder>;
 		using          Base_CRTP = NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder>;
 		using typename Base::LessThan;
+		Elements<Key, unique_ptr<Base>, BtreeOrder> _elements;
 
 	public:
 		template <typename Iter>
@@ -25,7 +28,11 @@ namespace Collections
 		template <typename Iterator, typename T>
 		MiddleNode(Enumerator<pair<Key, T>, Iterator> enumerator, shared_ptr<LessThan> lessThanPtr)
 			: Base_CRTP(enumerator, lessThanPtr)
-		{}
+		{
+			// TODO args should be a list of NodeBase pointer 
+			// and use LeafNodes' raw key to cons ref Key 
+			// and use MiddleNodes' ref key to cons ref Key 
+		}
 
 		MiddleNode(const MiddleNode& that)
 			: Base_CRTP(that)
@@ -40,6 +47,11 @@ namespace Collections
 		vector<Key> Keys() const override
 		{
 			return MinSon()->Keys();
+		}
+
+		bool Middle() const override
+		{
+			return true;
 		}
 
 #define SEARCH_HELPER_DEF(FUN_NAME, COMPARE_TO_BOUND, OFFSET, CHOOSE_SON)                                                                                 \

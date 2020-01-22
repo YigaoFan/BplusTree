@@ -2,6 +2,8 @@
 #include <utility>
 #include "Basic.hpp"
 #include "Enumerator.hpp"
+#include "Elements.hpp"
+#include "NodeBase.hpp"
 #include "NodeBaseCrtp.hpp"
 
 namespace Collections
@@ -16,6 +18,7 @@ namespace Collections
 		using Base = NodeBase<Key, Value, BtreeOrder>;
 		using Base_CRTP = NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>;
 		using typename Base::LessThan;
+		Elements<Key, Value, BtreeOrder> _elements;
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
 
@@ -47,16 +50,19 @@ namespace Collections
 			return CollectKeys(move(vector<Key>{}));
 		}
 
-		Value const& operator[](Key const& key)
+		bool Middle() const override
 		{
-			auto& e = this->elements_[key];
-			return Base::Ele::value_Ref(e);
+			return false;
 		}
 
-		pair<Key, Value> operator[](uint16_t i)
+		Value const& operator[](Key const& key)
 		{
-			auto& e = Base::elements_[i];
-			return make_pair(e.first, Base::Ele::value_Ref(e.second));
+			return this->elements_[key];
+		}
+
+		pair<Key, Value> const& operator[](uint16_t i)
+		{
+			return this->elements_[i];
 		}
 
 		LeafNode* NextLeaf() const
