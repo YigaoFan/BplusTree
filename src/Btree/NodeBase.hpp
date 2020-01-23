@@ -23,29 +23,10 @@ namespace Collections
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeBase
 	{
-	protected:
-		Elements<Key, Value, BtreeOrder> elements_;
 	public:
+		// TODO below two lines code wait to delete
 		using Ele = Elements<Key, Value, BtreeOrder, NodeBase>;
 		using LessThan = typename Ele::LessThan;
-
-		template <typename Iter>
-		NodeBase(Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
-			: elements_(begin, end, lessThanPtr)
-		{}
-
-		template <typename T, typename Iterator>
-		NodeBase(Enumerator<pair<Key, T>, Iterator> enumerator, shared_ptr<LessThan> lessThan)
-			: elements_(enumerator, lessThan)
-		{}
-
-		NodeBase(NodeBase const& that)
-			: elements_(that.elements_)
-		{}
-
-		NodeBase(NodeBase&& that) noexcept
-			: elements_(move(that.elements_))
-		{}
 
 		virtual unique_ptr<NodeBase> Clone() const = 0;
 		virtual unique_ptr<NodeBase> Move() const = 0;
@@ -335,21 +316,21 @@ namespace Collections
 			return true;
 		}
 
-		void ChangeMaxKeyFromBottomToRoot(vector<NodeBase*> const& passedNodeTrackStack, Key const& newMaxKey) const
-		{
-			if (passedNodeTrackStack.size() == 1) { return; }
+		// void ChangeMaxKeyFromBottomToRoot(vector<NodeBase*> const& passedNodeTrackStack, Key const& newMaxKey) const
+		// {
+		// 	if (passedNodeTrackStack.size() == 1) { return; }
 
-			auto& stack = passedNodeTrackStack;
-			auto rCurrentIter = stack.rbegin();
-			auto rEnd = stack.rend();
-			for (auto upperNodeIter = rCurrentIter + 1; rCurrentIter != rEnd; ++rCurrentIter, upperNodeIter = rCurrentIter + 1)
-			{
-				// Up node here is MiddleNode already
-				auto matchIndex = ptrOff(upperNodeIter)->elements_.ChangeKeyOf(*rCurrentIter, newMaxKey);
-				auto maxIndex = ptrOff(upperNodeIter)->ChildCount() - 1;
-				if (matchIndex != maxIndex) { break; }
-			}
-		}
+		// 	auto& stack = passedNodeTrackStack;
+		// 	auto rCurrentIter = stack.rbegin();
+		// 	auto rEnd = stack.rend();
+		// 	for (auto upperNodeIter = rCurrentIter + 1; rCurrentIter != rEnd; ++rCurrentIter, upperNodeIter = rCurrentIter + 1)
+		// 	{
+		// 		// Up node here is MiddleNode already
+		// 		auto matchIndex = ptrOff(upperNodeIter)->elements_.ChangeKeyOf(*rCurrentIter, newMaxKey);
+		// 		auto maxIndex = ptrOff(upperNodeIter)->ChildCount() - 1;
+		// 		if (matchIndex != maxIndex) { break; }
+		// 	}
+		// }
 
 		void insertNewPreToUpper(unique_ptr<NodeBase> preNode, vector<NodeBase*>& passedNodeTrackStack)
 		{

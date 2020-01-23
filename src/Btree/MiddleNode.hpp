@@ -17,29 +17,24 @@ namespace Collections
 		using          Base = NodeBase<Key, Value, BtreeOrder>;
 		using          Base_CRTP = NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder>;
 		using typename Base::LessThan;
-		Elements<Key, unique_ptr<Base>, BtreeOrder> _elements;
+		Elements<Key, unique_ptr<Base>, BtreeOrder - 1> _elements;
 
 	public:
-		template <typename Iter>
-		MiddleNode(Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
-			: Base_CRTP(begin, end, lessThanPtr)
-		{ }
-
 		template <typename Iterator, typename T>
 		MiddleNode(Enumerator<pair<Key, T>, Iterator> enumerator, shared_ptr<LessThan> lessThanPtr)
-			: Base_CRTP(enumerator, lessThanPtr)
+			: Base_CRTP(), _elements(enumerator, lessThan)
 		{
 			// TODO args should be a list of NodeBase pointer 
 			// and use LeafNodes' raw key to cons ref Key 
 			// and use MiddleNodes' ref key to cons ref Key 
 		}
 
-		MiddleNode(const MiddleNode& that)
+		MiddleNode(MiddleNode const& that)
 			: Base_CRTP(that)
 		{ }
 
 		MiddleNode(MiddleNode&& that) noexcept
-			: Base_CRTP(::std::move(that))
+			: Base_CRTP(move(that))
 		{ }
 
 		~MiddleNode() override = default;

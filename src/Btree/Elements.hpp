@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include <functional>
-#include <string> // For to_string
 #include <vector>
 #include <memory>
 #include <utility>
@@ -19,6 +18,7 @@ namespace Collections
 	struct TailAppendWay {};
 	struct HeadInsertWay {};
 	
+	// TODO when BtreeOrder is big, use binary search in iterate process
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class Elements
 	{
@@ -31,17 +31,6 @@ namespace Collections
 		array<Item, BtreeOrder> _elements;
 
 	public:
-		template <typename Iter>
-		Elements(Iter begin, Iter end, shared_ptr<LessThan> lessThanPtr)
-			: LessThanPtr(lessThanPtr)
-		{
-			do
-			{
-				_elements[_count++] = move(*begin);
-				++begin;
-			} while (begin != end);
-		}
-
 		template <typename Value, typename Iterator>
 		Elements(Enumerator<pair<Key, Value>, Iterator> enumerator, shared_ptr<LessThan> lessThanPtr)
 			: LessThanPtr(lessThanPtr)

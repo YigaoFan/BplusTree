@@ -5,7 +5,6 @@
 #include <utility>
 #include <algorithm>
 #include <array>
-#include <exception>
 #include "Basic.hpp"
 #include "Enumerator.hpp"
 #include "NodeFactory.hpp"
@@ -20,8 +19,6 @@ namespace Collections
 	using ::std::make_pair;
 	using ::std::vector;
 	using ::std::sort;
-	using ::std::exception;
-	using ::std::runtime_error;
 	using ::std::unique_ptr;
 	using ::std::make_shared;
 	using ::std::size_t;
@@ -151,7 +148,7 @@ namespace Collections
 		// TODO Enumerator constructor
 		// Btree(LessThan lessThan, )
 
-		Btree(const Btree& that)
+		Btree(Btree const& that)
 			: _keyCount(that._keyCount), _root(that._root->Clone())
 		{ }
 
@@ -161,7 +158,7 @@ namespace Collections
 			that._keyCount = 0;
 		}
 
-		Btree& operator=(Btree const & that)
+		Btree& operator=(Btree const& that)
 		{
 			this->_root.reset(that._root->Clone());
 			this->_keyCount = that._keyCount;
@@ -198,7 +195,7 @@ namespace Collections
 		}
 
 #define EMPTY_CHECK if (Empty()) { throw KeyNotFoundException("The B+ tree is empty"); }
- 		Value GetValue(Key const &key) const
+ 		Value GetValue(Key const&key) const
 		{
 			EMPTY_CHECK;
 			return _root->GetValue(key);
@@ -210,30 +207,18 @@ namespace Collections
 			_root->ModifyValue(key, move(newValue));
 		}
 
-		void Remove(Key const&key)
+		void Remove(Key const& key)
 		{
 			EMPTY_CHECK;
-			if (vector<Base*> passedNodeTrackStack; _root->ContainsKey(key, passedNodeTrackStack))
-			{
-				_root->Remove(key, passedNodeTrackStack);
-				--_keyCount;
-			}
+			_root->Remove(key);
+			--_keyCount;
 		}
 #undef EMPTY_CHECK
 
 		// TODO tryAdd(pair<Key, Value>);
 		void Add(pair<Key, Value> p)
 		{
-			vector<Base*> passedNodeTrackStack;
-			if (_root->ContainsKey(p.first, passedNodeTrackStack))
-			{
-				throw DuplicateKeyException(p.first, "The key-value has already existed, can't be added");
-			}
-			else
-			{
-				_root->Add(move(p), passedNodeTrackStack);
-			}
-
+			_root->Add(move(p));
 			++_keyCount;
 		}
 

@@ -15,30 +15,25 @@ namespace Collections
 	class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>
 	{
 	private:
-		using Base = NodeBase<Key, Value, BtreeOrder>;
+		using Ele = Elements<Key, Value, BtreeOrder>;
+		using typename Ele::LessThan;
 		using Base_CRTP = NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>;
-		using typename Base::LessThan;
 		Elements<Key, Value, BtreeOrder> _elements;
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
 
 	public:
-		template <typename Iter>
-		LeafNode(Iter begin, Iter end, shared_ptr<LessThan> lessThan)
-			: Base_CRTP(begin, end, lessThan)
-		{}
-
 		template <typename Iterator>
 		LeafNode(Enumerator<pair<Key, Value>, Iterator> enumerator, shared_ptr<LessThan> lessThan)
-			: Base_CRTP(enumerator, lessThan)
+			: Base_CRTP(), _elements(enumerator, lessThan)
 		{}
 
 		LeafNode(LeafNode const& that, LeafNode* previous = nullptr, LeafNode* next = nullptr)
-			: Base_CRTP(that), _previous(previous), _next(next)
+			: Base_CRTP(that), _next(next), _previous(previous)
 		{}
 
 		LeafNode(LeafNode&& that) noexcept
-			: Base_CRTP(std::move(that)), _next(that._next)
+			: Base_CRTP(move(that)), _next(that._next), _previous(that._previous)
 		{}
 
 		~LeafNode() override = default;
