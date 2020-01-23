@@ -94,14 +94,12 @@ namespace Collections
 	private:
 		Base* MaxSon() const
 		{
-			auto& es = Base::elements_;
-			return Base::Ele::ptr(es[this->ChildCount() - 1].second);
+			return _elements[this->ChildCount() - 1].second;
 		}
 
 		Base* MinSon() const
 		{
-			auto& es = this->elements_;
-			return Base::Ele::ptr(es[0].second);
+			return _elements[0].second;
 		}
 	};
 }

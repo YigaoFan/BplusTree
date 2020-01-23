@@ -33,6 +33,8 @@ namespace Collections
 		virtual ~NodeBase() = default;
 		virtual bool Middle() const = 0;
 		virtual vector<Key> Keys() const = 0;
+		virtual void Add(pair<Key, Value>) = 0;
+		virtual void Remove(Key const&) = 0;
 
 		Key MinKey() const
 		{
@@ -131,7 +133,7 @@ namespace Collections
 		}
 
 		template <RetValue ReturnValue, typename T>
-		auto FindHelper(Key const& key, function<T(NodeBase*)> onEqualDo)
+		virtual auto FindHelper(Key const& key, function<T(NodeBase*)> onEqualDo)
 		{
 			auto& lessThan = *(elements_.LessThanPtr);
 #define ON_NOT_FOUND if constexpr (ReturnValue == RetValue::Bool) { return false; } else { throw KeyNotFoundException(); }

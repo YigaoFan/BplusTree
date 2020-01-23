@@ -29,14 +29,20 @@ namespace Collections
 		{}
 
 		LeafNode(LeafNode const& that, LeafNode* previous = nullptr, LeafNode* next = nullptr)
-			: Base_CRTP(that), _next(next), _previous(previous)
+			: Base_CRTP(that), _elements(that._elements), _next(next), _previous(previous)
 		{}
 
 		LeafNode(LeafNode&& that) noexcept
-			: Base_CRTP(move(that)), _next(that._next), _previous(that._previous)
+			: Base_CRTP(move(that)), _elements(move(that._elements)),
+			 _next(that._next), _previous(that._previous)
 		{}
 
 		~LeafNode() override = default;
+
+		bool Middle() const override
+		{
+			return false;
+		}
 
 		vector<Key> Keys() const override
 		{
@@ -45,9 +51,14 @@ namespace Collections
 			return CollectKeys(move(vector<Key>{}));
 		}
 
-		bool Middle() const override
+		void Add(pair<Key, Value>) override
 		{
-			return false;
+
+		}
+
+		virtual void Remove(Key const&) override
+		{
+			
 		}
 
 		Value const& operator[](Key const& key)
