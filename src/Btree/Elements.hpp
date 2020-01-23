@@ -4,6 +4,7 @@
 #include <memory>
 #include <utility>
 #include "Basic.hpp"
+#include "IEnumerator.hpp"
 #include "Exception.hpp"
 
 namespace Collections
@@ -31,8 +32,7 @@ namespace Collections
 		array<Item, BtreeOrder> _elements;
 
 	public:
-		template <typename Value, typename Iterator>
-		Elements(Enumerator<pair<Key, Value>, Iterator> enumerator, shared_ptr<LessThan> lessThanPtr)
+		Elements(IEnumerator<pair<Key, Value>> enumerator, shared_ptr<LessThan> lessThanPtr)
 			: LessThanPtr(lessThanPtr)
 		{
 			while (enumerator.MoveNext())

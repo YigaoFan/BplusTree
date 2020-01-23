@@ -4,13 +4,12 @@
 ***********************************/
 
 #include <functional>
-#include <optional>
 #include <memory>
+#include "IEnumerator.hpp"
 #include "Exception.hpp"
 
 namespace Collections
 {
-	using ::std::optional;
 	using ::std::shared_ptr;
 	using ::std::size_t;
 	using ::std::remove_reference_t;
@@ -36,7 +35,7 @@ namespace Collections
 
 	// TODO how to remove the Iterator type in template args
 	template <typename Item, typename Iterator>
-	class Enumerator
+	class Enumerator : public IEnumerator<Item>
 	{
 	private:
 		bool _firstMove{ true };
@@ -48,7 +47,7 @@ namespace Collections
 		// TODO: support array, list, raw array?
 		// TODO how to direct use constructor(arg is container) to deduce Item and Iterator type
 
-		Item& Current()
+		Item& Current() override
 		{
 			if (_firstMove) 
 			{
@@ -67,7 +66,7 @@ namespace Collections
 			: _current(_begin), _begin(begin), _end(end)
 		{ }
 
-		bool MoveNext()
+		bool MoveNext() override
 		{
 			if (_begin == _end)
 			{

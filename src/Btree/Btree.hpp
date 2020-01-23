@@ -258,7 +258,7 @@ namespace Collections
 		{
 			if constexpr (Count <= BtreeOrder)
 			{
-				_root = NodeFactoryType::MakeNode(ItemsToConsNode.begin(), ItemsToConsNode.end(), _lessThanPtr);
+				_root = NodeFactoryType::MakeNode(CreateEnumerator(ItemsToConsNode.begin(), ItemsToConsNode.end()), _lessThanPtr);
 				return;
 			}
 

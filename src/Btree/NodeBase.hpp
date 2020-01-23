@@ -25,7 +25,7 @@ namespace Collections
 	{
 	public:
 		// TODO below two lines code wait to delete
-		using Ele = Elements<Key, Value, BtreeOrder, NodeBase>;
+		using Ele = Elements<Key, Value, BtreeOrder>;
 		using LessThan = typename Ele::LessThan;
 
 		virtual unique_ptr<NodeBase> Clone() const = 0;
@@ -33,14 +33,9 @@ namespace Collections
 		virtual ~NodeBase() = default;
 		virtual bool Middle() const = 0;
 		virtual vector<Key> Keys() const = 0;
+		virtual Key MinKey() const = 0;
 		virtual void Add(pair<Key, Value>) = 0;
 		virtual void Remove(Key const&) = 0;
-
-		Key MinKey() const
-		{
-			// TODO should be a ref
-			return elements_[elements_.Count() - 1].first;
-		}
 
 		bool ContainsKey(Key const& key, vector<NodeBase*>& passedNodeTrackStack)
 		{
@@ -101,36 +96,36 @@ namespace Collections
 					return;
 				}
 
-				node->elements_[key] = value;
+				node->elements_[key] = move(value);
 			};
 
 			FindHelper<RetValue::Void>(key, moveDeepOnEqual);
 		}
 
-		void Add(pair<Key, Value> p, vector<NodeBase*>& passedNodeTrackStack)
-		{
-			auto& stack = passedNodeTrackStack;
-			auto lastNode = stack.back();
-			lastNode->DoAdd(move(p), stack);
-		}
+		//void Add(pair<Key, Value> p, vector<NodeBase*>& passedNodeTrackStack)
+		//{
+		//	auto& stack = passedNodeTrackStack;
+		//	auto lastNode = stack.back();
+		//	lastNode->DoAdd(move(p), stack);
+		//}
 
-		void Remove(Key const& key, vector<NodeBase*>& passedNodeTrackStack)
-		{
-			auto& stack = passedNodeTrackStack;
-			NodeBase* lastNode = stack.back();
-			lastNode->doRemove(key, stack);
-		}
+		//void Remove(Key const& key, vector<NodeBase*>& passedNodeTrackStack)
+		//{
+		//	auto& stack = passedNodeTrackStack;
+		//	NodeBase* lastNode = stack.back();
+		//	lastNode->doRemove(key, stack);
+		//}
 
 	protected:
-		order_int ChildCount() const
-		{
-			return elements_.Count();
-		}
+		//order_int ChildCount() const
+		//{
+		//	return elements_.Count();
+		//}
 
-		bool Full() const
-		{
-			return elements_.Full();
-		}
+		//bool Full() const
+		//{
+		//	return elements_.Full();
+		//}
 
 		template <RetValue ReturnValue, typename T>
 		virtual auto FindHelper(Key const& key, function<T(NodeBase*)> onEqualDo)

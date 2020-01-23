@@ -6,47 +6,61 @@ namespace Collections
 {
 	using ::std::move;
 	using ::std::unique_ptr;
+	using ::std::cref;
+	using ::std::pair;
+	using ::std::make_pair;
 
 #define NODE_TEMPLATE 
 #define MIDDLE MiddleNode<Key, Value, BtreeOrder>
 
-	template <typename Key, typename Value, uint16_t BtreeOrder>
+	template <typename Key, typename Value, order_int BtreeOrder>
 	class MiddleNode : public NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder> 
 	{
 	private:
 		using          Base = NodeBase<Key, Value, BtreeOrder>;
 		using          Base_CRTP = NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder>;
 		using typename Base::LessThan;
-		Elements<Key, unique_ptr<Base>, BtreeOrder - 1> _elements;
+		Elements<cref<Key>, unique_ptr<Base>, BtreeOrder - 1> _elements;
 
 	public:
-		template <typename Iterator, typename T>
-		MiddleNode(Enumerator<pair<Key, T>, Iterator> enumerator, shared_ptr<LessThan> lessThanPtr)
-			: Base_CRTP(), _elements(enumerator, lessThan)
-		{
-			// TODO args should be a list of NodeBase pointer 
-			// and use LeafNodes' raw key to cons ref Key 
-			// and use MiddleNodes' ref key to cons ref Key 
-		}
+		template <typename Iterator>
+		MiddleNode(Enumerator<unique_ptr<Base>, Iterator> enumerator, shared_ptr<LessThan> lessThanPtr)
+			: Base_CRTP(), _elements(EnumeratorPipeine(enumerator, ConvertToKeyBasePtrPair)), , lessThan)
+		{ }
 
 		MiddleNode(MiddleNode const& that)
-			: Base_CRTP(that)
+			: Base_CRTP(that)// TODO how to solve _elements copy
 		{ }
 
 		MiddleNode(MiddleNode&& that) noexcept
-			: Base_CRTP(move(that))
+			: Base_CRTP(move(that)), _elements(move(that._elements))
 		{ }
 
 		~MiddleNode() override = default;
-		
+
+		bool Middle() const override
+		{
+			return true;
+		}
+
 		vector<Key> Keys() const override
 		{
 			return MinSon()->Keys();
 		}
 
-		bool Middle() const override
+		Key const& MinKey() override const
 		{
-			return true;
+			return _elements[0].first;
+		}
+
+		void Add(pair<Key, Value> p) override
+		{
+
+		}
+
+		virtual void Remove(Key const& key) override
+		{
+
 		}
 
 #define SEARCH_HELPER_DEF(FUN_NAME, COMPARE_TO_BOUND, OFFSET, CHOOSE_SON)                                                                                 \
@@ -100,6 +114,11 @@ namespace Collections
 		Base* MinSon() const
 		{
 			return _elements[0].second;
+		}
+
+		static pair<cref<Key>, unique_ptr<Base>> ConvertToKeyBasePtrPair(unique_ptr<Base> node)
+		{
+			return make_pair<cref<Key>, unique_ptr<Base>>(node->MinKey(), node);
 		}
 	};
 }

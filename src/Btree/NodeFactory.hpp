@@ -25,7 +25,7 @@ namespace Collections
 		using LessThan = typename Node::LessThan;
 
 	public:
-		template <typename Iter>
+		/*template <typename Iter>
 		static unique_ptr<Node> MakeNode(Iter begin, Iter end, shared_ptr<LessThan> lessThan)
 		{
 			if constexpr (is_same_v<decay_t<decltype(*begin)>, pair<Key, Value>>)
@@ -36,7 +36,7 @@ namespace Collections
 			{
 				return make_unique<Middle>(CreateEnumerator(begin, end), lessThan);
 			}
-		}
+		}*/
 
 		template <typename... Ts>
 		static unique_ptr<Node> MakeNode(Enumerator<Ts...> enumerator, shared_ptr<LessThan> lessThan)

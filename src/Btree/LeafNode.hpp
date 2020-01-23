@@ -51,24 +51,34 @@ namespace Collections
 			return CollectKeys(move(vector<Key>{}));
 		}
 
-		void Add(pair<Key, Value>) override
+		Key const& MinKey() override const
 		{
-
+			return _elements[0].first;
 		}
 
-		virtual void Remove(Key const&) override
+		void Add(pair<Key, Value> p) override
 		{
-			
+			if (!_elements.Full())
+			{
+				return _elements.Add(move(p));
+			}
+
+			// Compare and choose previous and next LeafNode
+		}
+
+		virtual void Remove(Key const& key) override
+		{
+			return _elements.Remove(key);
 		}
 
 		Value const& operator[](Key const& key)
 		{
-			return this->elements_[key];
+			return _elements[key];
 		}
 
-		pair<Key, Value> const& operator[](uint16_t i)
+		pair<Key, Value> const& operator[](order_int i)
 		{
-			return this->elements_[i];
+			return _elements[i];
 		}
 
 		LeafNode* NextLeaf() const
@@ -94,7 +104,7 @@ namespace Collections
 	private:
 		vector<Key> CollectKeys(vector<Key> previousNodesKeys)
 		{
-			auto&& ks = this->elements_->Keys();
+			auto&& ks = _elements->Keys();
 			previousNodesKeys.insert(previousNodesKeys.end(), ks.begin(), ks.end());
 			if (_next == nullptr)
 			{
