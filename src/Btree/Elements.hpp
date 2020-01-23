@@ -1,30 +1,20 @@
 ﻿#pragma once
 #include <functional>
-#include <variant>
-#include <exception>
 #include <string> // For to_string
 #include <vector>
 #include <memory>
-#include <iterator>
 #include <utility>
 #include "Basic.hpp"
 #include "Exception.hpp"
 
 namespace Collections
 {
-	using ::std::variant;
 	using ::std::pair;
 	using ::std::vector;
 	using ::std::function;
-	using ::std::unique_ptr;
 	using ::std::shared_ptr;
 	using ::std::array;
-	using ::std::runtime_error;
-	using ::std::make_unique;
-	using ::std::forward_iterator_tag;
-	using ::std::make_pair;
 	using ::std::move;
-	using ::std::is_same_v;
 
 	struct TailAppendWay {};
 	struct HeadInsertWay {};
@@ -106,6 +96,7 @@ namespace Collections
 		vector<Key> Keys() const
 		{
 			vector<Key> keys;
+			keys.reserve(_count);
 			auto enumerator = GetEnumerator();
 			while (enumerator.MoveNext())
 			{
@@ -218,48 +209,28 @@ namespace Collections
 			that.RemoveItems<true>(count);
 		}
 
-		order_int ChangeKeyOf(PtrTo* ptr, Key newKey)
+		order_int ChangeKeyOf(Value const& value, Key newKey)
 		{
-			auto index = IndexOf(ptr);
+			auto index = IndexOf(value);
 			_elements[index].first = move(newKey);
 			return index;
 		}
 
 		pair<Key, Value> ExchangeMax(pair<Key, Value> p)
 		{
-			auto& maxItem = _elements[_count - 1];
-			auto key = move(maxItem.first);
-			auto variantValue = move(maxItem.second);
+			auto maxItem = move(_elements[_count - 1]);
 			--_count;
 			Add(move(p));
-
-			if constexpr (is_same_v<decay_t<T>, Value>)
-			{
-				return make_pair<Key, T>(move(key), value_Move(variantValue));
-			}
-			else
-			{
-				return make_pair<Key, T>(move(key), uniquePtr_Move(variantValue));
-			}
+			return maxItem;
 		}
 
 		pair<Key, Value> ExchangeMin(pair<Key, Value> p)
 		{
-			auto& minItem = _elements[0];
-			auto key = move(minItem.first);
-			auto variantValue = move(minItem.second);
+			auto minItem = move(_elements[0]);
 			MoveItems(-1, 1);
 			--_count;
-			maxChanged = Add(move(p));
-
-			if constexpr (is_same_v<decay_t<T>, Value>)
-			{
-				return make_pair<Key, T>(move(key), value_Move(variantValue));
-			}
-			else
-			{
-				return make_pair<Key, T>(move(key), uniquePtr_Move(variantValue));
-			}
+			Add(move(p));
+			return minItem;
 		}
 
 		Value const& operator[](Key const& key) const
