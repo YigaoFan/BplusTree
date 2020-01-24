@@ -14,6 +14,25 @@ namespace Collections
 	using ::std::size_t;
 	using ::std::remove_reference_t;
 
+	template <typename Item>
+	class EmptyEnumerator : public IEnumerator<Item>
+	{
+	public:
+		Item& Current() override
+		{
+			throw InvalidOperationException("Can't read Current() of EmptyEnumerator");
+		}
+		virtual bool MoveNext() override
+		{
+			return false;
+		}
+
+		size_t CurrentIndex() override
+		{
+			throw InvalidOperationException("Can't read CurrentIndex() of EmptyEnumerator");
+		}
+	};
+
 	template <typename Item, typename Iterator>
 	class Enumerator;
 
@@ -57,7 +76,7 @@ namespace Collections
 			return *_current;
 		}
 
-		size_t CurrentIndexFromStart()
+		size_t CurrentIndex() override
 		{
 			return _current - _begin;
 		}

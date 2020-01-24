@@ -11,6 +11,7 @@ namespace Collections
 {
 	using ::std::move;
 	using ::std::abs;
+	using ::std::make_unique;
 
 #define LEAF LeafNode<Key, Value, BtreeOrder>
 
@@ -27,6 +28,10 @@ namespace Collections
 		LeafNode* _previous{ nullptr };
 
 	public:
+		LeafNode(shared_ptr<LessThan> lessThan)
+			: Base_CRTP(), _elements(EmptyEnumerator<pair<Key, Value>>(), lessThan)
+		{ }
+
 		template <typename Iterator>
 		LeafNode(Enumerator<pair<Key, Value>, Iterator> enumerator, shared_ptr<LessThan> lessThan)
 			: Base_CRTP(), _elements(enumerator, lessThan)
@@ -116,12 +121,35 @@ namespace Collections
 			}
 			
 			// Split node
+			auto newPreLeaf = make_unique<LeafNode>(_elements.LessThanPtr);
+			newPreLeaf._next = this;
+			newPreLeaf._previous = _previous;
+			_previous = newPreLeaf.get();
+			// Add
+			auto i = _elements.SuitPosition(p.first);
+			constexpr auto middle = (BtreeOrder % 2) ? (BtreeOrder / 2 + 1) : (BtreeOrder / 2);
+			if (i <= middle)
+			{
+				constexpr auto removeCount = middle;
+				removeItems(removeCount);
+				// Exchange
+			}
+			else
+			{
+				constexpr auto removeCount = BtreeOrder - middle;
+				removeItems(removeCount);
+				// Exchange
+			}
 		}
 
 		virtual void Remove(Key const& key) override
 		{
-			return _elements.Remove(key);
-			// TODO
+			_elements.Remove(key);
+			constexpr auto lowBound = 1 + ((BtreeOrder - 1) / 2);
+			if (_elements.Count() < lowBound)
+			{
+				auto newLeaf = make_unique
+			}
 		}
 
 		Value const& operator[](Key const& key)

@@ -13,6 +13,7 @@ namespace Collections
 {
     using ::std::function;
     using ::std::move;
+    using ::std::size_t;
 
     template <typename RawItem, typename Item, typename Iterator>
     class EnumeratorPipeine : public IEnumerator<Item>
@@ -34,6 +35,11 @@ namespace Collections
         bool MoveNext() override
         {
             return _enumerator.MoveNext();
+        }
+
+        size_t CurrentIndex() override
+        {
+            return _enumerator.CurrentIndex();
         }
 
         template <typename T>

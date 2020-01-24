@@ -255,7 +255,7 @@ namespace Collections
 				// TODO Value use this to compare maybe not right, need to care this method use in scene
 				if (item.second == value)
 				{
-					return (order_int)enumerator.CurrentIndexFromStart();
+					return (order_int)enumerator.CurrentIndex();
 				}
 			}
 
@@ -271,7 +271,7 @@ namespace Collections
 				auto& item = enumerator.Current();
 				if (lessThan(key, item.first) == lessThan(item.first, key))
 				{
-					return (order_int)enumerator.CurrentIndexFromStart();
+					return (order_int)enumerator.CurrentIndex();
 				}
 			}
 

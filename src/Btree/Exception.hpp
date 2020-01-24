@@ -49,4 +49,16 @@ namespace Collections
 			: runtime_error("Invalid access")
 		{}
 	};
+
+	class InvalidOperationException : public runtime_error
+	{
+	public:
+		explicit InvalidOperationException()
+			: runtime_error("Invalid operation")
+		{}
+
+		explicit InvalidOperationException(string message)
+			: runtime_error(message)
+		{}
+	};
 }

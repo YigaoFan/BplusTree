@@ -320,27 +320,27 @@ namespace Collections
 		// 	}
 		// }
 
-		void insertNewPreToUpper(unique_ptr<NodeBase> preNode, vector<NodeBase*>& passedNodeTrackStack)
-		{
+		//void insertNewPreToUpper(unique_ptr<NodeBase> preNode, vector<NodeBase*>& passedNodeTrackStack)
+		//{
 
-			auto& stack = passedNodeTrackStack;
-			stack.pop_back(); // reduce lower node, prepare to new upper level add
+		//	auto& stack = passedNodeTrackStack;
+		//	stack.pop_back(); // reduce lower node, prepare to new upper level add
 
-			if (stack.empty())
-			{ // means arrive root node
-				auto& newLeftSonOfRoot = preNode;
-				auto newRightSonOfRoot = this->Move();
-				this->elements_.Append(make_pair<Key, unique_ptr<NodeBase>>(copy(newLeftSonOfRoot->MinKey()),
-																			move(newLeftSonOfRoot)));
-				this->elements_.Append(make_pair<Key, unique_ptr<NodeBase>>(copy(newRightSonOfRoot->MinKey()),
-																			move(newRightSonOfRoot)));
-			}
-			else
-			{
-				auto pair = make_pair<Key, unique_ptr<NodeBase>>(copy(preNode->MinKey()), move(preNode));
-				stack.back()->DoAdd(move(pair), stack);
-			}
-		}
+		//	if (stack.empty())
+		//	{ // means arrive root node
+		//		auto& newLeftSonOfRoot = preNode;
+		//		auto newRightSonOfRoot = this->Move();
+		//		this->elements_.Append(make_pair<Key, unique_ptr<NodeBase>>(copy(newLeftSonOfRoot->MinKey()),
+		//																	move(newLeftSonOfRoot)));
+		//		this->elements_.Append(make_pair<Key, unique_ptr<NodeBase>>(copy(newRightSonOfRoot->MinKey()),
+		//																	move(newRightSonOfRoot)));
+		//	}
+		//	else
+		//	{
+		//		auto pair = make_pair<Key, unique_ptr<NodeBase>>(copy(preNode->MinKey()), move(preNode));
+		//		stack.back()->DoAdd(move(pair), stack);
+		//	}
+		//}
 		
 
 		template <typename T>
