@@ -23,6 +23,8 @@ namespace Collections
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeBase
 	{
+	private:
+		// TODO function<void(LeafNode*, LeafNode*)> _upNodeCallback;
 	public:
 		// TODO below two lines code wait to delete
 		using Ele = Elements<Key, Value, BtreeOrder>;

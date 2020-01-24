@@ -113,6 +113,7 @@ namespace Collections
 			return i == (_count - 1);
 		}
 
+		// TODO check ref exist?
 		template <bool FromHead>
 		void RemoveItems(order_int count)
 		{
@@ -130,6 +131,19 @@ namespace Collections
 			}
 		}
 
+		vector<pair<Key, Value>> PopOutItems(order_int count)
+		{
+			vector<pair<Key, Value>> outItems;
+			while (count != 0)
+			{
+				outItems.emplace_back(move(_elements[_count - 1]));
+				--_count;
+				--count;
+			}
+
+			return outItems;
+		}
+
 		void Add(pair<Key, Value> p)
 		{
 			if ((*LessThanPtr)(_elements[_count - 1].first, p.first))
@@ -139,6 +153,14 @@ namespace Collections
 			else
 			{
 				Insert(move(p));
+			}
+		}
+
+		void Add(IEnumerator<pair<Key, Value>>& enumerator)
+		{
+			while (enumerator.MoveNext())
+			{
+				Add(move(enumerator.Current()));
 			}
 		}
 

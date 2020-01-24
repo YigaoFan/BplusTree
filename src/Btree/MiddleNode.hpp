@@ -123,5 +123,12 @@ namespace Collections
 		{
 			return _elements[0].second;
 		}
+
+		// TODO maybe add and remove are in the same method
+		void AddBelowNodeCallback(Base* srcNode, Base* newNextNode)
+		{
+			// find index of srcNode and add new NextNode
+			// if this is Full(), combine the node or call the upper node callback
+		}
 	};
 }

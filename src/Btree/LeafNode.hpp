@@ -26,6 +26,8 @@ namespace Collections
 		Elements<Key, Value, BtreeOrder> _elements;
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
+		// TODO wait to init
+		function<void(LeafNode*, LeafNode*)> _upNodeCallback;
 
 	public:
 		LeafNode(shared_ptr<LessThan> lessThan)
@@ -120,26 +122,33 @@ namespace Collections
 				}
 			}
 			
-			// Split node
-			auto newPreLeaf = make_unique<LeafNode>(_elements.LessThanPtr);
-			newPreLeaf._next = this;
-			newPreLeaf._previous = _previous;
-			_previous = newPreLeaf.get();
+			// Create new empty LeafNode
+			auto newNxtLeaf = make_unique<LeafNode>(_elements.LessThanPtr);
+			newNxtLeaf._next = this->_next;
+			newNxtLeaf._previous = this;
+			this->_next = newNxtLeaf.get();
+
+			auto doBalance = [&](order_int preNodeRemoveCount)
+			{
+				this->_elements.PopOutItems(removeCount);
+			};
 			// Add
 			auto i = _elements.SuitPosition(p.first);
 			constexpr auto middle = (BtreeOrder % 2) ? (BtreeOrder / 2 + 1) : (BtreeOrder / 2);
 			if (i <= middle)
 			{
-				constexpr auto removeCount = middle;
-				removeItems(removeCount);
-				// Exchange
+				auto items = this->_elements.PopOutItems(middle);
+				this->_elements.Add(move(p));
+				newNxtLeaf._elements.Add(CreateEnumerator(items.rbegin(), items.rend()));
 			}
 			else
 			{
-				constexpr auto removeCount = BtreeOrder - middle;
-				removeItems(removeCount);
-				// Exchange
+				auto items = this->_elements.PopOutItems(BtreeOrder - middle);
+				newNxtLeaf._elements.Add(CreateEnumerator(items.rbegin(), items.rend()));
+				newNxtLeaf->_elements.Add(move(p));
 			}
+
+			_upNodeCallback(this, newNxtLeaf);
 		}
 
 		virtual void Remove(Key const& key) override
