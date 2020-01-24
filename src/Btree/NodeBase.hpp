@@ -117,15 +117,6 @@ namespace Collections
 		//}
 
 	protected:
-		//order_int ChildCount() const
-		//{
-		//	return elements_.Count();
-		//}
-
-		//bool Full() const
-		//{
-		//	return elements_.Full();
-		//}
 
 		template <RetValue ReturnValue, typename T>
 		virtual auto FindHelper(Key const& key, function<T(NodeBase*)> onEqualDo)
@@ -162,73 +153,73 @@ namespace Collections
 		}
 
 		// TODO add not only key-value add, but also key-unique_ptr add
-		template <typename T>
-		void DoAdd(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack)
-		{
-			auto& stack = passedNodeTrackStack;
-			if (!Full())
-			{
-				if (auto maxChange = elements_.Add(move(p)))
-				{
-					ChangeMaxKeyFromBottomToRoot(stack, MinKey());
-				}
-			}
+		//template <typename T>
+		//void DoAdd(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack)
+		//{
+		//	auto& stack = passedNodeTrackStack;
+		//	if (!Full())
+		//	{
+		//		if (auto maxChange = elements_.Add(move(p)))
+		//		{
+		//			ChangeMaxKeyFromBottomToRoot(stack, MinKey());
+		//		}
+		//	}
 
-			tryPreviousAdd<T>(move(p), stack, tryNextAdd<T>, splitNode<T>);
-		}
+		//	tryPreviousAdd<T>(move(p), stack, tryNextAdd<T>, splitNode<T>);
+		//}
 
 		template <bool IsLeaf, typename Key, typename Value, order_int BtreeOrder>
 		void getPrevious(NodeBase*, const vector<NodeBase*>&, NodeBase*&);
 
 		// return means succeed or not
-		template <typename T>
-		void tryPreviousAdd(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack, 
-							function<void(pair<Key, T>, vector<NodeBase*>&, function<void(pair<Key, T>, vector<NodeBase*>&)>)> continuation1,
-							function<void(pair<Key, T>, vector<NodeBase*>&)> continuation2)
-		{
-			auto& stack = passedNodeTrackStack;
-			NodeBase* previous = nullptr;
-			getPrevious<std::is_same<T, Value>::value>(this, stack, previous); // some don't have one of siblings
+		//template <typename T>
+		//void tryPreviousAdd(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack, 
+		//					function<void(pair<Key, T>, vector<NodeBase*>&, function<void(pair<Key, T>, vector<NodeBase*>&)>)> continuation1,
+		//					function<void(pair<Key, T>, vector<NodeBase*>&)> continuation2)
+		//{
+		//	auto& stack = passedNodeTrackStack;
+		//	NodeBase* previous = nullptr;
+		//	getPrevious<std::is_same<T, Value>::value>(this, stack, previous); // some don't have one of siblings
 
-			if (spaceFreeIn(previous))
-			{
-				// if not free, will not trigger move, so the type is ref
-				auto maxChanged = false;
-				auto min = elements_.ExchangeMin(move(p), maxChanged);
-				if (maxChanged)
-				{
-					ChangeMaxKeyFromBottomToRoot(stack, MinKey());
-				}
+		//	if (spaceFreeIn(previous))
+		//	{
+		//		// if not free, will not trigger move, so the type is ref
+		//		auto maxChanged = false;
+		//		auto min = elements_.ExchangeMin(move(p), maxChanged);
+		//		if (maxChanged)
+		//		{
+		//			ChangeMaxKeyFromBottomToRoot(stack, MinKey());
+		//		}
 
-				return reallocatePre(previous, stack, move(min)); // trigger optimize
-				// TODO up code meanings?
-			}
+		//		return reallocatePre(previous, stack, move(min)); // trigger optimize
+		//		// TODO up code meanings?
+		//	}
 
-			continuation1(move(p), stack, continuation2);
-		}
+		//	continuation1(move(p), stack, continuation2);
+		//}
 
 		template <bool IsLeaf, typename Key, typename Value, order_int BtreeOrder>
 		void getNext(NodeBase*, const vector<NodeBase*>&, NodeBase*&);
 
 		// return means succeed or not
-		template <typename T>
-		void tryNextAdd(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack, function<void(pair<Key, T>, vector<NodeBase*>&)> continuation)
-		{
-			auto& stack = passedNodeTrackStack;
-			NodeBase* next = nullptr;
-			getNext<std::is_same<Value, T>::value>(this, stack, next); // some don't have one of siblings
+		//template <typename T>
+		//void tryNextAdd(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack, function<void(pair<Key, T>, vector<NodeBase*>&)> continuation)
+		//{
+		//	auto& stack = passedNodeTrackStack;
+		//	NodeBase* next = nullptr;
+		//	getNext<std::is_same<Value, T>::value>(this, stack, next); // some don't have one of siblings
 
-			if (spaceFreeIn(next))
-			{
-				// if not free, will not trigger move, so the ref type is fine
-				auto&& oldMax = elements_.ExchangeMax(move(p));
-				ChangeMaxKeyFromBottomToRoot(stack, MinKey());
-				return reallocateNxt(next, move(oldMax));
-			}
+		//	if (spaceFreeIn(next))
+		//	{
+		//		// if not free, will not trigger move, so the ref type is fine
+		//		auto&& oldMax = elements_.ExchangeMax(move(p));
+		//		ChangeMaxKeyFromBottomToRoot(stack, MinKey());
+		//		return reallocateNxt(next, move(oldMax));
+		//	}
 
-			// TODO also should think of up return value
-			continuation(move(p), passedNodeTrackStack);
-		}
+		//	// TODO also should think of up return value
+		//	continuation(move(p), passedNodeTrackStack);
+		//}
 
 		template <bool IsLeaf, typename Key, typename Value, order_int BtreeOrder>
 		void setNewPreRelation(NodeBase*, NodeBase*);
@@ -291,27 +282,27 @@ namespace Collections
 			insertNewPreToUpper(move(newPre), stack);
 		}
 
-		template <typename T>
-		bool reallocatePre(NodeBase* previousNode, vector<NodeBase*>& passedNodeTrackStack, pair<Key, T> appendPair)
-		{
-			auto& stack = passedNodeTrackStack;
-			// attention func change the stack or not
+		//template <typename T>
+		//bool reallocatePre(NodeBase* previousNode, vector<NodeBase*>& passedNodeTrackStack, pair<Key, T> appendPair)
+		//{
+		//	auto& stack = passedNodeTrackStack;
+		//	// attention func change the stack or not
 
-			auto oldMaxKey = previousNode->MinKey();
-			auto previousTrackStack = getSiblingSearchTrackIn(stack, previousNode); // previous is leaf
-			previousNode->elements_.Append(move(appendPair));
-			auto newMaxKey = previousNode->MinKey(); // will change previous max
-			ChangeMaxKeyFromBottomToRoot(previousTrackStack, newMaxKey);
+		//	auto oldMaxKey = previousNode->MinKey();
+		//	auto previousTrackStack = getSiblingSearchTrackIn(stack, previousNode); // previous is leaf
+		//	previousNode->elements_.Append(move(appendPair));
+		//	auto newMaxKey = previousNode->MinKey(); // will change previous max
+		//	ChangeMaxKeyFromBottomToRoot(previousTrackStack, newMaxKey);
 
-			return true;
-		}
+		//	return true;
+		//}
 
-		template <typename T>
-		bool reallocateNxt(NodeBase* nextNode, pair<Key, T> insertPair)
-		{
-			nextNode->elements_.Insert(move(insertPair));
-			return true;
-		}
+		//template <typename T>
+		//bool reallocateNxt(NodeBase* nextNode, pair<Key, T> insertPair)
+		//{
+		//	nextNode->elements_.Insert(move(insertPair));
+		//	return true;
+		//}
 
 		// void ChangeMaxKeyFromBottomToRoot(vector<NodeBase*> const& passedNodeTrackStack, Key const& newMaxKey) const
 		// {

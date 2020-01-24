@@ -1,5 +1,6 @@
 #pragma once
 #include <utility>
+#include <cmath>
 #include "Basic.hpp"
 #include "Enumerator.hpp"
 #include "Elements.hpp"
@@ -9,10 +10,13 @@
 namespace Collections
 {
 	using ::std::move;
+	using ::std::abs;
+
 #define LEAF LeafNode<Key, Value, BtreeOrder>
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>
+#undef LEAF
 	{
 	private:
 		using Ele = Elements<Key, Value, BtreeOrder>;
@@ -48,7 +52,7 @@ namespace Collections
 		{
 			//return this->elements_.Keys();// TODO why can not use elements directly?
 			// I test struct can use this.
-			return CollectKeys(move(vector<Key>{}));
+			return CollectKeys();
 		}
 
 		Key const& MinKey() override const
@@ -60,15 +64,64 @@ namespace Collections
 		{
 			if (!_elements.Full())
 			{
-				return _elements.Add(move(p));
+				_elements.Add(move(p));
+				return;
 			}
 
-			// Compare and choose previous and next LeafNode
+			bool addToPre = false, addToNxt = false;
+			if (_previous == nullptr)
+			{
+				if (_next != nullptr)
+				{
+					addToNxt = true;
+				}
+			}
+			else
+			{
+				if (_next == nullptr)
+				{
+					addToPre = true;
+				}
+				else
+				{
+					auto preCount = _previous->_elements.Count();
+					auto nxtCount = _next->_elements.Count();
+					auto average = (preCount + this->_elements.Count() + nxtCount) / 3;
+					if (abs(preCount - average) > abs(nxtCount - average))
+					{
+						addToNxt = true;
+					}
+					else
+					{
+						addToPre = true;
+					}
+				}
+			}
+
+			if (addToPre)
+			{
+				if (!_previous._elements.Full())
+				{
+					_previous->_elements.Append(_elements.ExchangeMin(move(p)));
+					return;
+				}
+			}
+			else if (addToNxt)
+			{
+				if (!_next._elements.Full())
+				{
+					_next->_elements.Insert(_elements.ExchangeMax(move(p)));
+					return;
+				}
+			}
+			
+			// Split node
 		}
 
 		virtual void Remove(Key const& key) override
 		{
 			return _elements.Remove(key);
+			// TODO
 		}
 
 		Value const& operator[](Key const& key)
@@ -102,7 +155,7 @@ namespace Collections
 		}
 
 	private:
-		vector<Key> CollectKeys(vector<Key> previousNodesKeys)
+		vector<Key> CollectKeys(vector<Key> previousNodesKeys = {})
 		{
 			auto&& ks = _elements->Keys();
 			previousNodesKeys.insert(previousNodesKeys.end(), ks.begin(), ks.end());
@@ -114,5 +167,4 @@ namespace Collections
 			return _next->CollectKeys(move(previousNodesKeys));
 		}
 	};
-#undef LEAF
 }

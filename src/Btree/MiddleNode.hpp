@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include "Elements.hpp"
 #include "NodeBaseCrtp.hpp"
 
 namespace Collections 
@@ -10,22 +11,27 @@ namespace Collections
 	using ::std::pair;
 	using ::std::make_pair;
 
-#define NODE_TEMPLATE 
 #define MIDDLE MiddleNode<Key, Value, BtreeOrder>
 
 	template <typename Key, typename Value, order_int BtreeOrder>
-	class MiddleNode : public NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder> 
+	class MiddleNode : public NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder>
+#undef MIDDLE
 	{
 	private:
 		using          Base = NodeBase<Key, Value, BtreeOrder>;
-		using          Base_CRTP = NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder>;
+		using          Base_CRTP = NodeBase_CRTP<MiddleNode, Key, Value, BtreeOrder>;
 		using typename Base::LessThan;
-		Elements<cref<Key>, unique_ptr<Base>, BtreeOrder - 1> _elements;
+		Elements<cref<Key>, unique_ptr<Base>, BtreeOrder> _elements;
+
+		static pair<cref<Key>, unique_ptr<Base>> ConvertToKeyBasePtrPair(unique_ptr<Base> node)
+		{
+			return make_pair<cref<Key>, unique_ptr<Base>>(cref(node->MinKey()), move(node));
+		}
 
 	public:
 		template <typename Iterator>
 		MiddleNode(Enumerator<unique_ptr<Base>, Iterator> enumerator, shared_ptr<LessThan> lessThanPtr)
-			: Base_CRTP(), _elements(EnumeratorPipeine(enumerator, ConvertToKeyBasePtrPair)), , lessThan)
+			: Base_CRTP(), _elements(EnumeratorPipeine(enumerator, ConvertToKeyBasePtrPair), lessThan)
 		{ }
 
 		MiddleNode(MiddleNode const& that)
@@ -55,12 +61,14 @@ namespace Collections
 
 		void Add(pair<Key, Value> p) override
 		{
-
+			auto i = _elements.SuitPosition<true>(p.first);
+			_elements[i].second->Add(move(p));
 		}
 
 		virtual void Remove(Key const& key) override
 		{
-
+			auto i = _elements.SuitPosition<true>(p.first);
+			_elements[i].second->Remove(key);
 		}
 
 #define SEARCH_HELPER_DEF(FUN_NAME, COMPARE_TO_BOUND, OFFSET, CHOOSE_SON)                                                                                 \
@@ -114,11 +122,6 @@ namespace Collections
 		Base* MinSon() const
 		{
 			return _elements[0].second;
-		}
-
-		static pair<cref<Key>, unique_ptr<Base>> ConvertToKeyBasePtrPair(unique_ptr<Base> node)
-		{
-			return make_pair<cref<Key>, unique_ptr<Base>>(node->MinKey(), node);
 		}
 	};
 }

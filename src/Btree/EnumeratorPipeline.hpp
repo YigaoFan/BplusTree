@@ -19,16 +19,16 @@ namespace Collections
     {
     private:
         Enumerator<RawItem, Iterator> _enumerator;
-        function<Item(RawItem&)> _func;
+        function<Item(RawItem)> _func;
 
     public:
-        EnumeratorPipeine(Enumerator<RawItem, Iterator> enumerator, function<Item(RawItem&)> func)
+        EnumeratorPipeine(Enumerator<RawItem, Iterator> enumerator, function<Item(RawItem)> func)
             : _enumerator(move(enumerator)), _func(move(_func))
         { }
 
         Item& Current() override
         {
-            return _func(_enumerator.Current());
+            return _func(move(_enumerator.Current()));
         }
 
         bool MoveNext() override
@@ -40,9 +40,9 @@ namespace Collections
 		auto operator|(function<T(Item&)> func)
         {
             return EnumeratorPipeine<RawItem, T, Iterator>(_enumerator,
-                [func1 = _func, func2 = move(func)](RawItem& item) 
+                [func1 = _func, func2 = move(func)](RawItem item) 
                 {
-                    func2(func1(item));
+                    return func2(move(func1(move(item))));
                 });
         }
     };

@@ -195,7 +195,7 @@ namespace Collections
 		}
 
 #define EMPTY_CHECK if (Empty()) { throw KeyNotFoundException("The B+ tree is empty"); }
- 		Value GetValue(Key const&key) const
+ 		Value GetValue(Key const& key) const
 		{
 			EMPTY_CHECK;
 			return _root->GetValue(key);
@@ -236,12 +236,11 @@ namespace Collections
 		template <typename T, auto Count, size_t... Is>
 		static auto ConsNodeInArrayImp(array<T, Count> srcArray, shared_ptr<LessThan> lessThan, index_sequence<Is...> is)
 		{
-			array<pair<Key, unique_ptr<Base>>, is.size()> consNodes;
+			array<unique_ptr<Base>, is.size()> consNodes;
 			ForEachCons<Count, Is...>([&srcArray, &consNodes, &lessThan](auto index, auto itemsCount, auto preItemsCount)
 			{
-				auto node = NodeFactoryType::MakeNode(CreateEnumerator(&srcArray[preItemsCount], &srcArray[/*TODO (size_t)*/preItemsCount + itemsCount]),
-					lessThan);
-				consNodes[index] = make_pair(move(node->MinKey()), move(node));
+					consNodes[index] = move(NodeFactoryType::MakeNode(CreateEnumerator(&srcArray[preItemsCount], &srcArray[/*TODO (size_t)*/preItemsCount + itemsCount]),
+					lessThan));
 			});
 
 			return consNodes;

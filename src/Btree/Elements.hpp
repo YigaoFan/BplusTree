@@ -32,7 +32,7 @@ namespace Collections
 		array<Item, BtreeOrder> _elements;
 
 	public:
-		Elements(IEnumerator<pair<Key, Value>> enumerator, shared_ptr<LessThan> lessThanPtr)
+		Elements(IEnumerator<pair<Key, Value>>& enumerator, shared_ptr<LessThan> lessThanPtr)
 			: LessThanPtr(lessThanPtr)
 		{
 			while (enumerator.MoveNext())
@@ -278,17 +278,34 @@ namespace Collections
 			throw KeyNotFoundException();
 		}
 
+		template <bool ChooseBranch>
 		order_int SuitPosition(Key const& key) const
 		{
-			for (decltype(_count) i = 0; i < _count; ++i)
+			if constexpr (ChooseBranch)
 			{
-				if ((*LessThanPtr)(key, _elements[i].first))
+				for (decltype(_count) i = 1; i < _count; ++i)
 				{
-					return i;
+					if ((*LessThanPtr)(key, _elements[i].first))
+					{
+						return i - 1;
+					}
 				}
+
+				return _count - 1;
+			}
+			else
+			{
+				for (decltype(_count) i = 0; i < _count; ++i)
+				{
+					if ((*LessThanPtr)(key, _elements[i].first))
+					{
+						return i;
+					}
+				}
+
+				return _count;
 			}
 
-			return _count;
 		}
 
 		auto begin()
