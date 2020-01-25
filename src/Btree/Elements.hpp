@@ -108,9 +108,9 @@ namespace Collections
 		/// \param i index
 		void RemoveAt(order_int i)
 		{
-			MoveItems(-1, i + 1);
+			MoveItems(-1, i + 1); // TODO this remove should think of the destruct problem
 			--_count;
-			return i == (_count - 1);
+			//return i == (_count - 1);
 		}
 
 		// TODO check ref exist?
@@ -142,6 +142,13 @@ namespace Collections
 			}
 
 			return outItems;
+		}
+
+		pair<Key, Value> FrontPopOut()
+		{
+			auto p = move(_elements[0]);
+			RemoveAt(0);
+			return p;
 		}
 
 		void Add(pair<Key, Value> p)

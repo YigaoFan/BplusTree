@@ -113,20 +113,6 @@ namespace Collections
 			FindHelper<RetValue::Void>(key, moveDeepOnEqual);
 		}
 
-		//void Add(pair<Key, Value> p, vector<NodeBase*>& passedNodeTrackStack)
-		//{
-		//	auto& stack = passedNodeTrackStack;
-		//	auto lastNode = stack.back();
-		//	lastNode->DoAdd(move(p), stack);
-		//}
-
-		//void Remove(Key const& key, vector<NodeBase*>& passedNodeTrackStack)
-		//{
-		//	auto& stack = passedNodeTrackStack;
-		//	NodeBase* lastNode = stack.back();
-		//	lastNode->doRemove(key, stack);
-		//}
-
 	protected:
 
 		template <RetValue ReturnValue, typename T>
@@ -354,197 +340,197 @@ namespace Collections
 		//}
 		
 
-		template <typename T>
-		inline void doRemove(const T& t, vector<NodeBase*>& passedNodeTrackStack)
-		{
-			auto& stack = passedNodeTrackStack;
+		//template <typename T>
+		//inline void doRemove(const T& t, vector<NodeBase*>& passedNodeTrackStack)
+		//{
+		//	auto& stack = passedNodeTrackStack;
 
-			auto i = elements_.IndexOf(t);
-			if (elements_.RemoveAt(i))
-			{
-				ChangeMaxKeyFromBottomToRoot(stack, MinKey());
-			}
+		//	auto i = elements_.IndexOf(t);
+		//	if (elements_.RemoveAt(i))
+		//	{
+		//		ChangeMaxKeyFromBottomToRoot(stack, MinKey());
+		//	}
 
-			// TODO is_same need to verify
-			auto combined = reBalance<std::is_same<T, Key>::value>(stack);
-			if (combined)
-			{
-				auto finalNode = stack.back();
-				// TODO judge if arrive root?
-				stack.pop_back();
-				stack.back()->doRemove(finalNode, stack);
-			}
-		}
+		//	// TODO is_same need to verify
+		//	auto combined = reBalance<std::is_same<T, Key>::value>(stack);
+		//	if (combined)
+		//	{
+		//		auto finalNode = stack.back();
+		//		// TODO judge if arrive root?
+		//		stack.pop_back();
+		//		stack.back()->doRemove(finalNode, stack);
+		//	}
+		//}
 
 		// return combined or not
-		template <bool IsLeaf>
-		bool reBalance(const vector<NodeBase*>& passedNodeTrackStack)
-		{
-			auto& stack = passedNodeTrackStack;
+		//template <bool IsLeaf>
+		//bool reBalance(const vector<NodeBase*>& passedNodeTrackStack)
+		//{
+		//	auto& stack = passedNodeTrackStack;
 
-			constexpr auto ceil = 1 + ((BtreeOrder - 1) / 2);
-			if (ChildCount() < ceil)
-			{
-				NodeBase* previous = nullptr;
-				// TODO should save search track？
-				getPrevious<IsLeaf>(this, stack, previous);
-				NodeBase* next = nullptr;
-				getNext<IsLeaf>(this, stack, next);
+		//	constexpr auto ceil = 1 + ((BtreeOrder - 1) / 2);
+		//	if (ChildCount() < ceil)
+		//	{
+		//		NodeBase* previous = nullptr;
+		//		// TODO should save search track？
+		//		getPrevious<IsLeaf>(this, stack, previous);
+		//		NodeBase* next = nullptr;
+		//		getNext<IsLeaf>(this, stack, next);
 
-				auto preHandler = [&](NodeBase* pre)
-				{
-					return reBalanceWithPre<IsLeaf>(pre, stack);
-				};
-				auto currentHandler = []() { return false; };
-				auto nxtHandler = [&](NodeBase* nxt)
-				{
-					return reBalanceWithNxt<IsLeaf>(nxt, stack);
-				};
+		//		auto preHandler = [&](NodeBase* pre)
+		//		{
+		//			return reBalanceWithPre<IsLeaf>(pre, stack);
+		//		};
+		//		auto currentHandler = []() { return false; };
+		//		auto nxtHandler = [&](NodeBase* nxt)
+		//		{
+		//			return reBalanceWithNxt<IsLeaf>(nxt, stack);
+		//		};
 
-				return chooseBalanceNodeDo(previous, move(preHandler), this, move(currentHandler), next, move(nxtHandler));
-			}
+		//		return chooseBalanceNodeDo(previous, move(preHandler), this, move(currentHandler), next, move(nxtHandler));
+		//	}
 
-			return false;
-		}
+		//	return false;
+		//}
 
-		bool chooseBalanceNodeDo(NodeBase* pre, function<bool(NodeBase*)> preHandler,
-								 NodeBase* current, function<bool()> currentHandler,
-								 NodeBase* nxt, function<bool(NodeBase*)> nxtHandler) const
-		{
-			auto nullPre = (pre == nullptr);
-			auto nullNxt = (nxt == nullptr);
-			if (nullPre || nullNxt)
-			{
-				if (nullPre && nullNxt)
-				{
-					return currentHandler();
-				}
-				else if (nullPre)
-				{
-					return nxtHandler(nxt);
-				}
-				else
-				{
-					return preHandler(pre);
-				}
-			}
+		//bool chooseBalanceNodeDo(NodeBase* pre, function<bool(NodeBase*)> preHandler,
+		//						 NodeBase* current, function<bool()> currentHandler,
+		//						 NodeBase* nxt, function<bool(NodeBase*)> nxtHandler) const
+		//{
+		//	auto nullPre = (pre == nullptr);
+		//	auto nullNxt = (nxt == nullptr);
+		//	if (nullPre || nullNxt)
+		//	{
+		//		if (nullPre && nullNxt)
+		//		{
+		//			return currentHandler();
+		//		}
+		//		else if (nullPre)
+		//		{
+		//			return nxtHandler(nxt);
+		//		}
+		//		else
+		//		{
+		//			return preHandler(pre);
+		//		}
+		//	}
 
-			auto preChilds = (long)pre->ChildCount();
-			auto curChilds = (long)current->ChildCount();
-			auto nxtChilds = (long)nxt->ChildCount();
-			auto average = (preChilds + curChilds + nxtChilds) / 3;
+		//	auto preChilds = (long)pre->ChildCount();
+		//	auto curChilds = (long)current->ChildCount();
+		//	auto nxtChilds = (long)nxt->ChildCount();
+		//	auto average = (preChilds + curChilds + nxtChilds) / 3;
 
-			return abs(preChilds - average) > abs(nxtChilds - average) ? preHandler(pre) : nxtHandler(nxt);
-		}
+		//	return abs(preChilds - average) > abs(nxtChilds - average) ? preHandler(pre) : nxtHandler(nxt);
+		//}
 
-		template <bool IsLeaf>
-		bool reBalanceWithPre(NodeBase* previous, const vector<NodeBase*>& passedNodeTrackStack)
-		{
-			auto& stack = passedNodeTrackStack;
+		//template <bool IsLeaf>
+		//bool reBalanceWithPre(NodeBase* previous, const vector<NodeBase*>& passedNodeTrackStack)
+		//{
+		//	auto& stack = passedNodeTrackStack;
 
-			// 这些使用 NodeBase 的操作会不会没有顾及到实际的类型，符合想要的语义吗？应该是符合的。Btree本来就是交给NodeBase来操作
-			// 那 MiddleNode 和 LeafNode 的意义是什么呢？
-			if (previous->ChildCount() + ChildCount() <= BtreeOrder)
-			{
-				// combine
-				previous->Receive(TailAppendWay(), move(*this));
-				auto preStack = getSiblingSearchTrackIn(stack, previous);
-				previous->ChangeMaxKeyFromBottomToRoot(preStack, previous->MinKey());
-				setRemoveCurrentRelation<IsLeaf>(this);
+		//	// 这些使用 NodeBase 的操作会不会没有顾及到实际的类型，符合想要的语义吗？应该是符合的。Btree本来就是交给NodeBase来操作
+		//	// 那 MiddleNode 和 LeafNode 的意义是什么呢？
+		//	if (previous->ChildCount() + ChildCount() <= BtreeOrder)
+		//	{
+		//		// combine
+		//		previous->Receive(TailAppendWay(), move(*this));
+		//		auto preStack = getSiblingSearchTrackIn(stack, previous);
+		//		previous->ChangeMaxKeyFromBottomToRoot(preStack, previous->MinKey());
+		//		setRemoveCurrentRelation<IsLeaf>(this);
 
-				return true;
-			}
-			else
-			{
-				// move some from pre to this
-				auto moveCount = (previous->ChildCount() - ChildCount()) / 2;
-				Receive(HeadInsertWay(), moveCount, *previous);
-				auto preStack = getSiblingSearchTrackIn(stack, previous);
-				previous->ChangeMaxKeyFromBottomToRoot(preStack, previous->MinKey());
+		//		return true;
+		//	}
+		//	else
+		//	{
+		//		// move some from pre to this
+		//		auto moveCount = (previous->ChildCount() - ChildCount()) / 2;
+		//		Receive(HeadInsertWay(), moveCount, *previous);
+		//		auto preStack = getSiblingSearchTrackIn(stack, previous);
+		//		previous->ChangeMaxKeyFromBottomToRoot(preStack, previous->MinKey());
 
-				return false;
-			}
-		}
+		//		return false;
+		//	}
+		//}
 
-		template <bool IsLeaf, typename Key, typename Value, order_int BtreeOrder>
-		void setRemoveCurrentRelation(NodeBase*);
+		//template <bool IsLeaf, typename Key, typename Value, order_int BtreeOrder>
+		//void setRemoveCurrentRelation(NodeBase*);
 
-		template <bool IsLeaf>
-		bool reBalanceWithNxt(NodeBase* next, const vector<NodeBase*>& passedNodeTrackStack)
-		{
-			auto& stack = passedNodeTrackStack;
-			if (next->ChildCount() + ChildCount() <= BtreeOrder)
-			{
-				// combine
-				next->Receive(HeadInsertWay(), move(*this));
-				setRemoveCurrentRelation<IsLeaf>(this);
-				return true;
-			}
-			else
-			{
-				// move some from nxt to this
-				auto moveCount = (next->ChildCount() - ChildCount()) / 2;
-				Receive(TailAppendWay(), moveCount, *next);
-				ChangeMaxKeyFromBottomToRoot(stack, MinKey());
-				return false;
-			}
-		}
+		//template <bool IsLeaf>
+		//bool reBalanceWithNxt(NodeBase* next, const vector<NodeBase*>& passedNodeTrackStack)
+		//{
+		//	auto& stack = passedNodeTrackStack;
+		//	if (next->ChildCount() + ChildCount() <= BtreeOrder)
+		//	{
+		//		// combine
+		//		next->Receive(HeadInsertWay(), move(*this));
+		//		setRemoveCurrentRelation<IsLeaf>(this);
+		//		return true;
+		//	}
+		//	else
+		//	{
+		//		// move some from nxt to this
+		//		auto moveCount = (next->ChildCount() - ChildCount()) / 2;
+		//		Receive(TailAppendWay(), moveCount, *next);
+		//		ChangeMaxKeyFromBottomToRoot(stack, MinKey());
+		//		return false;
+		//	}
+		//}
 
-		void Receive(TailAppendWay, NodeBase&& that)
-		{
-			elements_.Receive<false>(move(that.elements_));
-		}
+		//void Receive(TailAppendWay, NodeBase&& that)
+		//{
+		//	elements_.Receive<false>(move(that.elements_));
+		//}
 
-		void Receive(HeadInsertWay, NodeBase&& that)
-		{
-			elements_.Receive<true>(move(that.elements_));
-		}
+		//void Receive(HeadInsertWay, NodeBase&& that)
+		//{
+		//	elements_.Receive<true>(move(that.elements_));
+		//}
 
-		void Receive(HeadInsertWay, uint16_t count, NodeBase& node)
-		{
-			elements_.Receive(HeadInsertWay(), count, node.elements_);
-		}
+		//void Receive(HeadInsertWay, uint16_t count, NodeBase& node)
+		//{
+		//	elements_.Receive(HeadInsertWay(), count, node.elements_);
+		//}
 
-		void Receive(TailAppendWay, uint16_t count, NodeBase& node)
-		{
-			elements_.Receive(TailAppendWay(), count, node.elements_);
-		}
+		//void Receive(TailAppendWay, uint16_t count, NodeBase& node)
+		//{
+		//	elements_.Receive(TailAppendWay(), count, node.elements_);
+		//}
 
-		static bool spaceFreeIn(NodeBase const* node)
-		{
-			if (node == nullptr) { return false; }
-			return !node->Full();
-		}
+		//static bool spaceFreeIn(NodeBase const* node)
+		//{
+		//	if (node == nullptr) { return false; }
+		//	return !node->Full();
+		//}
 
 		// return the complete search 
-		static vector<NodeBase*> getSiblingSearchTrackIn(vector<NodeBase*> const& currentNodePassedTrackStack,
-														 NodeBase const* sibling)
-		{
-			// TODO when call on Middle, there are duplicates compute
-			// Because the last Middle has already search this(wait to verify)
-			auto& stack = currentNodePassedTrackStack;
-			auto maxKey = sibling->MinKey();
-			auto rCurrentNodeIter = ++stack.rbegin(); // from not leaf
-			auto rEnd = stack.rend();
+		//static vector<NodeBase*> getSiblingSearchTrackIn(vector<NodeBase*> const& currentNodePassedTrackStack,
+		//												 NodeBase const* sibling)
+		//{
+		//	// TODO when call on Middle, there are duplicates compute
+		//	// Because the last Middle has already search this(wait to verify)
+		//	auto& stack = currentNodePassedTrackStack;
+		//	auto maxKey = sibling->MinKey();
+		//	auto rCurrentNodeIter = ++stack.rbegin(); // from not leaf
+		//	auto rEnd = stack.rend();
 
-			vector<NodeBase*> trackStack;
-			trackStack.reserve(stack.size());
+		//	vector<NodeBase*> trackStack;
+		//	trackStack.reserve(stack.size());
 
-			while (rCurrentNodeIter != rEnd)
-			{
-				// same ancestor of this and previous node
-				if (ptrOff(rCurrentNodeIter)->ContainsKey(maxKey, trackStack))
-				{
-					break;
-				}
-				trackStack.clear();
+		//	while (rCurrentNodeIter != rEnd)
+		//	{
+		//		// same ancestor of this and previous node
+		//		if (ptrOff(rCurrentNodeIter)->ContainsKey(maxKey, trackStack))
+		//		{
+		//			break;
+		//		}
+		//		trackStack.clear();
 
-				++rCurrentNodeIter;
-			}
-			trackStack.insert(trackStack.begin(), stack.begin(), rCurrentNodeIter.base()); // end is excluded
+		//		++rCurrentNodeIter;
+		//	}
+		//	trackStack.insert(trackStack.begin(), stack.begin(), rCurrentNodeIter.base()); // end is excluded
 
-			trackStack.shrink_to_fit();
-			return move(trackStack);
-		}
+		//	trackStack.shrink_to_fit();
+		//	return move(trackStack);
+		//}
 	};
 }

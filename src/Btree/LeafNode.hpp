@@ -14,7 +14,6 @@ namespace Collections
 #define LEAF LeafNode<Key, Value, BtreeOrder>
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>
-#undef LEAF
 	{
 	private:
 		using Ele = Elements<Key, Value, BtreeOrder>;
@@ -24,6 +23,7 @@ namespace Collections
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
 
+#undef LEAF
 	public:
 		LeafNode(shared_ptr<LessThan> lessThan)
 			: Base_CRTP(), _elements(EmptyEnumerator<pair<Key, Value>>(), lessThan)
@@ -135,7 +135,7 @@ namespace Collections
 			else
 			{
 				auto items = this->_elements.PopOutItems(BtreeOrder - middle);
-				newNxtLeaf._elements.Add(CreateEnumerator(items.rbegin(), items.rend()));
+				newNxtLeaf->_elements.Add(CreateEnumerator(items.rbegin(), items.rend()));
 				newNxtLeaf->_elements.Add(move(p));
 			}
 
@@ -153,6 +153,10 @@ namespace Collections
 					if (_next->_elements.Count() == lowBound)
 					{
 						// Combine
+						// Use "this" to emphasize the operated object
+						auto items = this->_elements.PopOutItems(this->_elements.Count());
+						_next->_elements.Add(CreateEnumerator(items.rbegin(), items.rend()));
+						// Delete this
 						this->_upNodeDeleteSubNodeCallback(this);
 					}
 					else
@@ -160,20 +164,24 @@ namespace Collections
 						// Means next _elements bigger than lowBound
 						// only one which is lower than lowBound is root leaf which doesn't have siblings
 						// Or steal one, could think steal one from which sibling in more balance view
+						auto items = this->_next->_elements.FrontPopOut(1);
+						this->_elements.Append(move(items[0]));
 					}
 				}
-
-				if (_previous != nullptr)
+				else if (_previous != nullptr)
 				{
 					if (_previous->_elements.Count() == lowBound)
 					{
-						// Combine
+						auto items = this->_elements.PopOutItems(this->_elements.Count());
+						_previous->_elements.Add(CreateEnumerator(items.rbegin(), items.rend()));
 						this->_upNodeDeleteSubNodeCallback(this);
 					}
 					else
 					{
 						// Means next _elements bigger than lowBound
 						// Or steal one, could think steal one from which sibling in more balance view
+						auto items = this->_previous->_elements.PopOutItems(1);
+						this->_elements.Insert(move(items[0]));
 					}
 				}
 			}
