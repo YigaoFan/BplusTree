@@ -61,4 +61,16 @@ namespace Collections
 			: runtime_error(message)
 		{}
 	};
+
+	class NotImplementException : public runtime_error
+	{
+	public:
+		explicit NotImplementException()
+			: runtime_error("Not implement")
+		{}
+
+		explicit NotImplementException(string message)
+			: runtime_error(message)
+		{}
+	};
 }

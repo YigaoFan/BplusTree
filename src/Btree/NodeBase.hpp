@@ -1,26 +1,27 @@
 #pragma once
 #include <vector>
 #include <memory>
+#include <variant>
 #include "Basic.hpp"
 #include "Util.hpp"
 #include "Enumerator.hpp"
 #include "Exception.hpp"
-#include "Elements.hpp"
 
 namespace Collections
 {
 	using ::std::move;
 	using ::std::unique_ptr;
+	using ::std::variant;
 
-	namespace 
-	{
-		enum RetValue
-		{
-			Bool,
-			SearchValue,
-			Void,
-		};
-	}
+	//namespace 
+	//{
+	//	enum RetValue
+	//	{
+	//		Bool,
+	//		SearchValue,
+	//		Void,
+	//	};
+	//}
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeBase
@@ -30,15 +31,18 @@ namespace Collections
 		function<void(NodeBase*)> _upNodeDeleteSubNodeCallback;
 	public:
 		// TODO below two lines code wait to delete
-		using Ele = Elements<Key, Value, BtreeOrder>;
-		using LessThan = typename Ele::LessThan;
+		//using Ele = Elements<Key, Value, BtreeOrder>;
+		//using LessThan = typename Ele::LessThan;
 
 		virtual unique_ptr<NodeBase> Clone() const = 0;
 		virtual unique_ptr<NodeBase> Move() const = 0;
 		virtual ~NodeBase() = default;
 		virtual bool Middle() const = 0;
 		virtual vector<Key> Keys() const = 0;
-		virtual Key MinKey() const = 0;
+		virtual Key const& MinKey() const = 0;
+		virtual bool ContainsKey(Key const&) const = 0;
+		virtual Value GetValue(Key const&) const = 0;
+		virtual void ModifyValue(Key const&, Value) = 0;
 		virtual void Add(pair<Key, Value>) = 0;
 		virtual void Remove(Key const&) = 0;
 
@@ -48,106 +52,81 @@ namespace Collections
 			_upNodeDeleteSubNodeCallback = move(deleteSubNodeCallback);
 		}
 
-		bool ContainsKey(Key const& key, vector<NodeBase*>& passedNodeTrackStack)
-		{
-			auto& stack = passedNodeTrackStack;
-			// only need to collect "don't have" situation
-			auto collect = [&stack](NodeBase* node)
-			{
-				stack.push_back(node);
-			};
-			function<bool(NodeBase*)> collectDeepMaxOnBeyond = [&](NodeBase* node)
-			{
-				if (node->Middle())
-				{
-					auto maxIndex = node->ChildCount() - 1;
-					auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
-					collect(maxChildPtr);
-					return collectDeepMaxOnBeyond(maxChildPtr);
-				}
+		//bool ContainsKey(Key const& key) const
+		//{
+		//	if (ChildCount() == 0) { return false; }
+		//	return const_cast<NodeBase*>(this)->FindHelper<RetValue::Bool>(key, [](auto) { return true; });
+		//}
 
-				return false;
-			};
-			auto trueOnEqual = [](auto) { return true; };
+		//Value GetValue(Key const& key) const
+		//{
+		//	function<Value(NodeBase*)> moveDeepOnEqual = [&](NodeBase* node)
+		//	{
+		//		if (node->Middle())
+		//		{
+		//			auto maxIndex = node->ChildCount() - 1;
+		//			return moveDeepOnEqual(Ele::ptr(node->elements_[maxIndex].second));
+		//		}
 
-			return FindHelper<RetValue::Bool>(key, collect, trueOnEqual, collectDeepMaxOnBeyond);
-		}
+		//		return node->elements_[key];
+		//	};
 
-		bool ContainsKey(Key const& key) const
-		{
-			if (ChildCount() == 0) { return false; }
-			return const_cast<NodeBase*>(this)->FindHelper<RetValue::Bool>(key, [](auto) { return true; });
-		}
+		//	return const_cast<NodeBase*>(this)->FindHelper<RetValue::SearchValue>(key, moveDeepOnEqual);
+		//}
 
-		Value GetValue(Key const& key) const
-		{
-			function<Value(NodeBase*)> moveDeepOnEqual = [&](NodeBase* node)
-			{
-				if (node->Middle())
-				{
-					auto maxIndex = node->ChildCount() - 1;
-					return moveDeepOnEqual(Ele::ptr(node->elements_[maxIndex].second));
-				}
+		//void ModifyValue(Key const& key, Value value)
+		//{
+		//	function<void(NodeBase*)> moveDeepOnEqual = [value = move(value), &moveDeepOnEqual, &key](NodeBase* node)
+		//	{
+		//		if (node->Middle())
+		//		{
+		//			auto maxIndex = node->ChildCount() - 1;
+		//			auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
+		//			moveDeepOnEqual(maxChildPtr);
+		//			return;
+		//		}
 
-				return node->elements_[key];
-			};
+		//		node->elements_[key] = move(value);
+		//	};
 
-			return const_cast<NodeBase*>(this)->FindHelper<RetValue::SearchValue>(key, moveDeepOnEqual);
-		}
-
-		void ModifyValue(Key const& key, Value value)
-		{
-			function<void(NodeBase*)> moveDeepOnEqual = [value = move(value), &moveDeepOnEqual, &key](NodeBase* node)
-			{
-				if (node->Middle())
-				{
-					auto maxIndex = node->ChildCount() - 1;
-					auto maxChildPtr = Ele::ptr(node->elements_[maxIndex].second);
-					moveDeepOnEqual(maxChildPtr);
-					return;
-				}
-
-				node->elements_[key] = move(value);
-			};
-
-			FindHelper<RetValue::Void>(key, moveDeepOnEqual);
-		}
+		//	FindHelper<RetValue::Void>(key, moveDeepOnEqual);
+		//}
 
 	protected:
-
-		template <RetValue ReturnValue, typename T>
-		virtual auto FindHelper(Key const& key, function<T(NodeBase*)> onEqualDo)
-		{
-			auto& lessThan = *(elements_.LessThanPtr);
-#define ON_NOT_FOUND if constexpr (ReturnValue == RetValue::Bool) { return false; } else { throw KeyNotFoundException(); }
-
-			function<T(NodeBase*)> imp = [onEqualDo = move(onEqualDo), &key, &imp, &lessThan](NodeBase* node)
-			{
-				for (auto& e : node->elements_)
-				{
-					if (lessThan(key, e.first))
-					{
-						if (node->Middle())
-						{
-							return imp(Ele::ptr(e.second));
-						}
-						else
-						{
-							ON_NOT_FOUND;
-						}
-					}
-					else if (!lessThan(e.first, key))
-					{
-						return onEqualDo(Ele::ptr(e.second));
-					}
-				}
-
-				ON_NOT_FOUND;
-			};
-
-			return imp(this);
-#undef ON_NOT_FOUND 
-		}
+//		template <RetValue ReturnValue, typename T>
+//		auto FindHelper(Key const& key, function<T(NodeBase*)> onEqualDo)
+//		{
+//			auto& lessThan = *(elements_.LessThanPtr);
+//#define ON_NOT_FOUND if constexpr (ReturnValue == RetValue::Bool) { return false; } else { throw KeyNotFoundException(); }
+//
+//			function<T(NodeBase*)> imp = [onEqualDo = move(onEqualDo), &key, &imp, &lessThan](NodeBase* node)
+//			{
+//				variant<NodeBase*, 
+//				for (auto& e : node->elements_)
+//				{
+//					if (lessThan(key, e.first))
+//					{
+//						if (node->Middle())
+//						{
+//							return imp(e.second);
+//						}
+//						else
+//						{
+//							ON_NOT_FOUND;
+//						}
+//					}
+//					else if (!lessThan(e.first, key))
+//					{
+//						return onEqualDo(Ele::ptr(e.second));
+//					}
+//				}
+//
+//				ON_NOT_FOUND;
+//			};
+//
+//			return imp(this);
+//#undef ON_NOT_FOUND 
+//		}
 
 		// TODO add not only key-value add, but also key-unique_ptr add
 		//template <typename T>

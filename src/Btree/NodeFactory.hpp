@@ -22,7 +22,7 @@ namespace Collections
 		using Node = NodeBase<Key, Value, BtreeOrder>;
 		using Leaf = LeafNode<Key, Value, BtreeOrder>;
 		using Middle = MiddleNode<Key, Value, BtreeOrder>;
-		using LessThan = typename Node::LessThan;
+		using _LessThan = LessThan<Key>;
 
 	public:
 		/*template <typename Iter>
@@ -39,7 +39,7 @@ namespace Collections
 		}*/
 
 		template <typename... Ts>
-		static unique_ptr<Node> MakeNode(Enumerator<Ts...> enumerator, shared_ptr<LessThan> lessThan)
+		static unique_ptr<Node> MakeNode(Enumerator<Ts...> enumerator, shared_ptr<_LessThan> lessThan)
 		{
 			if constexpr (is_same_v<typename Enumerator<Ts...>::ValueType, pair<Key, Value>>)
 			{

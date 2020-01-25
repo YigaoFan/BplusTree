@@ -112,19 +112,19 @@ namespace Collections
 	template <order_int BtreeOrder, typename Key, typename Value>
 	class Btree 
 	{
+	public:
+		using _LessThan = LessThan<Key>;
 	private:
-		using Base   = NodeBase  <Key, Value, BtreeOrder>;
+		using Base   = NodeBase<Key, Value, BtreeOrder>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
-		shared_ptr<typename Base::LessThan> _lessThanPtr;
+		shared_ptr<_LessThan> _lessThanPtr;
 		key_int              _keyCount{ 0 };
 		unique_ptr<Base>     _root  { nullptr };
 
 	public:
-		using LessThan = typename Base::LessThan;
-
 		template <size_t NumOfEle>
-		Btree(LessThan lessThan, array<pair<Key, Value>, NumOfEle> keyValueArray)
-			: _lessThanPtr(make_shared<LessThan>(lessThan))
+		Btree(_LessThan lessThan, array<pair<Key, Value>, NumOfEle> keyValueArray)
+			: _lessThanPtr(make_shared<_LessThan>(lessThan))
 		{
 			// 可以自己实现一个排序算法，这样找重复的容易些
 			// 而且反正 pairArray 是在成功的情况下是要复制的，
@@ -146,7 +146,7 @@ namespace Collections
 		}
 
 		// TODO Enumerator constructor
-		// Btree(LessThan lessThan, )
+		// Btree(_LessThan lessThan, )
 
 		Btree(Btree const& that)
 			: _keyCount(that._keyCount), _root(that._root->Clone())
@@ -234,7 +234,7 @@ namespace Collections
 		}
 
 		template <typename T, auto Count, size_t... Is>
-		static auto ConsNodeInArrayImp(array<T, Count> srcArray, shared_ptr<LessThan> lessThan, index_sequence<Is...> is)
+		static auto ConsNodeInArrayImp(array<T, Count> srcArray, shared_ptr<_LessThan> lessThan, index_sequence<Is...> is)
 		{
 			array<unique_ptr<Base>, is.size()> consNodes;
 			ForEachCons<Count, Is...>([&srcArray, &consNodes, &lessThan](auto index, auto itemsCount, auto preItemsCount)
@@ -247,7 +247,7 @@ namespace Collections
 		}
 
 		template <typename T, auto Count>
-		static auto ConsNodeInArray(array<T, Count> src, shared_ptr<LessThan> lessThan)
+		static auto ConsNodeInArray(array<T, Count> src, shared_ptr<_LessThan> lessThan)
 		{
 			return ConsNodeInArrayImp(move(src), move(lessThan), make_index_sequence<GetNodeCount<Count, BtreeOrder>()>());
 		}
@@ -268,7 +268,7 @@ namespace Collections
 
 		template <size_t Count>
 		static bool DuplicateIn(array<pair<Key, Value>, Count> const& sortedPairArray, 
-								LessThan const& lessThan, Key const*& duplicateKey)
+								_LessThan const& lessThan, Key const*& duplicateKey)
 		{
 			auto& array = sortedPairArray;
 			if constexpr (Count > 1)

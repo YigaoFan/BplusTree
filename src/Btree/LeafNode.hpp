@@ -16,8 +16,7 @@ namespace Collections
 	class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>
 	{
 	private:
-		using Ele = Elements<Key, Value, BtreeOrder>;
-		using typename Ele::LessThan;
+		using _LessThan = LessThan<Key>;
 		using Base_CRTP = NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>;
 		Elements<Key, Value, BtreeOrder> _elements;
 		LeafNode* _next{ nullptr };
@@ -25,12 +24,12 @@ namespace Collections
 
 #undef LEAF
 	public:
-		LeafNode(shared_ptr<LessThan> lessThan)
-			: Base_CRTP(), _elements(EmptyEnumerator<pair<Key, Value>>(), lessThan)
+		LeafNode(shared_ptr<_LessThan> lessThan)
+			: Base_CRTP(), _elements(/*right value passed to ref value EmptyEnumerator<pair<Key, Value>>(),*/ lessThan)
 		{ }
 
 		template <typename Iterator>
-		LeafNode(Enumerator<pair<Key, Value>, Iterator> enumerator, shared_ptr<LessThan> lessThan)
+		LeafNode(Enumerator<pair<Key, Value>, Iterator> enumerator, shared_ptr<_LessThan> lessThan)
 			: Base_CRTP(), _elements(enumerator, lessThan)
 		{}
 
@@ -57,9 +56,24 @@ namespace Collections
 			return CollectKeys();
 		}
 
-		Key const& MinKey() override const
+		Key const& MinKey() const override
 		{
 			return _elements[0].first;
+		}
+
+		bool ContainsKey(Key const& key) const override
+		{
+			return _elements.ContainsKey(key);
+		}
+
+		Value GetValue(Key const& key) const override
+		{
+			return _elements[key];
+		}
+
+		void ModifyValue(Key const& key, Value value) override
+		{
+			_elements[key] = move(value);
 		}
 
 		void Add(pair<Key, Value> p) override
@@ -102,7 +116,7 @@ namespace Collections
 
 			if (addToPre)
 			{
-				if (!_previous._elements.Full())
+				if (!_previous->_elements.Full())
 				{
 					_previous->_elements.Append(_elements.ExchangeMin(move(p)));
 					return;
@@ -110,7 +124,7 @@ namespace Collections
 			}
 			else if (addToNxt)
 			{
-				if (!_next._elements.Full())
+				if (!_next->_elements.Full())
 				{
 					_next->_elements.Insert(_elements.ExchangeMax(move(p)));
 					return;
@@ -124,18 +138,18 @@ namespace Collections
 			this->_next = newNxtLeaf.get();
 
 			// Add
-			auto i = _elements.SuitPosition(p.first);
+			auto i = _elements.SuitPosition<true>(p.first);
 			constexpr auto middle = (BtreeOrder % 2) ? (BtreeOrder / 2 + 1) : (BtreeOrder / 2);
 			if (i <= middle)
 			{
 				auto items = this->_elements.PopOutItems(middle);
 				this->_elements.Add(move(p));
-				newNxtLeaf._elements.Add(CreateEnumerator(items.rbegin(), items.rend()));
+				newNxtLeaf->_elements.Add(move(items));
 			}
 			else
 			{
 				auto items = this->_elements.PopOutItems(BtreeOrder - middle);
-				newNxtLeaf->_elements.Add(CreateEnumerator(items.rbegin(), items.rend()));
+				newNxtLeaf->_elements.Add(move(items));
 				newNxtLeaf->_elements.Add(move(p));
 			}
 
@@ -155,7 +169,7 @@ namespace Collections
 						// Combine
 						// Use "this" to emphasize the operated object
 						auto items = this->_elements.PopOutItems(this->_elements.Count());
-						_next->_elements.Add(CreateEnumerator(items.rbegin(), items.rend()));
+						_next->_elements.Add(move(items));
 						// Delete this
 						this->_upNodeDeleteSubNodeCallback(this);
 					}
@@ -164,8 +178,8 @@ namespace Collections
 						// Means next _elements bigger than lowBound
 						// only one which is lower than lowBound is root leaf which doesn't have siblings
 						// Or steal one, could think steal one from which sibling in more balance view
-						auto items = this->_next->_elements.FrontPopOut(1);
-						this->_elements.Append(move(items[0]));
+						auto item = this->_next->_elements.FrontPopOut();
+						this->_elements.Append(move(item));
 					}
 				}
 				else if (_previous != nullptr)
@@ -173,7 +187,8 @@ namespace Collections
 					if (_previous->_elements.Count() == lowBound)
 					{
 						auto items = this->_elements.PopOutItems(this->_elements.Count());
-						_previous->_elements.Add(CreateEnumerator(items.rbegin(), items.rend()));
+						_previous->_elements.Add(move(items));
+						//_previous->_elements.Add(CreateEnumerator(items./*r*/begin(), items./*r*/end())); why error
 						this->_upNodeDeleteSubNodeCallback(this);
 					}
 					else
@@ -218,9 +233,9 @@ namespace Collections
 		}
 
 	private:
-		vector<Key> CollectKeys(vector<Key> previousNodesKeys = {})
+		vector<Key> CollectKeys(vector<Key> previousNodesKeys = {}) const
 		{
-			auto&& ks = _elements->Keys();
+			auto&& ks = _elements.Keys();
 			previousNodesKeys.insert(previousNodesKeys.end(), ks.begin(), ks.end());
 			if (_next == nullptr)
 			{

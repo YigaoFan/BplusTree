@@ -16,8 +16,14 @@ namespace Collections
 	using ::std::array;
 	using ::std::move;
 
-	struct TailAppendWay {};
-	struct HeadInsertWay {};
+	enum FindResult
+	{
+		EqualFound,
+		MaybeExistInDeep,
+		NotExist,
+	};
+	//struct TailAppendWay {};
+	//struct HeadInsertWay {};
 	
 	// TODO when BtreeOrder is big, use binary search in iterate process
 	template <typename Key, typename Value, order_int BtreeOrder>
@@ -32,6 +38,10 @@ namespace Collections
 		array<Item, BtreeOrder> _elements;
 
 	public:
+		Elements(shared_ptr<LessThan> lessThanPtr)
+			: LessThanPtr(lessThanPtr)
+		{ }
+
 		Elements(IEnumerator<pair<Key, Value>>& enumerator, shared_ptr<LessThan> lessThanPtr)
 			: LessThanPtr(lessThanPtr)
 		{
@@ -163,11 +173,11 @@ namespace Collections
 			}
 		}
 
-		void Add(IEnumerator<pair<Key, Value>>& enumerator)
+		void Add(vector<pair<Key, Value>> pairs)
 		{
-			while (enumerator.MoveNext())
+			for (auto& p : pairs)
 			{
-				Add(move(enumerator.Current()));
+				Add(move(p));
 			}
 		}
 
@@ -189,50 +199,50 @@ namespace Collections
 			_elements[_count++] = move(p);
 		}
 
-		template <bool AtHead>
-		void Receive(Elements&& that)
-		{
-			if constexpr (AtHead)
-			{
-				Receive(HeadInsertWay(), that.Count(), that);
-			}
-			else
-			{
-				Receive(TailAppendWay(), that.Count(), that);
-			}
-		}
+		//template <bool AtHead>
+		//void Receive(Elements&& that)
+		//{
+		//	if constexpr (AtHead)
+		//	{
+		//		Receive(HeadInsertWay(), that.Count(), that);
+		//	}
+		//	else
+		//	{
+		//		Receive(TailAppendWay(), that.Count(), that);
+		//	}
+		//}
 
-		void Receive(HeadInsertWay, order_int count, Elements& that)
-		{
-			MoveItems(count, 0);
-			auto end = that._elements.end();
-			auto start = (end - count);
+		//void Receive(HeadInsertWay, order_int count, Elements& that)
+		//{
+		//	MoveItems(count, 0);
+		//	auto end = that._elements.end();
+		//	auto start = (end - count);
 
-			for (auto i = 0; start != end; ++start, ++i)
-			{
-				_elements[i] = move(*start);
-			}
+		//	for (auto i = 0; start != end; ++start, ++i)
+		//	{
+		//		_elements[i] = move(*start);
+		//	}
 
-			_count += count;
-			that.RemoveItems<false>(count); // Will decrease preThat _count
-		}
+		//	_count += count;
+		//	that.RemoveItems<false>(count); // Will decrease preThat _count
+		//}
 
-		void Receive(TailAppendWay, order_int count, Elements& that)
-		{
-			for (auto i = 0; i < count; ++i)
-			{
-				_elements[_count++] = move(that._elements[i]);
-			}
+		//void Receive(TailAppendWay, order_int count, Elements& that)
+		//{
+		//	for (auto i = 0; i < count; ++i)
+		//	{
+		//		_elements[_count++] = move(that._elements[i]);
+		//	}
 
-			that.RemoveItems<true>(count);
-		}
+		//	that.RemoveItems<true>(count);
+		//}
 
-		order_int ChangeKeyOf(Value const& value, Key newKey)
-		{
-			auto index = IndexOf(value);
-			_elements[index].first = move(newKey);
-			return index;
-		}
+		//order_int ChangeKeyOf(Value const& value, Key newKey)
+		//{
+		//	auto index = IndexOf(value);
+		//	_elements[index].first = move(newKey);
+		//	return index;
+		//}
 
 		pair<Key, Value> ExchangeMax(pair<Key, Value> p)
 		{
@@ -275,21 +285,22 @@ namespace Collections
 				);
 		}
 
-		order_int IndexOf(Value const& value) const
-		{
-			auto enumerator = GetEnumerator();
-			while (enumerator.MoveNext())
-			{
-				auto& item = enumerator.Current();
-				// TODO Value use this to compare maybe not right, need to care this method use in scene
-				if (item.second == value)
-				{
-					return (order_int)enumerator.CurrentIndex();
-				}
-			}
+		// TODO sometimes Key and Value are the same type, how to avoid
+		//order_int IndexOf(Value const& value) const
+		//{
+		//	auto enumerator = GetEnumerator();
+		//	while (enumerator.MoveNext())
+		//	{
+		//		auto& item = enumerator.Current();
+		//		// TODO Value use this to compare maybe not right, need to care this method use in scene
+		//		if (item.second == value)
+		//		{
+		//			return (order_int)enumerator.CurrentIndex();
+		//		}
+		//	}
 
-			throw KeyNotFoundException();
-		}
+		//	throw KeyNotFoundException();
+		//}
 
 		order_int IndexOf(Key const& key) const
 		{
@@ -306,6 +317,28 @@ namespace Collections
 
 			throw KeyNotFoundException();
 		}
+
+		/// Only suit for ptr stored in.
+		//FindResult TryIndexOf(Key const& key, order_int& resultIndex) const
+		//{
+		//	auto& lessThan = *LessThanPtr;
+		//	for (decltype(_count) i = 1; i < _count; ++i)
+		//	{
+		//		auto& e = _elements[i];
+		//		if (lessThan(key, e.first))
+		//		{
+		//			resultIndex = i - 1;
+		//			return FindResult::MaybeExistInDeep;
+		//		}
+		//		else if (!lessThan(e.first, key))
+		//		{
+		//			resultIndex = i - 1;
+		//			return FindResult::EqualFound;
+		//		}
+		//	}
+
+		//	return FindResult::NotExist;
+		//}
 
 		template <bool ChooseBranch>
 		order_int SuitPosition(Key const& key) const
