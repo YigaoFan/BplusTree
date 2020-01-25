@@ -89,8 +89,8 @@ namespace Collections
 
 		void Remove(Key const& key) override
 		{
-			auto k = key;// TODO how to convert reference type to reference_wrapper type
-			auto i = _elements.SuitPosition<true>(k/*ey*/);
+			// auto k = key;// TODO how to convert reference type to reference_wrapper type
+			auto i = _elements.SuitPosition<true>(key);
 			_elements[i].second->Remove(key);
 		}
 
