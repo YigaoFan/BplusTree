@@ -94,75 +94,7 @@ namespace Collections
 			_elements[i].second->Remove(key);
 		}
 
-//#define SEARCH_HELPER_DEF(FUN_NAME, COMPARE_TO_BOUND, OFFSET, CHOOSE_SON)                                                                                 \
-//	function<Base*(decltype(rIter), function<Base*(Base*)>)> FUN_NAME = [&] (decltype(rIter) currentNodeIter, function<Base*(Base*)> callBack) -> Base* { \
-//        auto upperNodeIter = ++rIter;                                                                                                                     \
-//        if (upperNodeIter == rEnd)                                                                                                                        \
-//		{                                                                                                                                                 \
-//            return callBack(nullptr);                                                                                                                     \
-//        }                                                                                                                                                 \
-//                                                                                                                                                          \
-//        auto& upperElements = static_cast<MiddleNode*>(ptrOff(upperNodeIter))->elements_;                                                                 \
-//        auto i = upperElements.IndexOf(*currentNodeIter);                                                                                                 \
-//                                                                                                                                                          \
-//        if (i COMPARE_TO_BOUND) {                                                                                                                         \
-//            return callBack(Base::Ele::ptr(upperElements[i OFFSET].second));                                                                              \
-//        } else {                                                                                                                                          \
-//            return FUN_NAME(upperNodeIter, [callBack{ std::move(callBack) }] (Base* siblingOfUpper) {                                                     \
-//                return callBack(static_cast<MiddleNode*>(siblingOfUpper)->CHOOSE_SON());                                                                  \
-//        	});                                                                                                                                           \
-//    	}                                                                                                                                                 \
-//	}
-//
-//		void searchPrevious(const vector<Base *> &passedNodeTrackStack, Base *&previous) const
-//		{
-//			auto& stack = passedNodeTrackStack;
-//			auto rIter = stack.rbegin();
-//			auto rEnd = stack.rend();
-//
-//			SEARCH_HELPER_DEF(searchPreHelper, > 0, -1, MaxSon);
-//			previous = searchPreHelper(rIter, [](auto n) { return n; });
-//		}
-//
-//		void searchNext(const vector<Base *> &passedNodeTrackStack, Base *&next) const
-//		{
-//			auto& stack = passedNodeTrackStack;
-//			auto rIter = stack.rbegin();
-//			auto rEnd = stack.rend();
-//
-//			SEARCH_HELPER_DEF(searchNxtHelper, < (static_cast<MiddleNode*>(ptrOff(upperNodeIter))->ChildCount() - 1),
-//							  +1, MinSon);
-//			next = searchNxtHelper(rIter, [](auto n) { return n; });
-//		}
-//#undef SEARCH_HELPER_DEF
-	protected:
-		// TODO this virtual method can be private or public?
-//		template <RetValue ReturnValue, typename T>
-//		auto FindHelper(Key const& key, function<T(*)> onEqualDo) override
-//		{
-//#define ON_NOT_FOUND if constexpr (ReturnValue == RetValue::Bool) { return false; } else { throw KeyNotFoundException(); }
-//
-//			if (order_int i = 0; auto result = _elements.TryIndexOf(key, i) == FindResult::MaybeExistInDeep)
-//			{
-//				_elements[i].second.FindHelper(key, move(onEqualDo));
-//			}
-//			else if (result == FindResult::EqualFound)
-//			{
-//				onEqualDo(_elements[i].second);
-//			}
-//			else
-//			{
-//				ON_NOT_FOUND;
-//			}
-//#undef ON_NOT_FOUND
-//		}
-
 	private:
-		//Base* MaxSon() const
-		//{
-		//	return _elements[this->ChildCount() - 1].second;
-		//}
-
 		Base* MinSon() const
 		{
 			return _elements[0].second.get();

@@ -199,44 +199,6 @@ namespace Collections
 			_elements[_count++] = move(p);
 		}
 
-		//template <bool AtHead>
-		//void Receive(Elements&& that)
-		//{
-		//	if constexpr (AtHead)
-		//	{
-		//		Receive(HeadInsertWay(), that.Count(), that);
-		//	}
-		//	else
-		//	{
-		//		Receive(TailAppendWay(), that.Count(), that);
-		//	}
-		//}
-
-		//void Receive(HeadInsertWay, order_int count, Elements& that)
-		//{
-		//	MoveItems(count, 0);
-		//	auto end = that._elements.end();
-		//	auto start = (end - count);
-
-		//	for (auto i = 0; start != end; ++start, ++i)
-		//	{
-		//		_elements[i] = move(*start);
-		//	}
-
-		//	_count += count;
-		//	that.RemoveItems<false>(count); // Will decrease preThat _count
-		//}
-
-		//void Receive(TailAppendWay, order_int count, Elements& that)
-		//{
-		//	for (auto i = 0; i < count; ++i)
-		//	{
-		//		_elements[_count++] = move(that._elements[i]);
-		//	}
-
-		//	that.RemoveItems<true>(count);
-		//}
-
 		//order_int ChangeKeyOf(Value const& value, Key newKey)
 		//{
 		//	auto index = IndexOf(value);
