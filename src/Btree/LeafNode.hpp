@@ -1,6 +1,5 @@
 #pragma once
 #include <utility>
-#include <cmath>
 #include "Basic.hpp"
 #include "Enumerator.hpp"
 #include "Elements.hpp"
@@ -10,11 +9,9 @@
 namespace Collections
 {
 	using ::std::move;
-	using ::std::abs;
 	using ::std::make_unique;
 
 #define LEAF LeafNode<Key, Value, BtreeOrder>
-
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>
 #undef LEAF
@@ -26,8 +23,6 @@ namespace Collections
 		Elements<Key, Value, BtreeOrder> _elements;
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
-		// TODO wait to init
-		function<void(LeafNode*, LeafNode*)> _upNodeCallback;
 
 	public:
 		LeafNode(shared_ptr<LessThan> lessThan)
@@ -94,13 +89,13 @@ namespace Collections
 					auto preCount = _previous->_elements.Count();
 					auto nxtCount = _next->_elements.Count();
 					auto average = (preCount + this->_elements.Count() + nxtCount) / 3;
-					if (abs(preCount - average) > abs(nxtCount - average))
+					if (int(preCount - average) < int(nxtCount - average))
 					{
-						addToNxt = true;
+						addToPre = true;
 					}
 					else
 					{
-						addToPre = true;
+						addToNxt = true;
 					}
 				}
 			}
@@ -124,14 +119,10 @@ namespace Collections
 			
 			// Create new empty LeafNode
 			auto newNxtLeaf = make_unique<LeafNode>(_elements.LessThanPtr);
-			newNxtLeaf._next = this->_next;
-			newNxtLeaf._previous = this;
+			newNxtLeaf->_next = this->_next;
+			newNxtLeaf->_previous = this;
 			this->_next = newNxtLeaf.get();
 
-			auto doBalance = [&](order_int preNodeRemoveCount)
-			{
-				this->_elements.PopOutItems(removeCount);
-			};
 			// Add
 			auto i = _elements.SuitPosition(p.first);
 			constexpr auto middle = (BtreeOrder % 2) ? (BtreeOrder / 2 + 1) : (BtreeOrder / 2);
@@ -148,16 +139,43 @@ namespace Collections
 				newNxtLeaf->_elements.Add(move(p));
 			}
 
-			_upNodeCallback(this, newNxtLeaf);
+			this->_upNodeAddSubNodeCallback(this, move(newNxtLeaf));
 		}
 
 		virtual void Remove(Key const& key) override
 		{
 			_elements.Remove(key);
-			constexpr auto lowBound = 1 + ((BtreeOrder - 1) / 2);
+			constexpr order_int lowBound = 1 + ((BtreeOrder - 1) / 2);
 			if (_elements.Count() < lowBound)
 			{
-				auto newLeaf = make_unique
+				if (_next != nullptr)
+				{
+					if (_next->_elements.Count() == lowBound)
+					{
+						// Combine
+						this->_upNodeDeleteSubNodeCallback(this);
+					}
+					else
+					{
+						// Means next _elements bigger than lowBound
+						// only one which is lower than lowBound is root leaf which doesn't have siblings
+						// Or steal one, could think steal one from which sibling in more balance view
+					}
+				}
+
+				if (_previous != nullptr)
+				{
+					if (_previous->_elements.Count() == lowBound)
+					{
+						// Combine
+						this->_upNodeDeleteSubNodeCallback(this);
+					}
+					else
+					{
+						// Means next _elements bigger than lowBound
+						// Or steal one, could think steal one from which sibling in more balance view
+					}
+				}
 			}
 		}
 

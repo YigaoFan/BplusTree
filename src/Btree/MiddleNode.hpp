@@ -32,7 +32,12 @@ namespace Collections
 		template <typename Iterator>
 		MiddleNode(Enumerator<unique_ptr<Base>, Iterator> enumerator, shared_ptr<LessThan> lessThanPtr)
 			: Base_CRTP(), _elements(EnumeratorPipeine(enumerator, ConvertToKeyBasePtrPair), lessThan)
-		{ }
+		{
+			for (auto& e : _elements)
+			{
+				e.second.SetUpNodeCallback(AddSubNodeCallback, );
+			}
+		}
 
 		MiddleNode(MiddleNode const& that)
 			: Base_CRTP(that)// TODO how to solve _elements copy
@@ -125,10 +130,15 @@ namespace Collections
 		}
 
 		// TODO maybe add and remove are in the same method
-		void AddBelowNodeCallback(Base* srcNode, Base* newNextNode)
+		void AddSubNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
 		{
 			// find index of srcNode and add new NextNode
 			// if this is Full(), combine the node or call the upper node callback
+		}
+
+		void DeleteSubNodeCallback(Base* node)
+		{
+			// TODO
 		}
 	};
 }

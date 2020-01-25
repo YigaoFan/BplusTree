@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <memory>
 #include "Basic.hpp"
 #include "Util.hpp"
 #include "Enumerator.hpp"
@@ -9,6 +10,7 @@
 namespace Collections
 {
 	using ::std::move;
+	using ::std::unique_ptr;
 
 	namespace 
 	{
@@ -23,8 +25,9 @@ namespace Collections
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeBase
 	{
-	private:
-		// TODO function<void(LeafNode*, LeafNode*)> _upNodeCallback;
+	protected:
+		function<void(NodeBase*, unique_ptr<NodeBase>)> _upNodeAddSubNodeCallback;
+		function<void(NodeBase*)> _upNodeDeleteSubNodeCallback;
 	public:
 		// TODO below two lines code wait to delete
 		using Ele = Elements<Key, Value, BtreeOrder>;
@@ -38,6 +41,12 @@ namespace Collections
 		virtual Key MinKey() const = 0;
 		virtual void Add(pair<Key, Value>) = 0;
 		virtual void Remove(Key const&) = 0;
+
+		void SetUpNodeCallback(function<void(NodeBase*, unique_ptr<NodeBase>)> addSubNodeCallback, function<void(NodeBase*)> deleteSubNodeCallback)
+		{
+			_upNodeAddSubNodeCallback = move(addSubNodeCallback);
+			_upNodeDeleteSubNodeCallback = move(deleteSubNodeCallback);
+		}
 
 		bool ContainsKey(Key const& key, vector<NodeBase*>& passedNodeTrackStack)
 		{
@@ -170,8 +179,8 @@ namespace Collections
 		//	tryPreviousAdd<T>(move(p), stack, tryNextAdd<T>, splitNode<T>);
 		//}
 
-		template <bool IsLeaf, typename Key, typename Value, order_int BtreeOrder>
-		void getPrevious(NodeBase*, const vector<NodeBase*>&, NodeBase*&);
+		/*template <bool IsLeaf, typename Key, typename Value, order_int BtreeOrder>
+		void getPrevious(NodeBase*, const vector<NodeBase*>&, NodeBase*&);*/
 
 		// return means succeed or not
 		//template <typename T>
@@ -200,8 +209,8 @@ namespace Collections
 		//	continuation1(move(p), stack, continuation2);
 		//}
 
-		template <bool IsLeaf, typename Key, typename Value, order_int BtreeOrder>
-		void getNext(NodeBase*, const vector<NodeBase*>&, NodeBase*&);
+		//template <bool IsLeaf, typename Key, typename Value, order_int BtreeOrder>
+		//void getNext(NodeBase*, const vector<NodeBase*>&, NodeBase*&);
 
 		// return means succeed or not
 		//template <typename T>
@@ -223,66 +232,66 @@ namespace Collections
 		//	continuation(move(p), passedNodeTrackStack);
 		//}
 
-		template <bool IsLeaf, typename Key, typename Value, order_int BtreeOrder>
-		void setNewPreRelation(NodeBase*, NodeBase*);
+		//template <bool IsLeaf, typename Key, typename Value, order_int BtreeOrder>
+		//void setNewPreRelation(NodeBase*, NodeBase*);
 
 		// first in: split leaf
-		template <typename T>
-		void splitNode(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack)
-		{
-			auto& key = p.first;
-			auto& lessThan = *(elements_.LessThanPtr);
-			auto& stack = passedNodeTrackStack;
-
-			auto newPre = this->Clone();
-			auto newPrePtr = newPre.get();
-			// left is newPre, right is this
-			setNewPreRelation<std::is_same<typename std::decay<T>::type, Value>::value>(newPrePtr, this);
-
-			auto removeItems = [&](order_int preNodeRemoveCount)
-			{
-				newPrePtr->elements_.template RemoveItems<false>(preNodeRemoveCount);
-				this->elements_.template RemoveItems<true>(BtreeOrder - preNodeRemoveCount);
-			};
-
-			auto addIn = [&](NodeBase* node, bool shouldAppend)
-			{
-				if (shouldAppend)
-				{
-					node->elements_.Append(move(p));
-				}
-				else
-				{
-					node->elements_.Insert(move(p));
-				}
-			};
-
-#define HANDLE_ADD(leaf, maxBound) auto shouldAppend = (i == maxBound); do { addIn(leaf, shouldAppend); } while(0)
-			constexpr bool odd = BtreeOrder % 2;
-			constexpr auto middle = odd ? (BtreeOrder / 2 + 1) : (BtreeOrder / 2);
-			auto i = elements_.SuitPosition(key);
-			if (i <= middle)
-			{
-				constexpr auto removeCount = middle;
-				removeItems(removeCount);
-
-				HANDLE_ADD(newPrePtr, middle);
-			}
-			else
-			{
-				constexpr auto removeCount = BtreeOrder - middle;
-				removeItems(removeCount);
-
-				HANDLE_ADD(this, BtreeOrder);
-				if (shouldAppend)
-				{
-					ChangeMaxKeyFromBottomToRoot(stack, key);
-				}
-			}
-#undef HANDLE_ADD
-
-			insertNewPreToUpper(move(newPre), stack);
-		}
+//		template <typename T>
+//		void splitNode(pair<Key, T> p, vector<NodeBase*>& passedNodeTrackStack)
+//		{
+//			auto& key = p.first;
+//			auto& lessThan = *(elements_.LessThanPtr);
+//			auto& stack = passedNodeTrackStack;
+//
+//			auto newPre = this->Clone();
+//			auto newPrePtr = newPre.get();
+//			// left is newPre, right is this
+//			setNewPreRelation<std::is_same<typename std::decay<T>::type, Value>::value>(newPrePtr, this);
+//
+//			auto removeItems = [&](order_int preNodeRemoveCount)
+//			{
+//				newPrePtr->elements_.template RemoveItems<false>(preNodeRemoveCount);
+//				this->elements_.template RemoveItems<true>(BtreeOrder - preNodeRemoveCount);
+//			};
+//
+//			auto addIn = [&](NodeBase* node, bool shouldAppend)
+//			{
+//				if (shouldAppend)
+//				{
+//					node->elements_.Append(move(p));
+//				}
+//				else
+//				{
+//					node->elements_.Insert(move(p));
+//				}
+//			};
+//
+//#define HANDLE_ADD(leaf, maxBound) auto shouldAppend = (i == maxBound); do { addIn(leaf, shouldAppend); } while(0)
+//			constexpr bool odd = BtreeOrder % 2;
+//			constexpr auto middle = odd ? (BtreeOrder / 2 + 1) : (BtreeOrder / 2);
+//			auto i = elements_.SuitPosition(key);
+//			if (i <= middle)
+//			{
+//				constexpr auto removeCount = middle;
+//				removeItems(removeCount);
+//
+//				HANDLE_ADD(newPrePtr, middle);
+//			}
+//			else
+//			{
+//				constexpr auto removeCount = BtreeOrder - middle;
+//				removeItems(removeCount);
+//
+//				HANDLE_ADD(this, BtreeOrder);
+//				if (shouldAppend)
+//				{
+//					ChangeMaxKeyFromBottomToRoot(stack, key);
+//				}
+//			}
+//#undef HANDLE_ADD
+//
+//			insertNewPreToUpper(move(newPre), stack);
+//		}
 
 		//template <typename T>
 		//bool reallocatePre(NodeBase* previousNode, vector<NodeBase*>& passedNodeTrackStack, pair<Key, T> appendPair)

@@ -286,5 +286,10 @@ namespace Collections
 			duplicateKey = nullptr;
 			return false;
 		}
+
+		void RootChangeCallback(/*TODO*/)
+		{
+			// TODO
+		}
 	};
 }
