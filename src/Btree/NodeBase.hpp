@@ -1,4 +1,8 @@
 #pragma once
+/***********************************************************************************************************
+ Abstract class NodeBase in Collections
+***********************************************************************************************************/
+
 #include <vector>
 #include <memory>
 #include "Basic.hpp"
@@ -16,7 +20,8 @@ namespace Collections
 		function<void(NodeBase*, unique_ptr<NodeBase>)> _upNodeAddSubNodeCallback;
 		function<void(NodeBase*)> _upNodeDeleteSubNodeCallback;
 	public:
-		void SetUpNodeCallback(function<void(NodeBase*, unique_ptr<NodeBase>)> addSubNodeCallback, function<void(NodeBase*)> deleteSubNodeCallback)
+		void SetUpNodeCallback(function<void(NodeBase*, unique_ptr<NodeBase>)> addSubNodeCallback, 
+								function<void(NodeBase*)> deleteSubNodeCallback)
 		{
 			_upNodeAddSubNodeCallback = move(addSubNodeCallback);
 			_upNodeDeleteSubNodeCallback = move(deleteSubNodeCallback);
