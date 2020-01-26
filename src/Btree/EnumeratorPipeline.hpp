@@ -16,15 +16,15 @@ namespace Collections
     using ::std::size_t;
 
     template <typename RawItem, typename Item, typename Iterator>
-    class EnumeratorPipeine : public IEnumerator<Item>
+    class EnumeratorPipeline : public IEnumerator<Item>
     {
     private:
-        Enumerator<RawItem, Iterator> _enumerator;
+        IEnumerator<RawItem>& _enumerator;
         function<Item(RawItem)> _func;
 
     public:
-        EnumeratorPipeine(Enumerator<RawItem, Iterator> enumerator, function<Item(RawItem)> func)
-            : _enumerator(move(enumerator)), _func(move(_func))
+        EnumeratorPipeline(IEnumerator<RawItem>& enumerator, function<Item(RawItem)> func)
+            : _enumerator(enumerator), _func(move(_func))
         { }
 
         Item& Current() override
@@ -45,7 +45,7 @@ namespace Collections
         template <typename T>
 		auto operator|(function<T(Item&)> func)
         {
-            return EnumeratorPipeine<RawItem, T, Iterator>(_enumerator,
+            return EnumeratorPipeline<RawItem, T, Iterator>(_enumerator,
                 [func1 = _func, func2 = move(func)](RawItem item) 
                 {
                     return func2(move(func1(move(item))));

@@ -4,7 +4,6 @@
 #include "Enumerator.hpp"
 #include "Elements.hpp"
 #include "NodeBase.hpp"
-// #include "NodeBaseCrtp.hpp"
 
 namespace Collections
 {
@@ -18,7 +17,7 @@ namespace Collections
 	private:
 		using _LessThan = LessThan<Key>;
 		using Base = NodeBase<Key, Value, BtreeOrder>;
-		Elements<Key, Value, BtreeOrder> _elements;
+		Elements<Key, Value, BtreeOrder, _LessThan> _elements;
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
 
@@ -33,7 +32,7 @@ namespace Collections
 			: Base(), _elements(enumerator, lessThan)
 		{}
 
-		LeafNode(LeafNode const& that, LeafNode* previous = nullptr, LeafNode* next = nullptr)
+		LeafNode(LeafNode& that, LeafNode* previous = nullptr, LeafNode* next = nullptr)
 			: Base(that), _elements(that._elements), _next(next), _previous(previous)
 		{}
 
@@ -44,7 +43,7 @@ namespace Collections
 
 		~LeafNode() override = default;
 
-		unique_ptr<Base> Clone() const override
+		unique_ptr<Base> Clone() override
 		{
 			return make_unique<LeafNode>(*this);
 		}

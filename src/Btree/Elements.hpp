@@ -16,22 +16,19 @@ namespace Collections
 	using ::std::array;
 	using ::std::move;
 
-	enum FindResult
-	{
-		EqualFound,
-		MaybeExistInDeep,
-		NotExist,
-	};
-	//struct TailAppendWay {};
-	//struct HeadInsertWay {};
+	//enum FindResult
+	//{
+	//	EqualFound,
+	//	MaybeExistInDeep,
+	//	NotExist,
+	//};
 	
 	// TODO when BtreeOrder is big, use binary search in iterate process
-	template <typename Key, typename Value, order_int BtreeOrder>
+	template <typename Key, typename Value, order_int BtreeOrder, typename LessThan>
 	class Elements
 	{
 	public:
 		using Item = pair<Key, Value>;
-		using LessThan = function<bool(Key const&, Key const&)>;
 		shared_ptr<LessThan> LessThanPtr;
 	private:
 		order_int               _count{ 0 };
@@ -39,7 +36,7 @@ namespace Collections
 
 	public:
 		Elements(shared_ptr<LessThan> lessThanPtr)
-			: LessThanPtr(lessThanPtr)
+			: LessThanPtr(lessThanPtr), _elements(move(ConsEmptyArray()))
 		{ }
 
 		Elements(IEnumerator<pair<Key, Value>>& enumerator, shared_ptr<LessThan> lessThanPtr)
@@ -302,8 +299,8 @@ namespace Collections
 		//	return FindResult::NotExist;
 		//}
 
-		template <bool ChooseBranch>
-		order_int SuitPosition(auto const& key) const
+		template <bool ChooseBranch, typename T>
+		order_int SuitPosition(T const& key) const
 		{
 			if constexpr (ChooseBranch)
 			{
@@ -390,6 +387,11 @@ namespace Collections
 					*(rbegin + direction) = move(*rbegin);
 				}
 			}
+		}
+
+		static decltype(_elements) ConsEmptyArray()
+		{
+			throw NotImplementException();
 		}
 	};
 }

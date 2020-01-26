@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <utility>
+#include <type_traits>
 #include "Basic.hpp"
 #include "Enumerator.hpp"
 #include "LeafNode.hpp"
@@ -14,6 +15,13 @@ namespace Collections
 	using ::std::unique_ptr;
 	using ::std::make_unique;
 	using ::std::decay_t;
+	using ::std::unique_ptr;
+
+	template<typename Test, template<typename...> class Ref>
+	struct IsSpecialization : std::false_type {};
+
+	template<template<typename...> class Ref, typename... Args>
+	struct IsSpecialization<Ref<Args...>, Ref> : std::true_type {};
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeFactory
@@ -41,13 +49,13 @@ namespace Collections
 		template <typename... Ts>
 		static unique_ptr<Node> MakeNode(Enumerator<Ts...> enumerator, shared_ptr<_LessThan> lessThan)
 		{
-			if constexpr (is_same_v<typename Enumerator<Ts...>::ValueType, pair<Key, Value>>)
+			if constexpr (IsSpecialization<typename Enumerator<Ts...>::ValueType, unique_ptr>::value)
 			{
-				return make_unique<Leaf>(enumerator, lessThan);
+				return make_unique<Middle>(enumerator, lessThan);
 			}
 			else
 			{
-				return make_unique<Middle>(enumerator, lessThan);
+				return make_unique<Leaf>(enumerator, lessThan);
 			}
 		}
 
