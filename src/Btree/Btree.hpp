@@ -9,7 +9,6 @@
 #include "Enumerator.hpp"
 #include "NodeFactory.hpp"
 #include "Exception.hpp"
-#include "SiblingFunc.hpp"
 
 namespace Collections
 {
