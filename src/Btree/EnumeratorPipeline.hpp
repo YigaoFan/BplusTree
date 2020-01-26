@@ -15,7 +15,7 @@ namespace Collections
     using ::std::move;
     using ::std::size_t;
 
-    template <typename RawItem, typename Item, typename Iterator>
+    template <typename RawItem, typename Item>
     class EnumeratorPipeline : public IEnumerator<Item>
     {
     private:
@@ -24,10 +24,10 @@ namespace Collections
 
     public:
         EnumeratorPipeline(IEnumerator<RawItem>& enumerator, function<Item(RawItem)> func)
-            : _enumerator(enumerator), _func(move(_func))
+            : _enumerator(enumerator), _func(move(func))
         { }
 
-        Item& Current() override
+        Item Current() override
         {
             return _func(move(_enumerator.Current()));
         }
@@ -45,7 +45,7 @@ namespace Collections
         template <typename T>
 		auto operator|(function<T(Item&)> func)
         {
-            return EnumeratorPipeline<RawItem, T, Iterator>(_enumerator,
+            return EnumeratorPipeline<RawItem, T>(_enumerator,
                 [func1 = _func, func2 = move(func)](RawItem item) 
                 {
                     return func2(move(func1(move(item))));

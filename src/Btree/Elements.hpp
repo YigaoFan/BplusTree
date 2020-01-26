@@ -15,13 +15,7 @@ namespace Collections
 	using ::std::shared_ptr;
 	using ::std::array;
 	using ::std::move;
-
-	//enum FindResult
-	//{
-	//	EqualFound,
-	//	MaybeExistInDeep,
-	//	NotExist,
-	//};
+	using ::std::allocator;
 	
 	// TODO when BtreeOrder is big, use binary search in iterate process
 	template <typename Key, typename Value, order_int BtreeOrder, typename LessThan>
@@ -40,13 +34,13 @@ namespace Collections
 		{ }
 
 		Elements(IEnumerator<pair<Key, Value>>& enumerator, shared_ptr<LessThan> lessThanPtr)
-			: LessThanPtr(lessThanPtr)
-		{
-			while (enumerator.MoveNext())
-			{
-				_elements[_count++] = move(enumerator.Current());
-			}
-		}
+			: LessThanPtr(lessThanPtr), _elements(move(ConsArray(enumerator)))
+		{ }
+
+		// TODO how to solve && and & in up and below method
+		Elements(IEnumerator<pair<Key, Value>>&& enumerator, shared_ptr<LessThan> lessThanPtr)
+			: LessThanPtr(lessThanPtr), _elements(move(ConsArray(enumerator)))
+		{ }
 
 		// TODO here maybe should care about Middle Node copy
 		Elements(Elements const& that)
@@ -392,6 +386,22 @@ namespace Collections
 		static decltype(_elements) ConsEmptyArray()
 		{
 			throw NotImplementException();
+		}
+
+		template <typename T>
+		decltype(_elements) ConsArray(IEnumerator<T>& enumerator)
+		{
+			throw NotImplementException();
+			//char bytes[sizeof(_elements)];
+			//decltype(_elements)& elements = (decltype(_elements))(*(void *)(bytes));
+			//while (enumerator.MoveNext())
+			//{
+			//	elements[_count++] = move(enumerator.Current());
+			//}
+
+			//return move(elements);
+			// remember to delete, how to control raw init the array
+			// use place new?
 		}
 	};
 }

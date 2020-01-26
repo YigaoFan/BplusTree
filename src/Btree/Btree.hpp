@@ -264,9 +264,8 @@ namespace Collections
 				return;
 			}
 
-			auto newNodes = ConsNodeInArray(move(ItemsToConsNode), _lessThanPtr);
 			// TODO wait to set next leaf of leaf
-			ConstructFromLeafToRoot<false>(move(newNodes));
+			ConstructFromLeafToRoot<false>(move(ConsNodeInArray(move(ItemsToConsNode), _lessThanPtr)));
 		}
 
 		template <size_t Count>

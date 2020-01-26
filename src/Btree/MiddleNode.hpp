@@ -39,7 +39,7 @@ namespace Collections
 
 		template <typename Iterator>
 		MiddleNode(Enumerator<unique_ptr<Base>, Iterator> enumerator, shared_ptr<_LessThan> lessThanPtr)
-			: Base(), _elements(EnumeratorPipeline(enumerator, [](unique_ptr<Base> node)
+			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>, typename decltype(_elements)::Item>(enumerator, [](unique_ptr<Base> node)
 				{
 					using pairType = typename decltype(_elements)::Item;
 					return make_pair<pairType::first_type, pairType::second_type>(cref(node->MinKey()), move(node));

@@ -62,18 +62,17 @@ namespace Collections
 		Iterator const _begin;
 		Iterator const _end;
 	public:
-		using ValueType = Item;
 		// TODO: support array, list, raw array?
 		// TODO how to direct use constructor(arg is container) to deduce Item and Iterator type
 
-		Item& Current() override
+		Item Current() override
 		{
 			if (_firstMove) 
 			{
 				throw InvalidAccessException();
 			}
 
-			return *_current;
+			return move(*_current);
 		}
 
 		size_t CurrentIndex() override
@@ -82,7 +81,7 @@ namespace Collections
 		}
 
 		Enumerator(Iterator begin, Iterator end)
-			: _current(_begin), _begin(begin), _end(end)
+			: _current(begin), _begin(begin), _end(end)
 		{ }
 
 		bool MoveNext() override
@@ -98,9 +97,9 @@ namespace Collections
 				return true;
 			}
 
+			++_current;
 			if (_current != _end)
 			{
-				++_current;
 				return true;
 			}
 

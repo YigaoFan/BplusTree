@@ -11,7 +11,8 @@ namespace Collections
 	class IEnumerator
 	{
 	public:
-		virtual Item& Current() = 0;
+		using ValueType = Item;
+		virtual Item Current() = 0;
 		virtual bool MoveNext() = 0;
 		virtual size_t CurrentIndex() = 0;
 	};
