@@ -3,7 +3,8 @@
 #include <functional>
 #include "Basic.hpp"
 #include "Elements.hpp"
-#include "NodeBaseCrtp.hpp"
+#include "NodeBase.hpp"
+// #include "NodeBaseCrtp.hpp"
 
 namespace Collections 
 {
@@ -14,26 +15,32 @@ namespace Collections
 	using ::std::pair;
 	using ::std::make_pair;
 
-#define MIDDLE MiddleNode<Key, Value, BtreeOrder>
 	template <typename Key, typename Value, order_int BtreeOrder>
-	class MiddleNode : public NodeBase_CRTP<MIDDLE, Key, Value, BtreeOrder>
-#undef MIDDLE
+	class MiddleNode : public NodeBase<Key, Value, BtreeOrder>
 	{
 	private:
-		using          Base = NodeBase<Key, Value, BtreeOrder>;
-		using          Base_CRTP = NodeBase_CRTP<MiddleNode, Key, Value, BtreeOrder>;
+		using Base = NodeBase<Key, Value, BtreeOrder>;
 		using _LessThan = LessThan<Key>;
 		Elements<reference_wrapper<Key>, unique_ptr<Base>, BtreeOrder> _elements;
 
-		static pair<reference_wrapper<Key>, unique_ptr<Base>> ConvertToKeyBasePtrPair(unique_ptr<Base> node)
+		static pair<decltype(_elements)::Item> ConvertToKeyBasePtrPair(unique_ptr<Base> node)
 		{
-			return make_pair<reference_wrapper<Key>, unique_ptr<Base>>(cref(node->MinKey()), move(node));
+			return make_pair<decltype(_elements)::Item>(cref(node->MinKey()), move(node));
 		}
 
 	public:
+		MiddleNode(shared_ptr<_LessThan> lessThanPtr)
+			: Base(), _elements(lessThanPtr)
+		{
+			for (auto& e : _elements)
+			{
+				e.second.SetUpNodeCallback(AddSubNodeCallback, DeleteSubNodeCallback);
+			}
+		}	
+
 		template <typename Iterator>
 		MiddleNode(Enumerator<unique_ptr<Base>, Iterator> enumerator, shared_ptr<_LessThan> lessThanPtr)
-			: Base_CRTP(), _elements(EnumeratorPipeine(enumerator, ConvertToKeyBasePtrPair), lessThanPtr)
+			: Base(), _elements(EnumeratorPipeine(enumerator, ConvertToKeyBasePtrPair), lessThanPtr)
 		{
 			for (auto& e : _elements)
 			{
@@ -42,14 +49,25 @@ namespace Collections
 		}
 
 		MiddleNode(MiddleNode const& that)
-			: Base_CRTP(that)// TODO how to solve _elements copy
+			: Base(that)// TODO how to solve _elements copy
 		{ }
 
 		MiddleNode(MiddleNode&& that) noexcept
-			: Base_CRTP(move(that)), _elements(move(that._elements))
+			: Base(move(that)), _elements(move(that._elements))
 		{ }
 
 		~MiddleNode() override = default;
+
+		unique_ptr<Base> Clone() const override
+		{
+			auto cloneOne = make_unique<MiddleNode>(_elements.LessThanPtr);
+			for (auto const& e : _elements)
+			{
+				cloneOne->_elements.Append(ConvertToKeyBasePtrPair(move(e.second->Clone())));
+			}
+
+			return cloneOne;
+		}
 
 		bool Middle() const override
 		{

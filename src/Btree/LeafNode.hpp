@@ -4,7 +4,7 @@
 #include "Enumerator.hpp"
 #include "Elements.hpp"
 #include "NodeBase.hpp"
-#include "NodeBaseCrtp.hpp"
+// #include "NodeBaseCrtp.hpp"
 
 namespace Collections
 {
@@ -13,11 +13,11 @@ namespace Collections
 
 #define LEAF LeafNode<Key, Value, BtreeOrder>
 	template <typename Key, typename Value, order_int BtreeOrder>
-	class LeafNode : public NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>
+	class LeafNode : public NodeBase<Key, Value, BtreeOrder>
 	{
 	private:
 		using _LessThan = LessThan<Key>;
-		using Base_CRTP = NodeBase_CRTP<LEAF, Key, Value, BtreeOrder>;
+		using Base = NodeBase<Key, Value, BtreeOrder>;
 		Elements<Key, Value, BtreeOrder> _elements;
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
@@ -25,24 +25,29 @@ namespace Collections
 #undef LEAF
 	public:
 		LeafNode(shared_ptr<_LessThan> lessThan)
-			: Base_CRTP(), _elements(/*right value passed to ref value EmptyEnumerator<pair<Key, Value>>(),*/ lessThan)
+			: Base(), _elements(/*right value passed to ref value EmptyEnumerator<pair<Key, Value>>(),*/ lessThan)
 		{ }
 
 		template <typename Iterator>
 		LeafNode(Enumerator<pair<Key, Value>, Iterator> enumerator, shared_ptr<_LessThan> lessThan)
-			: Base_CRTP(), _elements(enumerator, lessThan)
+			: Base(), _elements(enumerator, lessThan)
 		{}
 
 		LeafNode(LeafNode const& that, LeafNode* previous = nullptr, LeafNode* next = nullptr)
-			: Base_CRTP(that), _elements(that._elements), _next(next), _previous(previous)
+			: Base(that), _elements(that._elements), _next(next), _previous(previous)
 		{}
 
 		LeafNode(LeafNode&& that) noexcept
-			: Base_CRTP(move(that)), _elements(move(that._elements)),
+			: Base(move(that)), _elements(move(that._elements)),
 			 _next(that._next), _previous(that._previous)
 		{}
 
 		~LeafNode() override = default;
+
+		unique_ptr<Base> Clone() const override
+		{
+			return make_unique<LeafNode>(*this);
+		}
 
 		bool Middle() const override
 		{

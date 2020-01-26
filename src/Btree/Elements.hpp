@@ -303,7 +303,7 @@ namespace Collections
 		//}
 
 		template <bool ChooseBranch>
-		order_int SuitPosition(auto& key) const
+		order_int SuitPosition(auto const& key) const
 		{
 			if constexpr (ChooseBranch)
 			{
