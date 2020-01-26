@@ -7,6 +7,7 @@ namespace Collections
 {
 	using ::std::move;
 	using ::std::unique_ptr;
+	using ::std::vector;
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeBase
