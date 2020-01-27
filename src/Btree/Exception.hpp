@@ -2,8 +2,8 @@
 /**********************************
    Exception in Collections
 ***********************************/
-#include <exception>
 #include <string>
+#include <stdexcept>
 
 namespace Collections
 {

@@ -385,23 +385,24 @@ namespace Collections
 
 		static decltype(_elements) ConsEmptyArray()
 		{
-			throw NotImplementException();
+			using E = decltype(_elements);
+			alignas(E) char mem[sizeof(E)];
+			E& elements = *(reinterpret_cast<E*>(&mem));
+			return move(elements);
 		}
 
 		template <typename T>
 		decltype(_elements) ConsArray(IEnumerator<T>& enumerator)
 		{
-			throw NotImplementException();
-			//char bytes[sizeof(_elements)];
-			//decltype(_elements)& elements = (decltype(_elements))(*(void *)(bytes));
-			//while (enumerator.MoveNext())
-			//{
-			//	elements[_count++] = move(enumerator.Current());
-			//}
+			using E = decltype(_elements);
+			alignas(E) char mem[sizeof(E)];
+			E& elements = *(reinterpret_cast<E*>(&mem));
+			while (enumerator.MoveNext())
+			{
+				elements[_count++] = move(enumerator.Current());
+			}
 
-			//return move(elements);
-			// remember to delete, how to control raw init the array
-			// use place new?
+			return move(elements);
 		}
 	};
 }
