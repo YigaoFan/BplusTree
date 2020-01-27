@@ -146,14 +146,14 @@ namespace Collections
 
 		void SetSubNodeCallback()
 		{
-			//using ::std::placeholders::_1;
-			//using ::std::placeholders::_2;
-			//auto f1 = bind(&MiddleNode::AddSubNodeCallback, *this, _1, _2);
-			//auto f2 = bind(&MiddleNode::DeleteSubNodeCallback, *this, _1);
-			//for (auto& e : _elements)
-			//{
-			//	e.second->SetUpNodeCallback(f1, f2);
-			//}
+			using ::std::placeholders::_1;
+			using ::std::placeholders::_2;
+			auto f1 = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
+			auto f2 = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
+			for (auto& e : _elements)
+			{
+				e.second->SetUpNodeCallback(f1, f2);
+			}
 		}
 	};
 }
