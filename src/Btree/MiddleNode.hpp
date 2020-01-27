@@ -136,6 +136,7 @@ namespace Collections
 		void AddSubNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
 		{
 			//auto predicate = [srcNode = srcNode]((typename (decltype _elements)::Item const&) item)
+			// TODO why up is a compile error
 			auto predicate = [srcNode = srcNode](auto& item)
 			{
 				if (item.second.get() == srcNode)
