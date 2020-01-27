@@ -180,7 +180,7 @@ namespace Collections
 
 		virtual void Remove(Key const& key) override
 		{
-			_elements.Remove(key);
+			_elements.RemoveKey(key);
 			constexpr order_int lowBound = 1 + ((BtreeOrder - 1) / 2);
 			if (_elements.Count() < lowBound)
 			{
@@ -218,8 +218,6 @@ namespace Collections
 					}
 					else
 					{
-						// Means next _elements bigger than lowBound
-						// Or steal one, could think steal one from which sibling in more balance view
 						preStealable = true;
 					}
 				}

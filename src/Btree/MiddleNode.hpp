@@ -135,13 +135,37 @@ namespace Collections
 		// TODO maybe add and remove are in the same method
 		void AddSubNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
 		{
+			//auto predicate = [srcNode = srcNode]((typename (decltype _elements)::Item const&) item)
+			auto predicate = [srcNode = srcNode](auto& item)
+			{
+				if (item.second.get() == srcNode)
+				{
+					return true;
+				}
+
+				return false;
+			};
 			// find index of srcNode and add new NextNode
 			// if this is Full(), combine the node or call the upper node callback
+			if (!_elements.Full())
+			{
+				//_elements.Add({ cref(newNextNode->MinKey()), move(newNextNode) });
+				_elements.Emplace(_elements.Index(move(predicate)), { cref(newNextNode->MinKey()), move(newNextNode) });
+			}
 		}
 
 		void DeleteSubNodeCallback(Base* node)
 		{
-			// TODO
+			for (order_int i = 0; i < _elements.Count(); ++i)
+			{
+				if (_elements[i].second.get() == node)
+				{
+					_elements.RemoveAt(i);
+					return;
+				}
+			}
+
+			// TODO if lower than lowBound
 		}
 
 		void SetSubNodeCallback()

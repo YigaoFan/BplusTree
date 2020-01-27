@@ -99,9 +99,9 @@ namespace Collections
 		/// Remove the item corresponding to the key.
 		/// Invoker should ensure key exists in this Elements.
 		/// \param key
-		void Remove(Key const& key)
+		void RemoveKey(Key const& key)
 		{
-			return RemoveAt(IndexOf(key));
+			return RemoveAt(IndexKeyOf(key));
 		}
 
 		/// Remove the item corresponding to the index.
@@ -111,7 +111,6 @@ namespace Collections
 		{
 			MoveItems(-1, i + 1); // TODO this remove should think of the destruct problem
 			--_count;
-			//return i == (_count - 1);
 		}
 
 		// TODO check ref exist?
@@ -152,7 +151,7 @@ namespace Collections
 			return p;
 		}
 
-		void Add(pair<Key, Value> p)
+		void Add(Item p)
 		{
 			if ((*LessThanPtr)(_elements[_count - 1].first, p.first))
 			{
@@ -164,7 +163,7 @@ namespace Collections
 			}
 		}
 
-		void Add(vector<pair<Key, Value>> pairs)
+		void Add(vector<Item> pairs)
 		{
 			for (auto& p : pairs)
 			{
@@ -172,7 +171,7 @@ namespace Collections
 			}
 		}
 
-		void Insert(pair<Key, Value> p)
+		void Insert(Item p)
 		{
 			for (order_int i = 0; i < _count; ++i)
 			{
@@ -190,12 +189,10 @@ namespace Collections
 			_elements[_count++] = move(p);
 		}
 
-		//order_int ChangeKeyOf(Value const& value, Key newKey)
-		//{
-		//	auto index = IndexOf(value);
-		//	_elements[index].first = move(newKey);
-		//	return index;
-		//}
+		void Emplace(order_int i, Item item)
+		{
+			throw NotImplementException();
+		}
 
 		pair<Key, Value> ExchangeMax(pair<Key, Value> p)
 		{
@@ -216,7 +213,7 @@ namespace Collections
 
 		Value const& operator[](Key const& key) const
 		{
-			return this->operator[](IndexOf(key)).second;
+			return this->operator[](IndexKeyOf(key)).second;
 		}
 
 		Value& operator[](Key const& key)
@@ -239,29 +236,43 @@ namespace Collections
 		}
 
 		// TODO sometimes Key and Value are the same type, how to avoid
-		//order_int IndexOf(Value const& value) const
-		//{
-		//	auto enumerator = GetEnumerator();
-		//	while (enumerator.MoveNext())
-		//	{
-		//		auto& item = enumerator.Current();
-		//		// TODO Value use this to compare maybe not right, need to care this method use in scene
-		//		if (item.second == value)
-		//		{
-		//			return (order_int)enumerator.CurrentIndex();
-		//		}
-		//	}
+		order_int IndexValueOf(Value const& value) const
+		{
+			auto enumerator = GetEnumerator();
+			while (enumerator.MoveNext())
+			{
+				auto& item = enumerator.Current();
+				// TODO Value use this to compare maybe not right, need to care this method use in scene
+				if (item.second == value)
+				{
+					return (order_int)enumerator.CurrentIndex();
+				}
+			}
 
-		//	throw KeyNotFoundException();
-		//}
+			throw KeyNotFoundException();
+		}
 
-		order_int IndexOf(Key const& key) const
+		order_int Index(function<bool(Item const&)> predicate)
+		{
+			for (order_int i = 0; i < Count(); ++i)
+			{
+				auto& e = _elements[i];
+				if (predicate(e))
+				{
+					return i;
+				}
+			}
+
+			throw KeyNotFoundException();
+		}
+
+		order_int IndexKeyOf(Key const& key) const
 		{
 			auto enumerator = GetEnumerator();
 			auto& lessThan = *LessThanPtr;
 			while (enumerator.MoveNext())
 			{
-				auto& item = enumerator.Current();
+				auto& item = enumerator.Current(); // TODO move in this Current is error!!!
 				if (lessThan(key, item.first) == lessThan(item.first, key))
 				{
 					return (order_int)enumerator.CurrentIndex();
