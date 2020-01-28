@@ -13,6 +13,22 @@ namespace Collections
 	using ::std::unique_ptr;
 	using ::std::vector;
 
+	namespace
+	{
+		enum Position
+		{
+			Previous,
+			Next,
+		};
+
+		// Why this enum can not define in LeafNode class? because it has LeafNode::Add adn LeafNode::Remove
+		enum Operation
+		{
+			Add,
+			Remove,
+		};
+	}
+
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeBase
 	{
@@ -37,5 +53,28 @@ namespace Collections
 		virtual void ModifyValue(Key const&, Value) = 0;
 		virtual void Add(pair<Key, Value>) = 0;
 		virtual void Remove(Key const&) = 0;
+
+	protected:
+		template <Operation Op>
+		static Position ChooseOperatePosition(order_int preCount, order_int thisCount, order_int nxtCount)
+		{
+			if constexpr (Op == Operation::Add)
+			{
+				auto average = (preCount + thisCount + nxtCount) / 3;
+				if (int(preCount - average) < int(nxtCount - average))
+				{
+					return Position::Previous;
+				}
+				else
+				{
+					return Position::Next;
+				}
+			}
+			else
+			{
+				return ChooseOperatePosition<Operation::Add>(preCount, thisCount, nxtCount) == Position::Previous ?
+					Position::Next : Position::Previous;
+			}
+		}
 	};
 }

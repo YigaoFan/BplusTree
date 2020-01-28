@@ -5,6 +5,7 @@
 #include "EnumeratorPipeline.hpp"
 #include "Elements.hpp"
 #include "NodeBase.hpp"
+#include "NodeAddRemoveCommon.hpp"
 
 namespace Collections 
 {
@@ -160,13 +161,13 @@ namespace Collections
 		void DeleteSubNodeCallback(Base* node)
 		{
 			_elements.RemoveAt(_elements.IndexKeyOf(node->MinKey()));
-
-			if (_elements.Count() < Base::LowBound)
-			{
-
-			}
+			// Below two variables is to macro
+			auto _next = _queryNext(this);
+			auto _previous = _queryPrevious(this);
+			REMOVE_COMMON
 		}
 
+		// For sub node
 		MiddleNode* QueryPrevious(MiddleNode* subNode)
 		{
 			auto i = _elements.IndexKeyOf(subNode->MinKey());
@@ -174,6 +175,7 @@ namespace Collections
 			return nullptr;
 		}
 
+		// For sub node
 		MiddleNode* QueryNext(MiddleNode* subNode)
 		{
 			auto i = _elements.IndexKeyOf(subNode->MinKey());
@@ -206,11 +208,6 @@ namespace Collections
 			using pairType = typename decltype(_elements)::Item;
 			return make_pair<pairType::first_type, pairType::second_type>(cref(node->MinKey()), move(node));
 		}
-
-		//static typename decltype(_elements)::Item ConvertToKeyBasePtrPair(unique_ptr<Base> node)
-		//{
-		//	using pairType = typename decltype(_elements)::Item;
-		//	return make_pair<pairType::first_type, pairType::second_type>(cref(node->MinKey()), move(node));
-		//}
 	};
 }
+#undef REMOVE_COMMON

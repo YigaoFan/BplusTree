@@ -4,27 +4,12 @@
 #include "Enumerator.hpp"
 #include "Elements.hpp"
 #include "NodeBase.hpp"
+#include "NodeAddRemoveCommon.hpp"
 
 namespace Collections
 {
 	using ::std::move;
 	using ::std::make_unique;
-
-	namespace
-	{
-		enum Position
-		{
-			Previous,
-			Next,
-		};
-
-		// Why this enum can not define in LeafNode class? because it has LeafNode::Add adn LeafNode::Remove
-		enum Operation
-		{
-			Add,
-			Remove,
-		};
-	}
 
 #define LEAF LeafNode<Key, Value, BtreeOrder>
 	template <typename Key, typename Value, order_int BtreeOrder>
@@ -120,7 +105,7 @@ namespace Collections
 				}
 				else
 				{
-					switch (ChooseOperatePosition<Operation::Add>(_previous->_elements.Count(),
+					switch (Base::ChooseOperatePosition<Operation::Add>(_previous->_elements.Count(),
 																  this->_elements.Count(),
 																  _next->_elements.Count()))
 					{
@@ -180,88 +165,7 @@ namespace Collections
 		virtual void Remove(Key const& key) override
 		{
 			_elements.RemoveKey(key);
-			constexpr auto lowBound = Base::LowBound;
-			if (_elements.Count() < lowBound)
-			{
-				bool nxtStealable = false, preStealable = false;
-				if (_next != nullptr)
-				{
-					if (_next->_elements.Count() == lowBound)
-					{
-						// Combine
-						// Use "this" to emphasize the operated object
-						auto items = this->_elements.PopOutItems(this->_elements.Count());
-						_next->_elements.Add(move(items));
-						// Delete this
-						this->_upNodeDeleteSubNodeCallback(this);
-						return;
-					}
-					else
-					{
-						// Means next _elements bigger than lowBound
-						// only one which is lower than lowBound is root leaf which doesn't have siblings
-						// Or steal one, could think steal one from which sibling in more balance view
-						nxtStealable = true;
-					}
-				}
-				
-				if (_previous != nullptr)
-				{
-					if (_previous->_elements.Count() == lowBound)
-					{
-						auto items = this->_elements.PopOutItems(this->_elements.Count());
-						_previous->_elements.Add(move(items));
-						//_previous->_elements.Add(CreateEnumerator(items./*r*/begin(), items./*r*/end())); why error
-						// TODO replace this with key
-						this->_upNodeDeleteSubNodeCallback(this);
-						return;
-					}
-					else
-					{
-						preStealable = true;
-					}
-				}
-
-				if (nxtStealable && preStealable)
-				{
-					switch (ChooseOperatePosition<Operation::Remove>(_previous->_elements.Count(), this->_elements.Count(),
-						_next->_elements.Count()))
-					{
-					case Position::Next:
-						goto StealNxt;
-					case Position::Previous:
-						goto StealPre;
-					}
-				}
-				else if (nxtStealable)
-				{
-					goto StealNxt;
-
-				}
-				else if (preStealable)
-				{
-					goto StealPre;
-				}
-				else
-				{
-					goto NothingToDo;
-				}
-
-			StealNxt:
-				{
-					auto item = this->_next->_elements.FrontPopOut();
-					this->_elements.Append(move(item));
-					return;
-				}
-			StealPre:
-				{
-					auto items = this->_previous->_elements.PopOutItems(1);
-					this->_elements.Insert(move(items[0]));
-					return;
-				}
-			NothingToDo:
-				return;
-			}
+			REMOVE_COMMON;
 		}
 
 		Value const& operator[](Key const& key)
@@ -306,28 +210,6 @@ namespace Collections
 
 			return _next->CollectKeys(move(previousNodesKeys));
 		}
-
-
-		template <Operation Op>
-		static Position ChooseOperatePosition(order_int preCount, order_int thisCount, order_int nxtCount)
-		{
-			if constexpr (Op == Operation::Add)
-			{
-				auto average = (preCount + thisCount + nxtCount) / 3;
-				if (int(preCount - average) < int(nxtCount - average))
-				{
-					return Position::Previous;
-				}
-				else
-				{
-					return Position::Next;
-				}
-			}
-			else
-			{
-				return ChooseOperatePosition<Operation::Add>(preCount, thisCount, nxtCount) == Position::Previous ?
-					Position::Next : Position::Previous;
-			}
-		}
 	};
 }
+#undef REMOVE_COMMON
