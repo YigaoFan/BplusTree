@@ -155,11 +155,19 @@ namespace Collections
 				return;
 			}
 
-
+			auto _next = _queryNext(this);
+			auto _previous = _queryPrevious(this);
+			typename decltype(_elements)::Item p{ cref(newNextNode->MinKey()), move(newNextNode) };
+			ADD_COMMON(false);
 		}
 
 		void DeleteSubNodeCallback(Base* node)
 		{
+			if (!node->Middle())
+			{
+				// Fresh the _next and _previous value
+				// Set the two value in construct method, too
+			}
 			_elements.RemoveAt(_elements.IndexKeyOf(node->MinKey()));
 			// Below two variables is to macro
 			auto _next = _queryNext(this);

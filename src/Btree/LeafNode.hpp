@@ -10,6 +10,7 @@ namespace Collections
 {
 	using ::std::move;
 	using ::std::make_unique;
+	using ::std::remove_pointer_t;
 
 #define LEAF LeafNode<Key, Value, BtreeOrder>
 	template <typename Key, typename Value, order_int BtreeOrder>
@@ -89,77 +90,7 @@ namespace Collections
 				return;
 			}
 
-			bool addToPre = false, addToNxt = false;
-			if (_previous == nullptr)
-			{
-				if (_next != nullptr)
-				{
-					addToNxt = true;
-				}
-			}
-			else
-			{
-				if (_next == nullptr)
-				{
-					addToPre = true;
-				}
-				else
-				{
-					switch (Base::ChooseOperatePosition<Operation::Add>(_previous->_elements.Count(),
-																  this->_elements.Count(),
-																  _next->_elements.Count()))
-					{
-					case Position::Previous:
-						addToPre = true;
-						break;
-					case Position::Next:
-						addToNxt = true;
-						break;
-					}
-				}
-			}
-
-			if (addToPre)
-			{
-				if (!_previous->_elements.Full())
-				{
-					_previous->_elements.Append(_elements.ExchangeMin(move(p)));
-					return;
-				}
-			}
-			else if (addToNxt)
-			{
-				if (!_next->_elements.Full())
-				{
-					_next->_elements.Insert(_elements.ExchangeMax(move(p)));
-					return;
-				}
-			}
-			
-			// Create new empty LeafNode
-			auto newNxtLeaf = make_unique<LeafNode>(_elements.LessThanPtr);
-			newNxtLeaf->_next = this->_next;
-			newNxtLeaf->_previous = this;
-			this->_next = newNxtLeaf.get();
-
-			// Add
-			auto i = _elements.SuitPosition<true>(p.first);
-			constexpr auto middle = (BtreeOrder % 2) ? (BtreeOrder / 2 + 1) : (BtreeOrder / 2);
-			if (i <= middle)
-			{
-				auto items = this->_elements.PopOutItems(middle);
-				this->_elements.Add(move(p));
-				newNxtLeaf->_elements.Add(move(items));
-			}
-			else
-			{
-				auto items = this->_elements.PopOutItems(BtreeOrder - middle);
-				newNxtLeaf->_elements.Add(move(items));
-				newNxtLeaf->_elements.Add(move(p));
-			}
-
-			// TODO replace this with key
-			this->_upNodeAddSubNodeCallback(this, move(newNxtLeaf));
+			ADD_COMMON(true);
 		}
 
 		virtual void Remove(Key const& key) override
