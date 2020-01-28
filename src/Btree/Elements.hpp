@@ -191,7 +191,8 @@ namespace Collections
 
 		void Emplace(order_int i, Item item)
 		{
-			throw NotImplementException();
+			MoveItems(1, i + 1);
+			_elements[i+1] = move(item);
 		}
 
 		pair<Key, Value> ExchangeMax(pair<Key, Value> p)

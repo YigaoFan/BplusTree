@@ -17,6 +17,7 @@ namespace Collections
 	class NodeBase
 	{
 	protected:
+		constexpr order_int LowBound = 1 + ((BtreeOrder - 1) / 2);
 		function<void(NodeBase*, unique_ptr<NodeBase>)> _upNodeAddSubNodeCallback;
 		function<void(NodeBase*)> _upNodeDeleteSubNodeCallback;
 	public:

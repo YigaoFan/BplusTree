@@ -175,13 +175,14 @@ namespace Collections
 				newNxtLeaf->_elements.Add(move(p));
 			}
 
+			// TODO replace this with key
 			this->_upNodeAddSubNodeCallback(this, move(newNxtLeaf));
 		}
 
 		virtual void Remove(Key const& key) override
 		{
 			_elements.RemoveKey(key);
-			constexpr order_int lowBound = 1 + ((BtreeOrder - 1) / 2);
+			constexpr lowBound = LowBound;
 			if (_elements.Count() < lowBound)
 			{
 				bool nxtStealable = false, preStealable = false;
@@ -213,6 +214,7 @@ namespace Collections
 						auto items = this->_elements.PopOutItems(this->_elements.Count());
 						_previous->_elements.Add(move(items));
 						//_previous->_elements.Add(CreateEnumerator(items./*r*/begin(), items./*r*/end())); why error
+						// TODO replace this with key
 						this->_upNodeDeleteSubNodeCallback(this);
 						return;
 					}

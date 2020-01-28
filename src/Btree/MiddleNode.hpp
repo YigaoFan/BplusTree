@@ -15,20 +15,17 @@ namespace Collections
 	using ::std::pair;
 	using ::std::make_pair;
 	using ::std::bind;
+	using ::std::function;
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class MiddleNode : public NodeBase<Key, Value, BtreeOrder>
 	{
 	private:
+		function<MiddleNode*(MiddleNode*)> _queryPrevious;
+		function<MiddleNode*(MiddleNode*)> _queryNext;
 		using Base = NodeBase<Key, Value, BtreeOrder>;
 		using _LessThan = LessThan<Key>;
 		Elements<reference_wrapper<Key const>, unique_ptr<Base>, BtreeOrder, _LessThan> _elements;
-
-		static typename decltype(_elements)::Item ConvertToKeyBasePtrPair(unique_ptr<Base> node)
-		{
-			using pairType = typename decltype(_elements)::Item;
-			return make_pair<pairType::first_type, pairType::second_type>(cref(node->MinKey()), move(node));
-		}
 
 	public:
 		MiddleNode(shared_ptr<_LessThan> lessThanPtr)
@@ -98,19 +95,23 @@ namespace Collections
 			return _elements[0].first;
 		}
 
-		bool ContainsKey(Key const&) const override
+		// TODO use macro to simplify below methods' content
+		bool ContainsKey(Key const& key) const override
 		{
-			throw NotImplementException();
+			auto i = _elements.SuitPosition<true>(key);
+			return _elements[i].second->ContainsKey(key);
 		}
 
 		Value GetValue(Key const& key) const override
 		{
-			throw NotImplementException();
+			auto i = _elements.SuitPosition<true>(key);
+			return _elements[i].second->GetValue(key);
 		}
 
 		void ModifyValue(Key const& key, Value value) override
 		{
-			throw NotImplementException();
+			auto i = _elements.SuitPosition<true>(key);
+			return _elements[i].second->ModifyValue(key); // TODO can return void?
 		}
 
 		void Add(pair<Key, Value> p) override
@@ -137,36 +138,49 @@ namespace Collections
 		{
 			//auto predicate = [srcNode = srcNode]((typename (decltype _elements)::Item const&) item)
 			// TODO why up is a compile error
-			auto predicate = [srcNode = srcNode](auto& item)
-			{
-				if (item.second.get() == srcNode)
-				{
-					return true;
-				}
+			// auto predicate = [srcNode = srcNode](auto& item)
+			// {
+			// 	if (item.second.get() == srcNode)
+			// 	{
+			// 		return true;
+			// 	}
 
-				return false;
-			};
+			// 	return false;
+			// };
+			
 			// find index of srcNode and add new NextNode
 			// if this is Full(), combine the node or call the upper node callback
 			if (!_elements.Full())
 			{
-				//_elements.Add({ cref(newNextNode->MinKey()), move(newNextNode) });
-				_elements.Emplace(_elements.Index(move(predicate)), { cref(newNextNode->MinKey()), move(newNextNode) });
+				_elements.Emplace(_elements.IndexKeyOf(srcNode->MinKey()), { cref(newNextNode->MinKey()), move(newNextNode) });
+				return;
 			}
+
+
 		}
 
 		void DeleteSubNodeCallback(Base* node)
 		{
-			for (order_int i = 0; i < _elements.Count(); ++i)
-			{
-				if (_elements[i].second.get() == node)
-				{
-					_elements.RemoveAt(i);
-					return;
-				}
-			}
+			_elements.RemoveAt(_elements.IndexKeyOf(node->MinKey()));
 
-			// TODO if lower than lowBound
+			if (_elements.Count() < LowBound)
+			{
+
+			}
+		}
+
+		MiddleNode* QueryPrevious(MiddleNode* subNode)
+		{
+			auto i = _elements.IndexKeyOf(subNode->MinKey());
+			if (i != 0) { return _elements[i - 1].second.get(); }
+			return nullptr;
+		}
+
+		MiddleNode* QueryNext(MiddleNode* subNode)
+		{
+			auto i = _elements.IndexKeyOf(subNode->MinKey());
+			if (i != _elements.Count() - 1) { return _elements[i + 1].second.get(); }
+			return nullptr;
 		}
 
 		void SetSubNodeCallback()
@@ -177,8 +191,22 @@ namespace Collections
 			auto f2 = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
 			for (auto& e : _elements)
 			{
-				e.second->SetUpNodeCallback(f1, f2);
+				auto& node = e.second;
+				node->SetUpNodeCallback(f1, f2);
+				if (node->Middle())
+				{
+					static_cast<MiddleNode*>(node.get())->_queryNext = 
+						bind(&MiddleNode::QueryNext, this, _1);
+					static_cast<MiddleNode*>(node.get())->_queryPrevious = 
+						bind(&MiddleNode::QueryPrevious, this, _1);
+				}
 			}
+		}
+
+		static typename decltype(_elements)::Item ConvertToKeyBasePtrPair(unique_ptr<Base> node)
+		{
+			using pairType = typename decltype(_elements)::Item;
+			return make_pair<pairType::first_type, pairType::second_type>(cref(node->MinKey()), move(node));
 		}
 	};
 }
