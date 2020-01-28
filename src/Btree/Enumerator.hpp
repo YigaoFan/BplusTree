@@ -39,7 +39,7 @@ namespace Collections
 	template <typename Container>
 	static
 	auto
-	CreateEnumerator(Container& container) -> Enumerator<remove_reference_t<decltype(*container.begin())>, decltype(container.begin())>
+	CreateEnumerator(Container& container) -> Enumerator<decltype(*container.begin()), decltype(container.begin())>
 	{
 		return { container.begin(), container.end() };
 	}
@@ -47,7 +47,7 @@ namespace Collections
 	template <typename Iterator>
 	static
 	auto
-	CreateEnumerator(Iterator begin, Iterator end) -> Enumerator<remove_reference_t<decltype(*begin)>, Iterator>
+	CreateEnumerator(Iterator begin, Iterator end) -> Enumerator<decltype(*begin), Iterator>
 	{
 		return { begin, end };
 	}
@@ -72,7 +72,7 @@ namespace Collections
 				throw InvalidAccessException();
 			}
 
-			return move(*_current);
+			return *_current;
 		}
 
 		size_t CurrentIndex() override

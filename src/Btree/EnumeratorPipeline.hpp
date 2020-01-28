@@ -29,7 +29,7 @@ namespace Collections
 
         Item Current() override
         {
-            return _func(move(_enumerator.Current()));
+            return _func(_enumerator.Current());
         }
 
         bool MoveNext() override

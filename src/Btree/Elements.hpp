@@ -33,7 +33,7 @@ namespace Collections
 			: LessThanPtr(lessThanPtr), _elements(move(ConsEmptyArray()))
 		{ }
 
-		Elements(IEnumerator<pair<Key, Value>>& enumerator, shared_ptr<LessThan> lessThanPtr)
+		Elements(IEnumerator<pair<Key, Value>&>& enumerator, shared_ptr<LessThan> lessThanPtr)
 			: LessThanPtr(lessThanPtr), _elements(move(ConsArray(enumerator)))
 		{ }
 
@@ -282,28 +282,6 @@ namespace Collections
 
 			throw KeyNotFoundException();
 		}
-
-		/// Only suit for ptr stored in.
-		//FindResult TryIndexOf(Key const& key, order_int& resultIndex) const
-		//{
-		//	auto& lessThan = *LessThanPtr;
-		//	for (decltype(_count) i = 1; i < _count; ++i)
-		//	{
-		//		auto& e = _elements[i];
-		//		if (lessThan(key, e.first))
-		//		{
-		//			resultIndex = i - 1;
-		//			return FindResult::MaybeExistInDeep;
-		//		}
-		//		else if (!lessThan(e.first, key))
-		//		{
-		//			resultIndex = i - 1;
-		//			return FindResult::EqualFound;
-		//		}
-		//	}
-
-		//	return FindResult::NotExist;
-		//}
 
 		template <bool ChooseBranch, typename T>
 		order_int SuitPosition(T const& key) const

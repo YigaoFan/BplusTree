@@ -38,15 +38,13 @@ namespace Collections
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
 
-
-
 	public:
 		LeafNode(shared_ptr<_LessThan> lessThan)
 			: Base(), _elements(/*right value passed to ref value EmptyEnumerator<pair<Key, Value>>(),*/ lessThan)
 		{ }
 
 		template <typename Iterator>
-		LeafNode(Enumerator<pair<Key, Value>, Iterator> enumerator, shared_ptr<_LessThan> lessThan)
+		LeafNode(Enumerator<pair<Key, Value>&, Iterator> enumerator, shared_ptr<_LessThan> lessThan)
 			: Base(), _elements(enumerator, lessThan)
 		{}
 
@@ -182,7 +180,7 @@ namespace Collections
 		virtual void Remove(Key const& key) override
 		{
 			_elements.RemoveKey(key);
-			constexpr lowBound = LowBound;
+			constexpr auto lowBound = Base::LowBound;
 			if (_elements.Count() < lowBound)
 			{
 				bool nxtStealable = false, preStealable = false;

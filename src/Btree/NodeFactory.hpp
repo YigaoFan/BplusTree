@@ -16,6 +16,7 @@ namespace Collections
 	using ::std::make_unique;
 	using ::std::decay_t;
 	using ::std::unique_ptr;
+	using ::std::remove_reference_t;
 
 	template<typename Test, template<typename...> class Ref>
 	struct IsSpecialization : std::false_type {};
@@ -49,7 +50,7 @@ namespace Collections
 		template <typename... Ts>
 		static unique_ptr<Node> MakeNode(Enumerator<Ts...> enumerator, shared_ptr<_LessThan> lessThan)
 		{
-			if constexpr (IsSpecialization<typename Enumerator<Ts...>::ValueType, unique_ptr>::value)
+			if constexpr (IsSpecialization<remove_reference_t<typename Enumerator<Ts...>::ValueType>, unique_ptr>::value)
 			{
 				return make_unique<Middle>(enumerator, lessThan);
 			}

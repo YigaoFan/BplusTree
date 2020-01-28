@@ -16,6 +16,7 @@ namespace Collections
 	using ::std::make_pair;
 	using ::std::bind;
 	using ::std::function;
+	using ::std::placeholders::_1;
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class MiddleNode : public NodeBase<Key, Value, BtreeOrder>
@@ -35,12 +36,8 @@ namespace Collections
 		}	
 
 		template <typename Iterator>
-		MiddleNode(Enumerator<unique_ptr<Base>, Iterator> enumerator, shared_ptr<_LessThan> lessThanPtr)
-			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>, typename decltype(_elements)::Item>(enumerator, [](unique_ptr<Base> node)
-				{
-					using pairType = typename decltype(_elements)::Item;
-					return make_pair<pairType::first_type, pairType::second_type>(cref(node->MinKey()), move(node));
-				}), lessThanPtr)
+		MiddleNode(Enumerator<unique_ptr<Base>&, Iterator> enumerator, shared_ptr<_LessThan> lessThanPtr)
+			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>&, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertToKeyBasePtrPair, _1)), lessThanPtr)
 		{
 			SetSubNodeCallback();
 		}
@@ -60,7 +57,8 @@ namespace Collections
 			auto cloneOne = make_unique<MiddleNode>(_elements.LessThanPtr);
 			for (auto const& e : _elements)
 			{
-				cloneOne->_elements.Append(ConvertToKeyBasePtrPair(move(e.second->Clone())));
+				auto subCloned = e.second->Clone();
+				cloneOne->_elements.Append(ConvertToKeyBasePtrPair(subCloned));
 			}
 
 			return cloneOne;
@@ -111,7 +109,7 @@ namespace Collections
 		void ModifyValue(Key const& key, Value value) override
 		{
 			auto i = _elements.SuitPosition<true>(key);
-			return _elements[i].second->ModifyValue(key); // TODO can return void?
+			return _elements[i].second->ModifyValue(key, move(value)); // TODO can return void?
 		}
 
 		void Add(pair<Key, Value> p) override
@@ -163,7 +161,7 @@ namespace Collections
 		{
 			_elements.RemoveAt(_elements.IndexKeyOf(node->MinKey()));
 
-			if (_elements.Count() < LowBound)
+			if (_elements.Count() < Base::LowBound)
 			{
 
 			}
@@ -172,14 +170,14 @@ namespace Collections
 		MiddleNode* QueryPrevious(MiddleNode* subNode)
 		{
 			auto i = _elements.IndexKeyOf(subNode->MinKey());
-			if (i != 0) { return _elements[i - 1].second.get(); }
+			if (i != 0) { return static_cast<MiddleNode *>(_elements[i - 1].second.get()); }
 			return nullptr;
 		}
 
 		MiddleNode* QueryNext(MiddleNode* subNode)
 		{
 			auto i = _elements.IndexKeyOf(subNode->MinKey());
-			if (i != _elements.Count() - 1) { return _elements[i + 1].second.get(); }
+			if (i != _elements.Count() - 1) { return static_cast<MiddleNode *>(_elements[i + 1].second.get()); }
 			return nullptr;
 		}
 
@@ -195,18 +193,24 @@ namespace Collections
 				node->SetUpNodeCallback(f1, f2);
 				if (node->Middle())
 				{
-					static_cast<unique_ptr<MiddleNode>>(node)->_queryNext = 
+					static_cast<MiddleNode *>(node.get())->_queryNext = 
 						bind(&MiddleNode::QueryNext, this, _1);
-					static_cast<unique_ptr<MiddleNode>>(node)->_queryPrevious = 
+					static_cast<MiddleNode *>(node.get())->_queryPrevious = 
 						bind(&MiddleNode::QueryPrevious, this, _1);
 				}
 			}
 		}
 
-		static typename decltype(_elements)::Item ConvertToKeyBasePtrPair(unique_ptr<Base> node)
+		static typename decltype(_elements)::Item ConvertToKeyBasePtrPair(unique_ptr<Base>& node)
 		{
 			using pairType = typename decltype(_elements)::Item;
 			return make_pair<pairType::first_type, pairType::second_type>(cref(node->MinKey()), move(node));
 		}
+
+		//static typename decltype(_elements)::Item ConvertToKeyBasePtrPair(unique_ptr<Base> node)
+		//{
+		//	using pairType = typename decltype(_elements)::Item;
+		//	return make_pair<pairType::first_type, pairType::second_type>(cref(node->MinKey()), move(node));
+		//}
 	};
 }
