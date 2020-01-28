@@ -195,9 +195,9 @@ namespace Collections
 				node->SetUpNodeCallback(f1, f2);
 				if (node->Middle())
 				{
-					static_cast<MiddleNode*>(node.get())->_queryNext = 
+					static_cast<unique_ptr<MiddleNode>>(node)->_queryNext = 
 						bind(&MiddleNode::QueryNext, this, _1);
-					static_cast<MiddleNode*>(node.get())->_queryPrevious = 
+					static_cast<unique_ptr<MiddleNode>>(node)->_queryPrevious = 
 						bind(&MiddleNode::QueryPrevious, this, _1);
 				}
 			}
