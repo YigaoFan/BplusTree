@@ -1,6 +1,5 @@
 #pragma once
-#define REMOVE_COMMON \
-constexpr auto lowBound = Base::LowBound;\
+#define REMOVE_COMMON  constexpr auto lowBound = Base::LowBound;\
 if (_elements.Count() < lowBound)\
 {\
 	bool nxtStealable = false, preStealable = false;\

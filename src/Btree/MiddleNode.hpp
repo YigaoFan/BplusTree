@@ -164,7 +164,7 @@ namespace Collections
 			// Below two variables is to macro
 			auto _next = _queryNext(this);
 			auto _previous = _queryPrevious(this);
-			REMOVE_COMMON
+			REMOVE_COMMON;
 		}
 
 		// For sub node
@@ -210,4 +210,3 @@ namespace Collections
 		}
 	};
 }
-#undef REMOVE_COMMON
