@@ -5,6 +5,7 @@
 #include "EnumeratorPipeline.hpp"
 #include "Elements.hpp"
 #include "NodeBase.hpp"
+#include "LeafNode.hpp"
 #include "NodeAddRemoveCommon.hpp"
 
 namespace Collections 
@@ -163,12 +164,25 @@ namespace Collections
 
 		void DeleteSubNodeCallback(Base* node)
 		{
+			auto i = _elements.IndexKeyOf(node->MinKey());
 			if (!node->Middle())
 			{
-				// Fresh the _next and _previous value
-				// Set the two value in construct method, too
+				using Leaf = LeafNode<Key, Value, BtreeOrder>;
+				auto leafNode = static_cast<Leaf *>(node);
+				// Fresh the _next of LeafNode
+				if (i != 0)
+				{
+					static_cast<Leaf *>(_elements[i - 1].second.get())->NextLeaf(leafNode->NexLeaf());
+				}
+
+				// Fresh the _previous of LeafNode
+				if (i != _elements.Count() - 1)
+				{
+					static_cast<Leaf *>(_elements[i + 1].second.get())->PreviousLeaf(leafNode->PreviousLeaf());
+				}
 			}
-			_elements.RemoveAt(_elements.IndexKeyOf(node->MinKey()));
+
+			_elements.RemoveAt(i);
 			// Below two variables is to macro
 			auto _next = _queryNext(this);
 			auto _previous = _queryPrevious(this);
@@ -197,6 +211,7 @@ namespace Collections
 			using ::std::placeholders::_2;
 			auto f1 = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
 			auto f2 = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
+			Base* lastLeaf = nullptr;
 			for (auto& e : _elements)
 			{
 				auto& node = e.second;
@@ -208,6 +223,19 @@ namespace Collections
 					static_cast<MiddleNode *>(node.get())->_queryPrevious = 
 						bind(&MiddleNode::QueryPrevious, this, _1);
 				}
+				else
+				{
+					using Leaf = LeafNode<Key, Value, BtreeOrder>;
+					auto nowLeaf = node.get();
+					static_cast<Leaf *>(nowLeaf)->PreviousLeaf(static_cast<Leaf *>(lastLeaf));
+					if (lastLeaf != nullptr)
+					{
+						static_cast<Leaf *>(lastLeaf)->NextLeaf(static_cast<Leaf *>(nowLeaf));
+					}
+
+					lastLeaf = nowLeaf;
+				}
+				
 			}
 		}
 
