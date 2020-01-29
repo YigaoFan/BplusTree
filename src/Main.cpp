@@ -1,4 +1,4 @@
-#define BTREE_TEST_SWITCH false
+#define BTREE_TEST_SWITCH true
 #define JSON_TEST_SWITCH false
 
 #if BTREE_TEST_SWITCH

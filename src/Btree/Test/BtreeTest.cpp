@@ -1,7 +1,7 @@
 #include <array>
-using std::array;
 #include "../../TestFrame/FlyTest.hpp"
 #include "../Btree.hpp"
+using ::std::array;
 using namespace Collections;
 
 // TODO test construct 0 element, then add a lot of element
@@ -17,7 +17,8 @@ TESTCASE("Btree test") {
 	auto kv7 = make_pair<string, string>("8", "c");
 	auto kv8 = make_pair<string, string>("9", "c");
 
-	array<pair<string, string>, 9> keyValueArray {
+	array<pair<string, string>, 9> keyValueArray 
+	{
 		kv0,
 		kv1,
 		kv2,
@@ -29,7 +30,8 @@ TESTCASE("Btree test") {
 		kv8,
 	};
 
-	function<bool(const string&, const string&)> lessThan = [] (const string& a, const string& b) {
+	auto lessThan = [](string const& a, string const& b)
+	{
 		return a < b;
 	};
 
@@ -48,7 +50,7 @@ TESTCASE("Btree test") {
 		SECTION("Test normal function") {
 			ASSERT(btree.GetValue(kv0.first) == kv0.second);
 			ASSERT(btree.GetValue(kv8.first) == kv8.second);
-			ASSERT_THROW(runtime_error, btree.GetValue("10"));
+			ASSERT_THROW(runtime_error, btree.GetValue("10")); // TODO change Exception type
 
 			btree.Add(make_pair("10", "d"));
 			ASSERT(btree.GetValue("10") == "d");
@@ -60,7 +62,7 @@ TESTCASE("Btree test") {
 			auto keys = btree.Keys();
 
 			btree.Remove("10");
-			ASSERT_THROW(runtime_error, btree.ContainsKey("10"));
+			ASSERT(!btree.ContainsKey("10"));
 		}
 	}
 
@@ -70,8 +72,7 @@ TESTCASE("Btree test") {
 	}
 }
 
-void
-btreeTest()
+void btreeTest()
 {
 	allTest();
 }
