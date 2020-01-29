@@ -172,7 +172,7 @@ namespace Collections
 				// Fresh the _next of LeafNode
 				if (i != 0)
 				{
-					static_cast<Leaf *>(_elements[i - 1].second.get())->NextLeaf(leafNode->NexLeaf());
+					static_cast<Leaf *>(_elements[i - 1].second.get())->NextLeaf(leafNode->NextLeaf());
 				}
 
 				// Fresh the _previous of LeafNode

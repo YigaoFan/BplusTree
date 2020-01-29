@@ -296,8 +296,8 @@ namespace Collections
 
 		void AddNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
 		{
-			array<unique_ptr<Base>> nodes { move(_root), move(newNextNode) };
-			_root.reset(NodeFactoryType::MakeNode(CreateEnumerator(nodes), _lessThanPtr));
+			array<unique_ptr<Base>, 2> nodes { move(_root), move(newNextNode) };
+			_root = NodeFactoryType::MakeNode(CreateEnumerator(nodes), _lessThanPtr);
 		}
 
 		void DeleteNodeCallback(Base* node)
