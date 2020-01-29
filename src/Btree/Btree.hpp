@@ -145,6 +145,11 @@ namespace Collections
 			}
 
 			ConstructFromLeafToRoot(move(keyValueArray));
+			using ::std::placeholders::_1;
+			using ::std::placeholders::_2;
+			auto f1 = bind(&Btree::AddNodeCallback, this, _1, _2);
+			auto f2 = bind(&Btree::DeleteNodeCallback, this, _1);
+			_root->SetUpNodeCallback(f1, f2);
 			_keyCount += NumOfEle;
 		}
 
@@ -289,7 +294,13 @@ namespace Collections
 			return false;
 		}
 
-		void RootChangeCallback(/*TODO*/)
+		void AddNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
+		{
+			array<unique_ptr<Base>> nodes { move(_root), move(newNextNode) };
+			_root.reset(NodeFactoryType::MakeNode(CreateEnumerator(nodes), _lessThanPtr));
+		}
+
+		void DeleteNodeCallback(Base* node)
 		{
 			// TODO
 		}

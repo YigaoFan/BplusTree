@@ -34,14 +34,14 @@ namespace Collections
 		MiddleNode(shared_ptr<_LessThan> lessThanPtr)
 			: Base(), _elements(lessThanPtr)
 		{
-			SetSubNodeCallback();
+			SetSubNode();
 		}	
 
 		template <typename Iterator>
 		MiddleNode(Enumerator<unique_ptr<Base>&, Iterator> enumerator, shared_ptr<_LessThan> lessThanPtr)
 			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>&, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertToKeyBasePtrPair, _1)), lessThanPtr)
 		{
-			SetSubNodeCallback();
+			SetSubNode();
 		}
 
 		MiddleNode(MiddleNode& that)
@@ -205,7 +205,7 @@ namespace Collections
 			return nullptr;
 		}
 
-		void SetSubNodeCallback()
+		void SetSubNode()
 		{
 			using ::std::placeholders::_1;
 			using ::std::placeholders::_2;
