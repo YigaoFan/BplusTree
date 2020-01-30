@@ -145,11 +145,6 @@ namespace Collections
 			}
 
 			ConstructFromLeafToRoot(move(keyValueArray));
-			using ::std::placeholders::_1;
-			using ::std::placeholders::_2;
-			auto f1 = bind(&Btree::AddNodeCallback, this, _1, _2);
-			auto f2 = bind(&Btree::DeleteNodeCallback, this, _1);
-			_root->SetUpNodeCallback(f1, f2);
 			_keyCount += NumOfEle;
 		}
 
@@ -266,6 +261,11 @@ namespace Collections
 			if constexpr (Count <= BtreeOrder)
 			{
 				_root = NodeFactoryType::MakeNode(CreateEnumerator(ItemsToConsNode.begin(), ItemsToConsNode.end()), _lessThanPtr);
+				using ::std::placeholders::_1;
+				using ::std::placeholders::_2;
+				auto f1 = bind(&Btree::AddNodeCallback, this, _1, _2);
+				auto f2 = bind(&Btree::DeleteNodeCallback, this, _1);
+				_root->SetUpNodeCallback(f1, f2);
 				return;
 			}
 
