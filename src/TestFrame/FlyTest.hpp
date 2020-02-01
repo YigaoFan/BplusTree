@@ -37,9 +37,10 @@ namespace
 	using ::std::move;
 	using ::Exception::AssertionFailure;
 
-	class SectionRouteTrack;
+#define PRIMITIVE_CAT(A, B) A##B
+#define CAT(A, B) PRIMITIVE_CAT(A, B)
+
 	class Condition;
-	using TESTCASE_FUNCTION_TYPE = function<void(Condition&&, bool&, SectionRouteTrack&, uint16_t&)>;
 
 	struct Info
 	{
@@ -102,8 +103,8 @@ namespace
 			{
 				out << ' ';
 			}
-			out.flush();
-			return out;
+
+			return out.flush();
 		}
 
 		static ostream& showSectionInfo(Info const& sectionInfo, ostream& out)
@@ -182,18 +183,6 @@ namespace
 					_state = true;
 				}
 
-				// save for remember:
-//			// means it's leaf
-//			if (correspondSection._subSections.empty()) {
-//				correspondSection.markDone();
-//				_state = true;
-//			} else if (!uncaughtException()) { // not a leaf situation
-//				if (!_state) {
-//					correspondSection.markDone();
-//					_state = true;
-//				}
-//			}
-
 				if (!uncaughtException())
 				{
 					track.moveBack();
@@ -209,61 +198,33 @@ namespace
 #elif __cplusplus >= 201103L
 			return ::std::uncaught_exception();
 #else
-			// TODO remember update framework code
-			// If you use VS2017 encounter this problem that should not occur
-			//, you could add an addtional command line arg in [Project Properties]->[C/C++]->[Command Line]->[Additional Options]: /Zc:__cplusplus
+// If you use VS2017 encounter this problem that should not occur
+//, you could add an addtional command line arg in [Project Properties]->[C/C++]->[Command Line]->[Additional Options]: /Zc:__cplusplus
 #error This program requires C++ version at least C++11, please update your compiler setting
 #endif
 		}
 	};
 
 	Section::Section(Condition& condition, Info info)
-		: _info(::std::move(info))
+		: _info(move(info))
 	{
 		// register sub-section
 		condition.correspondSection._subSections.emplace_back(this);
 	}
 
-	static vector<pair<Info, TESTCASE_FUNCTION_TYPE>> _tests_{};
-
-	class Combination
-	{
-	private:
-		pair<Info, TESTCASE_FUNCTION_TYPE> combination;
-	public:
-
-		explicit Combination(Info info)
-		{
-			combination.first = move(info);
-		}
-
-		Combination& operator=(TESTCASE_FUNCTION_TYPE testCase)
-		{
-			combination.second = move(testCase);
-			return *this;
-		}
-
-		Info first() const
-		{
-			return combination.first;
-		}
-
-		TESTCASE_FUNCTION_TYPE second() const
-		{
-			return combination.second;
-		}
-	};
+	using TestCaseFunction = function<void(Condition&&, bool&, SectionRouteTrack&, uint16_t&)>;
+	vector<pair<Info, TestCaseFunction>> _tests_{};
 
 	class RegisterTestCase
 	{
 	public:
-		RegisterTestCase(Combination const& combination)
+		RegisterTestCase(pair<Info, TestCaseFunction> infoTestCasePair)
 		{
-			_tests_.emplace_back(make_pair(combination.first(), combination.second()));
+			_tests_.emplace_back(move(infoTestCasePair));
 		}
 	};
 
-	static void allTest()
+	void allTest()
 	{
 		auto& out = cout;
 		auto log = [&](string const& exceptionTypeName, string const& exceptionContent, SectionRouteTrack& track)
@@ -279,8 +240,8 @@ namespace
 		for (auto& t : _tests_)
 		{
 			Section testCase(t.first);
-			uint16_t successCount = 0;
-			uint16_t failureCount = 0;
+			uint32_t successCount = 0;
+			uint32_t failureCount = 0;
 			out << "Testcase: " << testCase.info().description << endl;
 
 			while (testCase.shouldExecute())
@@ -291,10 +252,10 @@ namespace
 
 				try
 				{
-					t.second(::std::move(Condition(testCase, onceState, sectionTrack)), onceState, sectionTrack,
+					t.second(Condition(testCase, onceState, sectionTrack), onceState, sectionTrack,
 						successCount);
 				}
-				catch (::std::exception& e)
+				catch (::std::exception const& e)
 				{
 					++failureCount;
 					log(string{ typeid(e).name() }, string{ e.what() }, sectionTrack);
@@ -326,27 +287,25 @@ namespace
 		}
 	}
 
-	char const* justFileName(char const* str)
+	char const* getFileName(char const* str)
 	{
-		// TODO need to test Windows compatibility
 		return ::std::strrchr(str, '/') + 1;
 	}
 
-#define PRIMITIVE_CAT(A, B) A##B
-#define CAT(A, B) PRIMITIVE_CAT(A, B)
 
-#define TESTCASE(DESCRIPTION)                                                                                                                             \
-    void CAT(testcase, __LINE__) (Condition&& , bool& , SectionRouteTrack&, uint16_t&);                                                                   \
-    static RegisterTestCase CAT(registerTestcase, __LINE__) = Combination{Info(justFileName(__FILE__), __LINE__, DESCRIPTION)} = CAT(testcase, __LINE__); \
+
+#define TESTCASE(DESCRIPTION)                                                                                                                                          \
+    void CAT(testcase, __LINE__) (Condition&& , bool& , SectionRouteTrack&, uint16_t&);                                                                                \
+    RegisterTestCase CAT(registerTestcase, __LINE__) = make_pair<Info, TestCaseFunction>(Info(getFileName(__FILE__), __LINE__, DESCRIPTION), CAT(testcase, __LINE__)); \
     void CAT(testcase, __LINE__) (Condition&& condition, bool& onceState, SectionRouteTrack& track, uint16_t& successCount)
 
-#define SECTION(DESCRIPTION) static Section CAT(section, __LINE__) { condition, Info(justFileName(__FILE__), __LINE__, DESCRIPTION)}; \
-    if (Condition condition{ CAT(section, __LINE__) , onceState, track})
+#define SECTION(DESCRIPTION) Section CAT(section, __LINE__) { condition, Info(getFileName(__FILE__), __LINE__, DESCRIPTION) }; \
+    if (Condition condition{ CAT(section, __LINE__) , onceState, track })
 
 #define ASSERT(EXP)                                                                            \
     do {                                                                                       \
         if (!(EXP)) {                                                                          \
-            throw AssertionFailure(justFileName(__FILE__), __LINE__, "ASSERTION FAILED", #EXP);\
+            throw AssertionFailure(getFileName(__FILE__), __LINE__, "ASSERTION FAILED", #EXP); \
         }                                                                                      \
         ++successCount;                                                                        \
     } while(0)
@@ -355,12 +314,12 @@ namespace
     do {                                                                                             \
         try {                                                                                        \
             (void)(EXP);                                                                             \
-            throw AssertionFailure(justFileName(__FILE__), __LINE__, "No exception caught in", #EXP);\
-        } catch (TYPE&) { }                                                                          \
-          catch (AssertionFailure& e) { throw e; }                                                   \
+            throw AssertionFailure(getFileName(__FILE__), __LINE__, "No exception caught in", #EXP); \
+        } catch (TYPE const&) { }                                                                    \
+          catch (AssertionFailure const& e) { throw e; }                                             \
           catch (...) {                                                                              \
             throw AssertionFailure(                                                                  \
-                justFileName(__FILE__),                                                              \
+                getFileName(__FILE__),                                                               \
                 __LINE__,                                                                            \
                 string{"Catch a exception but not meet the required type: "} + #TYPE,                \
                 #EXP);                                                                               \
@@ -368,5 +327,7 @@ namespace
         ++successCount;                                                                              \
     } while(0)
 
-}
 #undef DEPEND_ON_COMPILER_SUPPORT
+#undef PRIMITIVE_CAT
+#undef CAT
+}
