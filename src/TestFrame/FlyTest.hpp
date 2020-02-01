@@ -299,7 +299,7 @@ namespace
     RegisterTestCase CAT(registerTestcase, __LINE__) = make_pair<Info, TestCaseFunction>(Info(getFileName(__FILE__), __LINE__, DESCRIPTION), CAT(testcase, __LINE__)); \
     void CAT(testcase, __LINE__) (Condition&& condition, bool& onceState, SectionRouteTrack& track, uint16_t& successCount)
 
-#define SECTION(DESCRIPTION) Section CAT(section, __LINE__) { condition, Info(getFileName(__FILE__), __LINE__, DESCRIPTION) }; \
+#define SECTION(DESCRIPTION) static Section CAT(section, __LINE__) { condition, Info(getFileName(__FILE__), __LINE__, DESCRIPTION) }; \
     if (Condition condition{ CAT(section, __LINE__) , onceState, track })
 
 #define ASSERT(EXP)                                                                            \
