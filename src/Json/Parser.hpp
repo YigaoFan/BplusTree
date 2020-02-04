@@ -416,8 +416,7 @@ namespace Json
 #undef IS_DIGIT
 #undef IS_DIGIT_1TO9
 
-		void
-		parseSimpleUnit(const string& target, size_t& after1stChar)
+		void parseSimpleUnit(const string& target, size_t& after1stChar)
 		{
 			auto len = target.length();
 			for (size_t j = 1, &i = after1stChar; j < len; ++j, ++i) {
