@@ -96,13 +96,13 @@ namespace Json// change name?
 		bool IsNull  () const { return _type == JsonType::Null; }
 
 		// TODO const version
-		JsonObject& operator[] (string const& key) { Assert(IsObject()); return *(get<_Object>(_content)[key]); }
-		JsonObject& operator[] (JsonObject const& key)   { Assert(IsObject() && key.IsString()); return operator[](key.getString()); }
-		JsonObject& operator[] (size_t i)          { Assert(IsArray()); return *(get<_Array>(_content)[i]); }
+		JsonObject& operator[] (string const& key)     { Assert(IsObject()); return *(get<_Object>(_content)[key]); }
+		JsonObject& operator[] (JsonObject const& key) { Assert(IsObject() && key.IsString()); return operator[](key.getString()); }
+		JsonObject& operator[] (size_t i)              { Assert(IsArray()); return *(get<_Array>(_content)[i]); }
 
-		JsonObject& operator[] (string const& key) const { Assert(IsObject()); return *(get<_Object>(_content)[key]); }
-		JsonObject& operator[] (JsonObject const& key)   const { Assert(IsObject() && key.IsString()); return operator[](key.getString()); }
-		JsonObject& operator[] (size_t i)          const { Assert(IsArray()); return *(get<_Array>(_content)[i]); }
+		JsonObject& operator[] (string const& key) const     { Assert(IsObject()); return *(get<_Object>(_content)[key]); }
+		JsonObject& operator[] (JsonObject const& key) const { Assert(IsObject() && key.IsString()); return operator[](key.getString()); }
+		JsonObject& operator[] (size_t i)          const     { Assert(IsArray()); return *(get<_Array>(_content)[i]); }
 
 		JsonObject& operator= (JsonObject const& that)   { this->_type = that._type; this->_content = that._content; }
 		JsonObject& operator= (JsonObject&& thatJson)    { this->_type = that._type; this->_content = move(that._content); that._type = JsonType::Null; }
