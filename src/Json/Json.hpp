@@ -140,7 +140,7 @@ namespace Json// change name?
 			{
 			case JsonType::Object:
 					string objStr = '{';
-					auto objectMap = get<_Object>(_content);
+					auto& objectMap = get<_Object>(_content);
 					for (auto& pair : objectMap) 
 					{
 						objStr += pair.first;
@@ -153,7 +153,7 @@ namespace Json// change name?
 		
 			case JsonType::Array:
 					string arrStr = '[';
-					auto array = get<_Array>(_content);
+					auto& array = get<_Array>(_content);
 					for (auto& e : array) 
 					{
 						arrStr += e->ToString();
@@ -162,7 +162,7 @@ namespace Json// change name?
 					arrStr += ']';
 					return arrStr;
 		
-			case JsonType::Number: return GetNumber();
+			case JsonType::Number: return to_string(GetNumber());
 			case JsonType::String:return GetString();
 			case JsonType::True:  return "true";
 		 	case JsonType::False: return "false";
