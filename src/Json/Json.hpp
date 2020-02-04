@@ -6,7 +6,7 @@
 #include <map>
 #include <memory>
 
-namespace Json 
+namespace Json// change name?
 {
 	using ::std::string;
 	using ::std::variant;
@@ -29,13 +29,13 @@ namespace Json
 		Null,
 	};
 	// how to read data from Json
-	class Json 
+	class JsonObject 
 	{
 		friend class Parser;
 	private:
 		JsonType _type;
-		using _Array = vector<shared_ptr<Json>>; // maybe need to be public?
-		using _Object = map<string, shared_ptr<Json>>; // replace with string_view?
+		using _Array = vector<shared_ptr<JsonObject>>; // maybe need to be public?
+		using _Object = map<string, shared_ptr<JsonObject>>; // replace with string_view?
 		variant<string, _Array, double, _Object> _content;
 
 		static void Assert(bool e, string_view message = "")
@@ -45,44 +45,44 @@ namespace Json
 		}
 
 	public:
-		// How to dynamic cons Json with any type? has this demand?
-		Json() : Json<JsonType::Null>() { }
+		// How to dynamic cons JsonObject with any type? has this demand?
+		JsonObject() : JsonObject<JsonType::Null>() { }
 
 		template <JsonType Type, typename T>
-		Json(T);
+		JsonObject(T);
 
 		template <> 
-		explicit Json<JsonType::Object>(_Object object)
+		explicit JsonObject<JsonType::Object>(_Object object)
 			: _type(JsonType::Object), _content(move(object))
 		{ }
 
 		template <>
-		explicit Json<JsonType::Array>(vector<shared_ptr<Json>> array)
+		explicit JsonObject<JsonType::Array>(vector<shared_ptr<JsonObject>> array)
 			: _type(JsonType::Array), _content(move(array))
 		{ }
 
 		template <>
-		explicit Json<JsonType::Number>(double num)
+		explicit JsonObject<JsonType::Number>(double num)
 			: _type(JsonType::Number), _content(num)
 		{ }
 
-		explicit Json<JsonType::String>(string str)
+		explicit JsonObject<JsonType::String>(string str)
 			: _type(JsonType::String), _content(move(str))
 		{ }
 
-		explicit Json<JsonType::True>()
+		explicit JsonObject<JsonType::True>()
 			: _type(JsonType::True)
 		{ }
 
-		explicit Json<JsonType::False>()
+		explicit JsonObject<JsonType::False>()
 			: _type(JsonType::False)
 		{ }
 
-		explicit Json<JsonType::Null>()
+		explicit JsonObject<JsonType::Null>()
 			: _type(JsonType::Null)
 		{ }
 
-		Json(Json&& that) noexcept
+		JsonObject(JsonObject&& that) noexcept
 			: _type(that._type), _content(move(that._content))
 		{ }
 
@@ -96,23 +96,23 @@ namespace Json
 		bool IsNull  () const { return _type == JsonType::Null; }
 
 		// TODO const version
-		Json& operator[] (string const& key) { Assert(IsObject()); return *(get<_Object>(_content)[key]); }
-		Json& operator[] (Json const& key)   { Assert(IsObject() && key.IsString()); return operator[](key.getString()); }
-		Json& operator[] (size_t i)          { Assert(IsArray()); return *(get<_Array>(_content)[i]); }
+		JsonObject& operator[] (string const& key) { Assert(IsObject()); return *(get<_Object>(_content)[key]); }
+		JsonObject& operator[] (JsonObject const& key)   { Assert(IsObject() && key.IsString()); return operator[](key.getString()); }
+		JsonObject& operator[] (size_t i)          { Assert(IsArray()); return *(get<_Array>(_content)[i]); }
 
-		Json& operator[] (string const& key) const { Assert(IsObject()); return *(get<_Object>(_content)[key]); }
-		Json& operator[] (Json const& key)   const { Assert(IsObject() && key.IsString()); return operator[](key.getString()); }
-		Json& operator[] (size_t i)          const { Assert(IsArray()); return *(get<_Array>(_content)[i]); }
+		JsonObject& operator[] (string const& key) const { Assert(IsObject()); return *(get<_Object>(_content)[key]); }
+		JsonObject& operator[] (JsonObject const& key)   const { Assert(IsObject() && key.IsString()); return operator[](key.getString()); }
+		JsonObject& operator[] (size_t i)          const { Assert(IsArray()); return *(get<_Array>(_content)[i]); }
 
-		Json& operator= (Json const& that)   { this->_type = that._type; this->_content = that._content; }
-		Json& operator= (Json&& thatJson)    { this->_type = that._type; this->_content = move(that._content); that._type = JsonType::Null; }
+		JsonObject& operator= (JsonObject const& that)   { this->_type = that._type; this->_content = that._content; }
+		JsonObject& operator= (JsonObject&& thatJson)    { this->_type = that._type; this->_content = move(that._content); that._type = JsonType::Null; }
 		// TODO test if previous has shared_ptr, will it be deconstructed when assign?
-		Json& operator= (_Array array){ this->_type = JsonType::Array; this->_content = move(jsonArray); }
-		Json& operator= (_Object obj) { this->_type = JsonType::Object; this->_content = move(obj); }
-		Json& operator= (double num)  { this->_type = JsonType::Number; this->_content = num; }
-		Json& operator= (string str)  { this->_type = JsonType::String; this->_content = move(str); }
-		Json& operator= (bool value)  { this->_type = value ? JsonType::True : JsonType::False; }
-		Json& operator= (decltype(nullptr) null) { this->_type = JsonType::Null; /* need to release previous resource?*/ } // Check on zhihu Moli Ye zhuan lan
+		JsonObject& operator= (_Array array){ this->_type = JsonType::Array; this->_content = move(jsonArray); }
+		JsonObject& operator= (_Object obj) { this->_type = JsonType::Object; this->_content = move(obj); }
+		JsonObject& operator= (double num)  { this->_type = JsonType::Number; this->_content = num; }
+		JsonObject& operator= (string str)  { this->_type = JsonType::String; this->_content = move(str); }
+		JsonObject& operator= (bool value)  { this->_type = value ? JsonType::True : JsonType::False; }
+		JsonObject& operator= (decltype(nullptr) null) { this->_type = JsonType::Null; /* need to release previous resource?*/ } // Check on zhihu Moli Ye zhuan lan
 
 		// Think necessary
 		// const _Object&
