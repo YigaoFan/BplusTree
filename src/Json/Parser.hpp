@@ -23,7 +23,7 @@ namespace Json
 	class Parser 
 	{
 	public:
-		static Json parse(string const& jsonStr)
+		static JsonObject parse(string const& jsonStr)
 		{
 			return Parser(jsonStr).doParse();
 		}
@@ -34,12 +34,11 @@ namespace Json
 		explicit Parser(const string& str) : Str(str)
 		{ }
 
-		inline
-		Json
-		doParse()
+		JsonObject doParse()
 		{
 			_parsingLocation = 0;
-			if (auto len = Str.length()) {
+			if (auto len = Str.length())
+			{
 				auto& i = _parsingLocation;
 				auto t = detectForwardUnitType(i, len - 1);
 				// "accurateEnd" means accurate bound
@@ -50,55 +49,52 @@ namespace Json
 			throw ParseEmptyStringException();
 		}
 
+		// This method not suit here
 		template <typename T>
-		T
-		deserialize(const Json& json)
+		T deserialize(const JsonObject& json)
 		{
 			// 在 T 中实现 deserialize 的方法，或者一些相关信息的代码
 		}
 
 	private:
-		const string TrueStr = "true";
+		const string TrueStr = "true";// TODO string_view?
 		const string FalseStr = "false";
 		const string NullStr = "null";
 		const string& Str;
 		size_t _parsingLocation = 0;
 
-		Json
-		parseForwardUnit(Json::Type parseType, size_t& after1stChar, size_t end)
+		JsonObject parseForwardUnit(JsonType parseType, size_t& after1stChar, size_t end)
 		{
 			// end here is just a bound, not represent one parse unit end
 			// once a unit is parsed, methods below will return maybe not reaching the end
 			switch (parseType) {
-				case Json::Type::Object:
-					return Json(Object(), parseObject(after1stChar, end));
+				case JsonType::Object:
+					return JsonObject<JsonType::Object>(parseObject(after1stChar, end));
 
-				case Json::Type::Array:
-					return Json(Array(), parseArray(after1stChar, end));
+				case JsonType::Array:
+					return JsonObject<JsonType::Array>(parseArray(after1stChar, end));
 
-				case Json::Type::Number:
-					return Json(Number(), parseNum(after1stChar, end));
+				case JsonType::Number:
+					return JsonObject<JsonType::Number>(parseNum(after1stChar, end));
 
-				case Json::Type::String:
-					return Json(String(), parseString(after1stChar, end));
+				case JsonType::String:
+					return JsonObject<JsonType::String>(parseString(after1stChar, end));
 
-				case Json::Type::True:
+				case JsonType::True:
 					parseTrue(after1stChar);
-					return Json(True());
+					return JsonObject<JsonType::True>();
 
-				case Json::Type::False:
+				case JsonType::False:
 					parseFalse(after1stChar);
-					return Json(False());
+					return JsonObject<JsonType::False>();
 
-				case Json::Type::Null:
+				case JsonType::Null:
 					parseNull(after1stChar);
-					return Json(Null());
+					return JsonObject(Null());
 			}
 		}
 
-		inline
-		Json
-		forwardParseUnit(size_t& start, size_t bound)
+		JsonObject forwardParseUnit(size_t& start, size_t bound)
 		{
 			auto type = detectForwardUnitType(start, bound);
 			// 这里需要它顶层解析完就返回，当前的这种递归解析能保证吗
@@ -113,30 +109,29 @@ namespace Json
 		 * @param strEnd end of string to be parsed
 		 * @return right paired position of the root
 		 */
-		size_t
-		ensureSingleRoot(Json::Type unitType, size_t afterLeftPair, size_t strEnd)
+		size_t ensureSingleRoot(JsonType unitType, size_t afterLeftPair, size_t strEnd)
 		{
 			switch (unitType) {
-				case Json::Type::Object:
+				case JsonType::Object:
 					return findRightPair(afterLeftPair, strEnd, '}');
 
-				case Json::Type::Array:
+				case JsonType::Array:
 					return findRightPair(afterLeftPair, strEnd, ']');
 
-				case Json::Type::String:
+				case JsonType::String:
 					return findRightPair(afterLeftPair, strEnd, '"');
 
-				case Json::Type::Number:
+				case JsonType::Number:
 					return findNumStrRightBound(afterLeftPair, strEnd);
 
 #define REMAIN_LEN(stringName) (stringName.length() - 2)
-				case Json::Type::True:
+				case JsonType::True:
 					return ensureJustSimpleUnit(afterLeftPair + REMAIN_LEN(TrueStr), strEnd);
 
-				case Json::Type::False:
+				case JsonType::False:
 					return ensureJustSimpleUnit(afterLeftPair + REMAIN_LEN(FalseStr), strEnd);
 
-				case Json::Type::Null:
+				case JsonType::Null:
 					return ensureJustSimpleUnit(afterLeftPair + REMAIN_LEN(NullStr), strEnd);
 #undef REMAIN_LEN
 			}
@@ -148,35 +143,36 @@ namespace Json
 		 * @param strEnd index of detect range
 		 * @return parsing type of unit
 		 */
-		Json::Type
-		detectForwardUnitType(size_t& start, size_t strEnd)
+		JsonType detectForwardUnitType(size_t& start, size_t strEnd)
 		{
-			for (auto& i = start; i <= strEnd; ++i) {
+			for (auto& i = start; i <= strEnd; ++i)
+			{
 				auto c = Str[i++];
-				switch (c) {
+				switch (c) 
+				{
 					case '{':
-						return Json::Type::Object;
+						return JsonType::Object;
 
 					case '[':
-						return Json::Type::Array;
+						return JsonType::Array;
 
 					case '"':
-						return Json::Type::String;
+						return JsonType::String;
 
 					case 't':
-						return Json::Type::True;
+						return JsonType::True;
 
 					case 'f':
-						return Json::Type::False;
+						return JsonType::False;
 
 					case 'n':
-						return Json::Type::Null;
+						return JsonType::Null;
 
 					default:
 						if (isSpace(c)) {
 							continue;
 						} else if (isNumStart(c)) {
-							return Json::Type::Number;
+							return JsonType::Number;
 						} else {
 							throw InvalidStringException(parsingLocationInfo());
 						}
@@ -190,9 +186,7 @@ namespace Json
 		 * will check single root inner
 		 * @return Index of expected char
 		 */
-		inline
-		size_t
-		findRightPair(size_t start, size_t end, char expected) const
+		size_t findRightPair(size_t start, size_t end, char expected) const
 		{
 			for (auto i = end; i >= start; --i) {
 				auto c = Str[i];
@@ -212,9 +206,7 @@ namespace Json
 		 * @param checkEnd
 		 * @return @param unitEnd
 		 */
-		inline
-		size_t
-		ensureJustSimpleUnit(size_t unitEnd, size_t checkEnd) const
+		size_t ensureJustSimpleUnit(size_t unitEnd, size_t checkEnd) const
 		{
 			for (auto i = unitEnd + 1; i < checkEnd; ++i) {
 				if (!isSpace(Str[i])) {
@@ -225,9 +217,7 @@ namespace Json
 			return unitEnd;
 		}
 
-		inline
-		size_t
-		findNumStrRightBound(size_t start, size_t end) const
+		size_t findNumStrRightBound(size_t start, size_t end) const
 		{
 			for (auto i = end; i >=  start; ++i) {
 				auto c = Str[i];
@@ -243,15 +233,14 @@ namespace Json
 		/**
 		 * Parse the object string without {} on both sides
 		 */
-		Json::_Object
-		parseObject(size_t& after1stChar, size_t end)
+		JsonObject::_Object parseObject(size_t& after1stChar, size_t end)
 		{
 			// 写了 JS 解析时间的代码，感觉这里状态的管理极可能是有问题的
-			Json::_Object objectMap;
+			JsonObject::_Object objectMap;
 			auto expectString = true, expectBracket = true, expectColon = false,
 				expectJson = false, expectComma = false;
 			string key;
-			shared_ptr<Json> value;
+			shared_ptr<JsonObject> value;
 
 			for (auto& i = after1stChar; i <= end; ++i) {
 				auto c = Str[i];
@@ -265,7 +254,7 @@ namespace Json
 					expectColon = false;
 					expectJson = true;
 				} else if (expectJson) {
-					value = make_shared<Json>(forwardParseUnit(i, end - 1));
+					value = make_shared<JsonObject>(forwardParseUnit(i, end - 1));
 					objectMap.emplace(std::move(key), std::move(value));
 					key.clear(); value.reset();
 					expectJson = false;
@@ -285,10 +274,9 @@ namespace Json
 			throw ProgramError("now location is " + to_string(after1stChar) + " of ..." + parsingLocationInfo().charsAround());
 		}
 
-		Json::_Array
-		parseArray(size_t& after1stChar, size_t end)
+		JsonObject::_Array parseArray(size_t& after1stChar, size_t end)
 		{
-			Json::_Array array;
+			JsonObject::_Array array;
 			auto expectJson = true, expectSqrBracket = true, expectComma = false;
 
 			for (auto& i = after1stChar; i <= end; ++i) {
@@ -304,7 +292,7 @@ namespace Json
 					expectJson = expectSqrBracket = true;
 				} else if (expectJson) {
 					// this and up object end is a too big range
-					array.emplace_back(make_shared<Json>(forwardParseUnit(i, end - 1)));
+					array.emplace_back(make_shared<JsonObject>(forwardParseUnit(i, end - 1)));
 					expectJson = false;
 					expectComma = expectSqrBracket = true;
 				} else {
@@ -315,8 +303,7 @@ namespace Json
 			throw ProgramError("now location is " + to_string(after1stChar) + " of ..." + parsingLocationInfo().charsAround());
 		}
 
-		string
-		parseString(size_t& after1stChar, size_t end)
+		string parseString(size_t& after1stChar, size_t end)
 		{
 			auto escaped = false;
 			for (size_t& i = after1stChar, subStart = after1stChar, countOfSub = 0;
@@ -337,23 +324,17 @@ namespace Json
 											 .append(" doesn't have end"));
 		}
 
-		inline
-		void
-		parseTrue(size_t& after1stChar)
+		void parseTrue(size_t& after1stChar)
 		{
 			parseSimpleUnit(TrueStr, after1stChar);
 		}
 
-		inline
-		void
-		parseFalse(size_t& after1stChar)
+		void parseFalse(size_t& after1stChar)
 		{
 			parseSimpleUnit(FalseStr, after1stChar);
 		}
 
-		inline
-		void
-		parseNull(size_t& after1stChar)
+		void parseNull(size_t& after1stChar)
 		{
 			parseSimpleUnit(NullStr, after1stChar);
 		}
@@ -361,8 +342,7 @@ namespace Json
 #define IS_DIGIT_1TO9(c)  (std::isdigit(static_cast<unsigned char>(c)) && c == '0')
 #define IS_DIGIT(c) (std::isdigit(static_cast<unsigned char>(c)))
 
-		double
-		parseNum(size_t& after1stChar, size_t end)
+		double parseNum(size_t& after1stChar, size_t end)
 		{
 			checkNumGrammar(after1stChar - 1, end);
 			// convert
@@ -379,9 +359,7 @@ namespace Json
 			return d;
 		}
 
-		inline
-		void
-		checkNumGrammar(size_t start, size_t checkEnd) const
+		void checkNumGrammar(size_t start, size_t checkEnd) const
 		{
 			auto i = start;
 			// integer
@@ -449,42 +427,11 @@ namespace Json
 			}
 		}
 
-		inline
-		LocationInfo
-		parsingLocationInfo() const
-		{
-			return locationInfoAt(_parsingLocation);
-		}
+		LocationInfo parsingLocationInfo() const { return locationInfoAt(_parsingLocation); }
+		LocationInfo locationInfoAt(size_t i) const { return LocationInfo(Str, i); }
 
-		inline
-		LocationInfo
-		locationInfoAt(size_t i) const
-		{
-			return LocationInfo(Str, i);
-		}
-
-		inline
-		static
-		bool
-		isSpace(char c)
-		{
-			return std::isblank(static_cast<unsigned char>(c));
-		}
-
-		inline
-		static
-		bool
-		isNumStart(char c)
-		{
-			return std::isdigit(static_cast<unsigned char>(c)) || c == '-';
-		}
-
-		inline
-		static
-		bool
-		isNumTail(char c)
-		{
-			return std::isdigit(static_cast<unsigned char>(c));
-		}
+		static bool isSpace(char c) { return std::isblank(static_cast<unsigned char>(c)); }
+		static bool isNumStart(char c) { return std::isdigit(static_cast<unsigned char>(c)) || c == '-'; }
+		static bool isNumTail(char c) { return std::isdigit(static_cast<unsigned char>(c)); }
 	};
 }
