@@ -11,17 +11,19 @@
 #include "Json.hpp"
 #include "LocationInfo.hpp"
 
-namespace Json {
-	using std::string;
-	using std::make_shared;
-	using std::pair;
-	using std::make_pair;
-	using std::size_t;
-	using std::strtod;
+namespace Json 
+{
+	using ::std::string;
+	using ::std::make_shared;
+	using ::std::pair;
+	using ::std::make_pair;
+	using ::std::size_t;
+	using ::std::strtod;
 
-	class Parser {
+	class Parser 
+	{
 	public:
-		static Json parse(const string& jsonStr)
+		static Json parse(string const& jsonStr)
 		{
 			return Parser(jsonStr).doParse();
 		}
