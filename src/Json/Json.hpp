@@ -66,11 +66,11 @@ namespace Json
 
 		// TODO const version
 		JsonObject& operator[] (string const& key)     { Assert(IsObject()); return *(get<_Object>(_content)[key]); }
-		JsonObject& operator[] (JsonObject const& key) { Assert(IsObject() && key.IsString()); return operator[](key.getString()); }
+		JsonObject& operator[] (JsonObject const& key) { Assert(IsObject() && key.IsString()); return operator[](key.GetString()); }
 		JsonObject& operator[] (size_t i)              { Assert(IsArray()); return *(get<_Array>(_content)[i]); }
 
 		JsonObject& operator[] (string const& key) const     { Assert(IsObject()); return *(get<_Object>(_content)[key]); }
-		JsonObject& operator[] (JsonObject const& key) const { Assert(IsObject() && key.IsString()); return operator[](key.getString()); }
+		JsonObject& operator[] (JsonObject const& key) const { Assert(IsObject() && key.IsString()); return operator[](key.GetString()); }
 		JsonObject& operator[] (size_t i)          const     { Assert(IsArray()); return *(get<_Array>(_content)[i]); }
 
 		JsonObject& operator= (JsonObject const& that)   { this->_type = that._type; this->_content = that._content; }
@@ -96,6 +96,7 @@ namespace Json
 			switch (_type)
 			{
 			case JsonType::Object:
+			{
 					string objStr{ "{" };
 					auto& objectMap = GetObject(); // TODO reduce the judge in GetObject()
 					for (auto& pair : objectMap) 
@@ -107,8 +108,10 @@ namespace Json
 					}
 					objStr += '}';
 					return objStr;
+			}
 		
 			case JsonType::Array:
+			{
 					string arrStr{ "[" };
 					auto& array = GetArray();
 					for (auto& e : array) 
@@ -118,8 +121,9 @@ namespace Json
 					}
 					arrStr += ']';
 					return arrStr;
+			}
 		
-			case JsonType::Number: return to_string(GetNumber());
+			case JsonType::Number:return to_string(GetNumber());
 			case JsonType::String:return GetString();
 			case JsonType::True:  return "true";
 		 	case JsonType::False: return "false";
