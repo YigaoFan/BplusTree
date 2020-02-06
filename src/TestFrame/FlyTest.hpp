@@ -1,22 +1,20 @@
 #pragma once
-
 #include <functional>
 #include <vector>
 #include <string>
-#include <tuple>
 #include <iostream>
 #include <utility>
-#include <cstring>
+#include <filesystem>
 #include "Exception.hpp"
-// for unknown exception handle
+// unknown exception handle
 #ifdef __clang__
 #include "cxxabi.h"
-#define DEPEND_ON_COMPILER_SUPPORT(SUPPORT_DO, NOT_SUPPORT_DO) SUPPORT_DO
+#define COMPILER_DEPEND(SUPPORT_DO, NOT_SUPPORT_DO) SUPPORT_DO
 #elif __GNUC__
 #include "cxxabi.h"
-#define DEPEND_ON_COMPILEER_SUPPORT(SUPPORT_DO, NOT_SUPPORT_DO) SUPPORT_DO
+#define COMPILER_DEPEND(SUPPORT_DO, NOT_SUPPORT_DO) SUPPORT_DO
 #else
-#define DEPEND_ON_COMPILER_SUPPORT(SUPPORT_DO, NOT_SUPPORT_DO) NOT_SUPPORT_DO
+#define COMPILER_DEPEND(SUPPORT_DO, NOT_SUPPORT_DO) NOT_SUPPORT_DO
 #endif
 
 namespace
@@ -25,8 +23,6 @@ namespace
 	using ::std::make_pair;
 	using ::std::string;
 	using ::std::vector;
-	using ::std::tuple;
-	using ::std::make_tuple;
 	using ::std::cout;
 	using ::std::endl;
 	using ::std::ostream;
@@ -35,22 +31,16 @@ namespace
 	using ::std::runtime_error;
 	using ::std::size_t;
 	using ::std::move;
+	namespace fs = ::std::filesystem;
 	using ::Exception::AssertionFailure;
-
-#define PRIMITIVE_CAT(A, B) A##B
-#define CAT(A, B) PRIMITIVE_CAT(A, B)
-
-	class Condition;
 
 	struct Info
 	{
-	public:
 		string fileName;
 		size_t line;
 		string description;
 
 		Info() = default;
-
 		Info(string fileName, size_t line, string description)
 			: fileName(move(fileName)), line(line), description(move(description))
 		{}
@@ -83,7 +73,7 @@ namespace
 				throw runtime_error("Wrong invoke log, only need to call log when SECTION doesn't exit normally");
 			}
 
-			for (auto i = 0; i < _route.size(); ++i)
+			for (size_t i = 0; i < _route.size(); ++i)
 			{
 				showNSpace(initialIndent, out);
 				if (i == _currentSectionIndex)
@@ -97,7 +87,7 @@ namespace
 		}
 
 	private:
-		static ostream& showNSpace(uint32_t num, ostream& out)
+		static ostream& showNSpace(size_t num, ostream& out)
 		{
 			for (decltype(num) i = 0; i < num; ++i)
 			{
@@ -109,42 +99,28 @@ namespace
 
 		static ostream& showSectionInfo(Info const& sectionInfo, ostream& out)
 		{
-			return (out
-				<< sectionInfo.fileName << ":"
-				<< sectionInfo.line << ": "
-				<< sectionInfo.description).flush();
+			return (out << sectionInfo.fileName << ":" << sectionInfo.line << ": "
+				        << sectionInfo.description).flush();
 		}
 	};
 
+	class Condition;
 	class Section
 	{
 		// Section don't have the data detail rely on Condition class, but Condition do.
 		// So we can pass a condition as parameter in TESTCASE not reference without error
-		friend class Condition;
 	private:
+		friend class Condition;
 		bool _selfDone{ false };
 		vector<Section*> _subSections{};
 		Info _info;
 
 	public:
 		Section(Condition& condition, Info info);
-
 		explicit Section(Info info) : _info(move(info)) {}
-
-		bool shouldExecute()
-		{
-			return !_selfDone;
-		}
-
-		void markDone()
-		{
-			_selfDone = true;
-		}
-
-		Info info() const
-		{
-			return _info;
-		}
+		bool shouldExecute() { return !_selfDone; }
+		void markDone() { _selfDone = true; }
+		Info info() const { return _info; }
 	};
 
 	class Condition
@@ -152,6 +128,7 @@ namespace
 	private:
 		bool& _state;
 		bool _shouldExecute;
+
 	public:
 		Section& correspondSection;
 		SectionRouteTrack& track;
@@ -212,12 +189,11 @@ namespace
 		condition.correspondSection._subSections.emplace_back(this);
 	}
 
-	using TestCaseFunction = function<void(Condition&&, bool&, SectionRouteTrack&, uint16_t&)>;
+	using TestCaseFunction = function<void(Condition&&, bool&, SectionRouteTrack&, size_t&)>;
 	vector<pair<Info, TestCaseFunction>> _tests_{};
 
-	class RegisterTestCase
+	struct RegisterTestCase
 	{
-	public:
 		RegisterTestCase(pair<Info, TestCaseFunction> infoTestCasePair)
 		{
 			_tests_.emplace_back(move(infoTestCasePair));
@@ -227,7 +203,7 @@ namespace
 	void allTest()
 	{
 		auto& out = cout;
-		auto log = [&](string const& exceptionTypeName, string const& exceptionContent, SectionRouteTrack& track)
+		auto log = [&out](string const& exceptionTypeName, string const& exceptionContent, SectionRouteTrack const& track)
 		{
 			out
 				<< "\n"
@@ -240,8 +216,8 @@ namespace
 		for (auto& t : _tests_)
 		{
 			Section testCase(t.first);
-			uint32_t successCount = 0;
-			uint32_t failureCount = 0;
+			size_t successCount = 0;
+			size_t failureCount = 0;
 			out << "Testcase: " << testCase.info().description << endl;
 
 			while (testCase.shouldExecute())
@@ -268,39 +244,39 @@ namespace
 				catch (...)
 				{
 					++failureCount;
-					log(DEPEND_ON_COMPILER_SUPPORT(__cxxabiv1::__cxa_current_exception_type()->name(), "Unknown type"),
+					log(COMPILER_DEPEND(__cxxabiv1::__cxa_current_exception_type()->name(), "Unknown type"),
 						"",
 						sectionTrack);
 				}
-				if (!onceState)
-				{ 
-					// meas onceState not be changed
-					break;
-				}
+
+				// meas onceState not be changed
+				if (!onceState) { break; }
 			}
 
-			out
-				<< '\n'
-				<< "Result: "
+			out << "\n Result: "
 				<< failureCount << " Failed, "
 				<< successCount << " Passed\n" << endl;
 		}
 	}
 
-	char const* getFileName(char const* str)
+	string getFileName(fs::path path)
 	{
-		return ::std::strrchr(str, '/') + 1;
+		return path.filename().string();
 	}
+#undef COMPILER_DEPEND
+}
 
-
+#define PRIMITIVE_CAT(A, B) A##B
+#define CAT(A, B) PRIMITIVE_CAT(A, B)
 
 #define TESTCASE(DESCRIPTION)                                                                                                                                          \
-    void CAT(testcase, __LINE__) (Condition&& , bool& , SectionRouteTrack&, uint16_t&);                                                                                \
-    RegisterTestCase CAT(registerTestcase, __LINE__) = make_pair<Info, TestCaseFunction>(Info(getFileName(__FILE__), __LINE__, DESCRIPTION), CAT(testcase, __LINE__)); \
-    void CAT(testcase, __LINE__) (Condition&& condition, bool& onceState, SectionRouteTrack& track, uint16_t& successCount)
+    void CAT(testcase, __LINE__) (Condition&& , bool& , SectionRouteTrack&, size_t&);                                                                                   \
+    RegisterTestCase CAT(registerTestcase, __LINE__) { make_pair<Info, TestCaseFunction>(Info(getFileName(__FILE__), __LINE__, DESCRIPTION), CAT(testcase, __LINE__)) }; \
+    void CAT(testcase, __LINE__) (Condition&& condition, bool& onceState, SectionRouteTrack& track, size_t& successCount)
 
-#define SECTION(DESCRIPTION) static Section CAT(section, __LINE__) { condition, Info(getFileName(__FILE__), __LINE__, DESCRIPTION) }; \
-    if (Condition condition{ CAT(section, __LINE__) , onceState, track })
+#define SECTION(DESCRIPTION) \
+	static Section CAT(section, __LINE__) { condition, Info(getFileName(__FILE__), __LINE__, DESCRIPTION) }; \
+    if (Condition condition{ CAT(section, __LINE__), onceState, track })
 
 #define ASSERT(EXP)                                                                            \
     do {                                                                                       \
@@ -326,8 +302,3 @@ namespace
         }                                                                                            \
         ++successCount;                                                                              \
     } while(0)
-
-#undef DEPEND_ON_COMPILER_SUPPORT
-#undef PRIMITIVE_CAT
-#undef CAT
-}
