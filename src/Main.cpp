@@ -15,12 +15,10 @@
 #define JSON_TEST(FUNC)
 #endif
 
-int
-main()
+int main()
 {
 	BTREE_TEST(BtreeTest::allTest());
 	JSON_TEST(JsonTest::allTest());
-
 	return 0;
 }
 
