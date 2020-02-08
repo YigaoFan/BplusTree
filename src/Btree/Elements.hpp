@@ -6,6 +6,7 @@
 #include "Basic.hpp"
 #include "IEnumerator.hpp"
 #include "Exception.hpp"
+#include "LiteVector.hpp"
 
 namespace Collections
 {
@@ -17,6 +18,7 @@ namespace Collections
 	using ::std::move;
 	using ::std::allocator;
 	
+	// TODO Check ref of method
 	// TODO when BtreeOrder is big, use binary search in iterate process
 	template <typename Key, typename Value, order_int BtreeOrder, typename LessThan>
 	class Elements
@@ -33,12 +35,12 @@ namespace Collections
 			: LessThanPtr(lessThanPtr), _elements(move(ConsEmptyArray()))
 		{ }
 
-		Elements(IEnumerator<pair<Key, Value>&>& enumerator, shared_ptr<LessThan> lessThanPtr)
+		Elements(IEnumerator<Item&>& enumerator, shared_ptr<LessThan> lessThanPtr)
 			: LessThanPtr(lessThanPtr), _elements(move(ConsArray(enumerator)))
 		{ }
 
 		// TODO how to solve && and & in up and below method
-		Elements(IEnumerator<pair<Key, Value>>&& enumerator, shared_ptr<LessThan> lessThanPtr)
+		Elements(IEnumerator<Item>&& enumerator, shared_ptr<LessThan> lessThanPtr)
 			: LessThanPtr(lessThanPtr), _elements(move(ConsArray(enumerator)))
 		{ }
 
@@ -131,9 +133,9 @@ namespace Collections
 			}
 		}
 
-		vector<pair<Key, Value>> PopOutItems(order_int count)
+		vector<Item> PopOutItems(order_int count)
 		{
-			vector<pair<Key, Value>> outItems;
+			vector<Item> outItems;
 			while (count != 0)
 			{
 				outItems.emplace_back(move(_elements[_count - 1]));
@@ -144,7 +146,7 @@ namespace Collections
 			return outItems;
 		}
 
-		pair<Key, Value> FrontPopOut()
+		Item FrontPopOut()
 		{
 			auto p = move(_elements[0]);
 			RemoveAt(0);
@@ -184,7 +186,7 @@ namespace Collections
 			}
 		}
 
-		void Append(pair<Key, Value> p)
+		void Append(Item p)
 		{
 			_elements[_count++] = move(p);
 		}
@@ -195,7 +197,7 @@ namespace Collections
 			_elements[i+1] = move(item);
 		}
 
-		pair<Key, Value> ExchangeMax(pair<Key, Value> p)
+		Item ExchangeMax(Item p)
 		{
 			auto maxItem = move(_elements[_count - 1]);
 			--_count;
@@ -203,7 +205,7 @@ namespace Collections
 			return maxItem;
 		}
 
-		pair<Key, Value> ExchangeMin(pair<Key, Value> p)
+		Item ExchangeMin(Item p)
 		{
 			auto minItem = move(_elements[0]);
 			MoveItems(-1, 1);
