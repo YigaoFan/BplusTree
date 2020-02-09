@@ -94,40 +94,37 @@ namespace Collections
 		// TODO use macro to simplify below methods' content
 		bool ContainsKey(Key const& key) const override
 		{
-			auto i = _elements.SuitPosition<true>(key);
+			auto i = _elements.SuitBranch(key);
 			return _elements[i].second->ContainsKey(key);
 		}
 
 		Value GetValue(Key const& key) const override
 		{
-			auto i = _elements.SuitPosition<true>(key);
+			auto i = _elements.SuitBranch(key);
 			return _elements[i].second->GetValue(key);
 		}
 
 		void ModifyValue(Key const& key, Value value) override
 		{
-			auto i = _elements.SuitPosition<true>(key);
+			auto i = _elements.SuitBranch(key);
 			return _elements[i].second->ModifyValue(key, move(value)); // TODO can return void?
 		}
 
 		void Add(pair<Key, Value> p) override
 		{
-			auto i = _elements.SuitPosition<true>(p.first);
+			auto i = _elements.SuitBranch(p.first);
 			_elements[i].second->Add(move(p));
 		}
 
 		void Remove(Key const& key) override
 		{
 			// auto k = key;// TODO how to convert reference type to reference_wrapper type
-			auto i = _elements.SuitPosition<true>(key);
+			auto i = _elements.SuitBranch(key);
 			_elements[i].second->Remove(key);
 		}
 
 	private:
-		Base* MinSon() const
-		{
-			return _elements[0].second.get();
-		}
+		Base* MinSon() const { return _elements[0].second.get(); }
 
 		// TODO maybe add and remove are in the same method
 		void AddSubNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)

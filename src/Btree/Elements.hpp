@@ -18,7 +18,6 @@ namespace Collections
 	using ::std::move;
 	using ::std::allocator;
 	
-	// TODO Check ref of method
 	// TODO when BtreeOrder is big, use binary search in iterate process
 	template <typename Key, typename Value, order_int BtreeOrder, typename LessThan>
 	class Elements : public LiteVector<pair<Key, Value>, order_int, BtreeOrder>
@@ -83,7 +82,7 @@ namespace Collections
 		vector<Key> Keys() const
 		{
 			vector<Key> keys;
-			keys.reserve(_count);
+			keys.reserve(this->_count);
 			auto enumerator = GetEnumerator();
 			while (enumerator.MoveNext())
 			{
@@ -111,22 +110,22 @@ namespace Collections
 		// }
 
 		// TODO check ref exist?
-		template <bool FromHead>
-		void RemoveItems(order_int count)
-		{
-			_count -= count;
-			if constexpr (FromHead)
-			{
-				MoveItems(-count, count);
-			}
-			else
-			{
-				for (auto rbegin = _elements.rbegin(); count != 0; --count, --rbegin)
-				{
-					rbegin->~Item();
-				}
-			}
-		}
+		//template <bool FromHead>
+		//void RemoveItems(order_int count)
+		//{
+		//	_count -= count;
+		//	if constexpr (FromHead)
+		//	{
+		//		MoveItems(-count, count);
+		//	}
+		//	else
+		//	{
+		//		for (auto rbegin = _elements.rbegin(); count != 0; --count, --rbegin)
+		//		{
+		//			rbegin->~Item();
+		//		}
+		//	}
+		//}
 
 		// vector<Item> PopOutItems(order_int count)
 		// {
@@ -149,7 +148,7 @@ namespace Collections
 
 		void Add(Item p)
 		{
-			if ((*LessThanPtr)(_elements[_count - 1].first, p.first))
+			if ((*LessThanPtr)(this->operator[](this->_count - 1).first, p.first))
 			{
 				Append(move(p));
 			}
@@ -159,96 +158,53 @@ namespace Collections
 			}
 		}
 
-		void Add(vector<Item> pairs)
+		void Add(vector<Item> items)
 		{
-			for (auto& p : pairs)
+			for (auto& i : items)
 			{
-				Add(move(p));
+				Add(move(i));
 			}
 		}
 
 		void Insert(Item p)
 		{
-			for (order_int i = 0; i < _count; ++i)
+			for (decltype(this->_count) i = 0; i < this->_count; ++i)
 			{
-				if ((*LessThanPtr)(p.first, _elements[i].first))
+				if ((*LessThanPtr)(p.first, this->operator[](i).first))
 				{
-					MoveItems(1, i);
-					_elements[i] = move(p);
-					++_count;
+					this->MoveItems(1, i);
+					this->operator[](i) = move(p);
+					++this->_count;
 				}
 			}
 		}
 
-		void Append(Item p)
-		{
-			_elements[_count++] = move(p);
-		}
-
-		// void Emplace(order_int i, Item item)
-		// {
-		// 	MoveItems(1, i + 1);
-		// 	_elements[i+1] = move(item);
-		// }
+		void Append(Item p) { Base::Add(move(p)); }
 
 		Item ExchangeMax(Item p)
 		{
-			auto maxItem = move(_elements[_count - 1]);
-			--_count;
+			auto max = this->PopOut();
 			Add(move(p));
-			return maxItem;
+			return move(max);
 		}
 
 		Item ExchangeMin(Item p)
 		{
-			auto minItem = move(_elements[0]);
-			MoveItems(-1, 1);
-			--_count;
+			auto min = this->FrontPopOut();
 			Add(move(p));
-			return minItem;
+			return move(min);
 		}
 
-		Value const& operator[](Key const& key) const
+		Value const& operator[] (Key const& key) const
 		{
 			return this->operator[](IndexKeyOf(key)).second;
 		}
 
-		Value& operator[](Key const& key)
+		Value& operator[] (Key const& key)
 		{
 			return const_cast<Value&>(
 				(static_cast<const Elements&>(*this))[key]
 				);
-		}
-
-		// TODO sometimes Key and Value are the same type, how to avoid
-		order_int IndexValueOf(Value const& value) const
-		{
-			auto enumerator = GetEnumerator();
-			while (enumerator.MoveNext())
-			{
-				auto& item = enumerator.Current();
-				// TODO Value use this to compare maybe not right, need to care this method use in scene
-				if (item.second == value)
-				{
-					return (order_int)enumerator.CurrentIndex();
-				}
-			}
-
-			throw KeyNotFoundException();
-		}
-
-		order_int Index(function<bool(Item const&)> predicate)
-		{
-			for (order_int i = 0; i < Count(); ++i)
-			{
-				auto& e = _elements[i];
-				if (predicate(e))
-				{
-					return i;
-				}
-			}
-
-			throw KeyNotFoundException();
 		}
 
 		order_int IndexKeyOf(Key const& key) const
@@ -257,7 +213,7 @@ namespace Collections
 			auto& lessThan = *LessThanPtr;
 			while (enumerator.MoveNext())
 			{
-				auto& item = enumerator.Current(); // TODO move in this Current is error!!!
+				auto& item = enumerator.Current();
 				if (lessThan(key, item.first) == lessThan(item.first, key))
 				{
 					return (order_int)enumerator.CurrentIndex();
@@ -267,45 +223,22 @@ namespace Collections
 			throw KeyNotFoundException();
 		}
 
-		template <bool ChooseBranch, typename T>
-		order_int SuitPosition(T const& key) const
+		template <typename T>
+		order_int SuitBranch(T const& key) const
 		{
-			if constexpr (ChooseBranch)
+			for (decltype(this->_count) i = 1; i < this->_count; ++i)
 			{
-				for (decltype(_count) i = 1; i < _count; ++i)
+				if ((*LessThanPtr)(key, this->operator[](i).first))
 				{
-					if ((*LessThanPtr)(key, _elements[i].first))
-					{
-						return i - 1;
-					}
+					return i - 1;
 				}
-
-				return _count - 1;
-			}
-			else
-			{
-				for (decltype(_count) i = 0; i < _count; ++i)
-				{
-					if ((*LessThanPtr)(key, _elements[i].first))
-					{
-						return i;
-					}
-				}
-
-				return _count;
 			}
 
+			return this->_count - 1;
 		}
 
 	private:
-		auto GetEnumerator()
-		{
-			return CreateEnumerator(*this);
-		}
-
-		auto GetEnumerator() const
-		{
-			return CreateEnumerator(*this);
-		}
+		auto GetEnumerator() { return CreateEnumerator(*this); }
+		auto GetEnumerator() const { return CreateEnumerator(*this); }
 	};
 }
