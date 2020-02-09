@@ -16,7 +16,6 @@ namespace Collections
 	using ::std::shared_ptr;
 	using ::std::array;
 	using ::std::move;
-	using ::std::allocator;
 	
 	// TODO when BtreeOrder is big, use binary search in iterate process
 	template <typename Key, typename Value, order_int BtreeOrder, typename LessThan>
@@ -99,52 +98,6 @@ namespace Collections
 		{
 			return RemoveAt(IndexKeyOf(key));
 		}
-
-		/// Remove the item corresponding to the index.
-		/// Invoker should ensure i is within range.
-		/// \param i index
-		// void RemoveAt(order_int i)
-		// {
-		// 	MoveItems(-1, i + 1); // TODO this remove should think of the destruct problem
-		// 	--_count;
-		// }
-
-		// TODO check ref exist?
-		//template <bool FromHead>
-		//void RemoveItems(order_int count)
-		//{
-		//	_count -= count;
-		//	if constexpr (FromHead)
-		//	{
-		//		MoveItems(-count, count);
-		//	}
-		//	else
-		//	{
-		//		for (auto rbegin = _elements.rbegin(); count != 0; --count, --rbegin)
-		//		{
-		//			rbegin->~Item();
-		//		}
-		//	}
-		//}
-
-		// vector<Item> PopOutItems(order_int count)
-		// {
-		// 	vector<Item> outItems;
-		// 	while (count != 0)
-		// 	{
-		// 		outItems.push_back(move(_elements[_count - 1]));
-		// 		--_count;
-		// 	}
-
-		// 	return outItems;
-		// }
-
-		// Item FrontPopOut()
-		// {
-		// 	auto p = move(_elements[0]);
-		// 	RemoveAt(0);
-		// 	return p;
-		// }
 
 		void Add(Item p)
 		{

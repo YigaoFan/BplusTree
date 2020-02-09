@@ -114,6 +114,7 @@ namespace Collections
 		{
 			auto i = _elements.SuitBranch(p.first);
 			_elements[i].second->Add(move(p));
+			// TODO why up code prefer global []
 		}
 
 		void Remove(Key const& key) override
