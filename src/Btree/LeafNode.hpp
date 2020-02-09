@@ -34,8 +34,8 @@ namespace Collections
 			: Base(), _elements(enumerator, lessThan)
 		{}
 
-		LeafNode(LeafNode& that, LeafNode* previous = nullptr, LeafNode* next = nullptr)
-			: Base(that), _elements(that._elements), _next(next), _previous(previous)
+		LeafNode(LeafNode const& that)
+			: Base(that), _elements(that._elements)
 		{}
 
 		LeafNode(LeafNode&& that) noexcept

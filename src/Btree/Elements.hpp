@@ -96,7 +96,7 @@ namespace Collections
 		/// \param key
 		void RemoveKey(Key const& key)
 		{
-			return RemoveAt(IndexKeyOf(key));
+			return Base::RemoveAt(IndexKeyOf(key));
 		}
 
 		void Add(Item p)
@@ -147,7 +147,8 @@ namespace Collections
 			Add(move(p));
 			return move(min);
 		}
-
+		
+		using Base::operator[];
 		Value const& operator[] (Key const& key) const
 		{
 			return this->operator[](IndexKeyOf(key)).second;
