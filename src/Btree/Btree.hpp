@@ -242,8 +242,9 @@ namespace Collections
 			array<unique_ptr<Base>, is.size()> consNodes;
 			ForEachCons<Count, Is...>([&srcArray, &consNodes, &lessThan](auto index, auto itemsCount, auto preItemsCount)
 			{
-					consNodes[index] = move(NodeFactoryType::MakeNode(CreateEnumerator(&srcArray[preItemsCount], &srcArray[/*TODO (size_t)*/preItemsCount + itemsCount]),
-					lessThan));
+					auto begin = &srcArray[preItemsCount];
+					auto end = begin + itemsCount;
+					consNodes[index] = move(NodeFactoryType::MakeNode(CreateEnumerator(begin, end), lessThan));
 			});
 
 			return consNodes;

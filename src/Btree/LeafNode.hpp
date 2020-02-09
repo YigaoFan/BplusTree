@@ -12,10 +12,8 @@ namespace Collections
 	using ::std::make_unique;
 	using ::std::remove_pointer_t;
 
-#define LEAF LeafNode<Key, Value, BtreeOrder>
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class LeafNode : public NodeBase<Key, Value, BtreeOrder>
-#undef LEAF
 	{
 	private:
 		using _LessThan = LessThan<Key>;

@@ -138,7 +138,7 @@ namespace Collections
 			else
 			{
 				auto rend =  start - 1;
-				for (auto rbegin = _ptr + _count; rbegin != rend; --rbegin)
+				for (auto rbegin = _ptr + _count - 1; rbegin != rend; --rbegin)
 				{
 					*(rbegin + direction) = move(*rbegin);
 				}
