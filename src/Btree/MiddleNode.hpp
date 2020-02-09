@@ -31,6 +31,8 @@ namespace Collections
 		Elements<reference_wrapper<Key const>, unique_ptr<Base>, BtreeOrder, _LessThan> _elements;
 
 	public:
+		bool Middle() const override { return true; }
+
 		MiddleNode(shared_ptr<_LessThan> lessThanPtr)
 			: Base(), _elements(lessThanPtr)
 		{
@@ -45,7 +47,7 @@ namespace Collections
 		}
 
 		MiddleNode(MiddleNode& that)
-			: Base(that), _elements()
+			: Base(that), _elements(CloneElements())
 		{ }
 
 		MiddleNode(MiddleNode&& that) noexcept
@@ -54,7 +56,7 @@ namespace Collections
 
 		~MiddleNode() override = default;
 
-		unique_ptr<Base> Clone() override // can not be marked const, because shared_ptr will be changed if shared
+		unique_ptr<Base> Clone() const override
 		{
 			auto cloneOne = make_unique<MiddleNode>(_elements.LessThanPtr);
 			for (auto const& e : _elements)
@@ -63,27 +65,21 @@ namespace Collections
 				cloneOne->_elements.Append(ConvertToKeyBasePtrPair(subCloned));
 			}
 
-			return cloneOne;
+			return move(cloneOne);
 		}
 
 		decltype(_elements) CloneElements()
 		{
-			decltype(_elements) cloneElements;
-			order_int i = 0;
+			decltype(_elements) thatElements(_elements.LessThanPtr);
 			for (auto const& e : _elements)
 			{
-				cloneElements[i].first = e.first;
-				cloneElements[i].second= e.second->Clone();
-				++i;
+				auto ptr = e.second->Clone();
+				thatElements.Add(cref(ptr->Minkey()), move(ptr));
 			}
 
-			return cloneElements;
+			return move(thatElements);
 		}
 
-		bool Middle() const override
-		{
-			return true;
-		}
 
 		vector<Key> Keys() const override
 		{

@@ -21,39 +21,44 @@ namespace Collections
 	// TODO Check ref of method
 	// TODO when BtreeOrder is big, use binary search in iterate process
 	template <typename Key, typename Value, order_int BtreeOrder, typename LessThan>
-	class Elements
+	class Elements : public LiteVector<pair<Key, Value>, order_int, BtreeOrder>
 	{
 	public:
 		using Item = pair<Key, Value>;
+		using Base = LiteVector<Item, order_int, BtreeOrder>;
 		shared_ptr<LessThan> LessThanPtr;
-	private:
-		order_int               _count{ 0 };
-		array<Item, BtreeOrder> _elements;
 
 	public:
 		Elements(shared_ptr<LessThan> lessThanPtr)
-			: LessThanPtr(lessThanPtr), _elements(move(ConsEmptyArray()))
+			: Base(), LessThanPtr(lessThanPtr)
 		{ }
 
 		Elements(IEnumerator<Item&>& enumerator, shared_ptr<LessThan> lessThanPtr)
-			: LessThanPtr(lessThanPtr), _elements(move(ConsArray(enumerator)))
-		{ }
+			: Base(), LessThanPtr(lessThanPtr)
+		{
+			while (enumerator.MoveNext())
+			{
+				Add(move(enumerator.Current()));
+			}
+		}
 
 		// TODO how to solve && and & in up and below method
 		Elements(IEnumerator<Item>&& enumerator, shared_ptr<LessThan> lessThanPtr)
-			: LessThanPtr(lessThanPtr), _elements(move(ConsArray(enumerator)))
+			: Base(), LessThanPtr(lessThanPtr)
+		{ 
+			while (enumerator.MoveNext())
+			{
+				Add(move(enumerator.Current()));
+			}
+		}
+
+		Elements(Elements const& that)
+			: Base(that), LessThanPtr(that.LessThanPtr)
 		{ }
 
-		// TODO here maybe should care about Middle Node copy
-		Elements(Elements const& that)
-			: LessThanPtr(that.LessThanPtr), _elements(that._elements), _count(that._count)
-		{}
-
 		Elements(Elements&& that) noexcept
-			:  LessThanPtr(that.LessThanPtr), _elements(move(that._elements)), _count(that._count)
-		{
-			that._count = 0;
-		}
+			:  Base(move(static_cast<Base&>(that))), LessThanPtr(move(that.LessThanPtr))
+		{ }
 
 		bool ContainsKey(Key const& key) const
 		{
@@ -73,16 +78,6 @@ namespace Collections
 			}
 
 			return false;
-		}
-
-		order_int Count() const
-		{
-			return _count;
-		}
-
-		bool Full() const
-		{
-			return _count == BtreeOrder;
 		}
 		
 		vector<Key> Keys() const
@@ -109,11 +104,11 @@ namespace Collections
 		/// Remove the item corresponding to the index.
 		/// Invoker should ensure i is within range.
 		/// \param i index
-		void RemoveAt(order_int i)
-		{
-			MoveItems(-1, i + 1); // TODO this remove should think of the destruct problem
-			--_count;
-		}
+		// void RemoveAt(order_int i)
+		// {
+		// 	MoveItems(-1, i + 1); // TODO this remove should think of the destruct problem
+		// 	--_count;
+		// }
 
 		// TODO check ref exist?
 		template <bool FromHead>
@@ -133,25 +128,24 @@ namespace Collections
 			}
 		}
 
-		vector<Item> PopOutItems(order_int count)
-		{
-			vector<Item> outItems;
-			while (count != 0)
-			{
-				outItems.emplace_back(move(_elements[_count - 1]));
-				--_count;
-				--count;
-			}
+		// vector<Item> PopOutItems(order_int count)
+		// {
+		// 	vector<Item> outItems;
+		// 	while (count != 0)
+		// 	{
+		// 		outItems.push_back(move(_elements[_count - 1]));
+		// 		--_count;
+		// 	}
 
-			return outItems;
-		}
+		// 	return outItems;
+		// }
 
-		Item FrontPopOut()
-		{
-			auto p = move(_elements[0]);
-			RemoveAt(0);
-			return p;
-		}
+		// Item FrontPopOut()
+		// {
+		// 	auto p = move(_elements[0]);
+		// 	RemoveAt(0);
+		// 	return p;
+		// }
 
 		void Add(Item p)
 		{
@@ -191,11 +185,11 @@ namespace Collections
 			_elements[_count++] = move(p);
 		}
 
-		void Emplace(order_int i, Item item)
-		{
-			MoveItems(1, i + 1);
-			_elements[i+1] = move(item);
-		}
+		// void Emplace(order_int i, Item item)
+		// {
+		// 	MoveItems(1, i + 1);
+		// 	_elements[i+1] = move(item);
+		// }
 
 		Item ExchangeMax(Item p)
 		{
@@ -223,18 +217,6 @@ namespace Collections
 		{
 			return const_cast<Value&>(
 				(static_cast<const Elements&>(*this))[key]
-				);
-		}
-
-		Item const& operator[](order_int i) const
-		{
-			return _elements[i];
-		}
-
-		Item& operator[](order_int i)
-		{
-			return const_cast<Item&>(
-				(static_cast<const Elements&>(*this))[i]
 				);
 		}
 
@@ -315,86 +297,15 @@ namespace Collections
 
 		}
 
-		auto begin()
-		{
-			return _elements.begin();
-		}
-
-		auto end()
-		{
-			return begin() + _count;
-		}
-
-		auto begin() const
-		{
-			return _elements.begin();
-		}
-
-		auto end() const
-		{
-			return begin() + _count;
-		}
-
 	private:
 		auto GetEnumerator()
 		{
-			return CreateEnumerator(_elements);
+			return CreateEnumerator(*this);
 		}
 
 		auto GetEnumerator() const
 		{
-			return CreateEnumerator(_elements);
-		}
-
-		void MoveItems(int32_t direction, order_int index)
-		{
-			MoveItems(direction, begin() + index);
-		}
-
-		/// Start included, still exist
-		/// \param direction
-		/// \param start
-		void MoveItems(int32_t direction, decltype(_elements.begin()) start)
-		{
-			if (direction == 0) { return; }
-			if (direction < 0)
-			{
-				auto e = end();
-				for (auto begin = start; begin != e; ++begin)
-				{
-					*(begin + direction) = move(*begin);
-				}
-			}
-			else
-			{
-				decltype(_elements.rend()) rend{ start - 1 };
-				for (auto rbegin = _elements.rbegin(); rbegin != rend; ++rbegin)
-				{
-					*(rbegin + direction) = move(*rbegin);
-				}
-			}
-		}
-
-		static decltype(_elements) ConsEmptyArray()
-		{
-			using E = decltype(_elements);
-			alignas(E) char mem[sizeof(E)];
-			E& elements = *(reinterpret_cast<E*>(&mem));
-			return move(elements);
-		}
-
-		template <typename T>
-		decltype(_elements) ConsArray(IEnumerator<T>& enumerator)
-		{
-			using E = decltype(_elements);
-			alignas(E) char mem[sizeof(E)];
-			E& elements = *(reinterpret_cast<E*>(&mem));
-			while (enumerator.MoveNext())
-			{
-				elements[_count++] = move(enumerator.Current());
-			}
-
-			return move(elements);
+			return CreateEnumerator(*this);
 		}
 	};
 }

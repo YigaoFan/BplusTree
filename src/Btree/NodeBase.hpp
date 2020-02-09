@@ -43,7 +43,7 @@ namespace Collections
 			_upNodeAddSubNodeCallback = move(addSubNodeCallback);
 			_upNodeDeleteSubNodeCallback = move(deleteSubNodeCallback);
 		}
-		virtual unique_ptr<NodeBase> Clone() = 0;
+		virtual unique_ptr<NodeBase> Clone() const = 0;
 		virtual ~NodeBase() = default;
 		virtual bool Middle() const = 0;
 		virtual vector<Key> Keys() const = 0;

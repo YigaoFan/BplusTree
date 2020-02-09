@@ -45,7 +45,7 @@ namespace Collections
 
 		~LeafNode() override = default;
 
-		unique_ptr<Base> Clone() override
+		unique_ptr<Base> Clone() const override
 		{
 			return make_unique<LeafNode>(*this);
 		}
