@@ -36,7 +36,7 @@ namespace Collections
 		{
 			while (enumerator.MoveNext())
 			{
-				Add(move(enumerator.Current()));
+				Base::Add(move(enumerator.Current()));
 			}
 		}
 
@@ -46,7 +46,7 @@ namespace Collections
 		{ 
 			while (enumerator.MoveNext())
 			{
-				Add(move(enumerator.Current()));
+				Base::Add(move(enumerator.Current()));
 			}
 		}
 
@@ -68,10 +68,6 @@ namespace Collections
 				if (auto less = lessThan(key, e.first), notLess = lessThan(e.first, key); less == notLess)
 				{
 					return true;
-				}
-				else if (notLess)
-				{
-					break;
 				}
 			}
 
@@ -96,11 +92,17 @@ namespace Collections
 		/// \param key
 		void RemoveKey(Key const& key)
 		{
-			return RemoveAt(IndexKeyOf(key));
+			return Base::RemoveAt(IndexKeyOf(key));
 		}
 
 		void Add(Item p)
 		{
+			if (this->_count == 0)
+			{
+				Append(move(p));
+				return;
+			}
+
 			if ((*LessThanPtr)(this->operator[](this->_count - 1).first, p.first))
 			{
 				Append(move(p));
@@ -128,6 +130,7 @@ namespace Collections
 					this->MoveItems(1, i);
 					this->operator[](i) = move(p);
 					++this->_count;
+					return;
 				}
 			}
 		}
@@ -147,7 +150,10 @@ namespace Collections
 			Add(move(p));
 			return move(min);
 		}
-
+		
+		// TODO why should use below code to compile code in MiddleNode
+		using Base::operator[];
+		// TODO modify the method name
 		Value const& operator[] (Key const& key) const
 		{
 			return this->operator[](IndexKeyOf(key)).second;

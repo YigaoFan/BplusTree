@@ -26,9 +26,9 @@ namespace Collections
 		LiteVector() { }
 
 		template <typename... Ts>
-		LiteVector(Ts... ts)
+		LiteVector(T t, Ts... ts)
 		{
-			Init(move(ts)...);
+			Init(move(t), move(ts)...);
 		}
 
 		LiteVector(LiteVector const& that)
@@ -47,13 +47,13 @@ namespace Collections
 		{
 			for (size_int i = 0; i < _count; ++i)
 			{
-				_ptr[i]->~T();
+				_ptr[i].~T();
 			}
 		}
 
 		void Add(T t)
 		{
-			new (_ptr[_count++])T(move(t));
+			new (_ptr + (_count++))T(move(t));
 		}
 
 		void RemoveAt(size_int i)
@@ -67,7 +67,7 @@ namespace Collections
 			vector<T> outItems;
 			for (;count != 0; --count)
 			{
-				outItems.push_back(move(*_ptr[_count - 1]));
+				outItems.push_back(move(_ptr[_count - 1]));
 				--_count;
 			}
 
@@ -76,12 +76,12 @@ namespace Collections
 
 		T PopOut()
 		{
-			return move(*_ptr[(_count--) - 1]);
+			return move(_ptr[(_count--) - 1]);
 		}
 
 		T FrontPopOut()
 		{
-			auto p = move(*_ptr);
+			auto p = move(_ptr[0]);
 			RemoveAt(0);
 			return move(p);
 		}
@@ -89,16 +89,16 @@ namespace Collections
 		void Emplace(size_int i, T t)
 		{
 			MoveItems(1, i + 1);
-			*_ptr[i+1] = move(t);
+			_ptr[i + 1] = move(t);
 			++_count;
 		}
 
-		T& operator[] (size_int i) { return *_ptr[i]; }
-		T const& operator[] (size_int i) const { return *_ptr[i]; }
-		auto begin() { return _ptr; }
-		auto end() { return _ptr[_count]; }
-		auto begin() const { return _ptr; }
-		auto end() const { return _ptr[_count]; }
+		T& operator[] (size_int i) { return _ptr[i]; }
+		T const& operator[] (size_int i) const { return _ptr[i]; }
+		T* begin() { return _ptr; }
+		T* end() { return _ptr + _count; }
+		T const* begin() const { return _ptr; }
+		T const* end() const { return _ptr + _count; }
 
 		size_int Count() const { return _count; }
 		bool Full() const { return _count == Capacity; }
@@ -138,7 +138,7 @@ namespace Collections
 			else
 			{
 				auto rend =  start - 1;
-				for (auto rbegin = _ptr[_count]; rbegin != rend; --rbegin)
+				for (auto rbegin = _ptr + _count - 1; rbegin != rend; --rbegin)
 				{
 					*(rbegin + direction) = move(*rbegin);
 				}
