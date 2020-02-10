@@ -1,7 +1,9 @@
 #include <array>
 #include "../../TestFrame/FlyTest.hpp"
 #include "../Btree.hpp"
+#include "Exception.hpp"
 using ::std::array;
+using ::std::move;
 using namespace Collections;
 
 // TODO test construct 0 element, then add a lot of element
@@ -41,21 +43,35 @@ TESTCASE("Btree test")
 		using BTREE = Collections::Btree<4, string, string>;
 		BTREE btree(lessThan, keyValueArray);
 
-		SECTION("Test move")
+		SECTION("Move cons")
 		{
-
+			auto n = btree.Count();
+			auto b = move(btree);
+			ASSERT(btree.Count() == 0);
+			ASSERT(b.Count() == n);
 		}
 
-		SECTION("Test copy")
+		SECTION("Copy cons")
 		{
+			auto b = btree;
+			ASSERT(b.Count() == btree.Count());
+			b.Remove("3");
+			ASSERT(!b.ContainsKey("3"));
+			ASSERT(b.ContainsKey("3"));
+			btree.~BTREE();
+			ASSERT(b.ContainsKey("4"));
+		}
 
+		SECTION("Contains Key")
+		{
+			
 		}
 
 		SECTION("Test normal function")
 		{
 			ASSERT(btree.GetValue(kv0.first) == kv0.second);
 			ASSERT(btree.GetValue(kv8.first) == kv8.second);
-			//ASSERT_THROW(runtime_error, btree.GetValue("10")); // TODO change Exception type
+			ASSERT_THROW(KeyNotFoundException, btree.GetValue("10"));
 
 			btree.Add(make_pair("10", "d"));
 			ASSERT(btree.GetValue("10") == "d");
@@ -68,6 +84,16 @@ TESTCASE("Btree test")
 
 			btree.Remove("10");
 			ASSERT(!btree.ContainsKey("10"));
+		}
+
+		SECTION("Test add")
+		{
+
+		}
+
+		SECTION("Test remove")
+		{
+
 		}
 	}
 

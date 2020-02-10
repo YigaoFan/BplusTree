@@ -23,11 +23,9 @@ static int test_pass = 0;
 
 #define EXPECT_EQ(expect, actual) EXPECT_EQ_BASE((expect) == (actual), expect, actual)
 
-#define FOR_EACH(container, operation) 									   \
-    do {                                                                   \
-        for (auto& e : container) {										   \
-        	operation(e);												   \
-        }                                                                  \
+#define FOR_EACH(container, operation) \
+    do {                               \
+        for (auto& e : container) {    \
+        	operation(e);              \
+        }                              \
     } while(0)
-
-// #define
