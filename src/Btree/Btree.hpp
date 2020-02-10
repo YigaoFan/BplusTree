@@ -155,11 +155,11 @@ namespace Collections
 		// Btree(_LessThan lessThan, )
 
 		Btree(Btree const& that)
-			: _keyCount(that._keyCount), _root(that._root->Clone())
+			: _keyCount(that._keyCount), _root(that._root->Clone()), _lessThanPtr(that._lessThanPtr)
 		{ }
 
 		Btree(Btree&& that) noexcept
-			: _keyCount(that._keyCount), _root(that._root.release())
+			: _keyCount(that._keyCount), _root(that._root.release()), _lessThanPtr(move(that._lessThanPtr))
 		{
 			that._keyCount = 0;
 		}
@@ -176,7 +176,7 @@ namespace Collections
 			this->_root.reset(that._root.release());
 			this->_keyCount = that._keyCount;
 			that._keyCount = 0;
-			this->_lessThanPtr = that._lessThanPtr;
+			this->_lessThanPtr = move(that._lessThanPtr);
 		}
 
 		bool ContainsKey(Key const& key) const
@@ -221,7 +221,6 @@ namespace Collections
 		}
 #undef EMPTY_CHECK
 
-		// TODO tryAdd(pair<Key, Value>);
 		void Add(pair<Key, Value> p)
 		{
 			_root->Add(move(p));
