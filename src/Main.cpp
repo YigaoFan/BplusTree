@@ -19,6 +19,11 @@ int main()
 {
 	BTREE_TEST(BtreeTest::allTest());
 	JSON_TEST(JsonTest::allTest());
+
+#ifdef _MSC_VER
+	// free the test frame related memory
+	// _CrtDumpMemoryLeaks();
+#endif
 	return 0;
 }
 
