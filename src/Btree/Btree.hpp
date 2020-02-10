@@ -122,9 +122,12 @@ namespace Collections
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
 		shared_ptr<_LessThan> _lessThanPtr;
 		key_int              _keyCount{ 0 };
-		unique_ptr<Base>     _root  { nullptr };
+		unique_ptr<Base>     _root;
 
 	public:
+		Btree(_LessThan lessThan) : Btree(move(lessThan), array<pair<Key, Value>, 0>())
+		{ }
+
 		template <size_t NumOfEle>
 		Btree(_LessThan lessThan, array<pair<Key, Value>, NumOfEle> keyValueArray)
 			: _lessThanPtr(make_shared<_LessThan>(lessThan))
@@ -161,14 +164,14 @@ namespace Collections
 			that._keyCount = 0;
 		}
 
-		Btree& operator=(Btree const& that)
+		Btree& operator= (Btree const& that)
 		{
 			this->_root.reset(that._root->Clone());
 			this->_keyCount = that._keyCount;
 			this->_lessThanPtr = that._lessThanPtr;
 		}
 
-		Btree& operator=(Btree&& that) noexcept 
+		Btree& operator= (Btree&& that) noexcept 
 		{
 			this->_root.reset(that._root.release());
 			this->_keyCount = that._keyCount;
@@ -270,7 +273,6 @@ namespace Collections
 				return;
 			}
 
-			// TODO wait to set next leaf of leaf
 			ConstructFromLeafToRoot<false>(move(ConsNodeInArray(move(ItemsToConsNode), _lessThanPtr)));
 		}
 
