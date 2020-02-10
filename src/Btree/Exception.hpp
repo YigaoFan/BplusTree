@@ -17,7 +17,7 @@ namespace Collections
 	public:
 		T DupKey;
 
-		explicit DuplicateKeyException(T dupKey, string message)
+		explicit DuplicateKeyException(T dupKey, string message = "duplicate key")
 			: runtime_error(message), DupKey(move(dupKey))
 		{ }
 	};

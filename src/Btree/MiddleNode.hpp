@@ -74,6 +74,7 @@ namespace Collections
 			for (auto const& e : _elements)
 			{
 				auto ptr = e.second->Clone();
+				// TODO code below maybe compile error
 				thatElements.Add(cref(ptr->Minkey()), move(ptr));
 			}
 

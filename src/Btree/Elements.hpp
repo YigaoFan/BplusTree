@@ -113,24 +113,36 @@ namespace Collections
 			}
 		}
 
+		// TODO head insert items
 		void Add(vector<Item> items)
 		{
 			for (auto& i : items)
 			{
 				Add(move(i));
+				// Insert<false>(move(i));
 			}
 		}
 
+		// TODO check template args
+		template <bool WithCheck=true>
 		void Insert(Item p)
 		{
 			for (decltype(this->_count) i = 0; i < this->_count; ++i)
 			{
-				if ((*LessThanPtr)(p.first, this->operator[](i).first))
+				auto& lessThan = *LessThanPtr;
+				if (lessThan(p.first, this->operator[](i).first))
 				{
 					this->MoveItems(1, i);
 					this->operator[](i) = move(p);
 					++this->_count;
 					return;
+				}
+				if constexpr (WithCheck)
+				{
+					if (!lessThan(this->operator[](i).first), p.first)
+					{
+						throw DuplicateKeyException(move(p.first));
+					}
 				}
 			}
 		}

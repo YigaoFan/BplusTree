@@ -142,9 +142,9 @@ namespace Collections
 				return lessThan(p1.first, p2.first);
 			});
 
-			if (const Key *dupKeyPtr; DuplicateIn(keyValueArray, lessThan, dupKeyPtr))
+			if (Key* dupKeyPtr; DuplicateIn(keyValueArray, lessThan, dupKeyPtr))
 			{
-				throw DuplicateKeyException(*dupKeyPtr, "Duplicate key in constructor keyValueArray");
+				throw DuplicateKeyException(move(*dupKeyPtr), "Duplicate key in constructor keyValueArray");
 			}
 
 			ConstructFromLeafToRoot(move(keyValueArray));
@@ -277,7 +277,7 @@ namespace Collections
 
 		template <size_t Count>
 		static bool DuplicateIn(array<pair<Key, Value>, Count> const& sortedPairArray, 
-								_LessThan const& lessThan, Key const*& duplicateKey)
+								_LessThan const& lessThan, Key* & duplicateKey)
 		{
 			auto& array = sortedPairArray;
 			if constexpr (Count > 1)
