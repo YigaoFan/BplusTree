@@ -139,7 +139,7 @@ namespace Collections
 				}
 				if constexpr (WithCheck)
 				{
-					if (!lessThan(this->operator[](i).first), p.first)
+					if (!lessThan(this->operator[](i).first, p.first))
 					{
 						throw DuplicateKeyException(move(p.first));
 					}
