@@ -4,7 +4,7 @@ extern void btreeTest();
 
 namespace BtreeTest
 {
-	void allTest() 
+	void AllTest() 
 	{
 		// elementTest();
 		// nodeTest();

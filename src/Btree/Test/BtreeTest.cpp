@@ -62,7 +62,7 @@ TESTCASE("Btree test")
 		ASSERT_THROW(DuplicateKeyException<string>, Btr(lessThan, dupKeyValueArray));
 	}
 
-#define ADD_LOT_IN(ARRAY)  for (auto& p : ARRAY) { btree.Add(p); ASSERT(btree.ContainsKey(p.first)); }
+#define ADD_LOT_FROM(ARRAY)  for (auto& p : ARRAY) { btree.Add(p); ASSERT(btree.ContainsKey(p.first)); }
 	SECTION("Empty cons")
 	{
 		using Btr = Collections::Btree<4, string, string>;
@@ -70,7 +70,7 @@ TESTCASE("Btree test")
 
 		SECTION("Add a lot")
 		{
-			ADD_LOT_IN(completeKeyValueArray);
+			ADD_LOT_FROM(completeKeyValueArray);
 		}
 	}
 
@@ -128,7 +128,7 @@ TESTCASE("Btree test")
 
 		SECTION("Add a lot")
 		{
-			ADD_LOT_IN(secondKeyValueArray);
+			ADD_LOT_FROM(secondKeyValueArray);
 		}
 
 		SECTION("Duplicate add")
@@ -159,7 +159,7 @@ TESTCASE("Btree test")
 
 			SECTION("Add lot")
 			{
-				ADD_LOT_IN(completeKeyValueArray);
+				ADD_LOT_FROM(completeKeyValueArray);
 			}
 		}
 	}
@@ -176,11 +176,12 @@ TESTCASE("Btree test")
 		// TODO
 		// random_shuffle in <algorithm>
 		// check balance work or not
-		// random_shuffle(&a[0],&a[10]);
+		// random_shuffle(&a[0],&a[10]); wrong index
 	}
 }
 
 void btreeTest()
 {
 	allTest();
+	_tests_.~vector();
 }
