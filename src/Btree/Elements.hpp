@@ -27,8 +27,7 @@ namespace Collections
 		shared_ptr<LessThan> LessThanPtr;
 
 	public:
-		Elements(shared_ptr<LessThan> lessThanPtr)
-			: Base(), LessThanPtr(lessThanPtr)
+		Elements(shared_ptr<LessThan> lessThanPtr) : Base(), LessThanPtr(lessThanPtr)
 		{ }
 
 		Elements(IEnumerator<Item&>& enumerator, shared_ptr<LessThan> lessThanPtr)
@@ -50,12 +49,10 @@ namespace Collections
 			}
 		}
 
-		Elements(Elements const& that)
-			: Base(that), LessThanPtr(that.LessThanPtr)
+		Elements(Elements const& that) : Base(that), LessThanPtr(that.LessThanPtr)
 		{ }
 
-		Elements(Elements&& that) noexcept
-			:  Base(move(static_cast<Base&>(that))), LessThanPtr(move(that.LessThanPtr))
+		Elements(Elements&& that) noexcept : Base(move(static_cast<Base&>(that))), LessThanPtr(move(that.LessThanPtr))
 		{ }
 
 		bool ContainsKey(Key const& key) const
