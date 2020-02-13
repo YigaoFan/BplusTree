@@ -1,5 +1,6 @@
 #pragma once
 #include <utility>
+#include <iterator>
 #include "Basic.hpp"
 #include "Enumerator.hpp"
 #include "Elements.hpp"
@@ -11,6 +12,7 @@ namespace Collections
 	using ::std::move;
 	using ::std::make_unique;
 	using ::std::remove_pointer_t;
+	using ::std::back_inserter;
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class LeafNode : public NodeBase<Key, Value, BtreeOrder>
@@ -24,34 +26,27 @@ namespace Collections
 
 	public:
 		LeafNode(shared_ptr<_LessThan> lessThan)
-			: Base(), _elements(/*right value passed to ref value EmptyEnumerator<pair<Key, Value>>(),*/ lessThan)
+			: Base(), _elements(lessThan)
 		{ }
 
 		template <typename Iterator>
 		LeafNode(Enumerator<pair<Key, Value>&, Iterator> enumerator, shared_ptr<_LessThan> lessThan)
 			: Base(), _elements(enumerator, lessThan)
-		{}
+		{ }
 
-		LeafNode(LeafNode const& that)
-			: Base(that), _elements(that._elements)
-		{}
+		LeafNode(LeafNode const& that) : Base(that), _elements(that._elements)
+		{ }
 
 		LeafNode(LeafNode&& that) noexcept
 			: Base(move(that)), _elements(move(that._elements)),
 			 _next(that._next), _previous(that._previous)
-		{}
+		{ }
 
 		~LeafNode() override = default;
 
-		unique_ptr<Base> Clone() const override
-		{
-			return make_unique<LeafNode>(*this);
-		}
+		unique_ptr<Base> Clone() const override { return make_unique<LeafNode>(*this); }
 
-		bool Middle() const override
-		{
-			return false;
-		}
+		bool Middle() const override { return false; }
 
 		vector<Key> Keys() const override
 		{
@@ -97,47 +92,18 @@ namespace Collections
 			REMOVE_COMMON;
 		}
 
-		Value const& operator[](Key const& key)
-		{
-			return _elements[key];
-		}
-
-		pair<Key, Value> const& operator[](order_int i)
-		{
-			return _elements[i];
-		}
-
-		LeafNode* NextLeaf() const
-		{
-			return _next;
-		}
-
-		void NextLeaf(LeafNode* next)
-		{
-			_next = next;
-		}
-
-		LeafNode* PreviousLeaf() const
-		{
-			return _previous;
-		}
-
-		void PreviousLeaf(LeafNode* previous)
-		{
-			_previous = previous;
-		}
+		LeafNode* NextLeaf() const { return _next; }
+		void NextLeaf(LeafNode* next) { _next = next; }
+		LeafNode* PreviousLeaf() const { return _previous; }
+		void PreviousLeaf(LeafNode* previous) { _previous = previous; }
 
 	private:
 		vector<Key> CollectKeys(vector<Key> previousNodesKeys = {}) const
 		{
-			auto&& ks = _elements.Keys();
-			previousNodesKeys.insert(previousNodesKeys.end(), ks.begin(), ks.end());
-			if (_next == nullptr)
-			{
-				return move(previousNodesKeys);
-			}
-
-			return _next->CollectKeys(move(previousNodesKeys));
+			auto ks = _elements.Keys();
+			previousNodesKeys.reserve(previousNodesKeys.size() + ks.size());
+			move(ks.begin(), ks.end(), back_inserter(previousNodesKeys));
+			return _next == nullptr ? move(previousNodesKeys) : _next->CollectKeys(move(previousNodesKeys));
 		}
 	};
 }

@@ -32,10 +32,11 @@ namespace Collections
 	template <auto Total, auto ItemCapacity>
 	struct PerNodeCountGenerator
 	{
-		constexpr static int Current = Total == 0 ? 
-			0 : (Total % ItemCapacity == 0 ? 
-				ItemCapacity : ((Total % ((Total / ItemCapacity) + 1) == 0 ? 
-					(Total / ((Total / ItemCapacity) + 1)) : ((Total / ((Total / ItemCapacity) + 1)) + 1))));
+		constexpr static int Current = 
+								Total == 0 ? 
+								0 : (Total % ItemCapacity == 0 ? 
+								ItemCapacity : ((Total % ((Total / ItemCapacity) + 1) == 0 ? 
+								(Total / ((Total / ItemCapacity) + 1)) : ((Total / ((Total / ItemCapacity) + 1)) + 1))));
 		using Next = PerNodeCountGenerator<Total - Current, ItemCapacity>;
 	};
 
@@ -96,21 +97,6 @@ namespace Collections
 		return Total == 0 ?
 			0 : (Total % ItemCapacity == 0 ? (Total / ItemCapacity) : (Total / ItemCapacity + 1));
 	}
-
-	/*template <bool Condition, typename A, typename B>
-	struct CompileIf;
-
-	template <typename A, typename B>
-	struct CompileIf<true, A, B>
-	{
-		using Type = A;
-	};
-
-	template <typename A, typename B>
-	struct CompileIf<true, A, B>
-	{
-		using Type = B;
-	};*/
 	
 	template <order_int BtreeOrder, typename Key, typename Value>
 	class Btree 
@@ -151,8 +137,25 @@ namespace Collections
 			_keyCount += NumOfEle;
 		}
 
-		// TODO Enumerator constructor
-		// Btree(_LessThan lessThan, )
+		// TODO wait to test
+		Btree(_LessThan lessThan, IEnumerator<pair<Key, Value>>& enumerator)
+			: Btree(move(lessThan))
+		{
+			while (enumerator.MoveNext())
+			{
+				Add(enumerator.Current());
+			}	
+		}
+		
+		// TODO wait to test
+		Btree(_LessThan lessThan, IEnumerator<pair<Key, Value>>&& enumerator)
+			: Btree(move(lessThan))
+		{ 
+			while (enumerator.MoveNext())
+			{
+				Add(enumerator.Current());
+			}
+		}
 
 		Btree(Btree const& that)
 			: _keyCount(that._keyCount), _root(that._root->Clone()), _lessThanPtr(that._lessThanPtr)
