@@ -59,5 +59,13 @@ namespace Collections
 				return make_unique<Leaf>(enumerator, lessThan);
 			}
 		}
+
+		static void TryShallow(unique_ptr<Node>& root)
+		{
+			if (root->Middle())
+			{
+				root = static_cast<MiddleNode*>(root.get())->HandleOverOnlySon();
+			}
+		}
 	};
 }

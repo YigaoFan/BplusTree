@@ -307,9 +307,9 @@ namespace Collections
 			_root = NodeFactoryType::MakeNode(CreateEnumerator(nodes), _lessThanPtr);
 		}
 
-		void DeleteNodeCallback(Base* node)
+		void DeleteNodeCallback(Base*)
 		{
-			// TODO
+			NodeFactoryType::TryShallow(_root);
 		}
 	};
 }

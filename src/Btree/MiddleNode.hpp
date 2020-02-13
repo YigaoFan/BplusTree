@@ -85,6 +85,11 @@ namespace Collections
 			return MinSon()->Keys();
 		}
 
+		unique_ptr<MiddleNode> HandleOverOnlySon()
+		{
+			return _elements.PopOut().second;
+		}
+
 		Key const& MinKey() const override
 		{
 			return _elements[0].first;
