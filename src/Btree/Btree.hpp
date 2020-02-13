@@ -231,26 +231,41 @@ namespace Collections
 		}
 
 	private:		
-		template <auto Total, auto Num, auto... nums>
+		template <auto Total, auto Index, auto... Is>
 		static void ForEachCons(function<void(int, int, int)> func)
 		{
-			func(Num, GetItemsCount<Total, BtreeOrder, Num>(), GetPreItemsCount<Total, BtreeOrder, Num>());
-			if constexpr (sizeof...(nums) > 0)
+			func(Index, GetItemsCount<Total, BtreeOrder, Index>(), GetPreItemsCount<Total, BtreeOrder, Index>());
+			if constexpr (sizeof...(Is) > 0)
 			{
-				ForEachCons<Total, nums...>(func);
+				ForEachCons<Total, Is...>(func);
 			}
+		}
+
+		template <>
+		static void ForEachCons<0, 0>(function<void(int, int, int)> func)
+		{
+			func(0, 0, 0);
 		}
 
 		template <typename T, auto Count, size_t... Is>
 		static auto ConsNodeInArrayImp(array<T, Count> srcArray, shared_ptr<_LessThan> lessThan, index_sequence<Is...> is)
 		{
-			array<unique_ptr<Base>, is.size()> consNodes;
-			ForEachCons<Count, Is...>([&srcArray, &consNodes, &lessThan](auto index, auto itemsCount, auto preItemsCount)
+			constexpr auto nodesCount = is.size() == 0 ? 1 : is.size();
+			array<unique_ptr<Base>, nodesCount> consNodes;
+			auto constor = [&srcArray, &consNodes, &lessThan](auto index, auto itemsCount, auto preItemsCount)
 			{
-					auto begin = &srcArray[preItemsCount];
-					auto end = begin + itemsCount;
-					consNodes[index] = move(NodeFactoryType::MakeNode(CreateEnumerator(begin, end), lessThan));
-			});
+				auto begin = srcArray.begin() + preItemsCount;
+				auto end = begin + itemsCount;
+				consNodes[index] = move(NodeFactoryType::MakeNode(CreateEnumerator(begin, end), lessThan));
+			};
+			if constexpr (is.size() == 0)
+			{
+				ForEachCons<0, 0>(constor);
+			}
+			else
+			{
+				ForEachCons<Count, Is...>(constor);
+			}
 
 			return consNodes;
 		}
@@ -279,7 +294,7 @@ namespace Collections
 		}
 
 		template <size_t Count>
-		static bool DuplicateIn(array<pair<Key, Value>, Count> const& sortedPairArray, 
+		static bool DuplicateIn(array<pair<Key, Value>, Count>& sortedPairArray, 
 								_LessThan const& lessThan, Key* & duplicateKey)
 		{
 			auto& array = sortedPairArray;
