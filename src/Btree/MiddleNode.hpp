@@ -46,18 +46,17 @@ namespace Collections
 			SetSubNode();
 		}
 
-		MiddleNode(MiddleNode& that)
-			: Base(that), _elements(CloneElements())
+		MiddleNode(MiddleNode const& that) : Base(that), _elements(CloneElements())
 		{ }
 
-		MiddleNode(MiddleNode&& that) noexcept
-			: Base(move(that)), _elements(move(that._elements))
+		MiddleNode(MiddleNode&& that) noexcept : Base(move(that)), _elements(move(that._elements))
 		{ }
 
 		~MiddleNode() override = default;
 
 		unique_ptr<Base> Clone() const override
 		{
+			// _queryPrevious how to process
 			auto cloneOne = make_unique<MiddleNode>(_elements.LessThanPtr);
 			for (auto const& e : _elements)
 			{
@@ -68,7 +67,7 @@ namespace Collections
 			return move(cloneOne);
 		}
 
-		decltype(_elements) CloneElements()
+		decltype(_elements) CloneElements() const
 		{
 			decltype(_elements) thatElements(_elements.LessThanPtr);
 			for (auto const& e : _elements)
@@ -81,7 +80,6 @@ namespace Collections
 			return move(thatElements);
 		}
 
-
 		vector<Key> Keys() const override
 		{
 			return MinSon()->Keys();
@@ -92,43 +90,42 @@ namespace Collections
 			return _elements[0].first;
 		}
 
-		// TODO use macro to simplify below methods' content
+#define SELECT_BRANCH(KEY) auto i = _elements.SelectBranch(KEY)
 		bool ContainsKey(Key const& key) const override
 		{
-			auto i = _elements.SuitBranch(key);
+			SELECT_BRANCH(key);
 			return _elements[i].second->ContainsKey(key);
 		}
 
 		Value GetValue(Key const& key) const override
 		{
-			auto i = _elements.SuitBranch(key);
+			SELECT_BRANCH(key);
 			return _elements[i].second->GetValue(key);
 		}
 
 		void ModifyValue(Key const& key, Value value) override
 		{
-			auto i = _elements.SuitBranch(key);
-			return _elements[i].second->ModifyValue(key, move(value)); // TODO can return void?
+			SELECT_BRANCH(key);
+			_elements[i].second->ModifyValue(key, move(value));
 		}
 
 		void Add(pair<Key, Value> p) override
 		{
-			auto i = _elements.SuitBranch(p.first);
+			SELECT_BRANCH(p.first);
 			_elements[i].second->Add(move(p));
 			// TODO why up code prefer global []
 		}
 
 		void Remove(Key const& key) override
 		{
-			// auto k = key;// TODO how to convert reference type to reference_wrapper type
-			auto i = _elements.SuitBranch(key);
+			SELECT_BRANCH(key);
 			_elements[i].second->Remove(key);
 		}
+#undef SELECT_BRANCH
 
 	private:
 		Base* MinSon() const { return _elements[0].second.get(); }
 
-		// TODO maybe add and remove are in the same method
 		void AddSubNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
 		{
 			//auto predicate = [srcNode = srcNode]((typename (decltype _elements)::Item const&) item)
@@ -157,23 +154,24 @@ namespace Collections
 			ADD_COMMON(false);
 		}
 
+		using Leaf = LeafNode<Key, Value, BtreeOrder>;
+#define LEF_CAST(NODE) static_cast<Leaf *>(NODE)
 		void DeleteSubNodeCallback(Base* node)
 		{
 			auto i = _elements.IndexKeyOf(node->MinKey());
 			if (!node->Middle())
 			{
-				using Leaf = LeafNode<Key, Value, BtreeOrder>;
-				auto leafNode = static_cast<Leaf *>(node);
+				auto leafNode = LEF_CAST(node);
 				// Fresh the _next of LeafNode
 				if (i != 0)
 				{
-					static_cast<Leaf *>(_elements[i - 1].second.get())->NextLeaf(leafNode->NextLeaf());
+					LEF_CAST(_elements[i - 1].second.get())->NextLeaf(leafNode->NextLeaf());
 				}
 
 				// Fresh the _previous of LeafNode
 				if (i != _elements.Count() - 1)
 				{
-					static_cast<Leaf *>(_elements[i + 1].second.get())->PreviousLeaf(leafNode->PreviousLeaf());
+					LEF_CAST(_elements[i + 1].second.get())->PreviousLeaf(leafNode->PreviousLeaf());
 				}
 			}
 
@@ -184,20 +182,19 @@ namespace Collections
 			REMOVE_COMMON;
 		}
 
-		// For sub node
+#define MID_CAST(NODE) static_cast<MiddleNode *>(NODE)
+		// For sub node call
 		MiddleNode* QueryPrevious(MiddleNode* subNode)
 		{
 			auto i = _elements.IndexKeyOf(subNode->MinKey());
-			if (i != 0) { return static_cast<MiddleNode *>(_elements[i - 1].second.get()); }
-			return nullptr;
+			return i != 0 ? MID_CAST(_elements[i - 1].second.get()) : nullptr;
 		}
 
-		// For sub node
+		// For sub node call
 		MiddleNode* QueryNext(MiddleNode* subNode)
 		{
 			auto i = _elements.IndexKeyOf(subNode->MinKey());
-			if (i != _elements.Count() - 1) { return static_cast<MiddleNode *>(_elements[i + 1].second.get()); }
-			return nullptr;
+			return (i != _elements.Count() - 1) ? MID_CAST(_elements[i + 1].second.get()) : nullptr;
 		}
 
 		void SetSubNode()
@@ -206,26 +203,23 @@ namespace Collections
 			using ::std::placeholders::_2;
 			auto f1 = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
 			auto f2 = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
-			Base* lastLeaf = nullptr;
+			Leaf* lastLeaf = nullptr;
 			for (auto& e : _elements)
 			{
 				auto& node = e.second;
 				node->SetUpNodeCallback(f1, f2);
 				if (node->Middle())
 				{
-					static_cast<MiddleNode *>(node.get())->_queryNext = 
-						bind(&MiddleNode::QueryNext, this, _1);
-					static_cast<MiddleNode *>(node.get())->_queryPrevious = 
-						bind(&MiddleNode::QueryPrevious, this, _1);
+					MID_CAST(node.get())->_queryNext = bind(&MiddleNode::QueryNext, this, _1);
+					MID_CAST(node.get())->_queryPrevious = bind(&MiddleNode::QueryPrevious, this, _1);
 				}
 				else
 				{
-					using Leaf = LeafNode<Key, Value, BtreeOrder>;
-					auto nowLeaf = node.get();
-					static_cast<Leaf *>(nowLeaf)->PreviousLeaf(static_cast<Leaf *>(lastLeaf));
+					auto nowLeaf = LEF_CAST(node.get());
+					nowLeaf->PreviousLeaf(lastLeaf);
 					if (lastLeaf != nullptr)
 					{
-						static_cast<Leaf *>(lastLeaf)->NextLeaf(static_cast<Leaf *>(nowLeaf));
+						lastLeaf->NextLeaf(nowLeaf);
 					}
 
 					lastLeaf = nowLeaf;
@@ -233,6 +227,8 @@ namespace Collections
 				
 			}
 		}
+#undef MID_CAST		
+#undef LEF_CAST
 
 		static typename decltype(_elements)::Item ConvertToKeyBasePtrPair(unique_ptr<Base>& node)
 		{

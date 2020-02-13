@@ -195,7 +195,7 @@ namespace Collections
 		}
 
 		template <typename T>
-		order_int SuitBranch(T const& key) const
+		order_int SelectBranch(T const& key) const
 		{
 			for (decltype(this->_count) i = 1; i < this->_count; ++i)
 			{

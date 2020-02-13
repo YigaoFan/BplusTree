@@ -130,7 +130,7 @@ newNxtNode->_previous = this;\
 this->_next = newNxtNode.get();\
 }\
 \
-auto i = _elements.SuitBranch(p.first);\
+auto i = _elements.SelectBranch(p.first);\
 constexpr auto middle = (BtreeOrder % 2) ? (BtreeOrder / 2 + 1) : (BtreeOrder / 2);\
 if (i <= middle)\
 {\

@@ -25,6 +25,8 @@ namespace Collections
 		LeafNode* _previous{ nullptr };
 
 	public:
+		bool Middle() const override { return false; }
+
 		LeafNode(shared_ptr<_LessThan> lessThan)
 			: Base(), _elements(lessThan)
 		{ }
@@ -46,7 +48,6 @@ namespace Collections
 
 		unique_ptr<Base> Clone() const override { return make_unique<LeafNode>(*this); }
 
-		bool Middle() const override { return false; }
 
 		vector<Key> Keys() const override
 		{
