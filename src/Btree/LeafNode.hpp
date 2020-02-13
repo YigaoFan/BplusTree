@@ -68,12 +68,12 @@ namespace Collections
 
 		Value GetValue(Key const& key) const override
 		{
-			return _elements[key];
+			return _elements.GetValue(key);
 		}
 
 		void ModifyValue(Key const& key, Value value) override
 		{
-			_elements[key] = move(value);
+			_elements.GetValue(key) = move(value);
 		}
 
 		void Add(pair<Key, Value> p) override

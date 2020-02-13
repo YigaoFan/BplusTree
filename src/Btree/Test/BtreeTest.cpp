@@ -12,7 +12,7 @@ using ::std::move;
 using namespace Collections;
 using namespace Basic;
 
-TESTCASE("Btree test")
+TESTCASE("Str-Str btree test")
 {
 	auto kv0 = make_pair<string, string>("0", "a");
 	auto kv1 = make_pair<string, string>("1", "b");
@@ -179,6 +179,53 @@ TESTCASE("Btree test")
 		// random_shuffle in <algorithm>
 		// check balance work or not
 		// random_shuffle(&a[0],&a[10]); wrong index
+	}
+}
+
+TESTCASE("Int-Str btree test")
+{
+	auto kv0 = make_pair<int32_t, string>(0, "a");
+	auto kv1 = make_pair<int32_t, string>(1, "b");
+	auto kv2 = make_pair<int32_t, string>(2, "c");
+	auto kv3 = make_pair<int32_t, string>(3, "d");
+	auto kv4 = make_pair<int32_t, string>(4, "e");
+	auto kv5 = make_pair<int32_t, string>(5, "f");
+	auto kv6 = make_pair<int32_t, string>(6, "g");
+	auto kv7 = make_pair<int32_t, string>(7, "h");
+	auto kv8 = make_pair<int32_t, string>(8, "i");
+	auto kv9 = make_pair<int32_t, string>(9, "j");
+	auto kv10 = make_pair<int32_t, string>(10, "k");
+	auto kv11 = make_pair<int32_t, string>(11, "l");
+	auto kv12 = make_pair<int32_t, string>(12, "m");
+	auto kv13 = make_pair<int32_t, string>(13, "n");
+	auto kv14 = make_pair<int32_t, string>(14, "o");
+	auto kv15 = make_pair<int32_t, string>(15, "p");
+	auto kv16 = make_pair<int32_t, string>(16, "q");
+	auto kv17 = make_pair<int32_t, string>(17, "r");
+	auto kv18 = make_pair<int32_t, string>(18, "s");
+	auto kv19 = make_pair<int32_t, string>(19, "t");
+
+	array<pair<int32_t, string>, 9> basicKeyValueArray
+	{
+		kv0, kv1, kv2, kv3, kv4, kv5, kv6, kv7, kv8,
+	};
+
+	array<pair<int32_t, string>, 11> secondKeyValueArray
+	{
+		kv9, kv10, kv11, kv12, kv13, kv14, kv15, kv16, kv17, kv18, kv19,
+	};
+
+	array<pair<int32_t, string>, 20> completeKeyValueArray
+	{
+		kv0, kv1, kv2, kv3, kv4, kv5, kv6, kv7, kv8, kv9,
+		kv10, kv11, kv12, kv13, kv14, kv15, kv16, kv17, kv18, kv19,
+	};
+	auto lessThan = [](int32_t const& a, int32_t const& b) { return a < b; };
+
+	SECTION("Count more than BtreeOrder btree")
+	{
+		using Btr = Collections::Btree<4, int32_t, string>;
+		Btr btree(lessThan, basicKeyValueArray);
 	}
 }
 

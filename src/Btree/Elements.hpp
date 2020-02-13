@@ -165,7 +165,7 @@ namespace Collections
 		// TODO why should use below code to compile code in MiddleNode
 		using Base::operator[];
 		// TODO modify the method name
-		Value const& operator[] (Key const& key) const
+		/*Value const& operator[] (Key const& key) const
 		{
 			return this->operator[](IndexKeyOf(key)).second;
 		}
@@ -175,6 +175,15 @@ namespace Collections
 			return const_cast<Value&>(
 				(static_cast<const Elements&>(*this))[key]
 				);
+		}*/
+		Value const& GetValue(Key const& key) const
+		{
+			return const_cast<Elements*>(this)->GetValue(key);
+		}
+
+		Value& GetValue(Key const& key)
+		{
+			return this->operator[](IndexKeyOf(key)).second;
 		}
 
 		order_int IndexKeyOf(Key const& key) const
