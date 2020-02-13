@@ -3,12 +3,14 @@
 #include "../../TestFrame/FlyTest.hpp"
 #include "../Btree.hpp"
 #include "../Exception.hpp"
+#include "../../Basic/Exception.hpp"
 #include "../Enumerator.hpp"
 #include "Util.hpp"
 
 using ::std::array;
 using ::std::move;
 using namespace Collections;
+using namespace Basic;
 
 TESTCASE("Btree test")
 {

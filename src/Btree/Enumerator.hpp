@@ -6,15 +6,16 @@
 #include <functional>
 #include <memory>
 #include "IEnumerator.hpp"
-#include "Exception.hpp"
+#include "../Basic/Exception.hpp"
 
 namespace Collections
 {
 	using ::std::shared_ptr;
 	using ::std::size_t;
 	using ::std::remove_reference_t;
+	using ::Basic::InvalidAccessException;
 
-	template <typename Item>
+	/*template <typename Item>
 	class EmptyEnumerator : public IEnumerator<Item>
 	{
 	public:
@@ -31,7 +32,7 @@ namespace Collections
 		{
 			throw InvalidOperationException("Can't read CurrentIndex() of EmptyEnumerator");
 		}
-	};
+	};*/
 
 	template <typename Item, typename Iterator>
 	class Enumerator;

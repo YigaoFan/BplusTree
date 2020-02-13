@@ -12,6 +12,7 @@
 #include "Basic.hpp"
 #include "Enumerator.hpp"
 #include "NodeFactory.hpp"
+#include "../Basic/Exception.hpp"
 #include "Exception.hpp"
 
 namespace Collections
@@ -28,6 +29,7 @@ namespace Collections
 	using ::std::move;
 	using ::std::make_index_sequence;
 	using ::std::index_sequence;
+	using ::Basic::KeyNotFoundException;
 
 	template <auto Total, auto ItemCapacity>
 	struct PerNodeCountGenerator
@@ -64,25 +66,10 @@ namespace Collections
 		return PositionGetter<Index, Total, ItemCapacity>::Position::Current;
 	}
 
-	/*template <auto Total, auto ItemCapacity, size_t I, size_t... Is>
-	constexpr auto GetPreItemsCountHelper()
-	{
-		if constexpr (sizeof...(Is) == 0) 
-		{
-			return GetItemsCount<Total, ItemCapacity, I>();
-		}
-		else
-		{
-			return GetItemsCount<Total, ItemCapacity, I>() + GetPreItemsCountHelper<Total, ItemCapacity, Is...>();
-		}
-
-	}*/
-
 	template <auto Total, auto ItemCapacity, size_t... Is>
 	constexpr auto GetPreItemsCountImp(index_sequence<Is...>)
 	{
 		return (0 + ... + GetItemsCount<Total, ItemCapacity, Is>());
-		//return GetPreItemsCountHelper<Total, ItemCapacity, Is...>();
 	}
 
 	template <auto Total, auto ItemCapacity, auto Index>

@@ -5,6 +5,7 @@
 #include <utility>
 #include "Basic.hpp"
 #include "IEnumerator.hpp"
+#include "../Basic/Exception.hpp"
 #include "Exception.hpp"
 #include "LiteVector.hpp"
 
@@ -16,6 +17,7 @@ namespace Collections
 	using ::std::shared_ptr;
 	using ::std::array;
 	using ::std::move;
+	using ::Basic::KeyNotFoundException;
 	
 	// TODO when BtreeOrder is big, use binary search in iterate process
 	template <typename Key, typename Value, order_int BtreeOrder, typename LessThan>
