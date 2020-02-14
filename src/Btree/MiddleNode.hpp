@@ -39,13 +39,13 @@ namespace Collections
 		}	
 
 		MiddleNode(IEnumerator<unique_ptr<Base>&>& enumerator, shared_ptr<_LessThan> lessThanPtr)
-			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>&, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertToKeyBasePtrPair, _1)), lessThanPtr)
+			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>&, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertRefPtrToKeyPtrPair, _1)), lessThanPtr)
 		{
 			SetSubNode();
 		}
 
 		MiddleNode(MiddleNode const& that)
-			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item&, unique_ptr<Base>>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
+			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, unique_ptr<Base>>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
 		{ }
 
 		MiddleNode(MiddleNode&& that) noexcept : Base(move(that)), _elements(move(that._elements))
@@ -55,30 +55,7 @@ namespace Collections
 
 		unique_ptr<Base> Clone() const override
 		{
-			// _queryPrevious how to process
 			return make_unique<MiddleNode>(*this);
-			// auto cloneOne = make_unique<MiddleNode>(_elements.LessThanPtr);
-			// for (auto const& e : _elements)
-			// {
-			// 	auto subCloned = e.second->Clone();
-			// 	cloneOne->_elements.Append(ConvertToKeyBasePtrPair(subCloned));
-			// }
-
-			// return move(cloneOne);
-		}
-
-		// TODO wait to delete
-		decltype(_elements) CloneElements() const
-		{
-			decltype(_elements) thatElements(_elements.LessThanPtr);
-			for (auto const& e : _elements)
-			{
-				auto ptr = e.second->Clone();
-				// TODO code below maybe compile error
-				thatElements.Add(cref(ptr->Minkey()), move(ptr));
-			}
-
-			return move(thatElements);
 		}
 
 		vector<Key> Keys() const override
@@ -131,7 +108,7 @@ namespace Collections
 
 	private:
 		MiddleNode(IEnumerator<unique_ptr<Base>>&& enumerator, shared_ptr<_LessThan> lessThanPtr)
-			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertToKeyBasePtrPair, _1)), lessThanPtr)
+			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertPtrToKeyPtrPair, _1)), lessThanPtr)
 		{
 			SetSubNode();
 		}
@@ -282,7 +259,13 @@ namespace Collections
 #undef MID_CAST		
 #undef LEF_CAST
 
-		static typename decltype(_elements)::Item ConvertToKeyBasePtrPair(unique_ptr<Base>& node)
+		static typename decltype(_elements)::Item ConvertRefPtrToKeyPtrPair(unique_ptr<Base>& node)
+		{
+			using pairType = typename decltype(_elements)::Item;
+			return make_pair<pairType::first_type, pairType::second_type>(cref(node->MinKey()), move(node));
+		}
+
+		static typename decltype(_elements)::Item ConvertPtrToKeyPtrPair(unique_ptr<Base> node)
 		{
 			using pairType = typename decltype(_elements)::Item;
 			return make_pair<pairType::first_type, pairType::second_type>(cref(node->MinKey()), move(node));

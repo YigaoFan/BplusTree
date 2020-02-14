@@ -47,7 +47,7 @@ namespace Collections
 		{
 			if (root->Middle())
 			{
-				root = static_cast<MiddleNode*>(root.get())->HandleOverOnlySon();
+				root = static_cast<Middle*>(root.get())->HandleOverOnlySon();
 			}
 		}
 	};
