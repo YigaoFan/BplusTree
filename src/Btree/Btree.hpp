@@ -243,7 +243,7 @@ namespace Collections
 			{
 				auto begin = srcArray.begin() + preItemsCount;
 				auto end = begin + itemsCount;
-				consNodes[index] = move(NodeFactoryType::MakeNode(CreateEnumerator(begin, end), lessThan));
+				consNodes[index] = NodeFactoryType::MakeNode(CreateEnumerator(begin, end), lessThan);
 			};
 			if constexpr (is.size() == 0)
 			{

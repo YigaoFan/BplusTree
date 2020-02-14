@@ -137,6 +137,35 @@ namespace Collections
 		}
 
 		Base* MinSon() const { return _elements[0].second.get(); }
+		Base* MaxSon() const { return _elements[_elements.Count() - 1].second.get(); }
+		
+#define MID_CAST(NODE) static_cast<MiddleNode *>(NODE)
+		using Leaf = LeafNode<Key, Value, BtreeOrder>;
+#define LEF_CAST(NODE) static_cast<Leaf *>(NODE)
+		Leaf* MinLeafInMyRange() const
+		{
+			if (auto node = MinSon(); node->Middle())
+			{
+				return LEF_CAST(MID_CAST(node)->MinLeafInMyRange());
+			}
+			else
+			{
+				return LEF_CAST(node);
+			}
+		}
+
+		Leaf* MaxLeafInMyRange() const
+		{
+			if (auto node = MaxSon(); node->Middle())
+			{
+				return LEF_CAST(MID_CAST(node)->MaxLeafInMyRange());
+			}
+			else
+			{
+				return LEF_CAST(node);
+			}
+		}
+
 
 		void AddSubNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
 		{
@@ -166,8 +195,7 @@ namespace Collections
 			ADD_COMMON(false);
 		}
 
-		using Leaf = LeafNode<Key, Value, BtreeOrder>;
-#define LEF_CAST(NODE) static_cast<Leaf *>(NODE)
+
 		void DeleteSubNodeCallback(Base* node)
 		{
 			auto i = _elements.IndexKeyOf(node->MinKey());
@@ -194,7 +222,6 @@ namespace Collections
 			REMOVE_COMMON;
 		}
 
-#define MID_CAST(NODE) static_cast<MiddleNode *>(NODE)
 		// For sub node call
 		MiddleNode* QueryPrevious(MiddleNode* subNode)
 		{
@@ -216,17 +243,31 @@ namespace Collections
 			auto f1 = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
 			auto f2 = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
 			Leaf* lastLeaf = nullptr;
+			MiddleNode* lastMidNode = nullptr;
 			for (auto& e : _elements)
 			{
 				auto& node = e.second;
 				node->SetUpNodeCallback(f1, f2);
 				if (node->Middle())
 				{
-					MID_CAST(node.get())->_queryNext = bind(&MiddleNode::QueryNext, this, _1);
-					MID_CAST(node.get())->_queryPrevious = bind(&MiddleNode::QueryPrevious, this, _1);
+					auto midNode = MID_CAST(node.get());
+					midNode->_queryNext = bind(&MiddleNode::QueryNext, this, _1);
+					midNode->_queryPrevious = bind(&MiddleNode::QueryPrevious, this, _1);
+
+					// set preivous and next between MiddleNode
+					if (lastMidNode != nullptr)
+					{
+						auto nowMin = midNode->MinLeafInMyRange();
+						auto lastMax = lastMidNode->MaxLeafInMyRange();
+						lastMax->NextLeaf(nowMin);
+						nowMin->PreviousLeaf(lastMax);
+					}
+
+					lastMidNode = midNode;
 				}
 				else
 				{
+					// set preivous and next in MiddleNode internal
 					auto nowLeaf = LEF_CAST(node.get());
 					nowLeaf->PreviousLeaf(lastLeaf);
 					if (lastLeaf != nullptr)

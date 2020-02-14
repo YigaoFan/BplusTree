@@ -48,7 +48,6 @@ namespace Collections
 
 		unique_ptr<Base> Clone() const override { return make_unique<LeafNode>(*this); }
 
-
 		vector<Key> Keys() const override
 		{
 			//return this->elements_.Keys();// TODO why can not use elements directly?

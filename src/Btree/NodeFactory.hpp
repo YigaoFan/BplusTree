@@ -1,6 +1,5 @@
 #pragma once
 #include <memory>
-#include <utility>
 #include <type_traits>
 #include "Basic.hpp"
 #include "Enumerator.hpp"
@@ -10,11 +9,8 @@
 namespace Collections
 {
 	using ::std::shared_ptr;
-	using ::std::is_same_v;
-	using ::std::pair;
 	using ::std::unique_ptr;
 	using ::std::make_unique;
-	using ::std::decay_t;
 	using ::std::unique_ptr;
 	using ::std::remove_reference_t;
 
@@ -34,20 +30,7 @@ namespace Collections
 		using _LessThan = LessThan<Key>;
 
 	public:
-		/*template <typename Iter>
-		static unique_ptr<Node> MakeNode(Iter begin, Iter end, shared_ptr<LessThan> lessThan)
-		{
-			if constexpr (is_same_v<decay_t<decltype(*begin)>, pair<Key, Value>>)
-			{
-				return make_unique<Leaf>(CreateEnumerator(begin, end), lessThan);
-			}
-			else
-			{
-				return make_unique<Middle>(CreateEnumerator(begin, end), lessThan);
-			}
-		}*/
-
-		template <typename... Ts>
+		template <bool LeafCons=true, typename... Ts>
 		static unique_ptr<Node> MakeNode(Enumerator<Ts...> enumerator, shared_ptr<_LessThan> lessThan)
 		{
 			if constexpr (IsSpecialization<remove_reference_t<typename Enumerator<Ts...>::ValueType>, unique_ptr>::value)
