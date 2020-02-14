@@ -240,15 +240,14 @@ namespace Collections
 		{
 			using ::std::placeholders::_1;
 			using ::std::placeholders::_2;
-			auto f1 = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
-			auto f2 = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
 			Leaf* lastLeaf = nullptr;
 			MiddleNode* lastMidNode = nullptr;
 			for (auto& e : _elements)
 			{
 				auto& node = e.second;
-				node->SetUpNodeCallback(f1, f2);
-				if (node->Middle())
+				node->SetUpNodeCallback(bind(&MiddleNode::AddSubNodeCallback, this, _1, _2),
+					 bind(&MiddleNode::DeleteSubNodeCallback, this, _1));
+				if (lastMidNode != nullptr || node->Middle())
 				{
 					auto midNode = MID_CAST(node.get());
 					midNode->_queryNext = bind(&MiddleNode::QueryNext, this, _1);
@@ -267,7 +266,7 @@ namespace Collections
 				}
 				else
 				{
-					// set preivous and next in MiddleNode internal
+					// set preivous and next in MiddleNode that contains Leafnode internal
 					auto nowLeaf = LEF_CAST(node.get());
 					nowLeaf->PreviousLeaf(lastLeaf);
 					if (lastLeaf != nullptr)
