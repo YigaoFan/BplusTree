@@ -87,8 +87,8 @@ namespace Json
 		_Object const& GetObject() const { Assert(IsObject()); return get<_Object>(_content); }
 		// // how modify array item external
 		const _Array& GetArray()   const { Assert(IsArray()); return get<_Array>(_content); }
-		double GetNumber()         const { assert(IsNumber()); return get<double>(_content); }
-		string GetString()         const { assert(IsString()); return get<string>(_content); }
+		double GetNumber()         const { Assert(IsNumber()); return get<double>(_content); }
+		string GetString()         const { Assert(IsString()); return get<string>(_content); }
 		bool   GetBool()           const { return _type == JsonType::True; }
 
 		string ToString()

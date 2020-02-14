@@ -17,7 +17,6 @@ namespace Collections
 	using ::std::pair;
 	using ::std::make_pair;
 	using ::std::bind;
-	using ::std::function;
 	using ::std::placeholders::_1;
 
 	template <typename Key, typename Value, order_int BtreeOrder>
@@ -87,7 +86,7 @@ namespace Collections
 			return MinSon()->Keys();
 		}
 
-		unique_ptr<MiddleNode> HandleOverOnlySon()
+		unique_ptr<Base> HandleOverOnlySon()
 		{
 			return _elements.PopOut().second;
 		}

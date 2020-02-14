@@ -5,8 +5,8 @@ namespace Json
 {
 	using ::std::string;
 
-    class JsonConverter
-    {
+	class JsonConverter
+	{
 	public:
 		template <typename T>
 		static string Serialize(T const& t)
@@ -15,9 +15,9 @@ namespace Json
 		}
 
 		template <typename T>
-		static T Deserialize(string jsonStr)
+		static T Deserialize(string const& jsonStr)
 		{
 
 		}
-    };
+	};
 }
