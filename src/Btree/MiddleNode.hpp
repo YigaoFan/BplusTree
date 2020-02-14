@@ -39,14 +39,14 @@ namespace Collections
 			SetSubNode();
 		}	
 
-		template <typename Iterator>
-		MiddleNode(Enumerator<unique_ptr<Base>&, Iterator> enumerator, shared_ptr<_LessThan> lessThanPtr)
+		MiddleNode(IEnumerator<unique_ptr<Base>&>& enumerator, shared_ptr<_LessThan> lessThanPtr)
 			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>&, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertToKeyBasePtrPair, _1)), lessThanPtr)
 		{
 			SetSubNode();
 		}
 
-		MiddleNode(MiddleNode const& that) : Base(that), _elements(CloneElements())
+		MiddleNode(MiddleNode const& that)
+			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item&, unique_ptr<Base>>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
 		{ }
 
 		MiddleNode(MiddleNode&& that) noexcept : Base(move(that)), _elements(move(that._elements))
@@ -57,16 +57,18 @@ namespace Collections
 		unique_ptr<Base> Clone() const override
 		{
 			// _queryPrevious how to process
-			auto cloneOne = make_unique<MiddleNode>(_elements.LessThanPtr);
-			for (auto const& e : _elements)
-			{
-				auto subCloned = e.second->Clone();
-				cloneOne->_elements.Append(ConvertToKeyBasePtrPair(subCloned));
-			}
+			return make_unique<MiddleNode>(*this);
+			// auto cloneOne = make_unique<MiddleNode>(_elements.LessThanPtr);
+			// for (auto const& e : _elements)
+			// {
+			// 	auto subCloned = e.second->Clone();
+			// 	cloneOne->_elements.Append(ConvertToKeyBasePtrPair(subCloned));
+			// }
 
-			return move(cloneOne);
+			// return move(cloneOne);
 		}
 
+		// TODO wait to delete
 		decltype(_elements) CloneElements() const
 		{
 			decltype(_elements) thatElements(_elements.LessThanPtr);
@@ -129,6 +131,12 @@ namespace Collections
 #undef SELECT_BRANCH
 
 	private:
+		MiddleNode(IEnumerator<unique_ptr<Base>>&& enumerator, shared_ptr<_LessThan> lessThanPtr)
+			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertToKeyBasePtrPair, _1)), lessThanPtr)
+		{
+			SetSubNode();
+		}
+
 		Base* MinSon() const { return _elements[0].second.get(); }
 
 		void AddSubNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
@@ -239,6 +247,11 @@ namespace Collections
 		{
 			using pairType = typename decltype(_elements)::Item;
 			return make_pair<pairType::first_type, pairType::second_type>(cref(node->MinKey()), move(node));
+		}
+
+		static unique_ptr<Base> CloneSubNode(typename decltype(_elements)::Item const& item)
+		{
+			return item.second->Clone();
 		}
 	};
 }

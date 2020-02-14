@@ -27,6 +27,10 @@ namespace Collections
             : _enumerator(enumerator), _func(move(func))
         { }
 
+        EnumeratorPipeline(IEnumerator<RawItem>&& enumerator, function<Item(RawItem)> func)
+            : _enumerator(enumerator), _func(move(func))
+        { }
+
         Item Current() override
         {
             return _func(_enumerator.Current());

@@ -216,7 +216,6 @@ namespace Collections
 			return this->_count - 1;
 		}
 
-	private:
 		auto GetEnumerator() { return CreateEnumerator(*this); }
 		auto GetEnumerator() const { return CreateEnumerator(*this); }
 	};

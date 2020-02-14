@@ -3,12 +3,12 @@
 namespace Basic
 {
 	KeyNotFoundException::KeyNotFoundException()
-			: runtime_error("Key not found in this container")
-		{ }
+		: runtime_error("Key not found in this container")
+	{ }
 
 	KeyNotFoundException::KeyNotFoundException(string message)
-			: runtime_error(message + "Key not found in this container")
-		{ }
+		: runtime_error(message + "Key not found in this container")
+	{ }
 
 	AccessOutOfRangeException::AccessOutOfRangeException()
 		: runtime_error("Access out of the range")
