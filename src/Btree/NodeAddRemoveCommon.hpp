@@ -73,6 +73,7 @@ StealPre:\
 NothingToDo:\
 	return;\
 }
+// Remove should think of set of _previous and _next of LeafNode
 
 #define ADD_COMMON(IS_LEAF) \
 bool addToPre = false, addToNxt = false;\
@@ -125,9 +126,9 @@ else if (addToNxt)\
 auto newNxtNode = make_unique<remove_pointer_t<decltype(this)>>(_elements.LessThanPtr);\
 if constexpr (IS_LEAF)\
 {\
-newNxtNode->_next = this->_next;\
-newNxtNode->_previous = this;\
-this->_next = newNxtNode.get();\
+	newNxtNode->_next = this->_next;\
+	newNxtNode->_previous = this;\
+	this->_next = newNxtNode.get();\
 }\
 \
 auto i = _elements.SelectBranch(p.first);\

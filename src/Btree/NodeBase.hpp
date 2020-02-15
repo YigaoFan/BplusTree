@@ -36,12 +36,17 @@ namespace Collections
 		static const order_int LowBound = 1 + ((BtreeOrder - 1) / 2);
 		function<void(NodeBase*, unique_ptr<NodeBase>)> _upNodeAddSubNodeCallback;
 		function<void(NodeBase*)> _upNodeDeleteSubNodeCallback;
+		function<void(Key const&, NodeBase*)> _minKeyChangeCallback;// TODO for sibling min change and not split node situation
+		NodeBase* _next{ nullptr };
+		NodeBase* _previous{ nullptr };
 	public:
 		void SetUpNodeCallback(function<void(NodeBase*, unique_ptr<NodeBase>)> addSubNodeCallback, 
-								function<void(NodeBase*)> deleteSubNodeCallback)
+								function<void(NodeBase*)> deleteSubNodeCallback, 
+								function<void(Key const&, NodeBase*)> minKeyChangeCallback)
 		{
 			_upNodeAddSubNodeCallback = move(addSubNodeCallback);
 			_upNodeDeleteSubNodeCallback = move(deleteSubNodeCallback);
+			_minKeyChangeCallback = move(minKeyChangeCallback);
 		}
 		virtual unique_ptr<NodeBase> Clone() const = 0;
 		virtual ~NodeBase() = default;
@@ -54,6 +59,10 @@ namespace Collections
 		virtual void Add(pair<Key, Value>) = 0;
 		virtual void Remove(Key const&) = 0;
 
+		NodeBase* Next() const { return _next; }
+		NodeBase* Previous() const { return _previous; }
+		void Next(NodeBase* next) { _next = next; }
+		void Previous(NodeBase* previous) { _previous = previous; }
 	protected:
 		template <Operation Op>
 		static Position ChooseOperatePosition(order_int preCount, order_int thisCount, order_int nxtCount)

@@ -21,8 +21,6 @@ namespace Collections
 		using _LessThan = LessThan<Key>;
 		using Base = NodeBase<Key, Value, BtreeOrder>;
 		Elements<Key, Value, BtreeOrder, _LessThan> _elements;
-		LeafNode* _next{ nullptr };
-		LeafNode* _previous{ nullptr };
 
 	public:
 		bool Middle() const override { return false; }
@@ -77,33 +75,51 @@ namespace Collections
 
 		void Add(pair<Key, Value> p) override
 		{
+			// TODO how to detect min change or not
+			auto minChange = false;
 			if (!_elements.Full())
 			{
-				_elements.Add(move(p));
+				minChange = _elements.Add(move(p)); // TODO should return value
 				return;
 			}
 
 			ADD_COMMON(true);
+
+			if (minChange)
+			{
+				Base::_minKeyChangeCallback(MinKey(), this);
+			}
 		}
 
 		virtual void Remove(Key const& key) override
 		{
+			// TODO how to detect min change or not
 			_elements.RemoveKey(key);
-			REMOVE_COMMON;
+			AFTER_REMOVE_COMMON;
+
+			if (/*min change*/)
+			{
+				Base::_minKeyChangeCallback(MinKey(), this);
+			}
 		}
 
-		LeafNode* NextLeaf() const { return _next; }
-		void NextLeaf(LeafNode* next) { _next = next; }
-		LeafNode* PreviousLeaf() const { return _previous; }
-		void PreviousLeaf(LeafNode* previous) { _previous = previous; }
+		LeafNode* Next() const
+		{
+			return static_cast<LeafNode *>(Base::Next());
+		}
 
+		LeafNode* Previous() const
+		{
+			return static_cast<LeafNode *>(Base::Previous());
+		}
 	private:
 		vector<Key> CollectKeys(vector<Key> previousNodesKeys = {}) const
 		{
 			auto ks = _elements.Keys();
 			previousNodesKeys.reserve(previousNodesKeys.size() + ks.size());
 			move(ks.begin(), ks.end(), back_inserter(previousNodesKeys));
-			return _next == nullptr ? move(previousNodesKeys) : _next->CollectKeys(move(previousNodesKeys));
+			return this->Next() == nullptr ? 
+				move(previousNodesKeys) : this->Next()->CollectKeys(move(previousNodesKeys));
 		}
 	};
 }

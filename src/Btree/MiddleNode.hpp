@@ -23,8 +23,6 @@ namespace Collections
 	class MiddleNode : public NodeBase<Key, Value, BtreeOrder>
 	{
 	private:
-		function<MiddleNode*(MiddleNode*)> _queryPrevious;
-		function<MiddleNode*(MiddleNode*)> _queryNext;
 		using Base = NodeBase<Key, Value, BtreeOrder>;
 		using _LessThan = LessThan<Key>;
 		Elements<reference_wrapper<Key const>, unique_ptr<Base>, BtreeOrder, _LessThan> _elements;
@@ -106,6 +104,16 @@ namespace Collections
 		}
 #undef SELECT_BRANCH
 
+#define MID_CAST(NODE) static_cast<MiddleNode *>(NODE)
+		MiddleNode* Next() const
+		{
+			return MID_CAST(Base::Next());
+		}
+
+		MiddleNode* Previous() const
+		{
+			return MID_CAST(Base::Previous());
+		}
 	private:
 		MiddleNode(IEnumerator<unique_ptr<Base>>&& enumerator, shared_ptr<_LessThan> lessThanPtr)
 			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertPtrToKeyPtrPair, _1)), lessThanPtr)
@@ -116,7 +124,6 @@ namespace Collections
 		Base* MinSon() const { return _elements[0].second.get(); }
 		Base* MaxSon() const { return _elements[_elements.Count() - 1].second.get(); }
 		
-#define MID_CAST(NODE) static_cast<MiddleNode *>(NODE)
 		using Leaf = LeafNode<Key, Value, BtreeOrder>;
 #define LEF_CAST(NODE) static_cast<Leaf *>(NODE)
 		Leaf* MinLeafInMyRange() const
@@ -143,21 +150,8 @@ namespace Collections
 			}
 		}
 
-
 		void AddSubNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
-		{
-			//auto predicate = [srcNode = srcNode]((typename (decltype _elements)::Item const&) item)
-			// TODO why up is a compile error
-			// auto predicate = [srcNode = srcNode](auto& item)
-			// {
-			// 	if (item.second.get() == srcNode)
-			// 	{
-			// 		return true;
-			// 	}
-
-			// 	return false;
-			// };
-			
+		{	
 			// find index of srcNode and add new NextNode
 			// if this is Full(), combine the node or call the upper node callback
 			if (!_elements.Full())
@@ -166,12 +160,11 @@ namespace Collections
 				return;
 			}
 
-			auto _next = _queryNext(this);
-			auto _previous = _queryPrevious(this);
+			auto _next = this->Next();
+			auto _previous = this->Previous();
 			typename decltype(_elements)::Item p{ cref(newNextNode->MinKey()), move(newNextNode) };
 			ADD_COMMON(false);
 		}
-
 
 		void DeleteSubNodeCallback(Base* node)
 		{
@@ -182,35 +175,40 @@ namespace Collections
 				// Fresh the _next of LeafNode
 				if (i != 0)
 				{
-					LEF_CAST(_elements[i - 1].second.get())->NextLeaf(leafNode->NextLeaf());
+					LEF_CAST(_elements[i - 1].second.get())->Next(leafNode->Next());
 				}
 
 				// Fresh the _previous of LeafNode
 				if (i != _elements.Count() - 1)
 				{
-					LEF_CAST(_elements[i + 1].second.get())->PreviousLeaf(leafNode->PreviousLeaf());
+					LEF_CAST(_elements[i + 1].second.get())->Previous(leafNode->Previous());
 				}
 			}
 
 			_elements.RemoveAt(i);
 			// Below two variables is to macro
-			auto _next = _queryNext(this);
-			auto _previous = _queryPrevious(this);
-			REMOVE_COMMON;
+			auto _next = this->Next();
+			auto _previous = this->Previous();
+			AFTER_REMOVE_COMMON;
+
+			// Update min key
+			// Below code should be moved into AFTER_REMOVE_COMMON
+			if (i == 0)
+			{
+				_elements[0].first = cref(MinKey());
+			}
 		}
 
-		// For sub node call
-		MiddleNode* QueryPrevious(MiddleNode* subNode)
+		void SubNodeMinKeyCallback(Key const& newMinKeyOfSubNode, NodeBase* subNode)
 		{
-			auto i = _elements.IndexKeyOf(subNode->MinKey());
-			return i != 0 ? MID_CAST(_elements[i - 1].second.get()) : nullptr;
-		}
+			// Index of subNode
+			auto i;
+			_elements[i].first = cref(minKeyOfSubNode);
 
-		// For sub node call
-		MiddleNode* QueryNext(MiddleNode* subNode)
-		{
-			auto i = _elements.IndexKeyOf(subNode->MinKey());
-			return (i != _elements.Count() - 1) ? MID_CAST(_elements[i + 1].second.get()) : nullptr;
+			if (i == 0)
+			{
+				Base::_minKeyChangeCallback(minKeyOfSubNode, this);
+			}
 		}
 
 		void SetSubNode()
@@ -223,32 +221,32 @@ namespace Collections
 			{
 				auto& node = e.second;
 				node->SetUpNodeCallback(bind(&MiddleNode::AddSubNodeCallback, this, _1, _2),
-					 bind(&MiddleNode::DeleteSubNodeCallback, this, _1));
+					 bind(&MiddleNode::DeleteSubNodeCallback, this, _1),
+					 bind(&MiddleNode::SubNodeMinKeyCallback, this, _1, _2));
+
 				if (lastMidNode != nullptr || node->Middle())
 				{
 					auto midNode = MID_CAST(node.get());
-					midNode->_queryNext = bind(&MiddleNode::QueryNext, this, _1);
-					midNode->_queryPrevious = bind(&MiddleNode::QueryPrevious, this, _1);
 
-					// set preivous and next between MiddleNode
+					// set previous and next between MiddleNode
 					if (lastMidNode != nullptr)
 					{
 						auto nowMin = midNode->MinLeafInMyRange();
 						auto lastMax = lastMidNode->MaxLeafInMyRange();
-						lastMax->NextLeaf(nowMin);
-						nowMin->PreviousLeaf(lastMax);
+						lastMax->Next(nowMin);
+						nowMin->Previous(lastMax);
 					}
 
 					lastMidNode = midNode;
 				}
 				else
 				{
-					// set preivous and next in MiddleNode that contains Leafnode internal
+					// set previous and next in MiddleNode that contains Leafnode internal
 					auto nowLeaf = LEF_CAST(node.get());
-					nowLeaf->PreviousLeaf(lastLeaf);
+					nowLeaf->Previous(lastLeaf);
 					if (lastLeaf != nullptr)
 					{
-						lastLeaf->NextLeaf(nowLeaf);
+						lastLeaf->Next(nowLeaf);
 					}
 
 					lastLeaf = nowLeaf;

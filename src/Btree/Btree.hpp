@@ -273,6 +273,7 @@ namespace Collections
 				using ::std::placeholders::_2;
 				auto f1 = bind(&Btree::AddNodeCallback, this, _1, _2);
 				auto f2 = bind(&Btree::DeleteNodeCallback, this, _1);
+				// TODO handle queryPre and queryNxt of root
 				_root->SetUpNodeCallback(f1, f2);
 				return;
 			}
