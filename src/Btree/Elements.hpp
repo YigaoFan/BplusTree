@@ -94,21 +94,20 @@ namespace Collections
 			return Base::RemoveAt(IndexKeyOf(key));
 		}
 
-		void Add(Item p)
+		order_int Add(Item p)
 		{
 			if (this->_count == 0)
 			{
-				Append(move(p));
-				return;
+				return Append(move(p));
 			}
 
 			if ((*LessThanPtr)(this->operator[](this->_count - 1).first, p.first))
 			{
-				Append(move(p));
+				return Append(move(p));
 			}
 			else
 			{
-				Insert(move(p));
+				return Insert(move(p));
 			}
 		}
 
@@ -124,7 +123,7 @@ namespace Collections
 
 		// TODO check template args
 		template <bool WithCheck=true>
-		void Insert(Item p)
+		order_int Insert(Item p)
 		{
 			for (decltype(this->_count) i = 0; i < this->_count; ++i)
 			{
@@ -134,8 +133,9 @@ namespace Collections
 					this->MoveItems(1, i);
 					this->operator[](i) = move(p);
 					++this->_count;
-					return;
+					return i;
 				}
+
 				if constexpr (WithCheck)
 				{
 					if (!lessThan(this->operator[](i).first, p.first))
@@ -146,7 +146,13 @@ namespace Collections
 			}
 		}
 
-		void Append(Item p) { Base::Add(move(p)); }
+		order_int Append(Item p) 
+		{
+			Base::Add(move(p));
+			return this->_count - 1;
+		}
+
+		// TODO Appends
 
 		Item ExchangeMax(Item p)
 		{

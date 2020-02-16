@@ -30,6 +30,7 @@ namespace Collections
 	using ::std::make_index_sequence;
 	using ::std::index_sequence;
 	using ::Basic::KeyNotFoundException;
+	using ::Basic::NotImplementException;
 
 	template <auto Total, auto ItemCapacity>
 	struct PerNodeCountGenerator
@@ -273,7 +274,7 @@ namespace Collections
 				using ::std::placeholders::_2;
 				auto f1 = bind(&Btree::AddNodeCallback, this, _1, _2);
 				auto f2 = bind(&Btree::DeleteNodeCallback, this, _1);
-				// TODO handle queryPre and queryNxt of root
+				// auto f3 = bind(&Btree::DeleteNodeCallback, this, _1);
 				_root->SetUpNodeCallback(f1, f2);
 				return;
 			}
@@ -306,11 +307,18 @@ namespace Collections
 		{
 			array<unique_ptr<Base>, 2> nodes { move(_root), move(newNextNode) };
 			_root = NodeFactoryType::MakeNode(CreateEnumerator(nodes), _lessThanPtr);
+			// TODO new root also need to set up Node's callback
 		}
 
 		void DeleteNodeCallback(Base*)
 		{
-			NodeFactoryType::TryShallow(_root);
+			throw NotImplementException
+				("root no need to implement Delete node method, if called, means error");
+		}
+
+		void ShallowNodeCallback(unique_ptr<Base> newRoot)
+		{
+			_root = move(newRoot);
 		}
 	};
 }

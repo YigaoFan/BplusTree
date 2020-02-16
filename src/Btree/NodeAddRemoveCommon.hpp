@@ -1,16 +1,26 @@
 #pragma once
-#define REMOVE_COMMON \
+#define AFTER_REMOVE_COMMON(IS_LEAF) \
 constexpr auto lowBound = Base::LowBound;\
 if (_elements.Count() < lowBound)\
 {\
+	if (_elements.Empty())\
+	{\
+		this->_upNodeDeleteSubNodeCallback(this);\
+	}\
 	bool nxtStealable = false, preStealable = false;\
 	if (_next != nullptr)\
 	{\
 		if (_next->_elements.Count() == lowBound)\
 		{\
-			auto items = this->_elements.PopOutItems(this->_elements.Count());\
-			_next->_elements.Add(move(items));\
-			this->_upNodeDeleteSubNodeCallback(this);\
+			/* Think combine first */\
+			auto items = _next->_elements.PopOutItems(_next->_elements.Count());\
+			this->_elements.Add(move(items));/*Appends*/\
+			if constexpr (IS_LEAF)\
+			{\
+				this->_next = _next->_next;\
+				_next->_next->_previous = this;\
+			}\
+			_next->_upNodeDeleteSubNodeCallback(_next);\
 			return;\
 		}\
 		else\
@@ -24,7 +34,12 @@ if (_elements.Count() < lowBound)\
 		if (_previous->_elements.Count() == lowBound)\
 		{\
 			auto items = this->_elements.PopOutItems(this->_elements.Count());\
-			_previous->_elements.Add(move(items));\
+			_previous->_elements.Add(move(items));/*Appends*/\
+			if constexpr (IS_LEAF)\
+			{\
+				_previous->_next = _next;\
+				_next->_previous = _previous;\
+			}\
 			this->_upNodeDeleteSubNodeCallback(this);\
 			return;\
 		}\
@@ -55,23 +70,26 @@ if (_elements.Count() < lowBound)\
 	}\
 	else\
 	{\
-		goto NothingToDo;\
+		/* previous and next all nullptr*/\
+		goto NoWhereToProcess;\
 	}\
 \
 StealNxt:\
 	{\
 		auto item = _next->_elements.FrontPopOut();\
+		_next->_minKeyChangeCallback(_next->MinKey(), _next);\
 		this->_elements.Append(move(item));\
 		return;\
 	}\
 StealPre:\
 	{\
 		auto items = _previous->_elements.PopOutItems(1);\
-		this->_elements.Insert(move(items[0]));\
+		this->_elements.Insert(move(items[0]));/*Front insert*/\
+		this->_minKeyChangeCallback(this->MinKey(), this);\
 		return;\
 	}\
-NothingToDo:\
-	return;\
+NoWhereToProcess:\
+	/* Only node */\
 }
 // Remove should think of set of _previous and _next of LeafNode
 
@@ -81,14 +99,18 @@ if (_previous == nullptr)\
 {\
 	if (_next != nullptr)\
 	{\
-		addToNxt = true;\
+		goto AddToNext;\
+	}\
+	else\
+	{\
+		goto ConsNewNode;\
 	}\
 }\
 else\
 {\
 	if (_next == nullptr)\
 	{\
-		addToPre = true;\
+		goto AddToPre;\
 	}\
 	else\
 	{\
@@ -97,32 +119,31 @@ else\
 			_next->_elements.Count()))\
 		{\
 		case Position::Previous:\
-			addToPre = true;\
-			break;\
+			goto AddToPre;\
 		case Position::Next:\
-			addToNxt = true;\
-			break;\
+			goto AddToNext;\
 		}\
 	}\
 }\
 \
-if (addToPre)\
+AddToPre:\
+if (!_previous->_elements.Full())\
 {\
-	if (!_previous->_elements.Full())\
-	{\
-		_previous->_elements.Append(_elements.ExchangeMin(move(p)));\
-		return;\
-	}\
+	_previous->_elements.Append(_elements.ExchangeMin(move(p)));\
+	this->_minKeyChangeCallback(this->MinKey(), this);\
+	return;\
 }\
-else if (addToNxt)\
+goto ConsNewNode;\
+AddToNext:\
+if (!_next->_elements.Full())\
 {\
-	if (!_next->_elements.Full())\
-	{\
-		_next->_elements.Insert(_elements.ExchangeMax(move(p)));\
-		return;\
-	}\
+	_next->_elements.Insert(this->_elements.ExchangeMax(move(p)));/*Front insert*/\
+	_next->_minKeyChangeCallback(_next->MinKey(), _next);\
+	return;\
 }\
+goto ConsNewNode;\
 \
+ConsNewNode:\
 auto newNxtNode = make_unique<remove_pointer_t<decltype(this)>>(_elements.LessThanPtr);\
 if constexpr (IS_LEAF)\
 {\
@@ -132,17 +153,21 @@ if constexpr (IS_LEAF)\
 }\
 \
 auto i = _elements.SelectBranch(p.first);\
-constexpr auto middle = (BtreeOrder % 2) ? (BtreeOrder / 2 + 1) : (BtreeOrder / 2);\
+constexpr auto middle = (BtreeOrder % 2) ? (BtreeOrder / 2) : (BtreeOrder / 2 + 1);\
 if (i <= middle)\
 {\
 	auto items = this->_elements.PopOutItems(middle);\
 	this->_elements.Add(move(p));\
+	if (i == 0)\
+	{\
+		this->_minKeyChangeCallback(this->MinKey(), this);\
+	}\
 	newNxtNode->_elements.Add(move(items));\
 }\
 else\
 {\
 	auto items = this->_elements.PopOutItems(BtreeOrder - middle);\
-	newNxtNode->_elements.Add(move(items));\
+	newNxtNode->_elements.Add(move(items));/*Appends*/\
 	newNxtNode->_elements.Add(move(p));\
 }\
 \

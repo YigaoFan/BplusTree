@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <functional>
+#include "../Basic/Exception.hpp"
 #include "Basic.hpp"
 #include "EnumeratorPipeline.hpp"
 #include "Elements.hpp"
@@ -18,14 +19,16 @@ namespace Collections
 	using ::std::make_pair;
 	using ::std::bind;
 	using ::std::placeholders::_1;
+	using ::Basic::NotImplementException;
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class MiddleNode : public NodeBase<Key, Value, BtreeOrder>
 	{
 	private:
+		using Base = NodeBase<Key, Value, BtreeOrder>;
 		function<MiddleNode *(MiddleNode *)> _queryPrevious = [](auto) { return nullptr; };
 		function<MiddleNode*(MiddleNode*)> _queryNext = [](auto) { return nullptr; };
-		using Base = NodeBase<Key, Value, BtreeOrder>;
+		function<void*(Base*)> _shallowTreeCallback;
 		using _LessThan = LessThan<Key>;
 		Elements<reference_wrapper<Key const>, unique_ptr<Base>, BtreeOrder, _LessThan> _elements;
 
@@ -144,9 +147,7 @@ namespace Collections
 		}
 
 		void AddSubNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
-		{	
-			// find index of srcNode and add new NextNode
-			// if this is Full(), combine the node or call the upper node callback
+		{
 			if (!_elements.Full())
 			{
 				_elements.Emplace(_elements.IndexKeyOf(srcNode->MinKey()), { cref(newNextNode->MinKey()), move(newNextNode) });
@@ -162,6 +163,10 @@ namespace Collections
 		void DeleteSubNodeCallback(Base* node)
 		{
 			auto i = _elements.IndexKeyOf(node->MinKey());
+			if (i == 0)
+			{
+				_elements[0].first = cref(MinKey());
+			}
 			if (!node->Middle())
 			{
 				auto leafNode = LEF_CAST(node);
@@ -182,17 +187,23 @@ namespace Collections
 			// Below two variables is to macro
 			auto _next = _queryNext(this);
 			auto _previous = _queryPrevious(this);
-			AFTER_REMOVE_COMMON;
-
-			// Update min key
-			// Below code should be moved into AFTER_REMOVE_COMMON
-			if (i == 0)
-			{
-				_elements[0].first = cref(MinKey());
-			}
+			AFTER_REMOVE_COMMON(false);
+			// MiddleNode need to handle NoWhereToProcess
+			// 是否可以肯定这时 tree 中只有一个分支了，所以不用传像下面这样传 this
+			// this->_shallowTreeCallback(this, this->MinSon());
+			// 下面这句是发生在 root 那个 node
+			// 加层和减层这两个操作只能发生在 root
+			// 所以下面这句在普通 MiddleNode 发生不了
+			this->_shallowTreeCallback(move(this->_elements[0].second));
 		}
 
-		void SubNodeMinKeyChangeCallback(Key const& newMinKeyOfSubNode, NodeBase* subNode)
+		void ShallowTreeCallback(unique_ptr<Base> subNode)
+		{
+			throw NotImplementException
+				("Normal MiddleNode no need to implement this Shallow method, if called, means error");
+		}
+
+		void SubNodeMinKeyChangeCallback(Key const& newMinKeyOfSubNode, Base* subNode)
 		{
 			// Index of subNode
 			auto i;
@@ -240,7 +251,6 @@ namespace Collections
 
 		void SetSubNode()
 		{
-			using ::std::placeholders::_1;
 			using ::std::placeholders::_2;
 			Leaf* lastLeaf = nullptr;
 			MiddleNode* lastMidNode = nullptr;

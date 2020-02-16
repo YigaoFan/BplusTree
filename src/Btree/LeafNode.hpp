@@ -76,32 +76,31 @@ namespace Collections
 
 		void Add(pair<Key, Value> p) override
 		{
-			// TODO how to detect min change or not
-			auto minChange = false;
 			if (!_elements.Full())
 			{
-				minChange = _elements.Add(move(p)); // TODO should return value
+				if (_elements.Add(move(p)) == 0)
+				{
+					this->_minKeyChangeCallback(this->MinKey(), this);
+				}
+
 				return;
 			}
 
 			ADD_COMMON(true);
-
-			if (minChange)
-			{
-				Base::_minKeyChangeCallback(MinKey(), this);
-			}
 		}
 
-		virtual void Remove(Key const& key) override
+		void Remove(Key const& key) override
 		{
-			// TODO how to detect min change or not
-			_elements.RemoveKey(key);
-			AFTER_REMOVE_COMMON;
-
-			if (/*min change*/)
+			auto i = _elements.IndexKeyOf(key);
+			_elements.RemoveAt(i);
+			if (i == 0)
 			{
-				Base::_minKeyChangeCallback(MinKey(), this);
+				this->_minKeyChangeCallback(MinKey(), this);
 			}
+
+			AFTER_REMOVE_COMMON(true);
+			// LeafNode no need to handle NoWhereToProcess,
+			// Cannot put code here
 		}
 
 		LeafNode* Next() const { return _next; }
