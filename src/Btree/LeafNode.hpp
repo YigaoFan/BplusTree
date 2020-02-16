@@ -21,7 +21,8 @@ namespace Collections
 		using _LessThan = LessThan<Key>;
 		using Base = NodeBase<Key, Value, BtreeOrder>;
 		Elements<Key, Value, BtreeOrder, _LessThan> _elements;
-
+		LeafNode* _next{ nullptr };
+		LeafNode* _previous{ nullptr };
 	public:
 		bool Middle() const override { return false; }
 
@@ -103,15 +104,10 @@ namespace Collections
 			}
 		}
 
-		LeafNode* Next() const
-		{
-			return static_cast<LeafNode *>(Base::Next());
-		}
-
-		LeafNode* Previous() const
-		{
-			return static_cast<LeafNode *>(Base::Previous());
-		}
+		LeafNode* Next() const { return _next; }
+		LeafNode* Previous() const { return _previous; }
+		void Next(LeafNode* next) { _next = next; }
+		void Previous(LeafNode* previous) { _previous = previous; }
 	private:
 		vector<Key> CollectKeys(vector<Key> previousNodesKeys = {}) const
 		{
