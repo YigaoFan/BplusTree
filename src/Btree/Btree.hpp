@@ -95,7 +95,7 @@ namespace Collections
 	private:
 		using Base   = NodeBase<Key, Value, BtreeOrder>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
-		function<void()> _shallowTreeCallback = bind(&Btree::ShallowNodeCallback, this);
+		function<void()> _shallowTreeCallback = bind(&Btree::ShallowRootCallback, this);
 		shared_ptr<_LessThan> _lessThanPtr;
 		key_int              _keyCount{ 0 };
 		unique_ptr<Base>     _root;
@@ -332,7 +332,6 @@ namespace Collections
 		void RootMinKeyChangeCallback(Key const&, Base*)
 		{ }
 
-		// TODO delete 是否与 Shallow 方法重复功能？
 		void DeleteRootCallback(Base* root)
 		{
 			if (root->Middle())
@@ -342,7 +341,7 @@ namespace Collections
 			}
 		}
 
-		void ShallowNodeCallback()
+		void ShallowRootCallback()
 		{
 			// TODO 新 root 的 callback 也要重置
 			NodeFactoryType::TryShallow(_root);

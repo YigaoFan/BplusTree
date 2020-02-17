@@ -76,7 +76,7 @@ namespace Collections
 		vector<Key> Keys() const
 		{
 			vector<Key> keys;
-			keys.reserve(this->_count);
+			keys.reserve(this->Count());
 			auto enumerator = GetEnumerator();
 			while (enumerator.MoveNext())
 			{
@@ -96,7 +96,7 @@ namespace Collections
 
 		order_int Add(Item p)
 		{
-			if (this->_count == 0)
+			if (this->Emplace())
 			{
 				return Append(move(p));
 			}
@@ -111,48 +111,19 @@ namespace Collections
 			}
 		}
 
-		// TODO head insert items
-		void Add(vector<Item> items)
-		{
-			for (auto& i : items)
-			{
-				Add(move(i));
-				// Insert<false>(move(i));
-			}
-		}
-
-		// TODO check template args
-		template <bool WithCheck=true>
-		order_int Insert(Item p)
-		{
-			for (decltype(this->_count) i = 0; i < this->_count; ++i)
-			{
-				auto& lessThan = *LessThanPtr;
-				if (lessThan(p.first, this->operator[](i).first))
-				{
-					this->MoveItems(1, i);
-					this->operator[](i) = move(p);
-					++this->_count;
-					return i;
-				}
-
-				if constexpr (WithCheck)
-				{
-					if (!lessThan(this->operator[](i).first, p.first))
-					{
-						throw DuplicateKeyException(move(p.first));
-					}
-				}
-			}
-		}
-
 		order_int Append(Item p) 
 		{
 			Base::Add(move(p));
 			return this->_count - 1;
 		}
 
-		// TODO Appends
+		void AppendItems(vector<Item> items)
+		{
+			for (auto& i : items)
+			{
+				this->Append(move(i));
+			}
+		}
 
 		Item ExchangeMax(Item p)
 		{
@@ -212,5 +183,29 @@ namespace Collections
 
 		auto GetEnumerator() { return CreateEnumerator(*this); }
 		auto GetEnumerator() const { return CreateEnumerator(*this); }
+
+	private:
+		// TODO check template args
+		template <bool WithCheck=true>
+		order_int Insert(Item p)
+		{
+			for (decltype(this->_count) i = 0; i < this->_count; ++i)
+			{
+				auto& lessThan = *LessThanPtr;
+				if (lessThan(p.first, this->operator[](i).first))
+				{
+					Base::Emplace(1, move(p));
+					return i;
+				}
+
+				if constexpr (WithCheck)
+				{
+					if (!lessThan(this->operator[](i).first, p.first))
+					{
+						throw DuplicateKeyException(move(p.first));
+					}
+				}
+			}
+		}
 	};
 }

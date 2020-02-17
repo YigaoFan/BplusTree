@@ -226,7 +226,7 @@ namespace Collections
 
 		void SubNodeMinKeyChangeCallback(Key const& newMinKeyOfSubNode, Base* subNode)
 		{
-			auto indexOfSubNode = [this](Base* node)// TODO how to use specifc capture
+			auto indexOfSubNode = [this](Base* node)
 			{
 				auto e = this->_elements.GetEnumerator();
 				while (e.MoveNext())

@@ -13,8 +13,8 @@ if (_elements.Count() < lowBound)\
 		if (_next->_elements.Count() == lowBound)\
 		{\
 			/* Think combine first */\
-			auto items = _next->_elements.PopOutItems(_next->_elements.Count());\
-			this->_elements.Add(move(items));/*Appends*/\
+			auto items = _next->_elements.PopOutAll();\
+			this->_elements.AppendItems(move(items));/*Appends*/\
 			if constexpr (IS_LEAF)\
 			{\
 				this->_next = _next->_next;\
@@ -33,8 +33,8 @@ if (_elements.Count() < lowBound)\
 	{\
 		if (_previous->_elements.Count() == lowBound)\
 		{\
-			auto items = this->_elements.PopOutItems(this->_elements.Count());\
-			_previous->_elements.Add(move(items));/*Appends*/\
+			auto items = this->_elements.PopOutAll();\
+			_previous->_elements.AppendItems(move(items));/*Appends*/\
 			if constexpr (IS_LEAF)\
 			{\
 				_previous->_next = _next;\
@@ -70,7 +70,7 @@ if (_elements.Count() < lowBound)\
 	}\
 	else\
 	{\
-		/* previous and next all nullptr*/\
+		/* Previous and next all nullptr*/\
 		goto NoWhereToProcess;\
 	}\
 \
@@ -78,13 +78,13 @@ StealNxt:\
 	{\
 		auto item = _next->_elements.FrontPopOut();\
 		_next->_minKeyChangeCallback(_next->MinKey(), _next);\
-		this->_elements.Append(move(item));\
+		this->_elements.Append(move(item));/* Append */\
 		return;\
 	}\
 StealPre:\
 	{\
-		auto items = _previous->_elements.PopOutItems(1);\
-		this->_elements.Insert(move(items[0]));/*Front insert*/\
+		auto item = _previous->_elements.PopOut();\
+		this->_elements.EmplaceHead(move(item));/*Front insert*/\
 		this->_minKeyChangeCallback(this->MinKey(), this);\
 		return;\
 	}\
@@ -128,7 +128,7 @@ else\
 AddToPre:\
 if (!_previous->_elements.Full())\
 {\
-	_previous->_elements.Append(_elements.ExchangeMin(move(p)));\
+	_previous->_elements.Append(_elements.ExchangeMin(move(p)));/*Append*/\
 	this->_minKeyChangeCallback(this->MinKey(), this);\
 	return;\
 }\
@@ -136,7 +136,7 @@ goto ConsNewNode;\
 AddToNext:\
 if (!_next->_elements.Full())\
 {\
-	_next->_elements.Insert(this->_elements.ExchangeMax(move(p)));/*Front insert*/\
+	_next->_elements.EmplaceHead(this->_elements.ExchangeMax(move(p)));/*Front insert*/\
 	_next->_minKeyChangeCallback(_next->MinKey(), _next);\
 	return;\
 }\
@@ -156,18 +156,18 @@ constexpr auto middle = (BtreeOrder % 2) ? (BtreeOrder / 2) : (BtreeOrder / 2 + 
 if (i <= middle)\
 {\
 	auto items = this->_elements.PopOutItems(middle);\
-	this->_elements.Add(move(p));\
+	this->_elements.Add(move(p));/* Add (Does it duplicate to SelectBranch before)*/\
 	if (i == 0)\
 	{\
 		this->_minKeyChangeCallback(this->MinKey(), this);\
 	}\
-	newNxtNode->_elements.Add(move(items));\
+	newNxtNode->_elements.AppendItems(move(items));/* Appends */\
 }\
 else\
 {\
 	auto items = this->_elements.PopOutItems(BtreeOrder - middle);\
-	newNxtNode->_elements.Add(move(items));/*Appends*/\
-	newNxtNode->_elements.Add(move(p));\
+	newNxtNode->_elements.AppendItems(move(items));/*Appends*/\
+	newNxtNode->_elements.Add(move(p));/* Add */\
 }\
 \
 this->_upNodeAddSubNodeCallback(this, move(newNxtNode));

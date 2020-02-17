@@ -65,13 +65,19 @@ namespace Collections
 		vector<T> PopOutItems(size_int count)
 		{
 			vector<T> outItems;
-			for (;count != 0; --count)
+			outItems.reserve(count);
+			for (decltype(_count) i = _count - count; i < _count; ++i)
 			{
-				outItems.push_back(move(_ptr[_count - 1]));
-				--_count;
+				outItems.push_back(move(_ptr[i]));
 			}
 
+			_count -= count;
 			return outItems;
+		}
+
+		vector<T> PopOutAll()
+		{
+			return PopOutItems(_count);
 		}
 
 		T PopOut()
@@ -88,9 +94,14 @@ namespace Collections
 
 		void Emplace(size_int i, T t)
 		{
-			MoveItems(1, i + 1);
-			_ptr[i + 1] = move(t);
+			MoveItems(1, i);
+			_ptr[i] = move(t);
 			++_count;
+		}
+
+		void EmplaceHead(T t)
+		{
+			Emplace(0, move(t));
 		}
 
 		T& operator[] (size_int i) { return _ptr[i]; }
@@ -115,7 +126,6 @@ namespace Collections
 			}
 		}
 
-	protected:
 		void MoveItems(int32_t direction, size_int index)
 		{
 			MoveItems(direction, begin() + index);
