@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <memory>
+#include <functional>
 #include "Basic.hpp"
 
 namespace Collections
@@ -12,22 +13,18 @@ namespace Collections
 	using ::std::move;
 	using ::std::unique_ptr;
 	using ::std::vector;
+	using ::std::function;
 
-	namespace
+	enum Position
 	{
-		enum Position
-		{
-			Previous,
-			Next,
-		};
-
-		// Why this enum can not define in LeafNode class? because it has LeafNode::Add adn LeafNode::Remove
-		enum Operation
-		{
-			Add,
-			Remove,
-		};
-	}
+		Previous,
+		Next,
+	};
+	enum Operation
+	{
+		Add,
+		Remove,
+	};
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeBase
@@ -36,15 +33,18 @@ namespace Collections
 		static const order_int LowBound = 1 + ((BtreeOrder - 1) / 2);
 		function<void(NodeBase*, unique_ptr<NodeBase>)> _upNodeAddSubNodeCallback;
 		function<void(NodeBase*)> _upNodeDeleteSubNodeCallback;
-		function<void(Key const&, NodeBase*)> _minKeyChangeCallback;// TODO for sibling min change and not split node situation
+		function<void(Key const&, NodeBase*)> _minKeyChangeCallback;
+		shared_ptr<function<void*(Base*)>> 	_shallowTreeCallbackPtr;
 	public:
 		void SetUpNodeCallback(function<void(NodeBase*, unique_ptr<NodeBase>)> addSubNodeCallback, 
 								function<void(NodeBase*)> deleteSubNodeCallback, 
-								function<void(Key const&, NodeBase*)> minKeyChangeCallback)
+								function<void(Key const&, NodeBase*)> minKeyChangeCallback,
+								shared_ptr<function<void*(Base*)>> 	_shallowTreeCallbackPtr)
 		{
 			_upNodeAddSubNodeCallback = move(addSubNodeCallback);
 			_upNodeDeleteSubNodeCallback = move(deleteSubNodeCallback);
 			_minKeyChangeCallback = move(minKeyChangeCallback);
+
 		}
 		virtual unique_ptr<NodeBase> Clone() const = 0;
 		virtual ~NodeBase() = default;

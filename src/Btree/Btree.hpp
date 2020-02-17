@@ -305,6 +305,7 @@ namespace Collections
 
 		void AddNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
 		{
+			// TODO 原来的 root 的 callback 也要重置
 			array<unique_ptr<Base>, 2> nodes { move(_root), move(newNextNode) };
 			_root = NodeFactoryType::MakeNode(CreateEnumerator(nodes), _lessThanPtr);
 			// TODO new root also need to set up Node's callback
@@ -318,6 +319,7 @@ namespace Collections
 
 		void ShallowNodeCallback(unique_ptr<Base> newRoot)
 		{
+			// TODO 新 root 的 callback 也要重置
 			_root = move(newRoot);
 		}
 	};
