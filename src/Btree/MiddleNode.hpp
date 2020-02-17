@@ -176,7 +176,7 @@ namespace Collections
 		{
 			if (!_elements.Full())
 			{
-				_elements.Emplace(_elements.IndexKeyOf(srcNode->MinKey()), { cref(newNextNode->MinKey()), move(newNextNode) });
+				_elements.Emplace(_elements.IndexKeyOf(srcNode->MinKey()) + 1, { cref(newNextNode->MinKey()), move(newNextNode) });
 				return;
 			}
 
@@ -186,13 +186,9 @@ namespace Collections
 			ADD_COMMON(false);
 		}
 
-		void DeleteSubNodeCallback(Base* node)
+		void DeleteSubNodeCallback(Base* node)// TODO this node cannot be MinSon?
 		{
 			auto i = _elements.IndexKeyOf(node->MinKey());
-			if (i == 0)
-			{
-				_elements[0].first = cref(MinKey());
-			}
 			if (!node->Middle())
 			{
 				auto leafNode = LEF_CAST(node);
@@ -215,8 +211,6 @@ namespace Collections
 			auto _previous = _queryPrevious(this);
 			AFTER_REMOVE_COMMON(false);
 			// MiddleNode need to handle NoWhereToProcess
-			// 是否可以肯定这时 tree 中只有一个分支了，所以不用传像下面这样传 this
-			// this->_shallowTreeCallback(this, this->MinSon());
 			// 下面这句是发生在 root 那个 node
 			// 加层和减层这两个操作只能发生在 root
 			// 所以下面这句在普通 MiddleNode 发生不了

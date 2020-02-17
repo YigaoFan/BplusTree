@@ -78,12 +78,10 @@ namespace Collections
 		{
 			if (!_elements.Full())
 			{
-				if (_elements.Add(move(p)) == 0)
+				return _elements.Add(move(p), [this]() 
 				{
 					this->_minKeyChangeCallback(this->MinKey(), this);
-				}
-
-				return;
+				});
 			}
 
 			ADD_COMMON(true);

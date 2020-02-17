@@ -94,7 +94,7 @@ namespace Collections
 			return Base::RemoveAt(IndexKeyOf(key));
 		}
 
-		order_int Add(Item p)
+		void Add(Item p, function<void()> changeMinCallback = [](){})
 		{
 			if (this->Emplace())
 			{
@@ -107,14 +107,13 @@ namespace Collections
 			}
 			else
 			{
-				return Insert(move(p));
+				return Insert(move(p), move(changeMinCallback));
 			}
 		}
 
-		order_int Append(Item p) 
+		void Append(Item p) 
 		{
 			Base::Add(move(p));
-			return this->_count - 1;
 		}
 
 		void AppendItems(vector<Item> items)
@@ -187,15 +186,18 @@ namespace Collections
 	private:
 		// TODO check template args
 		template <bool WithCheck=true>
-		order_int Insert(Item p)
+		void Insert(Item p, function<void()> changeMinCallback)
 		{
 			for (decltype(this->_count) i = 0; i < this->_count; ++i)
 			{
 				auto& lessThan = *LessThanPtr;
 				if (lessThan(p.first, this->operator[](i).first))
 				{
-					Base::Emplace(1, move(p));
-					return i;
+					Base::Emplace(i, move(p));
+					if (i == 0)
+					{
+						changeMinCallback();
+					}
 				}
 
 				if constexpr (WithCheck)
