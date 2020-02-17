@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <functional>
+#include <type_traits>
 #include "../Basic/Exception.hpp"
 #include "Basic.hpp"
 #include "EnumeratorPipeline.hpp"
@@ -20,15 +21,22 @@ namespace Collections
 	using ::std::bind;
 	using ::std::placeholders::_1;
 	using ::Basic::NotImplementException;
+	using ::std::add_const;
 
+	template <typename Key, typename Value, order_int BtreeOrder>
+	class NodeFactory;
+	// 最好把 MiddleNode 和 LeafNode 的构造与 Btree 隔绝起来，使用 NodeBase 来作用，顶多使用强制转型来调用一些函数
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class MiddleNode : public NodeBase<Key, Value, BtreeOrder>
 	{
 	private:
+		friend class NodeFactory<Key, Value, BtreeOrder>;
 		using Base = NodeBase<Key, Value, BtreeOrder>;
-		function<MiddleNode *(MiddleNode *)> _queryPrevious = [](auto) { return nullptr; };
-		function<MiddleNode*(MiddleNode*)> _queryNext = [](auto) { return nullptr; };
-		function<void*(Base*)> _shallowTreeCallback;
+		// TODO Split node need to copy two below items
+		// TODO maybe below two item could be pointer, then entity stored in its' parent like Btree do
+		function<MiddleNode *(MiddleNode const*)> _queryPrevious = [](auto) { return nullptr; };
+		function<MiddleNode *(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
+		function<void()> * _shallowTreeCallbackPtr = nullptr;
 		using _LessThan = LessThan<Key>;
 		Elements<reference_wrapper<Key const>, unique_ptr<Base>, BtreeOrder, _LessThan> _elements;
 
@@ -47,11 +55,15 @@ namespace Collections
 			SetSubNode();
 		}
 
+		// TODO private this method?
 		MiddleNode(MiddleNode const& that)
 			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, unique_ptr<Base>>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
 		{ }
 
-		MiddleNode(MiddleNode&& that) noexcept : Base(move(that)), _elements(move(that._elements))
+		MiddleNode(MiddleNode&& that) noexcept
+			: Base(move(that)), _elements(move(that._elements)), 
+			_queryNext(move(that._queryNext)), _queryPrevious(move(that._queryPrevious)),
+			_shallowTreeCallbackPtr(that._shallowTreeCallbackPtr)
 		{ }
 
 		~MiddleNode() override = default;
@@ -61,6 +73,17 @@ namespace Collections
 			return make_unique<MiddleNode>(*this);
 		}
 
+		void SetShallowCallbackPointer(function<void()>* shallowTreeCallbackPtr) override
+		{
+			_shallowTreeCallbackPtr = shallowTreeCallbackPtr;
+		}
+
+		void ResetShallowCallbackPointer() override
+		{
+			// Convenient for debug when has wrong behavior
+			_shallowTreeCallbackPtr = nullptr;
+		}
+
 		vector<Key> Keys() const override
 		{
 			return MinSon()->Keys();
@@ -68,6 +91,9 @@ namespace Collections
 
 		unique_ptr<Base> HandleOverOnlySon()
 		{
+#ifdef BTREE_DEBUG 
+			Assert(_elements.Count() == 1); // TODO implement Assert
+#endif
 			return _elements.PopOut().second;
 		}
 
@@ -194,28 +220,33 @@ namespace Collections
 			// 下面这句是发生在 root 那个 node
 			// 加层和减层这两个操作只能发生在 root
 			// 所以下面这句在普通 MiddleNode 发生不了
-			this->_shallowTreeCallback(move(this->_elements[0].second));
-		}
-
-		void ShallowTreeCallback(unique_ptr<Base> subNode)
-		{
-			throw NotImplementException
-				("Normal MiddleNode no need to implement this Shallow method, if called, means error");
+			// 下面这句如何确保是 root 节点调用的呢？
+			this->_shallowTreeCallbackPtr->operator ()();
 		}
 
 		void SubNodeMinKeyChangeCallback(Key const& newMinKeyOfSubNode, Base* subNode)
 		{
-			// Index of subNode
-			auto i;
-			_elements[i].first = cref(minKeyOfSubNode);
+			auto indexOfSubNode = [&](Base* node)// TODO how to use specifc capture
+			{
+				auto e = _elements.GetEnumerator();
+				while (e.MoveNext())
+				{
+					if (e.Current().second.get() == node)
+					{
+						return e.CurrentIndex();
+					}
+				}
+			};
+			auto i = (order_int)indexOfSubNode(subNode);
+			_elements[i].first = cref(newMinKeyOfSubNode);
 
 			if (i == 0)
 			{
-				Base::_minKeyChangeCallback(minKeyOfSubNode, this);
+				this->_minKeyChangeCallback(newMinKeyOfSubNode, this);
 			}
 		}
 
-		MiddleNode* QuerySubNodePreviousCallback(MiddleNode* subNode) const
+		MiddleNode* QuerySubNodePreviousCallback(MiddleNode const* subNode) const
 		{
 			if (auto i = _elements.IndexKeyOf(subNode->MinKey()); i == 0)
 			{
@@ -232,7 +263,7 @@ namespace Collections
 			}
 		}
 
-		MiddleNode* QuerySubNodeNextCallback(MiddleNode* subNode) const
+		MiddleNode* QuerySubNodeNextCallback(MiddleNode const* subNode) const
 		{
 			if (auto i = _elements.IndexKeyOf(subNode->MinKey()); i == _elements.Count() - 1)
 			{
@@ -267,6 +298,7 @@ namespace Collections
 					auto midNode = MID_CAST(node.get());
 					midNode->_queryPrevious = bind(&MiddleNode::QuerySubNodePreviousCallback, this, _1);
 					midNode->_queryNext = bind(&MiddleNode::QuerySubNodeNextCallback, this, _1);
+
 					// set previous and next between MiddleNode
 					if (lastMidNode != nullptr)
 					{

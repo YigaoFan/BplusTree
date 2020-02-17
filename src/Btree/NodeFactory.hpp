@@ -8,6 +8,7 @@
 
 namespace Collections
 {
+	using ::std::move;
 	using ::std::shared_ptr;
 	using ::std::unique_ptr;
 	using ::std::make_unique;
@@ -45,9 +46,21 @@ namespace Collections
 
 		static void TryShallow(unique_ptr<Node>& root)
 		{
+#define MID_CAST static_cast<Middle *>
 			if (root->Middle())
 			{
-				root = static_cast<Middle*>(root.get())->HandleOverOnlySon();
+				auto newRoot = MID_CAST(root.get())->HandleOverOnlySon();
+				*newRoot = move(*root);
+				if (newRoot->Middle())
+				{
+					auto newMidRoot = MID_CAST(newRoot.get());
+					auto midRoot = MID_CAST(root.get());
+					newMidRoot->_queryPrevious = midRoot->_queryPrevious;
+					newMidRoot->_queryNext = midRoot->_queryPrevious;
+				}
+
+				root = move(newRoot);
+#undef MID_CAST
 			}
 		}
 	};

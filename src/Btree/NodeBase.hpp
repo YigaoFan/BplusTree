@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <tuple>
 #include "Basic.hpp"
 
 namespace Collections
@@ -14,6 +15,7 @@ namespace Collections
 	using ::std::unique_ptr;
 	using ::std::vector;
 	using ::std::function;
+	using ::std::make_tuple;
 
 	enum Position
 	{
@@ -34,18 +36,26 @@ namespace Collections
 		function<void(NodeBase*, unique_ptr<NodeBase>)> _upNodeAddSubNodeCallback;
 		function<void(NodeBase*)> _upNodeDeleteSubNodeCallback;
 		function<void(Key const&, NodeBase*)> _minKeyChangeCallback;
-		shared_ptr<function<void*(Base*)>> 	_shallowTreeCallbackPtr;
 	public:
 		void SetUpNodeCallback(function<void(NodeBase*, unique_ptr<NodeBase>)> addSubNodeCallback, 
 								function<void(NodeBase*)> deleteSubNodeCallback, 
-								function<void(Key const&, NodeBase*)> minKeyChangeCallback,
-								shared_ptr<function<void*(Base*)>> 	_shallowTreeCallbackPtr)
+								function<void(Key const&, NodeBase*)> minKeyChangeCallback)
 		{
 			_upNodeAddSubNodeCallback = move(addSubNodeCallback);
 			_upNodeDeleteSubNodeCallback = move(deleteSubNodeCallback);
 			_minKeyChangeCallback = move(minKeyChangeCallback);
 
 		}
+
+		auto GetNodeCallback() const
+		{
+			return make_tuple(_upNodeAddSubNodeCallback, _upNodeDeleteSubNodeCallback, _minKeyChangeCallback);
+		}
+
+		virtual void SetShallowCallbackPointer(function<void()>*)
+		{ }
+		virtual void ResetShallowCallbackPointer()
+		{ }
 		virtual unique_ptr<NodeBase> Clone() const = 0;
 		virtual ~NodeBase() = default;
 		virtual bool Middle() const = 0;

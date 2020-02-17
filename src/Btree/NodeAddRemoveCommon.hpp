@@ -88,9 +88,8 @@ StealPre:\
 		this->_minKeyChangeCallback(this->MinKey(), this);\
 		return;\
 	}\
+}\
 NoWhereToProcess:\
-	/* Only node */\
-}
 // Remove should think of set of _previous and _next of LeafNode
 
 #define ADD_COMMON(IS_LEAF) \

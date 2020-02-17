@@ -25,6 +25,7 @@ namespace Collections
 	using ::std::sort;
 	using ::std::unique_ptr;
 	using ::std::make_shared;
+	using ::std::make_unique;
 	using ::std::size_t;
 	using ::std::move;
 	using ::std::make_index_sequence;
@@ -94,6 +95,7 @@ namespace Collections
 	private:
 		using Base   = NodeBase<Key, Value, BtreeOrder>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
+		function<void()> _shallowTreeCallback = bind(&Btree::ShallowNodeCallback, this);
 		shared_ptr<_LessThan> _lessThanPtr;
 		key_int              _keyCount{ 0 };
 		unique_ptr<Base>     _root;
@@ -147,17 +149,21 @@ namespace Collections
 
 		Btree(Btree const& that)
 			: _keyCount(that._keyCount), _root(that._root->Clone()), _lessThanPtr(that._lessThanPtr)
-		{ }
+		{
+			this->SetRootCallbacks();
+		}
 
 		Btree(Btree&& that) noexcept
 			: _keyCount(that._keyCount), _root(that._root.release()), _lessThanPtr(move(that._lessThanPtr))
 		{
+			this->SetRootCallbacks();
 			that._keyCount = 0;
 		}
 
 		Btree& operator= (Btree const& that)
 		{
 			this->_root.reset(that._root->Clone());
+			this->SetRootCallbacks();
 			this->_keyCount = that._keyCount;
 			this->_lessThanPtr = that._lessThanPtr;
 		}
@@ -165,6 +171,7 @@ namespace Collections
 		Btree& operator= (Btree&& that) noexcept 
 		{
 			this->_root.reset(that._root.release());
+			this->SetRootCallbacks();
 			this->_keyCount = that._keyCount;
 			that._keyCount = 0;
 			this->_lessThanPtr = move(that._lessThanPtr);
@@ -270,12 +277,7 @@ namespace Collections
 			if constexpr (Count <= BtreeOrder)
 			{
 				_root = NodeFactoryType::MakeNode(CreateEnumerator(ItemsToConsNode.begin(), ItemsToConsNode.end()), _lessThanPtr);
-				using ::std::placeholders::_1;
-				using ::std::placeholders::_2;
-				auto f1 = bind(&Btree::AddNodeCallback, this, _1, _2);
-				auto f2 = bind(&Btree::DeleteNodeCallback, this, _1);
-				// auto f3 = bind(&Btree::DeleteNodeCallback, this, _1);
-				_root->SetUpNodeCallback(f1, f2);
+				this->SetRootCallbacks();
 				return;
 			}
 
@@ -303,24 +305,47 @@ namespace Collections
 			return false;
 		}
 
-		void AddNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
+		void SetRootCallbacks()
 		{
-			// TODO 原来的 root 的 callback 也要重置
+			using ::std::placeholders::_1;
+			using ::std::placeholders::_2;
+			auto f1 = bind(&Btree::AddRootCallback, this, _1, _2);
+			auto f2 = bind(&Btree::DeleteRootCallback, this, _1);
+			auto f3 = bind(&Btree::RootMinKeyChangeCallback, this, _1, _2);
+			_root->SetUpNodeCallback(f1, f2, f3);
+			// TODO 考虑下为什么只有这个 callback 才这样弄
+			_root->SetShallowCallbackPointer(&_shallowTreeCallback);
+		}
+
+		void AddRootCallback(Base* srcNode, unique_ptr<Base> newNextNode)
+		{
+			// TODO Assert the srcNode == _root when debug
+			using ::std::get;
+			auto callbacks = _root->GetNodeCallback();
+			_root->ResetShallowCallbackPointer();
 			array<unique_ptr<Base>, 2> nodes { move(_root), move(newNextNode) };
 			_root = NodeFactoryType::MakeNode(CreateEnumerator(nodes), _lessThanPtr);
-			// TODO new root also need to set up Node's callback
+			_root->SetUpNodeCallback(move(get<0>(callbacks)), move(get<1>(callbacks)), move(get<2>(callbacks)));
+			_root->SetShallowCallbackPointer(&_shallowTreeCallback);
 		}
 
-		void DeleteNodeCallback(Base*)
+		void RootMinKeyChangeCallback(Key const&, Base*)
+		{ }
+
+		// TODO delete 是否与 Shallow 方法重复功能？
+		void DeleteRootCallback(Base* root)
 		{
-			throw NotImplementException
-				("root no need to implement Delete node method, if called, means error");
+			if (root->Middle())
+			{
+				throw NotImplementException
+					("MiddleNode root no need to implement Delete node method, if called, means error");
+			}
 		}
 
-		void ShallowNodeCallback(unique_ptr<Base> newRoot)
+		void ShallowNodeCallback()
 		{
 			// TODO 新 root 的 callback 也要重置
-			_root = move(newRoot);
+			NodeFactoryType::TryShallow(_root);
 		}
 	};
 }
