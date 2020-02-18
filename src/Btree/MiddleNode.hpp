@@ -230,6 +230,8 @@ namespace Collections
 						return e.CurrentIndex();
 					}
 				}
+
+				throw InvalidOperationException("Cannot find node in MiddleNode::_elements");
 			};
 			auto i = (order_int)indexOfSubNode(subNode);
 			_elements[i].first = cref(newMinKeyOfSubNode);

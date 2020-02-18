@@ -97,7 +97,7 @@ namespace Collections
 
 		void Add(Item p, function<void()> changeMinCallback = [](){})
 		{
-			if (this->Emplace())
+			if (this->Empty())
 			{
 				return Append(move(p));
 			}
@@ -210,7 +210,7 @@ namespace Collections
 				}
 			}
 
-			thorw InvalidOperationException("Cannot find suitable room for key, program has bug")
+			throw InvalidOperationException("Cannot find suitable room for key, program has bug");
 		}
 	};
 }

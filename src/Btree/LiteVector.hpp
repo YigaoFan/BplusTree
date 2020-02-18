@@ -120,7 +120,7 @@ namespace Collections
 		void Init(T t, Ts... ts)
 		{
 			Add(move(t));
-			if (sizeof...(ts) > 0)
+			if constexpr (sizeof...(ts) > 0)
 			{
 				Init(move(ts)...);
 			}

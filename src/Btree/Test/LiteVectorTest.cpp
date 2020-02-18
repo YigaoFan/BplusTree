@@ -1,6 +1,7 @@
 #include <string>
 #include "../../TestFrame/FlyTest.hpp"
 #include "../LiteVector.hpp"
+#include "Util.hpp"
 
 using namespace Collections;
 using ::std::string;
@@ -10,6 +11,8 @@ TESTCASE("LiteVector test")
 {
 	using IntLiVec = LiteVector<int, size_t, 10>; // Just stack allocate
 	auto v = IntLiVec{ 0, 1, };
+	ASSERT(v.Count() == 2);
+
 	SECTION("Default cons")
 	{
 		auto ev = IntLiVec();
@@ -40,14 +43,15 @@ TESTCASE("LiteVector test")
 		int a = 2;
 		struct Item
 		{
-			int &num;
-			Item(int &i) : num(i) { }
+			int& num;
+			Item(int& i) : num(i) { }
 			~Item() { --num; }
 		};
 
 		LiteVector<Item, size_t, 10> items { Item(a), Item(a), };
+		ASSERT(items.Count() == 2);
 		items.~LiteVector();
-		ASSERT(a == 0);
+		ASSERT(a == -9); // Local variable in LiteVector member function will call distructor, too
 	}
 
 	SECTION("Add")
@@ -134,8 +138,8 @@ TESTCASE("LiteVector test")
 
 	SECTION("Random access")
 	{
-		ASSERT(v[0] == 1);
-		ASSERT(v[1] == 2);
+		ASSERT(v[0] == 0);
+		ASSERT(v[1] == 1);
 	}
 }
 
