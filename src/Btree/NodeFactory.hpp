@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <type_traits>
+#include <functional>
 #include "Basic.hpp"
 #include "Enumerator.hpp"
 #include "LeafNode.hpp"
@@ -14,6 +15,7 @@ namespace Collections
 	using ::std::make_unique;
 	using ::std::unique_ptr;
 	using ::std::remove_reference_t;
+	using ::std::function;
 
 	template<typename Test, template<typename...> class Ref>
 	struct IsSpecialization : std::false_type {};
@@ -36,7 +38,8 @@ namespace Collections
 		{
 			if constexpr (IsSpecialization<remove_reference_t<typename Enumerator<Ts...>::ValueType>, unique_ptr>::value)
 			{
-				return make_unique<Middle>(enumerator, lessThan);
+				//return make_unique<Middle>(enumerator, lessThan);
+				return nullptr;
 			}
 			else
 			{
@@ -44,7 +47,7 @@ namespace Collections
 			}
 		}
 
-		static void TryShallow(unique_ptr<Node>& root)
+		static void TryShallow(unique_ptr<Node>& root, function<void()> rootChangeCallback)
 		{
 #define MID_CAST static_cast<Middle *>
 			if (root->Middle())
@@ -60,6 +63,7 @@ namespace Collections
 				}
 
 				root = move(newRoot);
+				rootChangeCallback();
 #undef MID_CAST
 			}
 		}

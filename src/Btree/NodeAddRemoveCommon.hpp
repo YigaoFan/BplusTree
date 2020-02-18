@@ -5,7 +5,7 @@ if (_elements.Count() < lowBound)\
 {\
 	if (_elements.Empty())\
 	{\
-		this->_upNodeDeleteSubNodeCallback(this);\
+		(*this->_upNodeDeleteSubNodeCallbackPtr)(this);\
 	}\
 	bool nxtStealable = false, preStealable = false;\
 	if (_next != nullptr)\
@@ -20,7 +20,7 @@ if (_elements.Count() < lowBound)\
 				this->_next = _next->_next;\
 				_next->_next->_previous = this;\
 			}\
-			_next->_upNodeDeleteSubNodeCallback(_next);\
+			(*_next->_upNodeDeleteSubNodeCallbackPtr)(_next);\
 			return;\
 		}\
 		else\
@@ -40,7 +40,7 @@ if (_elements.Count() < lowBound)\
 				_previous->_next = _next;\
 				_next->_previous = _previous;\
 			}\
-			this->_upNodeDeleteSubNodeCallback(this);\
+			(*this->_upNodeDeleteSubNodeCallbackPtr)(this);\
 			return;\
 		}\
 		else\
@@ -77,7 +77,7 @@ if (_elements.Count() < lowBound)\
 StealNxt:\
 	{\
 		auto item = _next->_elements.FrontPopOut();\
-		_next->_minKeyChangeCallback(_next->MinKey(), _next);\
+		(*_next->_minKeyChangeCallbackPtr)(_next->MinKey(), _next);\
 		this->_elements.Append(move(item));/* Append */\
 		return;\
 	}\
@@ -85,7 +85,7 @@ StealPre:\
 	{\
 		auto item = _previous->_elements.PopOut();\
 		this->_elements.EmplaceHead(move(item));/*Front insert*/\
-		this->_minKeyChangeCallback(this->MinKey(), this);\
+		(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);\
 		return;\
 	}\
 }\
@@ -129,7 +129,7 @@ AddToPre:\
 if (!_previous->_elements.Full())\
 {\
 	_previous->_elements.Append(_elements.ExchangeMin(move(p)));/*Append*/\
-	this->_minKeyChangeCallback(this->MinKey(), this);\
+	(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);\
 	return;\
 }\
 goto ConsNewNode;\
@@ -137,7 +137,7 @@ AddToNext:\
 if (!_next->_elements.Full())\
 {\
 	_next->_elements.EmplaceHead(this->_elements.ExchangeMax(move(p)));/*Front insert*/\
-	_next->_minKeyChangeCallback(_next->MinKey(), _next);\
+	(*_next->_minKeyChangeCallbackPtr)(_next->MinKey(), _next);\
 	return;\
 }\
 goto ConsNewNode;\
@@ -159,7 +159,7 @@ if (i <= middle)\
 	this->_elements.Add(move(p));/* Add (Does it duplicate to SelectBranch before)*/\
 	if (i == 0)\
 	{\
-		this->_minKeyChangeCallback(this->MinKey(), this);\
+		(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);\
 	}\
 	newNxtNode->_elements.AppendItems(move(items));/* Appends */\
 }\
@@ -170,4 +170,4 @@ else\
 	newNxtNode->_elements.Add(move(p));/* Add */\
 }\
 \
-this->_upNodeAddSubNodeCallback(this, move(newNxtNode));
+(*this->_upNodeAddSubNodeCallbackPtr)(this, move(newNxtNode));

@@ -31,28 +31,30 @@ namespace Collections
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeBase
 	{
+	public:
+		using UpNodeAddSubNodeCallback = function<void(NodeBase*, unique_ptr<NodeBase>)>;
+		using UpNodeDeleteSubNodeCallback = function<void(NodeBase*)>;
+		using MinKeyChangeCallback = function<void(Key const&, NodeBase*)>;
+		using ShallowTreeCallback = function<void()>;
+
 	protected:
 		static const order_int LowBound = 1 + ((BtreeOrder - 1) / 2);
-		function<void(NodeBase*, unique_ptr<NodeBase>)> _upNodeAddSubNodeCallback;
-		function<void(NodeBase*)> _upNodeDeleteSubNodeCallback;
-		function<void(Key const&, NodeBase*)> _minKeyChangeCallback;
+		UpNodeAddSubNodeCallback* _upNodeAddSubNodeCallbackPtr = nullptr;
+		UpNodeDeleteSubNodeCallback* _upNodeDeleteSubNodeCallbackPtr = nullptr;
+		MinKeyChangeCallback* _minKeyChangeCallbackPtr = nullptr;
+
 	public:
-		void SetUpNodeCallback(function<void(NodeBase*, unique_ptr<NodeBase>)> addSubNodeCallback, 
-								function<void(NodeBase*)> deleteSubNodeCallback, 
-								function<void(Key const&, NodeBase*)> minKeyChangeCallback)
+		void SetUpNodeCallback(UpNodeAddSubNodeCallback* addSubNodeCallbackPtr,
+			UpNodeDeleteSubNodeCallback* deleteSubNodeCallbackPtr,
+			MinKeyChangeCallback* minKeyChangeCallbackPtr)
 		{
-			_upNodeAddSubNodeCallback = move(addSubNodeCallback);
-			_upNodeDeleteSubNodeCallback = move(deleteSubNodeCallback);
-			_minKeyChangeCallback = move(minKeyChangeCallback);
+			_upNodeAddSubNodeCallbackPtr = addSubNodeCallbackPtr;
+			_upNodeDeleteSubNodeCallbackPtr = deleteSubNodeCallbackPtr;
+			_minKeyChangeCallbackPtr = minKeyChangeCallbackPtr;
 
 		}
 
-		auto GetNodeCallback() const
-		{
-			return make_tuple(_upNodeAddSubNodeCallback, _upNodeDeleteSubNodeCallback, _minKeyChangeCallback);
-		}
-
-		virtual void SetShallowCallbackPointer(function<void()>*)
+		virtual void SetShallowCallbackPointer(ShallowTreeCallback*)
 		{ }
 		virtual void ResetShallowCallbackPointer()
 		{ }

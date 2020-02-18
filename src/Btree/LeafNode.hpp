@@ -80,7 +80,7 @@ namespace Collections
 			{
 				return _elements.Add(move(p), [this]() 
 				{
-					this->_minKeyChangeCallback(this->MinKey(), this);
+					(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
 				});
 			}
 
@@ -93,7 +93,7 @@ namespace Collections
 			_elements.RemoveAt(i);
 			if (i == 0)
 			{
-				this->_minKeyChangeCallback(MinKey(), this);
+				(*this->_minKeyChangeCallbackPtr)(MinKey(), this);
 			}
 
 			AFTER_REMOVE_COMMON(true);

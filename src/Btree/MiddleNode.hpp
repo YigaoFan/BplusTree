@@ -32,9 +32,12 @@ namespace Collections
 		using Base = NodeBase<Key, Value, BtreeOrder>;
 		// TODO Split node need to copy two below items
 		// TODO maybe below two item could be pointer, then entity stored in its' parent like Btree do
+		typename Base::UpNodeAddSubNodeCallback _addSubNodeCallback = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
+		typename Base::UpNodeDeleteSubNodeCallback _deleteSubNodeCallback = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
+		typename Base::MinKeyChangeCallback _minKeyChangeCallback = bind(&MiddleNode::SubNodeMinKeyChangeCallback, this, _1, _2);
 		function<MiddleNode *(MiddleNode const*)> _queryPrevious = [](auto) { return nullptr; };
 		function<MiddleNode *(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
-		function<void()> * _shallowTreeCallbackPtr = nullptr;
+		typename Base::ShallowTreeCallback* _shallowTreeCallbackPtr = nullptr;
 		using _LessThan = LessThan<Key>;
 		Elements<reference_wrapper<Key const>, unique_ptr<Base>, BtreeOrder, _LessThan> _elements;
 
@@ -53,6 +56,10 @@ namespace Collections
 			SetSubNode();
 		}
 
+		MiddleNode(MiddleNode const& that)
+			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, unique_ptr<Base>>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
+		{ }
+
 		MiddleNode(MiddleNode&& that) noexcept
 			: Base(move(that)), _elements(move(that._elements)), 
 			_queryNext(move(that._queryNext)), _queryPrevious(move(that._queryPrevious)),
@@ -63,10 +70,13 @@ namespace Collections
 
 		unique_ptr<Base> Clone() const override
 		{
+			// If mark copy constructor private, this method cannot compile pass
+			// In make_unique internal will call MiddleNode copy constructor,
+			// but it doesn't have access
 			return make_unique<MiddleNode>(*this);
 		}
 
-		void SetShallowCallbackPointer(function<void()>* shallowTreeCallbackPtr) override
+		void SetShallowCallbackPointer(typename Base::ShallowTreeCallback* shallowTreeCallbackPtr) override
 		{
 			_shallowTreeCallbackPtr = shallowTreeCallbackPtr;
 		}
@@ -135,10 +145,6 @@ namespace Collections
 			SetSubNode();
 		}
 
-		MiddleNode(MiddleNode const& that)
-			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, unique_ptr<Base>>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
-		{ }
-
 		Base* MinSon() const { return _elements[0].second.get(); }
 		Base* MaxSon() const { return _elements[_elements.Count() - 1].second.get(); }
 		
@@ -173,10 +179,12 @@ namespace Collections
 		{
 			if (!_elements.Full())
 			{
+				newNextNode->SetUpNodeCallback(&_addSubNodeCallback, &_deleteSubNodeCallback, &_minKeyChangeCallback);
 				_elements.Emplace(_elements.IndexKeyOf(srcNode->MinKey()) + 1, { cref(newNextNode->MinKey()), move(newNextNode) });
 				return;
 			}
 
+			// TODO need to set callback of new sub node
 			auto _next = _queryNext(this);
 			auto _previous = _queryPrevious(this);
 			typename decltype(_elements)::Item p{ cref(newNextNode->MinKey()), move(newNextNode) };
@@ -235,7 +243,7 @@ namespace Collections
 
 			if (i == 0)
 			{
-				this->_minKeyChangeCallback(newMinKeyOfSubNode, this);
+				(*this->_minKeyChangeCallbackPtr)(newMinKeyOfSubNode, this);
 			}
 		}
 
@@ -275,16 +283,13 @@ namespace Collections
 
 		void SetSubNode()
 		{
-			using ::std::placeholders::_2;
 			Leaf* lastLeaf = nullptr;
 			MiddleNode* lastMidNode = nullptr;
 			bool subIsMiddle = MinSon()->Middle();
 			for (auto& e : _elements)
 			{
 				auto& node = e.second;
-				node->SetUpNodeCallback(bind(&MiddleNode::AddSubNodeCallback, this, _1, _2),
-					 bind(&MiddleNode::DeleteSubNodeCallback, this, _1),
-					 bind(&MiddleNode::SubNodeMinKeyChangeCallback, this, _1, _2));
+				node->SetUpNodeCallback(&_addSubNodeCallback, &_deleteSubNodeCallback, &_minKeyChangeCallback);
 
 				if (subIsMiddle)
 				{

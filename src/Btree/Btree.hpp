@@ -32,6 +32,8 @@ namespace Collections
 	using ::std::index_sequence;
 	using ::Basic::KeyNotFoundException;
 	using ::Basic::InvalidOperationException;
+	using ::std::placeholders::_1;
+	using ::std::placeholders::_2;
 
 	template <auto Total, auto ItemCapacity>
 	struct PerNodeCountGenerator
@@ -95,7 +97,10 @@ namespace Collections
 	private:
 		using Base   = NodeBase<Key, Value, BtreeOrder>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
-		function<void()> _shallowTreeCallback = bind(&Btree::ShallowRootCallback, this);
+		typename Base::UpNodeAddSubNodeCallback _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
+		typename Base::UpNodeDeleteSubNodeCallback _deleteRootCallback = bind(&Btree::DeleteRootCallback, this, _1);
+		typename Base::MinKeyChangeCallback _minKeyChangeCallback = bind(&Btree::RootMinKeyChangeCallback, this, _1, _2);
+		typename Base::ShallowTreeCallback _shallowTreeCallback = bind(&Btree::ShallowRootCallback, this);
 		shared_ptr<_LessThan> _lessThanPtr;
 		key_int              _keyCount{ 0 };
 		unique_ptr<Base>     _root;
@@ -307,26 +312,18 @@ namespace Collections
 
 		void SetRootCallbacks()
 		{
-			using ::std::placeholders::_1;
-			using ::std::placeholders::_2;
-			auto f1 = bind(&Btree::AddRootCallback, this, _1, _2);
-			auto f2 = bind(&Btree::DeleteRootCallback, this, _1);
-			auto f3 = bind(&Btree::RootMinKeyChangeCallback, this, _1, _2);
-			_root->SetUpNodeCallback(f1, f2, f3);
-			// TODO 考虑下为什么只有这个 callback 才这样弄
+			_root->SetUpNodeCallback(&_addRootCallback, &_deleteRootCallback, &_minKeyChangeCallback);
 			_root->SetShallowCallbackPointer(&_shallowTreeCallback);
 		}
 
+		// Below methods for root call
 		void AddRootCallback(Base* srcNode, unique_ptr<Base> newNextNode)
 		{
 			// TODO Assert the srcNode == _root when debug
-			using ::std::get;
-			auto callbacks = _root->GetNodeCallback();
 			_root->ResetShallowCallbackPointer();
-			array<unique_ptr<Base>, 2> nodes { move(_root), move(newNextNode) };
+			array<unique_ptr<Base>, 2> nodes { move(_root), move(newNextNode) }; // TODO have average?
 			_root = NodeFactoryType::MakeNode(CreateEnumerator(nodes), _lessThanPtr);
-			_root->SetUpNodeCallback(move(get<0>(callbacks)), move(get<1>(callbacks)), move(get<2>(callbacks)));
-			_root->SetShallowCallbackPointer(&_shallowTreeCallback);
+			SetRootCallbacks();
 		}
 
 		void RootMinKeyChangeCallback(Key const&, Base*)
@@ -343,8 +340,10 @@ namespace Collections
 
 		void ShallowRootCallback()
 		{
-			// TODO 新 root 的 callback 也要重置
-			NodeFactoryType::TryShallow(_root);
+			NodeFactoryType::TryShallow(_root, [this]()
+			{
+				this->SetRootCallbacks();
+			});
 		}
 	};
 }
