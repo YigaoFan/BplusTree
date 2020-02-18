@@ -115,6 +115,28 @@ namespace Collections
 				move(previousNodesKeys) : this->Next()->CollectKeys(move(previousNodesKeys));
 		}
 
+		/// previous is not null
+		void SetRelationWhileCombineToPrevious(LeafNode* previous)
+		{
+			previous->_next = this->_next;
+
+			if (this->_next != nullptr)
+			{
+				this->_next->_previous = previous;
+			}
+		}
+
+		/// next is not null
+		void SetRelationWhileCombineNext(LeafNode* next)
+		{
+			this->_next = next->_next;
+
+			if (next->_next != nullptr)
+			{
+				next->_next->_previous = this;
+			}
+		}
+
 		// Below methods for same node internal use
 		void AppendItems(vector<typename decltype(_elements)::Item> items)
 		{

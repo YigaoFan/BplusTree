@@ -38,8 +38,7 @@ namespace Collections
 		{
 			if constexpr (IsSpecialization<remove_reference_t<typename Enumerator<Ts...>::ValueType>, unique_ptr>::value)
 			{
-				//return make_unique<Middle>(enumerator, lessThan);
-				return nullptr;
+				return make_unique<Middle>(enumerator, lessThan);
 			}
 			else
 			{

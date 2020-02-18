@@ -91,6 +91,7 @@ TESTCASE("Str-Str btree test")
 
 		SECTION("Copy cons")
 		{
+			// TODO copy has problem
 			auto b = btree;
 			ASSERT(b.Count() == btree.Count());
 			b.Remove("3");

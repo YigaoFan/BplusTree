@@ -18,8 +18,7 @@ if (_elements.Count() < lowBound)\
 			this->AppendItems(move(items));/* M1 *//*Appends*/\
 			if constexpr (IS_LEAF)\
 			{\
-				this->_next = _next->_next;\
-				_next->_next->_previous = this;\
+				this->SetRelationWhileCombineNext(_next);\
 			}\
 			(*_next->_upNodeDeleteSubNodeCallbackPtr)(_next);\
 			return;\
@@ -38,8 +37,7 @@ if (_elements.Count() < lowBound)\
 			_previous->AppendItems(move(items));/* M2 *//*Appends*/\
 			if constexpr (IS_LEAF)\
 			{\
-				_previous->_next = _next;\
-				_next->_previous = _previous;\
+				this->SetRelationWhileCombineToPrevious(_previous);\
 			}\
 			(*this->_upNodeDeleteSubNodeCallbackPtr)(this);\
 			return;\
@@ -132,7 +130,7 @@ else\
 AddToPre:\
 if (!_previous->_elements.Full())\
 {\
-	/* M5 */_previous->Append(this->ExchangeMin(move(p)));/*Append*/ /* Let previous to process callback set*/\
+	/* M5 */_previous->Append(this->ExchangeMin(move(p)));/*Append*/\
 	return;\
 }\
 goto ConsNewNode;\
@@ -148,7 +146,7 @@ ConsNewNode:\
 auto newNxtNode = make_unique<remove_pointer_t<decltype(this)>>(_elements.LessThanPtr);\
 if constexpr (IS_LEAF)\
 {\
-	newNxtNode->_next = this->_next;\
+	newNxtNode->_next = this->_next;/* TODO _previous and _next maybe not exist */\
 	newNxtNode->_previous = this;\
 	this->_next = newNxtNode.get();\
 }\
