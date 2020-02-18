@@ -114,5 +114,47 @@ namespace Collections
 			return this->Next() == nullptr ? 
 				move(previousNodesKeys) : this->Next()->CollectKeys(move(previousNodesKeys));
 		}
+
+		// Below methods for same node internal use
+		void AppendItems(vector<typename decltype(_elements)::Item> items)
+		{
+			for (auto& i : items)
+			{
+				Append(move(i));
+			}
+		}
+
+		void Append(typename decltype(_elements)::Item item)
+		{
+			_elements.Append(move(item));
+		}
+
+		void EmplaceHead(typename decltype(_elements)::Item item)
+		{
+			_elements.EmplaceHead(move(item));
+			(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
+		}
+
+		void ProcessedAdd(typename decltype(_elements)::Item item)
+		{
+			_elements.Add(move(item), [this]()
+			{
+				(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
+			});
+		}
+
+		typename decltype(_elements)::Item
+		ExchangeMin(typename decltype(_elements)::Item item)
+		{
+			auto min = _elements.ExchangeMin(move(item));
+			(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
+			return move(min);
+		}
+
+		typename decltype(_elements)::Item
+		ExchangeMax(typename decltype(_elements)::Item item)
+		{
+			return _elements.ExchangeMax(move(item));
+		}
 	};
 }

@@ -177,14 +177,14 @@ namespace Collections
 
 		void AddSubNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
 		{
+			// newNextNode must not be MinSon
 			if (!_elements.Full())
 			{
-				newNextNode->SetUpNodeCallback(&_addSubNodeCallback, &_deleteSubNodeCallback, &_minKeyChangeCallback);
+				this->SetSubNodeCallback(newNextNode->Middle(), newNextNode);
 				_elements.Emplace(_elements.IndexKeyOf(srcNode->MinKey()) + 1, { cref(newNextNode->MinKey()), move(newNextNode) });
 				return;
 			}
 
-			// TODO need to set callback of new sub node
 			auto _next = _queryNext(this);
 			auto _previous = _queryPrevious(this);
 			typename decltype(_elements)::Item p{ cref(newNextNode->MinKey()), move(newNextNode) };
@@ -289,14 +289,11 @@ namespace Collections
 			for (auto& e : _elements)
 			{
 				auto& node = e.second;
-				node->SetUpNodeCallback(&_addSubNodeCallback, &_deleteSubNodeCallback, &_minKeyChangeCallback);
+				SetSubNodeCallback(subIsMiddle, node);
 
 				if (subIsMiddle)
 				{
 					auto midNode = MID_CAST(node.get());
-					midNode->_queryPrevious = bind(&MiddleNode::QuerySubNodePreviousCallback, this, _1);
-					midNode->_queryNext = bind(&MiddleNode::QuerySubNodeNextCallback, this, _1);
-
 					// set previous and next between MiddleNode
 					if (lastMidNode != nullptr)
 					{
@@ -322,8 +319,66 @@ namespace Collections
 				}
 			}
 		}
+
+		void SetSubNodeCallback(bool middle, unique_ptr<Base> const& node)
+		{
+			node->SetUpNodeCallback(&_addSubNodeCallback, &_deleteSubNodeCallback, &_minKeyChangeCallback);
+
+			if (middle)
+			{
+				auto midNode = MID_CAST(node.get());
+				midNode->_queryPrevious = bind(&MiddleNode::QuerySubNodePreviousCallback, this, _1);
+				midNode->_queryNext = bind(&MiddleNode::QuerySubNodeNextCallback, this, _1);
+			}
+		}
 #undef MID_CAST		
 #undef LEF_CAST
+		// Below methods for same node internal use
+		void AppendItems(vector<typename decltype(_elements)::Item> items)
+		{
+			for (auto& i : items)
+			{
+				Append(move(i));
+			}
+		}
+
+		void Append(typename decltype(_elements)::Item item)
+		{
+			this->SetSubNodeCallback(item.second->Middle(), item.second);
+			_elements.Append(move(item));
+		}
+
+		void EmplaceHead(typename decltype(_elements)::Item item)
+		{
+			this->SetSubNodeCallback(item.second->Middle(), item.second);
+			_elements.EmplaceHead(move(item));
+			(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
+		}
+
+		void ProcessedAdd(typename decltype(_elements)::Item item)
+		{
+			this->SetSubNodeCallback(item.second->Middle(), item.second);
+			_elements.Add(move(item), [this]()
+			{
+				(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
+			});
+		}
+
+		typename decltype(_elements)::Item
+		ExchangeMin(typename decltype(_elements)::Item item)
+		{
+			this->SetSubNodeCallback(item.second->Middle(), item.second);
+			auto min = _elements.ExchangeMin(move(item));
+			(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
+			return move(min);
+		}
+
+		typename decltype(_elements)::Item
+		ExchangeMax(typename decltype(_elements)::Item item)
+		{
+			this->SetSubNodeCallback(item.second->Middle(), item.second);
+			return _elements.ExchangeMax(move(item));
+		}
 
 		static typename decltype(_elements)::Item ConvertRefPtrToKeyPtrPair(unique_ptr<Base>& node)
 		{

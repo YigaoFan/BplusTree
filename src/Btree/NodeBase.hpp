@@ -51,7 +51,6 @@ namespace Collections
 			_upNodeAddSubNodeCallbackPtr = addSubNodeCallbackPtr;
 			_upNodeDeleteSubNodeCallbackPtr = deleteSubNodeCallbackPtr;
 			_minKeyChangeCallbackPtr = minKeyChangeCallbackPtr;
-
 		}
 
 		virtual void SetShallowCallbackPointer(ShallowTreeCallback*)

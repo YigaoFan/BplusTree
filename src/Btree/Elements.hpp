@@ -117,14 +117,6 @@ namespace Collections
 			Base::Add(move(p));
 		}
 
-		void AppendItems(vector<Item> items)
-		{
-			for (auto& i : items)
-			{
-				this->Append(move(i));
-			}
-		}
-
 		Item ExchangeMax(Item p)
 		{
 			auto max = this->PopOut();

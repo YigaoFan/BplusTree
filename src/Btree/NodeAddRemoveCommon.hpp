@@ -1,4 +1,5 @@
 #pragma once
+// Combine or change also need to set callback
 #define AFTER_REMOVE_COMMON(IS_LEAF) \
 constexpr auto lowBound = Base::LowBound;\
 if (_elements.Count() < lowBound)\
@@ -14,7 +15,7 @@ if (_elements.Count() < lowBound)\
 		{\
 			/* Think combine first */\
 			auto items = _next->_elements.PopOutAll();\
-			this->_elements.AppendItems(move(items));/*Appends*/\
+			this->AppendItems(move(items));/* M1 *//*Appends*/\
 			if constexpr (IS_LEAF)\
 			{\
 				this->_next = _next->_next;\
@@ -34,7 +35,7 @@ if (_elements.Count() < lowBound)\
 		if (_previous->_elements.Count() == lowBound)\
 		{\
 			auto items = this->_elements.PopOutAll();\
-			_previous->_elements.AppendItems(move(items));/*Appends*/\
+			_previous->AppendItems(move(items));/* M2 *//*Appends*/\
 			if constexpr (IS_LEAF)\
 			{\
 				_previous->_next = _next;\
@@ -78,18 +79,21 @@ StealNxt:\
 	{\
 		auto item = _next->_elements.FrontPopOut();\
 		(*_next->_minKeyChangeCallbackPtr)(_next->MinKey(), _next);\
-		this->_elements.Append(move(item));/* Append */\
+		this->Append(move(item));/* M3 *//* Append */\
 		return;\
 	}\
 StealPre:\
 	{\
 		auto item = _previous->_elements.PopOut();\
-		this->_elements.EmplaceHead(move(item));/*Front insert*/\
-		(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);\
+		this->EmplaceHead(move(item));/* M4 *//*Front insert*/\
 		return;\
 	}\
 }\
-NoWhereToProcess:\
+else\
+{\
+	return;\
+}\
+NoWhereToProcess:
 // Remove should think of set of _previous and _next of LeafNode
 
 #define ADD_COMMON(IS_LEAF) \
@@ -128,16 +132,14 @@ else\
 AddToPre:\
 if (!_previous->_elements.Full())\
 {\
-	_previous->_elements.Append(_elements.ExchangeMin(move(p)));/*Append*/\
-	(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);\
+	/* M5 */_previous->Append(this->ExchangeMin(move(p)));/*Append*/ /* Let previous to process callback set*/\
 	return;\
 }\
 goto ConsNewNode;\
 AddToNext:\
 if (!_next->_elements.Full())\
 {\
-	_next->_elements.EmplaceHead(this->_elements.ExchangeMax(move(p)));/*Front insert*/\
-	(*_next->_minKeyChangeCallbackPtr)(_next->MinKey(), _next);\
+	/* M6 */_next->EmplaceHead(this->ExchangeMax(move(p)));/*Front insert*/\
 	return;\
 }\
 goto ConsNewNode;\
@@ -156,18 +158,14 @@ constexpr auto middle = (BtreeOrder % 2) ? (BtreeOrder / 2) : (BtreeOrder / 2 + 
 if (i <= middle)\
 {\
 	auto items = this->_elements.PopOutItems(middle);\
-	this->_elements.Add(move(p));/* Add (Does it duplicate to SelectBranch before)*/\
-	if (i == 0)\
-	{\
-		(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);\
-	}\
-	newNxtNode->_elements.AppendItems(move(items));/* Appends */\
+	/* M7 */this->ProcessedAdd(move(p));/* Add (Does it duplicate to SelectBranch before)*/\
+	/* M8 */newNxtNode->AppendItems(move(items));/* Appends */\
 }\
 else\
 {\
 	auto items = this->_elements.PopOutItems(BtreeOrder - middle);\
-	newNxtNode->_elements.AppendItems(move(items));/*Appends*/\
-	newNxtNode->_elements.Add(move(p));/* Add */\
+	/* M9 */newNxtNode->AppendItems(move(items));/*Appends*/\
+	/* M10 */newNxtNode->ProcessedAdd(move(p));/* Add */\
 }\
 \
 (*this->_upNodeAddSubNodeCallbackPtr)(this, move(newNxtNode));
