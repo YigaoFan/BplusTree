@@ -18,6 +18,7 @@ namespace Collections
 	using ::std::array;
 	using ::std::move;
 	using ::Basic::KeyNotFoundException;
+	using ::Basic::InvalidOperationException;
 	
 	// TODO when BtreeOrder is big, use binary search in iterate process
 	template <typename Key, typename Value, order_int BtreeOrder, typename LessThan>
@@ -208,6 +209,8 @@ namespace Collections
 					}
 				}
 			}
+
+			thorw InvalidOperationException("Cannot find suitable room for key, program has bug")
 		}
 	};
 }
