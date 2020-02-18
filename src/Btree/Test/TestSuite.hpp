@@ -9,7 +9,7 @@ namespace CollectionsTest
 	{
 		// elementTest();
 		// nodeTest();
-		liteVectorTest();
-		//btreeTest();
+		liteVectorTest(); // If not call, _test_ vector memory will not free
+		btreeTest();
 	}
 }
