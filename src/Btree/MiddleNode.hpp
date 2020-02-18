@@ -1,7 +1,6 @@
 #pragma once
 #include <memory>
 #include <functional>
-#include <type_traits>
 #include "../Basic/Exception.hpp"
 #include "Basic.hpp"
 #include "EnumeratorPipeline.hpp"
@@ -21,7 +20,6 @@ namespace Collections
 	using ::std::bind;
 	using ::std::placeholders::_1;
 	using ::Basic::NotImplementException;
-	using ::std::add_const;
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeFactory;
@@ -54,11 +52,6 @@ namespace Collections
 		{
 			SetSubNode();
 		}
-
-		// TODO private this method?
-		MiddleNode(MiddleNode const& that)
-			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, unique_ptr<Base>>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
-		{ }
 
 		MiddleNode(MiddleNode&& that) noexcept
 			: Base(move(that)), _elements(move(that._elements)), 
@@ -141,6 +134,10 @@ namespace Collections
 		{
 			SetSubNode();
 		}
+
+		MiddleNode(MiddleNode const& that)
+			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, unique_ptr<Base>>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
+		{ }
 
 		Base* MinSon() const { return _elements[0].second.get(); }
 		Base* MaxSon() const { return _elements[_elements.Count() - 1].second.get(); }

@@ -31,7 +31,7 @@ namespace Collections
 	using ::std::make_index_sequence;
 	using ::std::index_sequence;
 	using ::Basic::KeyNotFoundException;
-	using ::Basic::NotImplementException;
+	using ::Basic::InvalidOperationException;
 
 	template <auto Total, auto ItemCapacity>
 	struct PerNodeCountGenerator
@@ -336,8 +336,8 @@ namespace Collections
 		{
 			if (root->Middle())
 			{
-				throw NotImplementException
-					("MiddleNode root no need to implement Delete node method, if called, means error");
+				throw InvalidOperationException
+					("MiddleNode root no need to call upper Delete node method, if called, means error");
 			}
 		}
 
