@@ -17,7 +17,7 @@
 
 int main()
 {
-	BTREE_TEST(BtreeTest::AllTest());
+	BTREE_TEST(CollectionsTest::AllTest());
 	JSON_TEST(JsonTest::allTest());
 
 #ifdef _MSC_VER
