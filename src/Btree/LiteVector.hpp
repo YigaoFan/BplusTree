@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <vector>
 #include <array>
-#include <type_traits>
 
 namespace Collections
 {
@@ -34,9 +33,15 @@ namespace Collections
 		}
 
 		LiteVector(LiteVector const& that)
-			: _mem(that._mem), _count(that._count)
-		{ 
-			static_assert(::std::is_copy_constructible_v<T>);
+		{
+			for (auto& i : that)
+			{
+				Add(i);
+				//_ptr[_count++] = i;
+				// difference to up: this is assign.
+				// Maybe need to destruct left value first(but must some operation), then copy
+				// but here memory is raw, error
+			}
 		}
 
 		LiteVector(LiteVector&& that)
