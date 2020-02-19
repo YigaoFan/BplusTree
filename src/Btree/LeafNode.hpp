@@ -137,6 +137,17 @@ namespace Collections
 			}
 		}
 
+		void SetRelationWhileSplitNewNext(LeafNode* newNext)
+		{
+			newNext->_next = this->_next;
+			newNext->_previous = this;
+			this->_next = newNext;
+			if (this->_next != nullptr)
+			{
+				this->_next->_previous = newNext;
+			}
+		}
+
 		// Below methods for same node internal use
 		void AppendItems(vector<typename decltype(_elements)::Item> items)
 		{

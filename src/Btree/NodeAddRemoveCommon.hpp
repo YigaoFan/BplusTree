@@ -134,6 +134,7 @@ if (!_previous->_elements.Full())\
 	return;\
 }\
 goto ConsNewNode;\
+\
 AddToNext:\
 if (!_next->_elements.Full())\
 {\
@@ -146,9 +147,7 @@ ConsNewNode:\
 auto newNxtNode = make_unique<remove_pointer_t<decltype(this)>>(_elements.LessThanPtr);\
 if constexpr (IS_LEAF)\
 {\
-	newNxtNode->_next = this->_next;/* TODO _previous and _next maybe not exist */\
-	newNxtNode->_previous = this;\
-	this->_next = newNxtNode.get();\
+	this->SetRelationWhileSplitNewNext(newNxtNode.get());\
 }\
 \
 auto i = _elements.SelectBranch(p.first);\
