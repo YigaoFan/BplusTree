@@ -302,3 +302,5 @@ namespace
         }                                                                                            \
         ++successCount;                                                                              \
     } while(0)
+
+#define D(var) ::std::cout << #var << ": "<< var << endl

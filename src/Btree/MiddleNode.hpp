@@ -14,7 +14,6 @@ namespace Collections
 {
 	using ::std::move;
 	using ::std::unique_ptr;
-	using ::std::cref;
 	using ::std::reference_wrapper;
 	using ::std::pair;
 	using ::std::make_pair;
@@ -33,7 +32,7 @@ namespace Collections
 	};	
 
 	template <typename A, typename B>	
-	struct CompileIf<true, A, B>	
+	struct CompileIf<false, A, B>	
 	{	
 		using Type = B;	
 	};
@@ -47,7 +46,7 @@ namespace Collections
 	private:
 		friend class NodeFactory<Key, Value, BtreeOrder>;
 		using Base = NodeBase<Key, Value, BtreeOrder>;
-		using StoredKey = CompileIf<is_fundamental_v<Key>, Key, reference_wrapper<Key const>>::Type;
+		using StoredKey = typename CompileIf<is_fundamental_v<Key>, Key, reference_wrapper<Key const>>::Type;
 		// TODO maybe below two item could be pointer, then entity stored in its' parent like Btree do
 		typename Base::UpNodeAddSubNodeCallback _addSubNodeCallback = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
 		typename Base::UpNodeDeleteSubNodeCallback _deleteSubNodeCallback = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
@@ -56,7 +55,7 @@ namespace Collections
 		function<MiddleNode *(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
 		typename Base::ShallowTreeCallback* _shallowTreeCallbackPtr = nullptr;
 		using _LessThan = LessThan<Key>;
-		Elements<reference_wrapper<Key const>, unique_ptr<Base>, BtreeOrder, _LessThan> _elements;
+		Elements<StoredKey, unique_ptr<Base>, BtreeOrder, _LessThan> _elements;
 
 	public:
 		bool Middle() const override { return true; }
@@ -74,7 +73,7 @@ namespace Collections
 		}
 
 		MiddleNode(MiddleNode const& that)
-			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, unique_ptr<Base>>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, &that, _1)), that._elements.LessThanPtr)
+			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, unique_ptr<Base>>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
 		{ }
 
 		MiddleNode(MiddleNode&& that) noexcept
@@ -198,13 +197,13 @@ namespace Collections
 			if (!_elements.Full())
 			{
 				this->SetSubNodeCallback(newNextNode->Middle(), newNextNode);
-				_elements.Emplace(_elements.IndexKeyOf(srcNode->MinKey()) + 1, { cref(newNextNode->MinKey()), move(newNextNode) });
+				_elements.Emplace(_elements.IndexKeyOf(srcNode->MinKey()) + 1, { StoredKey(newNextNode->MinKey()), move(newNextNode) });
 				return;
 			}
 
 			auto _next = _queryNext(this);
 			auto _previous = _queryPrevious(this);
-			typename decltype(_elements)::Item p{ cref(newNextNode->MinKey()), move(newNextNode) };
+			typename decltype(_elements)::Item p{ StoredKey(newNextNode->MinKey()), move(newNextNode) };
 			ADD_COMMON(false);
 		}
 
@@ -256,7 +255,7 @@ namespace Collections
 				throw InvalidOperationException("Cannot find node in MiddleNode::_elements");
 			};
 			auto i = (order_int)indexOfSubNode(subNode);
-			_elements[i].first = cref(newMinKeyOfSubNode);
+			_elements[i].first = StoredKey(newMinKeyOfSubNode);
 
 			if (i == 0)
 			{
@@ -400,13 +399,13 @@ namespace Collections
 		static typename decltype(_elements)::Item ConvertRefPtrToKeyPtrPair(unique_ptr<Base>& node)
 		{
 			using pairType = typename decltype(_elements)::Item;
-			return make_pair<pairType::first_type, pairType::second_type>(cref(node->MinKey()), move(node));
+			return make_pair<pairType::first_type, pairType::second_type>(StoredKey(node->MinKey()), move(node));
 		}
 
 		static typename decltype(_elements)::Item ConvertPtrToKeyPtrPair(unique_ptr<Base> node)
 		{
 			using pairType = typename decltype(_elements)::Item;
-			return make_pair<pairType::first_type, pairType::second_type>(cref(node->MinKey()), move(node));
+			return make_pair<pairType::first_type, pairType::second_type>(StoredKey(node->MinKey()), move(node));
 		}
 
 		static unique_ptr<Base> CloneSubNode(typename decltype(_elements)::Item const& item)
