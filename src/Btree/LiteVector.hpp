@@ -18,7 +18,7 @@ namespace Collections
 	{
 	private:
 		array<uint8_t, sizeof(T) * Capacity> _mem;
-		T* _ptr = reinterpret_cast<T*>(&_mem[0]);
+		T* const _ptr = reinterpret_cast<T*>(&_mem[0]);
 	protected:
 		size_int _count = 0;
 
@@ -149,8 +149,8 @@ namespace Collections
 			}
 			else
 			{
-				auto rend =  start - 1;
-				for (auto rbegin = _ptr + _count - 1; rbegin != rend; --rbegin)
+				auto rend = start - 1;
+				for (auto rbegin = this->end() - 1; rbegin != rend; --rbegin)
 				{
 					*(rbegin + direction) = move(*rbegin);
 				}

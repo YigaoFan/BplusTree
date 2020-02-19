@@ -67,6 +67,9 @@ namespace Collections
 		virtual void ModifyValue(Key const&, Value) = 0;
 		virtual void Add(pair<Key, Value>) = 0;
 		virtual void Remove(Key const&) = 0;
+		// TODO maybe add #ifdef. Could use below method implement Enumerator: use LeafNode relation save state
+		virtual void TraverseInternalItem()
+		{ }
 		
 	protected:
 		template <Operation Op>

@@ -9,18 +9,18 @@ if (_elements.Count() < lowBound)\
 		(*this->_upNodeDeleteSubNodeCallbackPtr)(this);\
 	}\
 	bool nxtStealable = false, preStealable = false;\
-	if (_next != nullptr)\
+	if (next != nullptr)\
 	{\
-		if (_next->_elements.Count() == lowBound)\
+		if (next->_elements.Count() == lowBound)\
 		{\
 			/* Think combine first */\
-			auto items = _next->_elements.PopOutAll();\
+			auto items = next->_elements.PopOutAll();\
 			this->AppendItems(move(items));/* M1 *//*Appends*/\
 			if constexpr (IS_LEAF)\
 			{\
-				this->SetRelationWhileCombineNext(_next);\
+				this->SetRelationWhileCombineNext(next);\
 			}\
-			(*_next->_upNodeDeleteSubNodeCallbackPtr)(_next);\
+			(*next->_upNodeDeleteSubNodeCallbackPtr)(next);\
 			return;\
 		}\
 		else\
@@ -29,15 +29,15 @@ if (_elements.Count() < lowBound)\
 		}\
 	}\
 \
-	if (_previous != nullptr)\
+	if (previous != nullptr)\
 	{\
-		if (_previous->_elements.Count() == lowBound)\
+		if (previous->_elements.Count() == lowBound)\
 		{\
 			auto items = this->_elements.PopOutAll();\
-			_previous->AppendItems(move(items));/* M2 *//*Appends*/\
+			previous->AppendItems(move(items));/* M2 *//*Appends*/\
 			if constexpr (IS_LEAF)\
 			{\
-				this->SetRelationWhileCombineToPrevious(_previous);\
+				this->SetRelationWhileCombineToPrevious(previous);/* this code should in MiddleNode */\
 			}\
 			(*this->_upNodeDeleteSubNodeCallbackPtr)(this);\
 			return;\
@@ -50,8 +50,8 @@ if (_elements.Count() < lowBound)\
 \
 	if (nxtStealable && preStealable)\
 	{\
-		switch (Base::ChooseOperatePosition<Operation::Remove>(_previous->_elements.Count(), this->_elements.Count(),\
-			_next->_elements.Count()))\
+		switch (Base::ChooseOperatePosition<Operation::Remove>(previous->_elements.Count(), this->_elements.Count(),\
+			next->_elements.Count()))\
 		{\
 		case Position::Next:\
 			goto StealNxt;\
@@ -75,14 +75,14 @@ if (_elements.Count() < lowBound)\
 \
 StealNxt:\
 	{\
-		auto item = _next->_elements.FrontPopOut();\
-		(*_next->_minKeyChangeCallbackPtr)(_next->MinKey(), _next);\
+		auto item = next->_elements.FrontPopOut();\
+		(*next->_minKeyChangeCallbackPtr)(next->MinKey(), next);\
 		this->Append(move(item));/* M3 *//* Append */\
 		return;\
 	}\
 StealPre:\
 	{\
-		auto item = _previous->_elements.PopOut();\
+		auto item = previous->_elements.PopOut();\
 		this->EmplaceHead(move(item));/* M4 *//*Front insert*/\
 		return;\
 	}\
@@ -92,13 +92,13 @@ else\
 	return;\
 }\
 NoWhereToProcess:
-// Remove should think of set of _previous and _next of LeafNode
+// Remove should think of set of previous and next of LeafNode
 
 #define ADD_COMMON(IS_LEAF) \
 bool addToPre = false, addToNxt = false;\
-if (_previous == nullptr)\
+if (previous == nullptr)\
 {\
-	if (_next != nullptr)\
+	if (next != nullptr)\
 	{\
 		goto AddToNext;\
 	}\
@@ -109,15 +109,15 @@ if (_previous == nullptr)\
 }\
 else\
 {\
-	if (_next == nullptr)\
+	if (next == nullptr)\
 	{\
 		goto AddToPre;\
 	}\
 	else\
 	{\
-		switch (Base::ChooseOperatePosition<Operation::Add>(_previous->_elements.Count(),\
+		switch (Base::ChooseOperatePosition<Operation::Add>(previous->_elements.Count(),\
 			this->_elements.Count(),\
-			_next->_elements.Count()))\
+			next->_elements.Count()))\
 		{\
 		case Position::Previous:\
 			goto AddToPre;\
@@ -128,17 +128,17 @@ else\
 }\
 \
 AddToPre:\
-if (!_previous->_elements.Full())\
+if (!previous->_elements.Full())\
 {\
-	/* M5 */_previous->Append(this->ExchangeMin(move(p)));/*Append*/\
+	/* M5 */previous->Append(this->ExchangeMin(move(p)));/*Append*/\
 	return;\
 }\
 goto ConsNewNode;\
 \
 AddToNext:\
-if (!_next->_elements.Full())\
+if (!next->_elements.Full())\
 {\
-	/* M6 */_next->EmplaceHead(this->ExchangeMax(move(p)));/*Front insert*/\
+	/* M6 */next->EmplaceHead(this->ExchangeMax(move(p)));/*Front insert*/\
 	return;\
 }\
 goto ConsNewNode;\
@@ -151,7 +151,7 @@ if constexpr (IS_LEAF)\
 }\
 \
 auto i = _elements.SelectBranch(p.first);\
-constexpr auto middle = (BtreeOrder % 2) ? (BtreeOrder / 2) : (BtreeOrder / 2 + 1);\
+constexpr auto middle = (BtreeOrder % 2 == 0) ? (BtreeOrder / 2) : (BtreeOrder / 2 + 1);\
 if (i <= middle)\
 {\
 	auto items = this->_elements.PopOutItems(middle);\

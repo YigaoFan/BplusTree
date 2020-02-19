@@ -191,9 +191,10 @@ namespace Collections
 					{
 						changeMinCallback();
 					}
-				}
 
-				if constexpr (WithCheck)
+					return;
+				}
+				else if constexpr (WithCheck)
 				{
 					if (!lessThan(this->operator[](i).first, p.first))
 					{

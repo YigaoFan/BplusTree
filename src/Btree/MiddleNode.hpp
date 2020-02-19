@@ -62,9 +62,7 @@ namespace Collections
 
 		MiddleNode(shared_ptr<_LessThan> lessThanPtr)
 			: Base(), _elements(lessThanPtr)
-		{
-			SetSubNode();
-		}	
+		{ }	
 
 		MiddleNode(IEnumerator<unique_ptr<Base>&>& enumerator, shared_ptr<_LessThan> lessThanPtr)
 			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>&, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertRefPtrToKeyPtrPair, _1)), lessThanPtr)
@@ -194,6 +192,7 @@ namespace Collections
 		void AddSubNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
 		{
 			// newNextNode must not be MinSon
+			// TODO need to set relation if need
 			if (!_elements.Full())
 			{
 				this->SetSubNodeCallback(newNextNode->Middle(), newNextNode);
@@ -201,35 +200,37 @@ namespace Collections
 				return;
 			}
 
-			auto _next = _queryNext(this);
-			auto _previous = _queryPrevious(this);
+			auto next = _queryNext(this);
+			auto previous = _queryPrevious(this);
 			typename decltype(_elements)::Item p{ StoredKey(newNextNode->MinKey()), move(newNextNode) };
 			ADD_COMMON(false);
 		}
 
 		void DeleteSubNodeCallback(Base* node)// TODO this node cannot be MinSon?
 		{
-			auto i = _elements.IndexKeyOf(node->MinKey());
-			if (!node->Middle())
-			{
-				auto leafNode = LEF_CAST(node);
-				// Fresh the _next of LeafNode
-				if (i != 0)
-				{
-					LEF_CAST(_elements[i - 1].second.get())->Next(leafNode->Next());
-				}
+			// node has no key
+			auto i = IndexOfSubNode(node);
+			//if (!node->Middle())
+			//{
+			//	auto leafNode = LEF_CAST(node);
+			//	// Fresh the _next of LeafNode
+			//	if (i != 0)
+			//	{
+			// 在这里设置的话，即使 i = 0，这只是 MiddleNode 内部的，所以这个节点左边仍然可能有节点
+			//		LEF_CAST(_elements[i - 1].second.get())->Next(leafNode->Next());
+			//	}
 
-				// Fresh the _previous of LeafNode
-				if (i != _elements.Count() - 1)
-				{
-					LEF_CAST(_elements[i + 1].second.get())->Previous(leafNode->Previous());
-				}
-			}
+			//	// Fresh the _previous of LeafNode
+			//	if (i != _elements.Count() - 1)
+			//	{
+			//		LEF_CAST(_elements[i + 1].second.get())->Previous(leafNode->Previous());
+			//	}
+			//}
 
 			_elements.RemoveAt(i);
 			// Below two variables is to macro
-			auto _next = _queryNext(this);
-			auto _previous = _queryPrevious(this);
+			auto next = _queryNext(this);
+			auto previous = _queryPrevious(this);
 			AFTER_REMOVE_COMMON(false);
 			// MiddleNode need to handle NoWhereToProcess
 			// 下面这句是发生在 root 那个 node
@@ -241,20 +242,7 @@ namespace Collections
 
 		void SubNodeMinKeyChangeCallback(Key const& newMinKeyOfSubNode, Base* subNode)
 		{
-			auto indexOfSubNode = [this](Base* node)
-			{
-				auto e = this->_elements.GetEnumerator();
-				while (e.MoveNext())
-				{
-					if (e.Current().second.get() == node)
-					{
-						return e.CurrentIndex();
-					}
-				}
-
-				throw InvalidOperationException("Cannot find node in MiddleNode::_elements");
-			};
-			auto i = (order_int)indexOfSubNode(subNode);
+			auto i = IndexOfSubNode(subNode);
 			_elements[i].first = StoredKey(newMinKeyOfSubNode);
 
 			if (i == 0)
@@ -315,7 +303,7 @@ namespace Collections
 					{
 						auto nowMin = midNode->MinLeafInMyRange();
 						auto lastMax = lastMidNode->MaxLeafInMyRange();
-						lastMax->Next(nowMin);
+						lastMax->Next(nowMin); // TODO newNextNode should also set in MiddleNode? not in itself
 						nowMin->Previous(lastMax);
 					}
 
@@ -349,6 +337,20 @@ namespace Collections
 		}
 #undef MID_CAST		
 #undef LEF_CAST
+		order_int IndexOfSubNode(Base const* node) const
+		{
+			auto e = _elements.GetEnumerator();
+			while (e.MoveNext())
+			{
+				if (e.Current().second.get() == node)
+				{
+					return (order_int)e.CurrentIndex();
+				}
+			}
+
+			throw InvalidOperationException("Cannot find node in MiddleNode::_elements");
+		}
+
 		// Below methods for same node internal use
 		void AppendItems(vector<typename decltype(_elements)::Item> items)
 		{

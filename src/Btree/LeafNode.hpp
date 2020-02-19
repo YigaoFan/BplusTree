@@ -84,6 +84,8 @@ namespace Collections
 				});
 			}
 
+			auto next = _next;
+			auto previous = _previous;
 			ADD_COMMON(true);
 		}
 
@@ -96,6 +98,8 @@ namespace Collections
 				(*this->_minKeyChangeCallbackPtr)(MinKey(), this);
 			}
 
+			auto next = _next;
+			auto previous = _previous;
 			AFTER_REMOVE_COMMON(true);
 			// LeafNode no need to handle NoWhereToProcess,
 			// Cannot put code here
@@ -141,11 +145,12 @@ namespace Collections
 		{
 			newNext->_next = this->_next;
 			newNext->_previous = this;
-			this->_next = newNext;
 			if (this->_next != nullptr)
 			{
 				this->_next->_previous = newNext;
 			}
+
+			this->_next = newNext;
 		}
 
 		// Below methods for same node internal use
