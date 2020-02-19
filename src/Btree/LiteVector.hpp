@@ -23,6 +23,8 @@ namespace Collections
 		size_int _count = 0;
 
 	public:
+		using Item = T;
+		
 		LiteVector() { }
 
 		template <typename... Ts>

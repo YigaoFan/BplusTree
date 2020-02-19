@@ -15,7 +15,8 @@ namespace Collections
     using ::std::move;
     using ::std::size_t;
 
-    template <typename RawItem, typename Item>
+    // TODO could refactor function process related code
+    template <typename RawItem, typename Item> // TODO add another type arg for func arg
     class EnumeratorPipeline : public IEnumerator<Item>
     {
     private:
@@ -47,7 +48,7 @@ namespace Collections
         }
 
         template <typename T>
-		auto operator|(function<T(Item&)> func)
+		auto operator| (function<T(Item&)> func)
         {
             return EnumeratorPipeline<RawItem, T>(_enumerator,
                 [func1 = _func, func2 = move(func)](RawItem item) 

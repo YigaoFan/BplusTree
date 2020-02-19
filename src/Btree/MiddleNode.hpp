@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <functional>
+#include <type_traits>
 #include "../Basic/Exception.hpp"
 #include "Basic.hpp"
 #include "EnumeratorPipeline.hpp"
@@ -20,6 +21,22 @@ namespace Collections
 	using ::std::bind;
 	using ::std::placeholders::_1;
 	using ::Basic::NotImplementException;
+	using ::std::is_fundamental_v;
+
+	template <bool Condition, typename A, typename B>	
+	struct CompileIf;
+
+	template <typename A, typename B>	
+	struct CompileIf<true, A, B>	
+	{	
+		using Type = A;	
+	};	
+
+	template <typename A, typename B>	
+	struct CompileIf<true, A, B>	
+	{	
+		using Type = B;	
+	};
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeFactory;
@@ -30,7 +47,7 @@ namespace Collections
 	private:
 		friend class NodeFactory<Key, Value, BtreeOrder>;
 		using Base = NodeBase<Key, Value, BtreeOrder>;
-		// TODO Split node need to copy two below items
+		using StoredKey = CompileIf<is_fundamental_v<Key>, Key, reference_wrapper<Key const>>::Type;
 		// TODO maybe below two item could be pointer, then entity stored in its' parent like Btree do
 		typename Base::UpNodeAddSubNodeCallback _addSubNodeCallback = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
 		typename Base::UpNodeDeleteSubNodeCallback _deleteSubNodeCallback = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
@@ -57,7 +74,7 @@ namespace Collections
 		}
 
 		MiddleNode(MiddleNode const& that)
-			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, unique_ptr<Base>>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
+			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, unique_ptr<Base>>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, &that, _1)), that._elements.LessThanPtr)
 		{ }
 
 		MiddleNode(MiddleNode&& that) noexcept
