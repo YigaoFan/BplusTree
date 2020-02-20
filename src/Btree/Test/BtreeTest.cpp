@@ -182,15 +182,52 @@ TESTCASE("Str-Str btree test")
 
 		using Btr = Btree<4, string, string>;
 		Btr btree(lessThan);
-		random_device rd;
-		mt19937 g(rd());
-		shuffle(completeKeyValueArray.begin(), completeKeyValueArray.end(), g);
-		cout << "Shuffled array: ";
-		for (auto& e : completeKeyValueArray)
+		// random_device rd;
+		// mt19937 g(rd());
+		// shuffle(completeKeyValueArray.begin(), completeKeyValueArray.end(), g);
+		// cout << "Shuffled array: ";
+		// for (auto& e : completeKeyValueArray)
+		// {
+		// 	cout << e.first << " ";
+		// }
+		// cout << endl;
+
+		// ADD_LOT_FROM(completeKeyValueArray);
+
+		// for (auto& e : completeKeyValueArray)
+		// {
+		// 	btree.Remove(e.first);
+		// 	ASSERT(!btree.ContainsKey(e.first));
+		// }
+		// check balance work or not?
+		// 4 14 3 7 18 16 5 17 1 19 10 11 2 6 15 8 13 9 0 12
+
+		auto kv4 = make_pair<string, string>("4", "a");
+		auto kv14 = make_pair<string, string>("14", "a");
+		auto kv3 = make_pair<string, string>("3", "a");
+		auto kv7 = make_pair<string, string>("7", "a");
+		auto kv18 = make_pair<string, string>("18", "a");
+		auto kv16 = make_pair<string, string>("16", "a");
+		auto kv5 = make_pair<string, string>("5", "a");
+		auto kv17 = make_pair<string, string>("17", "a");
+		auto kv1 = make_pair<string, string>("1", "a");
+		auto kv19 = make_pair<string, string>("19", "a");
+		auto kv10 = make_pair<string, string>("10", "a");
+		auto kv11 = make_pair<string, string>("11", "a");
+		auto kv2 = make_pair<string, string>("2", "a");
+		auto kv6 = make_pair<string, string>("6", "a");
+		auto kv15 = make_pair<string, string>("15", "a");
+		auto kv8 = make_pair<string, string>("8", "a");
+		auto kv13 = make_pair<string, string>("13", "a");
+		auto kv9 = make_pair<string, string>("9", "a");
+		auto kv0 = make_pair<string, string>("0", "a");
+		auto kv12 = make_pair<string, string>("12", "a");
+
+		array<decltype(kv0), 20> record
 		{
-			cout << e.first << " ";
-		}
-		cout << endl;
+			kv4, kv14, kv3, kv7, kv18, kv16, kv5, kv17, kv1, kv19, 
+			kv10, kv11, kv2, kv6, kv15, kv8, kv13, kv9, kv0, kv12,
+		};
 
 		ADD_LOT_FROM(completeKeyValueArray);
 
@@ -199,8 +236,6 @@ TESTCASE("Str-Str btree test")
 			btree.Remove(e.first);
 			ASSERT(!btree.ContainsKey(e.first));
 		}
-		// check balance work or not?
-		// 4 14 3 7 18 16 5 17 1 19 10 11 2 6 15 8 13 9 0 12
 	}
 }
 
