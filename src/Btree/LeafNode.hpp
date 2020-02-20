@@ -1,6 +1,7 @@
 #pragma once
 #include <utility>
 #include <iterator>
+#include "../Basic/Exception.hpp"
 #include "Basic.hpp"
 #include "Enumerator.hpp"
 #include "Elements.hpp"
@@ -13,6 +14,7 @@ namespace Collections
 	using ::std::make_unique;
 	using ::std::remove_pointer_t;
 	using ::std::back_inserter;
+	using ::Basic::NotImplementException;
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class LeafNode : public NodeBase<Key, Value, BtreeOrder>
@@ -98,11 +100,30 @@ namespace Collections
 				(*this->_minKeyChangeCallbackPtr)(MinKey(), this);
 			}
 
-			auto next = _next;
-			auto previous = _previous;
-			AFTER_REMOVE_COMMON(true);
-			// LeafNode no need to handle NoWhereToProcess,
-			// Cannot put code here
+			constexpr auto lowBound = Base::LowBound;
+			if (_elements.Count() < lowBound)
+			{
+				auto next = _next;
+				auto previous = _previous;
+				AFTER_REMOVE_COMMON(true);
+				// LeafNode no need to handle NoWhereToProcess,
+				// Cannot put code here
+			}
+		}
+
+		bool MoveDown(Base*&) const override
+		{
+			throw NotImplementException();
+		}
+
+		bool MoveLeft(Base*&) const override
+		{
+			throw NotImplementException();
+		}
+
+		bool MoveRight(Base*&) const override
+		{
+			throw NotImplementException();
 		}
 
 		LeafNode* Next() const { return _next; }

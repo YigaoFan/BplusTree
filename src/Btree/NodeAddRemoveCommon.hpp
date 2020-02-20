@@ -1,9 +1,6 @@
 #pragma once
 // Combine or change also need to set callback
 #define AFTER_REMOVE_COMMON(IS_LEAF) \
-constexpr auto lowBound = Base::LowBound;\
-if (_elements.Count() < lowBound)\
-{\
 	if (_elements.Empty())\
 	{\
 		(*this->_upNodeDeleteSubNodeCallbackPtr)(this);\
@@ -11,16 +8,16 @@ if (_elements.Count() < lowBound)\
 	bool nxtStealable = false, preStealable = false;\
 	if (next != nullptr)\
 	{\
-		if (next->_elements.Count() == lowBound)\
+		if (next->_elements.Count() == lowBound /* + 1 */)\
 		{\
 			/* Think combine first */\
-			auto items = next->_elements.PopOutAll();\
-			this->AppendItems(move(items));/* M1 *//*Appends*/\
 			if constexpr (IS_LEAF)\
 			{\
 				this->SetRelationWhileCombineNext(next);\
 			}\
+			auto items = next->_elements.PopOutAll();\
 			(*next->_upNodeDeleteSubNodeCallbackPtr)(next);\
+			this->AppendItems(move(items));/* M1 *//*Appends*/\
 			return;\
 		}\
 		else\
@@ -31,15 +28,15 @@ if (_elements.Count() < lowBound)\
 \
 	if (previous != nullptr)\
 	{\
-		if (previous->_elements.Count() == lowBound)\
+		if (previous->_elements.Count() == lowBound /* + 1 */)\
 		{\
-			auto items = this->_elements.PopOutAll();\
-			previous->AppendItems(move(items));/* M2 *//*Appends*/\
 			if constexpr (IS_LEAF)\
 			{\
 				this->SetRelationWhileCombineToPrevious(previous);/* this code should in MiddleNode */\
 			}\
+			auto items = this->_elements.PopOutAll();\
 			(*this->_upNodeDeleteSubNodeCallbackPtr)(this);\
+			previous->AppendItems(move(items));/* M2 *//*Appends*/\
 			return;\
 		}\
 		else\
@@ -86,13 +83,7 @@ StealPre:\
 		this->EmplaceHead(move(item));/* M4 *//*Front insert*/\
 		return;\
 	}\
-}\
-else\
-{\
-	return;\
-}\
 NoWhereToProcess:
-// Remove should think of set of previous and next of LeafNode
 
 #define ADD_COMMON(IS_LEAF) \
 bool addToPre = false, addToNxt = false;\
@@ -151,16 +142,16 @@ if constexpr (IS_LEAF)\
 }\
 \
 auto i = _elements.SelectBranch(p.first);\
-constexpr auto middle = (BtreeOrder % 2 == 0) ? (BtreeOrder / 2) : (BtreeOrder / 2 + 1);\
-if (i <= middle)\
+constexpr auto middle = BtreeOrder / 2;\
+if (i <= (middle - 1))\
 {\
-	auto items = this->_elements.PopOutItems(middle);\
+	auto items = this->_elements.PopOutItems(BtreeOrder - middle);\
 	/* M7 */this->ProcessedAdd(move(p));/* Add (Does it duplicate to SelectBranch before)*/\
 	/* M8 */newNxtNode->AppendItems(move(items));/* Appends */\
 }\
 else\
 {\
-	auto items = this->_elements.PopOutItems(BtreeOrder - middle);\
+	auto items = this->_elements.PopOutItems(middle);\
 	/* M9 */newNxtNode->AppendItems(move(items));/*Appends*/\
 	/* M10 */newNxtNode->ProcessedAdd(move(p));/* Add */\
 }\
