@@ -1,5 +1,6 @@
 #include <array>
 #include <algorithm>
+#include <random>
 #include "../../TestFrame/FlyTest.hpp"
 #include "../Btree.hpp"
 #include "../Exception.hpp"
@@ -165,7 +166,7 @@ TESTCASE("Str-Str btree test")
 			}
 		}
 	}
-#undef INSTANCE_FOR_EACH
+#undef BASIC_KV_FOR_EACH
 
 	SECTION("Count less than BtreeOrder cons")
 	{
@@ -173,14 +174,36 @@ TESTCASE("Str-Str btree test")
 		Btr btree{ lessThan, basicKeyValueArray };
 	}
 
-	SECTION("Random add")
+	SECTION("Random add and remove")
 	{
-		// TODO
-		// random_shuffle in <algorithm>
-		// check balance work or not
-		// random_shuffle(&a[0],&a[10]); wrong index
+		using ::std::cout;
+		using ::std::random_device;
+		using ::std::mt19937;
+
+		using Btr = Btree<4, string, string>;
+		Btr btree(lessThan);
+		random_device rd;
+		mt19937 g(rd());
+		shuffle(completeKeyValueArray.begin(), completeKeyValueArray.end(), g);
+		cout << "Shuffled array: ";
+		for (auto& e : completeKeyValueArray)
+		{
+			cout << e.first << " ";
+		}
+		cout << endl;
+
+		ADD_LOT_FROM(completeKeyValueArray);
+
+		for (auto& e : completeKeyValueArray)
+		{
+			btree.Remove(e.first);
+			ASSERT(!btree.ContainsKey(e.first));
+		}
+		// check balance work or not?
 	}
 }
+
+#undef ADD_LOT_FROM
 
 TESTCASE("Int-Str btree test")
 {
