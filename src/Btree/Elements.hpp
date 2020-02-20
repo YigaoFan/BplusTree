@@ -117,18 +117,42 @@ namespace Collections
 			Base::Add(move(p));
 		}
 
+		/// p is from user, so need check duplicate
 		Item ExchangeMax(Item p)
 		{
-			auto max = this->PopOut();
-			Add(move(p));
-			return move(max);
+			auto& lessThan = *LessThanPtr;
+
+			if (lessThan(p.first, this->LastOne().first))
+			{
+				auto max = this->PopOut();
+				Add(move(p));
+				return move(max);
+			}
+			else if (!lessThan(this->LastOne().first, p.first))
+			{
+				throw DuplicateKeyException(move(p.first));
+			}
+
+			return move(p);
 		}
 
+		/// p is from user, so need check duplicate
 		Item ExchangeMin(Item p)
 		{
-			auto min = this->FrontPopOut();
-			Add(move(p));
-			return move(min);
+			auto& lessThan = *LessThanPtr;
+
+			if (lessThan(this->FirstOne().first, p.first))
+			{
+				auto min = this->FrontPopOut();
+				Add(move(p));
+				return move(min);
+			}
+			else if (!lessThan(p.first, this->FirstOne().first))
+			{
+				throw DuplicateKeyException(move(p.first));
+			}
+
+			return move(p);
 		}
 		
 		// TODO why should use below code to compile code in MiddleNode
