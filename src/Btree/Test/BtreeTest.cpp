@@ -200,6 +200,7 @@ TESTCASE("Str-Str btree test")
 			ASSERT(!btree.ContainsKey(e.first));
 		}
 		// check balance work or not?
+		// 4 14 3 7 18 16 5 17 1 19 10 11 2 6 15 8 13 9 0 12
 	}
 }
 
