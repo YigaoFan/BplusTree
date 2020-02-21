@@ -28,6 +28,7 @@ namespace Basic
 	{
 	public:
 		explicit InvalidAccessException();
+		explicit InvalidAccessException(string message);
 	};
 
 	class InvalidOperationException : public runtime_error

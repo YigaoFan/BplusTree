@@ -18,6 +18,10 @@ namespace Basic
 		: runtime_error("Invalid access")
 	{ }
 
+	InvalidAccessException::InvalidAccessException(string message)
+		: runtime_error(message)
+	{ }
+
 	InvalidOperationException::InvalidOperationException()
 		: runtime_error("Invalid operation")
 	{ }
