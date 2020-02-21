@@ -14,7 +14,7 @@ namespace Json
 	class InvalidStringException : public runtime_error
 	{
 	public:
-		explicit InvalidStringException(LocationInfo info, const string& message="");
+		explicit InvalidStringException(LocationInfo info, string const& message="");
 		explicit InvalidStringException(string const& message);
 	};
 
@@ -51,7 +51,7 @@ namespace Json
 	class ParseNumberTooBigException : public runtime_error
 	{
 	public:
-		explicit ParseNumberTooBigException(const string& tooBigNum);
+		explicit ParseNumberTooBigException(string const& tooBigNum);
 	};
 
 	class InvalidNumberException : public runtime_error

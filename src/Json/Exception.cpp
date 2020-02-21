@@ -33,7 +33,7 @@ namespace Json
 		: runtime_error(string{"Can't find "} + expected + " pair between " + to_string(start) + " and " + to_string(end))
 	{ }
 
-	ParseNumberTooBigException::ParseNumberTooBigException(const string& tooBigNum)
+	ParseNumberTooBigException::ParseNumberTooBigException(string const& tooBigNum)
 		: runtime_error(string{"Number: "} + tooBigNum + " is too big")
 	{ }
 
