@@ -25,7 +25,7 @@ int main()
 {
 	//new int(2); // For check MEMO_CHECK mechanism work or not
 	BTREE_TEST(CollectionsTest::AllTest());
-	JSON_TEST(JsonTest::allTest());
+	JSON_TEST(JsonTest::AllTest());
 
 #if MEMO_CHECK
 	// Remember free the test frame related memory
