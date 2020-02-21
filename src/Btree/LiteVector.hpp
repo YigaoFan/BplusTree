@@ -117,6 +117,10 @@ namespace Collections
 		T* end() { return _ptr + _count; }
 		T const* begin() const { return _ptr; }
 		T const* end() const { return _ptr + _count; }
+		T& FirstOne() { return _ptr[0]; }
+		T& LastOne() { return _ptr[_count - 1]; }
+		T const& FirstOne() const { return _ptr[0]; }
+		T const& LastOne() const { return _ptr[_count - 1]; }
 
 		size_int Count() const { return _count; }
 		bool Full() const { return _count == Capacity; }

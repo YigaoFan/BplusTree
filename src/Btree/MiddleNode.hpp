@@ -151,7 +151,21 @@ namespace Collections
 			_elements[i].second->Remove(key);
 		}
 #undef SELECT_BRANCH
+		
+		bool MoveDown(Base*&) const override
+		{
+			throw NotImplementException();
+		}
 
+		bool MoveLeft(Base*&) const override
+		{
+			throw NotImplementException();
+		}
+
+		bool MoveRight(Base*&) const override
+		{
+			throw NotImplementException();
+		}
 	private:
 		MiddleNode(IEnumerator<unique_ptr<Base>>&& enumerator, shared_ptr<_LessThan> lessThanPtr)
 			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertPtrToKeyPtrPair, _1)), lessThanPtr)
@@ -206,7 +220,7 @@ namespace Collections
 			ADD_COMMON(false);
 		}
 
-		void DeleteSubNodeCallback(Base* node)// TODO this node cannot be MinSon?
+		void DeleteSubNodeCallback(Base* node)
 		{
 			// node has no key
 			auto i = IndexOfSubNode(node);
@@ -228,16 +242,24 @@ namespace Collections
 			//}
 
 			_elements.RemoveAt(i);
+			if (i == 0)
+			{
+				(*this->_minKeyChangeCallbackPtr)(MinKey(), this);
+			}
 			// Below two variables is to macro
-			auto next = _queryNext(this);
-			auto previous = _queryPrevious(this);
-			AFTER_REMOVE_COMMON(false);
-			// MiddleNode need to handle NoWhereToProcess
-			// 下面这句是发生在 root 那个 node
-			// 加层和减层这两个操作只能发生在 root
-			// 所以下面这句在普通 MiddleNode 发生不了
-			// 下面这句如何确保是 root 节点调用的呢？
-			this->_shallowTreeCallbackPtr->operator ()();
+			constexpr auto lowBound = Base::LowBound;
+			if (_elements.Count() < lowBound)
+			{
+				auto next = _queryNext(this);
+				auto previous = _queryPrevious(this);
+				AFTER_REMOVE_COMMON(false);
+				// MiddleNode need to handle NoWhereToProcess
+				// 下面这句是发生在 root 那个 node
+				// 加层和减层这两个操作只能发生在 root
+				// 所以下面这句在普通 MiddleNode 发生不了
+				// 下面这句如何确保是 root 节点调用的呢？
+				this->_shallowTreeCallbackPtr->operator ()();
+			}
 		}
 
 		void SubNodeMinKeyChangeCallback(Key const& newMinKeyOfSubNode, Base* subNode)
