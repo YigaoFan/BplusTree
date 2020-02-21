@@ -5,7 +5,6 @@
    Exception in Json Parser
 ***********************************/
 
-
 namespace Json 
 {
 	using ::std::runtime_error;

@@ -1,31 +1,33 @@
 #pragma once
 #include <string>
+#include <string_view>
 
-namespace Json {
-	struct LocationInfo {
+namespace Json
+{
+	using ::std::string;
+	using ::std::string_view;
+
+	struct LocationInfo
+	{
 	public:
-		const string& AllString;
+		string_view AllString;
 		size_t Location;
 
 		/**
 		 * should ensure string exists in scope of usage
 		 */
-		LocationInfo(const string& str, size_t location)
+		LocationInfo(string_view str, size_t location)
 			: AllString(str), Location(location)
 		{ }
 
-		inline
-		char
-		charAtLocation() const
+		char charAtLocation() const
 		{
 			return AllString[Location];
 		}
 
-		inline
-		string
-		charsAround() const
+		string charsAround() const
 		{
-			return Location >= 4 ? AllString.substr(Location-4, 9) : AllString.substr(Location, 9);
+			return Location >= 4 ? AllString.substr(Location - 4, 9) : AllString.substr(Location, 9);
 		}
 	};
 }

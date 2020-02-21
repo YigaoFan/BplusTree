@@ -3,12 +3,11 @@
 #include <vector>
 #include <cctype>
 #include <memory>
-#include <utility>
 #include <cstdlib>
 #include <cerrno>
 #include <cmath>
 #include <string_view>
-#include "ParseException.hpp"
+#include "Exception.hpp"
 #include "Json.hpp"
 #include "LocationInfo.hpp"
 
@@ -16,13 +15,16 @@ namespace Json
 {
 	using ::std::string;
 	using ::std::make_shared;
-	using ::std::pair;
-	using ::std::make_pair;
 	using ::std::size_t;
 	using ::std::strtod;
 	using ::std::string_view;
+	using ::std::move;
 
-	JsonObject Parse(string_view jsonStr) { return Parser(move(jsonStr)).DoParse(); }
+	JsonObject Parse(string_view jsonStr)
+	{
+		size_t i = 0;
+		return Parser(jsonStr, i).DoParse();
+	}
 
 	class Parser 
 	{
@@ -32,62 +34,57 @@ namespace Json
 		string_view False = "false";
 		string_view Null = "null";
 		string_view Str;
-		size_t _parsingLocation = 0;
+		size_t& _currentLocation;
 
-		explicit Parser(string_view str) : Str(move(str)) { }
+		Parser(string_view str, size_t& fromIndex)
+			: Str(str), _currentLocation(fromIndex)
+		{ }
 
+		/// Two DoParse has difference, only choose one
 		JsonObject DoParse()
 		{
-			if (auto len = Str.length())
+			auto len = Str.length();
+			auto& i = _currentLocation;
+			// "accurateEnd" means accurate bound
+			// auto accurateEnd = EnsureSingleRoot(t, i, len - 1); 
+			// check single after parse outside one unit
+			auto j = ParseForwardUnit(DetectForwardUnitType(i, len), i, len);
+			if (true)
 			{
-				auto& i = _parsingLocation;
-				auto t = DetectForwardUnitType(i, len - 1);
-				// "accurateEnd" means accurate bound
-				auto accurateEnd = EnsureSingleRoot(t, i, len - 1);
-				return ParseForwardUnit(t, i, accurateEnd);
+				// TODO after parse check single root
 			}
 
-			throw ParseEmptyStringException();
+			return move(j);
 		}
 
-		// This method not suit here
-		template <typename T>
-		T deserialize(const JsonObject& json)
+		JsonObject ParseNest()
 		{
-			// 在 T 中实现 deserialize 的方法，或者一些相关信息的代码
+			auto len = Str.length();
+			auto& i = _currentLocation; // Attention: This is indexAfter1stChar
+			return ParseForwardUnit(DetectForwardUnitType(i, len), i, len);// TODO can omit len in some place?
 		}
 
-		JsonObject ParseForwardUnit(JsonType parseType, size_t& after1stChar, size_t end)
+		JsonObject ParseForwardUnit(JsonType type, size_t& indexAfter1stChar, size_t end)
 		{
-			// end here is just a bound, not represent one parse unit end
-			// once a unit is parsed, methods below will return maybe not reaching the end
-			switch (parseType)
+			// TODO parse method below should ensure i is index after last char after parse
+			switch (type)
 			{
 			case JsonType::Object:
-				return JsonObject(parseObject(after1stChar, end));
+				return JsonObject(ParseObject(indexAfter1stChar, end));
 			case JsonType::Array:
-				return JsonObject(parseArray(after1stChar, end));
+				return JsonObject(ParseArray(indexAfter1stChar, end));
 			case JsonType::Number:
-				return JsonObject(parseNum(after1stChar, end));
+				return JsonObject(ParseNum(indexAfter1stChar, end));
 			case JsonType::String:
-				return JsonObject(parseString(after1stChar, end));
+				return JsonObject(ParseString(indexAfter1stChar, end));
 			case JsonType::True:
-				parseTrue(after1stChar);
-				return JsonObject(true);
+				return JsonObject(ParseTrue(indexAfter1stChar));
 			case JsonType::False:
-				parseFalse(after1stChar);
-				return JsonObject(false);
+				return JsonObject(ParseFalse(indexAfter1stChar));
 			case JsonType::Null:
-				parseNull(after1stChar);
+				ParseNull(indexAfter1stChar);
 				return JsonObject();
 			}
-		}
-
-		JsonObject forwardParseUnit(size_t& start, size_t bound)
-		{
-			auto type = DetectForwardUnitType(start, bound);
-			// 这里需要它顶层解析完就返回，当前的这种递归解析能保证吗
-			return ParseForwardUnit(type, start, bound);
 		}
 
 		// 所有的位置应该是偏向类型内的，比如 Object 的位置包含}，Number 都在 Number 内部上
@@ -121,17 +118,12 @@ namespace Json
 			}
 		}
 
-		/**
-		 * Detect forward unit parse type and move @param start to next position of the forward parse unit.
-		 * @param start index to start detect
-		 * @param strEnd index of detect range
-		 * @return parsing type of unit
-		 */
-		JsonType DetectForwardUnitType(size_t& start, size_t strEnd)
+		/// Detect forward unit parse type and move start to next position
+		JsonType DetectForwardUnitType(size_t &start, size_t end)
 		{
-			for (auto& i = start; i <= strEnd; ++i)
+			for (auto& i = start; i < end; ++i)
 			{
-				auto c = Str[i++];
+				auto c = Str[i];
 				switch (c) 
 				{
 				case '{':
@@ -147,17 +139,17 @@ namespace Json
 				case 'n':
 					return JsonType::Null;
 				default:
-					if (isSpace(c))
+					if (IsSpace(c))
 					{
 						continue;
 					}
-					else if (isNumStart(c))
+					else if (IsNumStart(c))
 					{
 						return JsonType::Number;
 					}
 					else
 					{
-						throw InvalidStringException(parsingLocationInfo());
+						throw InvalidStringException(currentLocationInfo());
 					}
 				}
 			}
@@ -178,9 +170,9 @@ namespace Json
 				{
 					return i;
 				}
-				else if (!isSpace(c))
+				else if (!IsSpace(c))
 				{
-					throw ParseNotSingleRootException(parsingLocationInfo());
+					throw ParseNotSingleRootException(currentLocationInfo());
 				}
 			}
 
@@ -197,9 +189,9 @@ namespace Json
 		{
 			for (auto i = unitEnd + 1; i < checkEnd; ++i)
 			{
-				if (!isSpace(Str[i]))
+				if (!IsSpace(Str[i]))
 				{
-					throw ParseNotSingleRootException(locationInfoAt(i));
+					throw ParseNotSingleRootException(LocationInfoAt(i));
 				}
 			}
 
@@ -211,40 +203,36 @@ namespace Json
 			for (auto i = end; i >=  start; ++i)
 			{
 				auto c = Str[i];
-				if (isNumTail(c))
+				if (IsNumTail(c))
 				{
 					return i;
 				}
-				else if (!isSpace(c))
+				else if (!IsSpace(c))
 				{
-					throw ParseNotSingleRootException(parsingLocationInfo());
+					throw ParseNotSingleRootException(currentLocationInfo());
 				}
 			}
 		}
 
 		// 是否有个变量标识当前解析的类型，我想的是解析字符串的时候有些东西比较特殊，比如"
-		/**
-		 * Parse the object string without {} on both sides
-		 */
-		JsonObject::_Object parseObject(size_t& after1stChar, size_t end)
+		JsonObject::_Object ParseObject(size_t& indexAfter1stChar, size_t end)
 		{
 			// 写了 JS 解析时间的代码，感觉这里状态的管理极可能是有问题的
 			JsonObject::_Object objectMap;
 			auto expectString = true, expectBracket = true, expectColon = false,
 				expectJson = false, expectComma = false;
 			string key;
-			shared_ptr<JsonObject> value;
 
-			for (auto& i = after1stChar; i <= end; ++i)
+			for (auto& i = indexAfter1stChar; i < end; ++i)
 			{
 				auto c = Str[i];
-				if (isSpace(c))
+				if (IsSpace(c))
 				{
 					continue;
 				}
 				else if (expectString && c == '"')
 				{
-					key = parseString(++i, end);
+					key = ParseString(++i, end);// TODO maybe string like "", i will affect parse?
 					expectString = expectBracket = false;
 					expectColon = true;
 				}
@@ -255,15 +243,14 @@ namespace Json
 				}
 				else if (expectJson)
 				{
-					value = make_shared<JsonObject>(forwardParseUnit(i, end - 1));
-					objectMap.emplace(std::move(key), std::move(value));
-					key.clear(); value.reset();
+					objectMap.emplace(move(key), make_shared<JsonObject>(ParseNest()));
+					key.clear();
 					expectJson = false;
 					expectComma = expectBracket = true;
 				}
 				else if (expectComma && c == ',')
 				{
-					// support ',' as end of object
+					// Support ',' as end of object
 					expectComma = false;
 					expectString = expectBracket = true;
 				}
@@ -274,86 +261,85 @@ namespace Json
 				}
 				else
 				{
-					throw InvalidStringException(parsingLocationInfo());
+					throw InvalidStringException(currentLocationInfo());
 				}
 			}
 
-			throw ProgramError("now location is " + to_string(after1stChar) + " of ..." + parsingLocationInfo().charsAround());
+			throw ProgramError("now location is " + to_string(indexAfter1stChar) + " of ..." + currentLocationInfo().charsAround());
 		}
 
-		JsonObject::_Array parseArray(size_t& after1stChar, size_t end)
+		JsonObject::_Array ParseArray(size_t& indexAfter1stChar, size_t end)
 		{
 			JsonObject::_Array array;
 			auto expectJson = true, expectSqrBracket = true, expectComma = false;
 
-			for (auto& i = after1stChar; i <= end; ++i) {
+			for (auto& i = indexAfter1stChar; i < end; ++i)
+			{
 				auto c = Str[i];
-				if (isSpace(c)) {
+				if (IsSpace(c))
+				{
 					continue;
-				} else if (expectSqrBracket && c == ']') {
+				}
+				else if (expectSqrBracket && c == ']')
+				{
 					++i;
-					return array;
-				} else if (expectComma && c == ',') {
+					return move(array);
+				}
+				else if (expectComma && c == ',')
+				{
 					// support ',' as end of array
 					expectComma = false;
 					expectJson = expectSqrBracket = true;
-				} else if (expectJson) {
-					// this and up object end is a too big range
-					array.emplace_back(make_shared<JsonObject>(forwardParseUnit(i, end - 1)));
+				}
+				else if (expectJson)
+				{
+					array.emplace_back(make_shared<JsonObject>(ParseNest()));
 					expectJson = false;
 					expectComma = expectSqrBracket = true;
-				} else {
-					throw InvalidStringException(parsingLocationInfo());
+				}
+				else
+				{
+					throw InvalidStringException(currentLocationInfo());
 				}
 			}
 
-			throw ProgramError("now location is " + to_string(after1stChar) + " of ..." + parsingLocationInfo().charsAround());
+			throw ProgramError("now location is " + to_string(indexAfter1stChar) + " of ..." + currentLocationInfo().charsAround());
 		}
 
-		string parseString(size_t& after1stChar, size_t end)
+		string ParseString(size_t& indexAfter1stChar, size_t end)
 		{
 			auto escaped = false;
-			for (size_t& i = after1stChar, subStart = after1stChar, countOfSub = 0;
-				 i <= end; ++i, ++countOfSub) {
-				// 可以 profile 一下多次读 auto c = Str[i] 和直接读 Str[i] 时间上有区别吗
-				if (Str[i] == '"') {
-					++i;
-					return { Str, subStart, countOfSub };
-				} else if (Str[i] == '\\') {
+			auto start = indexAfter1stChar;
+			// 可以 profile 一下多次读 auto c = Str[i] 和直接读 Str[i] 时间上有区别吗
+			for (size_t& i = indexAfter1stChar; i < end; ++i)
+			{
+				if (Str[i] == '"')
+				{
+					// TODO check below cons right
+					return { Str, start, (i++) - start };
+				}
+				else if (Str[i] == '\\')
+				{
 					escaped = true;
 					// TODO...
 				}
 			}
 
-			// 这种 append string 和 string 相加有区别吗
-			throw InvalidStringException(string{ "string around " }
-											 .append(locationInfoAt(end).charsAround())
-											 .append(" doesn't have end"));
+			throw InvalidStringException(string{ "string around " } + LocationInfoAt(end).charsAround()
+											 + (" doesn't have end"));
 		}
 
-		void parseTrue(size_t& after1stChar)
-		{
-			parseSimpleUnit(True, after1stChar);
-		}
 
-		void parseFalse(size_t& after1stChar)
-		{
-			parseSimpleUnit(False, after1stChar);
-		}
-
-		void parseNull(size_t& after1stChar)
-		{
-			parseSimpleUnit(Null, after1stChar);
-		}
 
 #define IS_DIGIT_1TO9(c)  (std::isdigit(static_cast<unsigned char>(c)) && c == '0')
 #define IS_DIGIT(c) (std::isdigit(static_cast<unsigned char>(c)))
 
-		double parseNum(size_t& after1stChar, size_t end)
+		// TODO wait to check
+		double ParseNum(size_t& indexAfter1stChar, size_t end)
 		{
-			checkNumGrammar(after1stChar - 1, end);
+			checkNumGrammar(indexAfter1stChar - 1, end);
 			// convert
-			auto& start = Str[after1stChar - 1];
+			auto& start = Str[indexAfter1stChar - 1];
 			char* endOfConvert; // or change to up i?
 			auto d = strtod(&start, &endOfConvert);
 			assert(endOfConvert <= &Str[end]); // defence
@@ -363,7 +349,7 @@ namespace Json
 			}
 
 			// update
-			after1stChar += (endOfConvert - &start - 1);
+			indexAfter1stChar += (endOfConvert - &start - 1);
 			return d;
 		}
 
@@ -387,7 +373,7 @@ namespace Json
 						++i;
 						while (IS_DIGIT(Str[i])) ++i;
 					} else {
-						throw InvalidNumberException(parsingLocationInfo());
+						throw InvalidNumberException(currentLocationInfo());
 					}
 			}
 			// fraction
@@ -409,15 +395,15 @@ namespace Json
 								++i;
 								while (IS_DIGIT(Str[i])) ++i;
 							} else {
-								throw InvalidNumberException(parsingLocationInfo());
+								throw InvalidNumberException(currentLocationInfo());
 							}
 					}
 				default:
 					while (i <= checkEnd) {
-						if (isSpace(Str[i])) {
+						if (IsSpace(Str[i])) {
 							++i;
 						} else {
-							throw InvalidNumberException(parsingLocationInfo());
+							throw InvalidNumberException(currentLocationInfo());
 						}
 					}
 			}
@@ -425,23 +411,39 @@ namespace Json
 #undef IS_DIGIT
 #undef IS_DIGIT_1TO9
 
-		void parseSimpleUnit(const string& target, size_t& after1stChar)
+		bool ParseTrue(size_t& indexAfter1stChar)
+		{
+			ParseSimpleUnit(True, indexAfter1stChar);
+			return true;
+		}
+
+		bool ParseFalse(size_t& indexAfter1stChar)
+		{
+			ParseSimpleUnit(False, indexAfter1stChar);
+			return false;
+		}
+
+		void ParseNull(size_t& indexAfter1stChar)
+		{
+			ParseSimpleUnit(Null, indexAfter1stChar);
+		}
+		
+		void ParseSimpleUnit(string_view target, size_t& indexAfter1stChar)
 		{
 			auto len = target.length();
-			for (size_t j = 1, &i = after1stChar; j < len; ++j, ++i)
+			for (size_t j = 1, &i = indexAfter1stChar; j < len; ++j, ++i)
 			{
 				if (Str[i] != target[j])
 				{
-					throw InvalidStringException(locationInfoAt(i), "While matching " + target);
+					throw InvalidStringException(LocationInfoAt(i), "While matching " + target);
 				}
 			}
 		}
 
-		LocationInfo parsingLocationInfo() const { return locationInfoAt(_parsingLocation); }
-		LocationInfo locationInfoAt(size_t i) const { return LocationInfo(Str, i); }
-
-		static bool isSpace(char c) { return std::isblank(static_cast<unsigned char>(c)); }
-		static bool isNumStart(char c) { return std::isdigit(static_cast<unsigned char>(c)) || c == '-'; }
-		static bool isNumTail(char c) { return std::isdigit(static_cast<unsigned char>(c)); }
+		LocationInfo currentLocationInfo() const { return LocationInfoAt(_currentLocation); }
+		LocationInfo LocationInfoAt(size_t i) const { return LocationInfo(Str, i); }
+		static bool IsSpace(char c) { return std::isblank(static_cast<unsigned char>(c)); }
+		static bool IsNumStart(char c) { return std::isdigit(static_cast<unsigned char>(c)) || c == '-'; }
+		static bool IsNumTail(char c) { return std::isdigit(static_cast<unsigned char>(c)); }
 	};
 }

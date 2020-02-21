@@ -5,7 +5,7 @@ using namespace Json;
 TESTCASE("Parser test")
 {
 	auto jsonStr = "{ \"a\": 1 }";
-	auto json = Parser::Parse(jsonStr);
+	auto json = Json::Parse(jsonStr);
 	// TODO see MoliY's blog
 	SECTION("Parse object")
 	{
