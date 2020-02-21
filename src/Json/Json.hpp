@@ -1,10 +1,10 @@
 #pragma once
 #include <string>
-#include <string_view>
 #include <variant>
 #include <vector>
 #include <map>
 #include <memory>
+#include "../Basic/Exception.hpp"
 
 namespace Json
 {
@@ -15,8 +15,8 @@ namespace Json
 	using ::std::map;
 	using ::std::move;
 	using ::std::shared_ptr; // In Json semantic, there are some data will be shared with external, so shared_ptr
-	using ::std::string_view;
 	using ::std::get;
+	using ::Basic::InvalidAccessException;
 
 	enum JsonType
 	{
@@ -29,6 +29,7 @@ namespace Json
 		Null,
 	};
 	// how to read data from Json
+	// TODO Split header file
 	class JsonObject 
 	{
 		friend class Parser;
@@ -38,10 +39,12 @@ namespace Json
 		using _Object = map<string, shared_ptr<JsonObject>>;
 		variant<string, _Array, double, _Object> _content;
 
-		static void Assert(bool e, string_view message = "")
+		static void Assert(bool e, string message = "")
 		{
-			// TODO
-			// if (!e) { throw InvalidAccessException(message); }
+			if (!e)
+			{
+				throw InvalidAccessException(message);
+			}
 		}
 
 	public:

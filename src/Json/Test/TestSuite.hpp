@@ -1,8 +1,8 @@
 extern void parserTest();
 
-namespace JsonTest {
-	void
-	allTest()
+namespace JsonTest
+{
+	void AllTest()
 	{
 		parserTest();
 	}
