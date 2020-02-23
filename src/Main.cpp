@@ -1,6 +1,5 @@
-#define MEMO_CHECK false
+#define MEMO_CHECK true
 #if MEMO_CHECK
-#define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
 #endif
 
@@ -23,7 +22,12 @@
 
 int main()
 {
-	//new int(2); // For check MEMO_CHECK mechanism work or not
+	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDOUT);
+	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDOUT);
+	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDOUT);
 	BTREE_TEST(CollectionsTest::AllTest());
 	JSON_TEST(JsonTest::AllTest());
 
