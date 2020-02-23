@@ -5,7 +5,7 @@
 #endif
 
 #define BTREE_TEST_SWITCH true
-#define JSON_TEST_SWITCH false
+#define JSON_TEST_SWITCH true
 
 #if BTREE_TEST_SWITCH
 #include "Btree/Test/TestSuite.hpp"

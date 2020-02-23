@@ -13,7 +13,7 @@
 #include "Enumerator.hpp"
 #include "NodeFactory.hpp"
 #include "../Basic/Exception.hpp"
-#include "Exception.hpp"
+#include "CollectionException.hpp"
 
 namespace Collections
 {

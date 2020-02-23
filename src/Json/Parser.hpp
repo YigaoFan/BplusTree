@@ -7,8 +7,9 @@
 #include <cerrno>
 #include <cmath>
 #include <string_view>
-#include "Exception.hpp"
+#include "ParseException.hpp"
 #include "Json.hpp"
+#include "../Basic/Debug.hpp"
 #include "LocationInfo.hpp"
 
 namespace Json 
@@ -19,12 +20,7 @@ namespace Json
 	using ::std::strtod;
 	using ::std::string_view;
 	using ::std::move;
-
-	JsonObject Parse(string_view jsonStr)
-	{
-		size_t i = 0;
-		return Parser(jsonStr, i).DoParse();
-	}
+	using ::Debug::Assert;
 
 	class Parser 
 	{
@@ -85,9 +81,10 @@ namespace Json
 				ParseNull(indexAfter1stChar);
 				return JsonObject();
 			}
+
+			throw ProgramError("Encounter unknown JsonTpe");
 		}
 
-		// 所有的位置应该是偏向类型内的，比如 Object 的位置包含}，Number 都在 Number 内部上
 		/**
 		 * Ensure the string to be parsed is single root and return the accurate end of parsed one.
 		 * @param unitType type of the root
@@ -149,7 +146,7 @@ namespace Json
 					}
 					else
 					{
-						throw InvalidStringException(currentLocationInfo());
+						throw InvalidStringException(CurrentLocationInfo());
 					}
 				}
 			}
@@ -172,7 +169,7 @@ namespace Json
 				}
 				else if (!IsSpace(c))
 				{
-					throw ParseNotSingleRootException(currentLocationInfo());
+					throw ParseNotSingleRootException(CurrentLocationInfo());
 				}
 			}
 
@@ -209,12 +206,11 @@ namespace Json
 				}
 				else if (!IsSpace(c))
 				{
-					throw ParseNotSingleRootException(currentLocationInfo());
+					throw ParseNotSingleRootException(CurrentLocationInfo());
 				}
 			}
 		}
 
-		// 是否有个变量标识当前解析的类型，我想的是解析字符串的时候有些东西比较特殊，比如"
 		JsonObject::_Object ParseObject(size_t& indexAfter1stChar, size_t end)
 		{
 			JsonObject::_Object objectMap;
@@ -260,11 +256,11 @@ namespace Json
 				}
 				else
 				{
-					throw InvalidStringException(currentLocationInfo());
+					throw InvalidStringException(CurrentLocationInfo());
 				}
 			}
 
-			throw ProgramError("now location is " + to_string(indexAfter1stChar) + " of ..." + currentLocationInfo().charsAround());
+			throw ProgramError("now location is " + to_string(indexAfter1stChar) + " of ..." + CurrentLocationInfo().StringAround());
 		}
 
 		JsonObject::_Array ParseArray(size_t& indexAfter1stChar, size_t end)
@@ -298,18 +294,17 @@ namespace Json
 				}
 				else
 				{
-					throw InvalidStringException(currentLocationInfo());
+					throw InvalidStringException(CurrentLocationInfo());
 				}
 			}
 
-			throw ProgramError("now location is " + to_string(indexAfter1stChar) + " of ..." + currentLocationInfo().charsAround());
+			throw ProgramError("now location is " + to_string(indexAfter1stChar) + " of ..." + CurrentLocationInfo().StringAround());
 		}
 
 		string ParseString(size_t& indexAfter1stChar, size_t end)
 		{
 			auto escaped = false;
 			auto start = indexAfter1stChar;
-			// 可以 profile 一下多次读 auto c = Str[i] 和直接读 Str[i] 时间上有区别吗
 			for (size_t& i = indexAfter1stChar; i < end; ++i)
 			{
 				if (Str[i] == '"')
@@ -324,7 +319,7 @@ namespace Json
 				}
 			}
 
-			throw InvalidStringException(string{ "string around " } + LocationInfoAt(end).charsAround()
+			throw InvalidStringException(string{ "string around " } + LocationInfoAt(end).StringAround()
 											 + (" doesn't have end"));
 		}
 
@@ -341,7 +336,7 @@ namespace Json
 			auto& start = Str[indexAfter1stChar - 1];
 			char* endOfConvert; // or change to up i?
 			auto d = strtod(&start, &endOfConvert);
-			assert(endOfConvert <= &Str[end]); // defence
+			Assert(endOfConvert <= &Str[end]); // defence
 			if (errno == ERANGE && (d == HUGE_VAL || d == -HUGE_VAL))
 			{
 				throw ParseNumberTooBigException(string(&start, endOfConvert - &start));
@@ -368,43 +363,56 @@ namespace Json
 					break;
 
 				default:
-					if (IS_DIGIT_1TO9(c)) {
+					if (IS_DIGIT_1TO9(c))
+					{
 						++i;
 						while (IS_DIGIT(Str[i])) ++i;
-					} else {
-						throw InvalidNumberException(currentLocationInfo());
+					}
+					else 
+					{
+						throw InvalidNumberException(CurrentLocationInfo());
 					}
 			}
 			// fraction
-			if (Str[i] == '.') {
+			if (Str[i] == '.')
+			{
 				++i;
 				while (IS_DIGIT(Str[i])) ++i;
 			}
 			// exponent
-			switch (Str[i]) {
-				case 'E':
-				case 'e':
+			switch (Str[i]) 
+			{
+			case 'E':
+			case 'e':
+				++i;
+				switch (Str[i])
+				{
+				case '+':
+				case '-':
 					++i;
-					switch (Str[i]) {
-						case '+':
-						case '-':
-							++i;
-						default:
-							if (IS_DIGIT(Str[i])) {
-								++i;
-								while (IS_DIGIT(Str[i])) ++i;
-							} else {
-								throw InvalidNumberException(currentLocationInfo());
-							}
-					}
 				default:
-					while (i <= checkEnd) {
-						if (IsSpace(Str[i])) {
-							++i;
-						} else {
-							throw InvalidNumberException(currentLocationInfo());
-						}
+					if (IS_DIGIT(Str[i]))
+					{
+						++i;
+						while (IS_DIGIT(Str[i])) ++i;
 					}
+					else
+					{
+						throw InvalidNumberException(CurrentLocationInfo());
+					}
+				}
+			default:
+				while (i <= checkEnd)
+				{
+					if (IsSpace(Str[i]))
+					{
+						++i;
+					}
+					else
+					{
+						throw InvalidNumberException(CurrentLocationInfo());
+					}
+				}
 			}
 		}
 #undef IS_DIGIT
@@ -434,15 +442,17 @@ namespace Json
 			{
 				if (Str[i] != target[j])
 				{
-					throw InvalidStringException(LocationInfoAt(i), "While matching " + target);
+					throw InvalidStringException(LocationInfoAt(i), string("While matching ") + string(target));
 				}
 			}
 		}
 
-		LocationInfo currentLocationInfo() const { return LocationInfoAt(_currentLocation); }
+		LocationInfo CurrentLocationInfo() const { return LocationInfoAt(_currentLocation); }
 		LocationInfo LocationInfoAt(size_t i) const { return LocationInfo(Str, i); }
 		static bool IsSpace(char c) { return std::isblank(static_cast<unsigned char>(c)); }
 		static bool IsNumStart(char c) { return std::isdigit(static_cast<unsigned char>(c)) || c == '-'; }
 		static bool IsNumTail(char c) { return std::isdigit(static_cast<unsigned char>(c)); }
 	};
+
+	JsonObject Parse(string_view jsonStr);
 }

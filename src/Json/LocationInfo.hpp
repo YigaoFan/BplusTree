@@ -20,14 +20,14 @@ namespace Json
 			: AllString(str), Location(location)
 		{ }
 
-		char charAtLocation() const
+		char CharAtLocation() const
 		{
 			return AllString[Location];
 		}
 
-		string charsAround() const
+		string StringAround() const
 		{
-			return Location >= 4 ? AllString.substr(Location - 4, 9) : AllString.substr(Location, 9);
+			return string(Location >= 4 ? AllString.substr(Location - 4, 9) : AllString.substr(Location, 9));
 		}
 	};
 }

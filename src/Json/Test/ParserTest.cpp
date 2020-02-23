@@ -22,7 +22,7 @@ TESTCASE("Parser test")
 								"\"b\": 1.23"
 							"}";
 		auto nestObjJson = parse(nestObjStr);
-		ASSERT(nestObjJson.IsObject);
+		ASSERT(nestObjJson.IsObject());
 		ASSERT(nestObjJson["a"].IsObject());
 		ASSERT(nestObjJson["a"]["First"].IsString() && nestObjJson["a"]["First"].GetString() == "Hello world");
 		ASSERT(nestObjJson["b"].IsNumber() && nestObjJson["b"].GetNumber() == 1.23);

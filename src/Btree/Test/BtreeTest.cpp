@@ -3,7 +3,7 @@
 #include <random>
 #include "../../TestFrame/FlyTest.hpp"
 #include "../Btree.hpp"
-#include "../Exception.hpp"
+#include "../CollectionException.hpp"
 #include "../../Basic/Exception.hpp"
 #include "../Enumerator.hpp"
 #include "Util.hpp"

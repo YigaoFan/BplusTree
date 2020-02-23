@@ -1,5 +1,5 @@
 #pragma once
-#include <exception>
+#include <stdexcept>
 #include "LocationInfo.hpp"
 /**********************************
    Exception in Json Parser

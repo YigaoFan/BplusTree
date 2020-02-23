@@ -6,7 +6,7 @@
 #include "Basic.hpp"
 #include "IEnumerator.hpp"
 #include "../Basic/Exception.hpp"
-#include "Exception.hpp"
+#include "CollectionException.hpp"
 #include "LiteVector.hpp"
 
 namespace Collections
