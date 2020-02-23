@@ -217,7 +217,6 @@ namespace Json
 		// 是否有个变量标识当前解析的类型，我想的是解析字符串的时候有些东西比较特殊，比如"
 		JsonObject::_Object ParseObject(size_t& indexAfter1stChar, size_t end)
 		{
-			// 写了 JS 解析时间的代码，感觉这里状态的管理极可能是有问题的
 			JsonObject::_Object objectMap;
 			auto expectString = true, expectBracket = true, expectColon = false,
 				expectJson = false, expectComma = false;
