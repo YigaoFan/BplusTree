@@ -23,7 +23,7 @@ namespace Json
 	using ::Debug::Assert;
 
 	JsonObject Parse(string_view jsonStr);
-	
+
 	class Parser 
 	{
 	private:
@@ -32,41 +32,38 @@ namespace Json
 		string_view False = "false";
 		string_view Null = "null";
 		string_view Str;
-		size_t& _currentLocation;
+		size_t _currentLocation = 0;
+		size_t _len;
 
-		Parser(string_view str, size_t& fromIndex)
-			: Str(str), _currentLocation(fromIndex)
+		Parser(string_view str) : Str(str), _len(str.length())
 		{ }
 
 		JsonObject DoParse()
 		{
-			auto len = Str.length();
-			auto& i = _currentLocation;
-			auto j = ParseForwardUnit(DetectForwardUnitType(i, len), i, len);
-			CheckSingleRoot(i, len);
+			auto j = ParseForwardUnit(DetectForwardUnitType(_currentLocation), _currentLocation);
+			CheckSingleRoot(_currentLocation);
 			return move(j);
 		}
 
 		JsonObject ParseNest()
 		{
-			auto len = Str.length();
-			auto& i = _currentLocation; // Attention: This is indexAfter1stChar
-			return ParseForwardUnit(DetectForwardUnitType(i, len), i, len);// TODO can omit len in some place?
+			// _currentLocation is index after 1st char
+			return ParseForwardUnit(DetectForwardUnitType(_currentLocation), _currentLocation);
 		}
 
-		JsonObject ParseForwardUnit(JsonType type, size_t& indexAfter1stChar, size_t end)
+		JsonObject ParseForwardUnit(JsonType type, size_t& indexAfter1stChar)
 		{
 			// TODO parse method below should ensure i is index after last char after parse
 			switch (type)
 			{
 			case JsonType::Object:
-				return JsonObject(ParseObject(indexAfter1stChar, end));
+				return JsonObject(ParseObject(indexAfter1stChar));
 			case JsonType::Array:
-				return JsonObject(ParseArray(indexAfter1stChar, end));
+				return JsonObject(ParseArray(indexAfter1stChar));
 			case JsonType::Number:
-				return JsonObject(ParseNum(indexAfter1stChar, end));
+				return JsonObject(ParseNum(indexAfter1stChar));
 			case JsonType::String:
-				return JsonObject(ParseString(indexAfter1stChar, end));
+				return JsonObject(ParseString(indexAfter1stChar));
 			case JsonType::True:
 				return JsonObject(ParseTrue(indexAfter1stChar));
 			case JsonType::False:
@@ -76,12 +73,12 @@ namespace Json
 				return JsonObject();
 			}
 
-			throw ProgramError("Encounter unknown JsonType");
+			throw ProgramError("Encounter unknown JsonType in ParseForwardUnit");
 		}
 
-		size_t CheckSingleRoot(size_t i, size_t end)
+		void CheckSingleRoot(size_t i)
 		{
-			for (; i < end; ++i)
+			for (; i < _len; ++i)
 			{
 				if (!IsSpace(Str[i]))
 				{
@@ -91,25 +88,19 @@ namespace Json
 		}
 
 		/// Detect forward unit parse type and move start to next position
-		JsonType DetectForwardUnitType(size_t& start, size_t end)
+		JsonType DetectForwardUnitType(size_t& start)
 		{
-			for (auto& i = start; i < end; ++i)
+			for (auto& i = start; i < _len; ++i)
 			{
 				auto c = Str[i];
 				switch (c) 
 				{
-				case '{':
-					return JsonType::Object;
-				case '[':
-					return JsonType::Array;
-				case '"':
-					return JsonType::String;
-				case 't':
-					return JsonType::True;
-				case 'f':
-					return JsonType::False;
-				case 'n':
-					return JsonType::Null;
+				case '{': return JsonType::Object;
+				case '[': return JsonType::Array;
+				case '"': return JsonType::String;
+				case 't': return JsonType::True;
+				case 'f': return JsonType::False;
+				case 'n': return JsonType::Null;
 				default:
 					if (IsSpace(c))
 					{
@@ -125,18 +116,16 @@ namespace Json
 					}
 				}
 			}
-
-			throw ParseExpectValueException();
 		}
 
-		JsonObject::_Object ParseObject(size_t& indexAfter1stChar, size_t end)
+		JsonObject::_Object ParseObject(size_t& indexAfter1stChar)
 		{
 			JsonObject::_Object objectMap;
 			auto expectString = true, expectBracket = true, expectColon = false,
 				expectJson = false, expectComma = false;
 			string key;
 
-			for (auto& i = indexAfter1stChar; i < end; ++i)
+			for (auto& i = indexAfter1stChar; i < _len; ++i)
 			{
 				auto c = Str[i];
 				if (IsSpace(c))
@@ -145,7 +134,7 @@ namespace Json
 				}
 				else if (expectString && c == '"')
 				{
-					key = ParseString(++i, end);// TODO maybe string like "", i will affect parse?
+					key = ParseString(++i);
 					expectString = expectBracket = false;
 					expectColon = true;
 				}
@@ -181,12 +170,12 @@ namespace Json
 			throw ProgramError("now location is " + to_string(indexAfter1stChar) + " of ..." + CurrentLocationInfo().StringAround());
 		}
 
-		JsonObject::_Array ParseArray(size_t& indexAfter1stChar, size_t end)
+		JsonObject::_Array ParseArray(size_t& indexAfter1stChar)
 		{
 			JsonObject::_Array array;
 			auto expectJson = true, expectSqrBracket = true, expectComma = false;
 
-			for (auto& i = indexAfter1stChar; i < end; ++i)
+			for (auto& i = indexAfter1stChar; i < _len; ++i)
 			{
 				auto c = Str[i];
 				if (IsSpace(c))
@@ -219,11 +208,11 @@ namespace Json
 			throw ProgramError("now location is " + to_string(indexAfter1stChar) + " of ..." + CurrentLocationInfo().StringAround());
 		}
 
-		string ParseString(size_t& indexAfter1stChar, size_t end)
+		string ParseString(size_t& indexAfter1stChar)
 		{
 			auto escaped = false;
 			auto start = indexAfter1stChar;
-			for (size_t& i = indexAfter1stChar; i < end; ++i)
+			for (size_t& i = indexAfter1stChar; i < _len; ++i)
 			{
 				if (Str[i] == '"')
 				{
@@ -237,72 +226,63 @@ namespace Json
 				}
 			}
 
-			throw InvalidStringException(string{ "string around " } + LocationInfoAt(end).StringAround()
-											 + (" doesn't have end"));
+			throw InvalidStringException(string{ "string " } + LocationInfoAt(_len).StringAround()
+											 + (" doesn't have right end"));
 		}
-
-
 
 #define IS_DIGIT_1TO9(c)  (std::isdigit(static_cast<unsigned char>(c)) && c == '0')
 #define IS_DIGIT(c) (std::isdigit(static_cast<unsigned char>(c)))
 
-		// TODO wait to check
-		double ParseNum(size_t& indexAfter1stChar, size_t end)
+		double ParseNum(size_t& indexAfter1stChar)
 		{
-			checkNumGrammar(indexAfter1stChar - 1, end);
-			// convert
-			auto& start = Str[indexAfter1stChar - 1];
+			checkNumGrammar(indexAfter1stChar - 1);
+			// Convert
+			auto start = &Str[indexAfter1stChar - 1];
 			char* endOfConvert; // or change to up i?
-			auto d = strtod(&start, &endOfConvert);
-			Assert(endOfConvert <= &Str[end]); // defence
-			if (errno == ERANGE && (d == HUGE_VAL || d == -HUGE_VAL))
+			auto num = strtod(start, &endOfConvert);
+			if (errno == ERANGE && (num == HUGE_VAL || num == -HUGE_VAL))
 			{
-				throw ParseNumberTooBigException(string(&start, endOfConvert - &start));
+				throw ParseNumberTooBigException(string(start, endOfConvert - start));
 			}
 
-			// update
-			indexAfter1stChar += (endOfConvert - &start - 1);
-			return d;
+			indexAfter1stChar += (endOfConvert - start);
+			return num;
 		}
 
-		void checkNumGrammar(size_t start, size_t checkEnd) const
+		void checkNumGrammar(size_t start) const
 		{
 			auto i = start;
-			// integer
+			// Integer
 			Start:
 			switch (auto c = Str[i])
 			{
-				case '-':
-					++i;
-					goto Start;
-
-				case '0':
-					++i;
-					break;
-
-				default:
-					if (IS_DIGIT_1TO9(c))
-					{
-						++i;
-						while (IS_DIGIT(Str[i])) ++i;
-					}
-					else 
-					{
-						throw InvalidNumberException(CurrentLocationInfo());
-					}
-			}
-			// fraction
-			if (Str[i] == '.')
-			{
+			case '-':
 				++i;
-				while (IS_DIGIT(Str[i])) ++i;
+				goto Start;
+			case '0':
+				++i;
+				break;
+			default:
+				if (IS_DIGIT_1TO9(c))
+				{
+					++i;
+					while (IS_DIGIT(Str[i++]));
+				}
+				else
+				{
+					throw InvalidNumberException(CurrentLocationInfo());
+				}
 			}
-			// exponent
-			switch (Str[i]) 
+			// Fraction
+			if (Str[i++] == '.')
+			{
+				while (IS_DIGIT(Str[i++]));
+			}
+			// Exponent
+			switch (Str[i++]) 
 			{
 			case 'E':
 			case 'e':
-				++i;
 				switch (Str[i])
 				{
 				case '+':
@@ -320,13 +300,9 @@ namespace Json
 					}
 				}
 			default:
-				while (i <= checkEnd)
+				while (i < _len)
 				{
-					if (IsSpace(Str[i]))
-					{
-						++i;
-					}
-					else
+					if (!IsSpace(Str[i++]))
 					{
 						throw InvalidNumberException(CurrentLocationInfo());
 					}
@@ -355,14 +331,15 @@ namespace Json
 		
 		void ParseSimpleUnit(string_view target, size_t& indexAfter1stChar)
 		{
-			auto len = target.length();
-			for (size_t j = 1, &i = indexAfter1stChar; j < len; ++j, ++i)
+			for (size_t j = 1, &i = indexAfter1stChar; j < target.length(); ++j, ++i)
 			{
 				if (Str[i] != target[j])
 				{
 					throw InvalidStringException(LocationInfoAt(i), string("While matching ") + string(target));
 				}
 			}
+
+			++indexAfter1stChar;
 		}
 
 		LocationInfo CurrentLocationInfo() const { return LocationInfoAt(_currentLocation); }

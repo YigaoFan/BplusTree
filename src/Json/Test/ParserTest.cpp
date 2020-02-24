@@ -1,6 +1,8 @@
+#include <string>
 #include "../../TestFrame/FlyTest.hpp"
 #include "../Parser.hpp"
 using namespace Json;
+using ::std::string;
 
 TESTCASE("Parser test")
 {
@@ -9,7 +11,7 @@ TESTCASE("Parser test")
 	// TODO see MoliY's blog
 	SECTION("Parse object")
 	{
-		auto simpleObjStr = "{ \"a\": 1 }";
+		string simpleObjStr = "{ \"a\": 1 }";
 		auto simpleObjJson = parse(simpleObjStr);
 		ASSERT(simpleObjJson.IsObject() && 
 				simpleObjJson["a"].IsNumber() && 

@@ -12,7 +12,6 @@ namespace Json
 
 	JsonObject Parse(string_view jsonStr)
 	{
-		size_t i = 0;
-		return Parser(jsonStr, i).DoParse();
+		return Parser(jsonStr).DoParse();
 	}
 }
