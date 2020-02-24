@@ -90,9 +90,9 @@ namespace Json
 		/// Detect forward unit parse type and move start to next position
 		JsonType DetectForwardUnitType(size_t& start)
 		{
-			for (auto& i = start; i < _len; ++i)
+			for (auto& i = start; i < _len;)
 			{
-				auto c = Str[i];
+				auto c = Str[i++];
 				switch (c) 
 				{
 				case '{': return JsonType::Object;
@@ -116,6 +116,8 @@ namespace Json
 					}
 				}
 			}
+
+			throw ParseExpectValueException();
 		}
 
 		JsonObject::_Object ParseObject(size_t& indexAfter1stChar)
@@ -125,11 +127,12 @@ namespace Json
 				expectJson = false, expectComma = false;
 			string key;
 
-			for (auto& i = indexAfter1stChar; i < _len; ++i)
+			for (auto& i = indexAfter1stChar; i < _len;)
 			{
 				auto c = Str[i];
 				if (IsSpace(c))
 				{
+					++i;
 					continue;
 				}
 				else if (expectString && c == '"')
@@ -140,6 +143,7 @@ namespace Json
 				}
 				else if (expectColon && c == ':')
 				{
+					++i;
 					expectColon = false;
 					expectJson = true;
 				}
@@ -153,6 +157,7 @@ namespace Json
 				else if (expectComma && c == ',')
 				{
 					// Support ',' as end of object
+					++i;
 					expectComma = false;
 					expectString = expectBracket = true;
 				}
@@ -175,11 +180,12 @@ namespace Json
 			JsonObject::_Array array;
 			auto expectJson = true, expectSqrBracket = true, expectComma = false;
 
-			for (auto& i = indexAfter1stChar; i < _len; ++i)
+			for (auto& i = indexAfter1stChar; i < _len;)
 			{
 				auto c = Str[i];
 				if (IsSpace(c))
 				{
+					++i;
 					continue;
 				}
 				else if (expectSqrBracket && c == ']')
@@ -190,6 +196,7 @@ namespace Json
 				else if (expectComma && c == ',')
 				{
 					// support ',' as end of array
+					++i;
 					expectComma = false;
 					expectJson = expectSqrBracket = true;
 				}
@@ -230,12 +237,12 @@ namespace Json
 											 + (" doesn't have right end"));
 		}
 
-#define IS_DIGIT_1TO9(c)  (std::isdigit(static_cast<unsigned char>(c)) && c == '0')
+#define IS_DIGIT_1TO9(c)  (std::isdigit(static_cast<unsigned char>(c)) && c != '0')
 #define IS_DIGIT(c) (std::isdigit(static_cast<unsigned char>(c)))
 
 		double ParseNum(size_t& indexAfter1stChar)
 		{
-			checkNumGrammar(indexAfter1stChar - 1);
+			CheckNumGrammar(indexAfter1stChar - 1);
 			// Convert
 			auto start = &Str[indexAfter1stChar - 1];
 			char* endOfConvert; // or change to up i?
@@ -245,14 +252,15 @@ namespace Json
 				throw ParseNumberTooBigException(string(start, endOfConvert - start));
 			}
 
-			indexAfter1stChar += (endOfConvert - start);
+			indexAfter1stChar += (endOfConvert - start - 1);
 			return num;
 		}
 
-		void checkNumGrammar(size_t start) const
+		void CheckNumGrammar(size_t start) const
 		{
 			auto i = start;
 			// Integer
+			// TODO ++i out of range
 			Start:
 			switch (auto c = Str[i])
 			{
@@ -266,7 +274,7 @@ namespace Json
 				if (IS_DIGIT_1TO9(c))
 				{
 					++i;
-					while (IS_DIGIT(Str[i++]));
+					while (IS_DIGIT(Str[i])) { ++i; }
 				}
 				else
 				{
@@ -274,15 +282,17 @@ namespace Json
 				}
 			}
 			// Fraction
-			if (Str[i++] == '.')
+			if (Str[i] == '.')
 			{
-				while (IS_DIGIT(Str[i++]));
+				++i;
+				while (IS_DIGIT(Str[i])) { ++i; }
 			}
 			// Exponent
-			switch (Str[i++]) 
+			switch (Str[i]) 
 			{
 			case 'E':
 			case 'e':
+				++i;
 				switch (Str[i])
 				{
 				case '+':
@@ -292,7 +302,7 @@ namespace Json
 					if (IS_DIGIT(Str[i]))
 					{
 						++i;
-						while (IS_DIGIT(Str[i])) ++i;
+						while (IS_DIGIT(Str[i])) { ++i; }
 					}
 					else
 					{
@@ -302,10 +312,14 @@ namespace Json
 			default:
 				while (i < _len)
 				{
-					if (!IsSpace(Str[i++]))
+					if (!IsSpace(Str[i]))
 					{
-						throw InvalidNumberException(CurrentLocationInfo());
+						//throw InvalidNumberException(CurrentLocationInfo());
+						// TODO check the correct ending, other unit parse is same
+						return;
 					}
+
+					++i;
 				}
 			}
 		}
