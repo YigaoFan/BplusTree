@@ -22,6 +22,8 @@ namespace Json
 	using ::std::move;
 	using ::Debug::Assert;
 
+	JsonObject Parse(string_view jsonStr);
+	
 	class Parser 
 	{
 	private:
@@ -36,20 +38,12 @@ namespace Json
 			: Str(str), _currentLocation(fromIndex)
 		{ }
 
-		/// Two DoParse has difference, only choose one
 		JsonObject DoParse()
 		{
 			auto len = Str.length();
 			auto& i = _currentLocation;
-			// "accurateEnd" means accurate bound
-			// auto accurateEnd = EnsureSingleRoot(t, i, len - 1); 
-			// check single after parse outside one unit
 			auto j = ParseForwardUnit(DetectForwardUnitType(i, len), i, len);
-			if (true)
-			{
-				// TODO after parse check single root
-			}
-
+			CheckSingleRoot(i, len);
 			return move(j);
 		}
 
@@ -82,41 +76,22 @@ namespace Json
 				return JsonObject();
 			}
 
-			throw ProgramError("Encounter unknown JsonTpe");
+			throw ProgramError("Encounter unknown JsonType");
 		}
 
-		/**
-		 * Ensure the string to be parsed is single root and return the accurate end of parsed one.
-		 * @param unitType type of the root
-		 * @param afterLeftPair the position after left paired position
-		 * @param strEnd end of string to be parsed
-		 * @return right paired position of the root
-		 */
-		size_t EnsureSingleRoot(JsonType unitType, size_t afterLeftPair, size_t strEnd)
+		size_t CheckSingleRoot(size_t i, size_t end)
 		{
-			switch (unitType)
+			for (; i < end; ++i)
 			{
-			case JsonType::Object:
-				return FindRightPair(afterLeftPair, strEnd, '}');
-			case JsonType::Array:
-				return FindRightPair(afterLeftPair, strEnd, ']');
-			case JsonType::String:
-				return FindRightPair(afterLeftPair, strEnd, '"');
-			case JsonType::Number:
-				return FindNumStrRightBound(afterLeftPair, strEnd);
-#define REMAIN_LEN(stringName) (stringName.length() - 2)
-			case JsonType::True:
-				return EnsureJustSimpleUnit(afterLeftPair + REMAIN_LEN(True), strEnd);
-			case JsonType::False:
-				return EnsureJustSimpleUnit(afterLeftPair + REMAIN_LEN(False), strEnd);
-			case JsonType::Null:
-				return EnsureJustSimpleUnit(afterLeftPair + REMAIN_LEN(Null), strEnd);
-#undef REMAIN_LEN
+				if (!IsSpace(Str[i]))
+				{
+					throw ParseNotSingleRootException(LocationInfoAt(i));
+				}
 			}
 		}
 
 		/// Detect forward unit parse type and move start to next position
-		JsonType DetectForwardUnitType(size_t &start, size_t end)
+		JsonType DetectForwardUnitType(size_t& start, size_t end)
 		{
 			for (auto& i = start; i < end; ++i)
 			{
@@ -152,63 +127,6 @@ namespace Json
 			}
 
 			throw ParseExpectValueException();
-		}
-
-		/**
-		 * will check single root inner
-		 * @return Index of expected char
-		 */
-		size_t FindRightPair(size_t start, size_t end, char expected) const
-		{
-			for (auto i = end; i >= start; --i)
-			{
-				auto c = Str[i];
-				if (c == expected)
-				{
-					return i;
-				}
-				else if (!IsSpace(c))
-				{
-					throw ParseNotSingleRootException(CurrentLocationInfo());
-				}
-			}
-
-			throw PairNotFoundException(start, end, expected);
-		}
-
-		/**
-		 * Ensure just simple parse unit(include True, False, Null) from @param unitEnd to @param checkEnd
-		 * @param unitEnd
-		 * @param checkEnd
-		 * @return @param unitEnd
-		 */
-		size_t EnsureJustSimpleUnit(size_t unitEnd, size_t checkEnd) const
-		{
-			for (auto i = unitEnd + 1; i < checkEnd; ++i)
-			{
-				if (!IsSpace(Str[i]))
-				{
-					throw ParseNotSingleRootException(LocationInfoAt(i));
-				}
-			}
-
-			return unitEnd;
-		}
-
-		size_t FindNumStrRightBound(size_t start, size_t end) const
-		{
-			for (auto i = end; i >=  start; ++i)
-			{
-				auto c = Str[i];
-				if (IsNumTail(c))
-				{
-					return i;
-				}
-				else if (!IsSpace(c))
-				{
-					throw ParseNotSingleRootException(CurrentLocationInfo());
-				}
-			}
 		}
 
 		JsonObject::_Object ParseObject(size_t& indexAfter1stChar, size_t end)
@@ -453,6 +371,4 @@ namespace Json
 		static bool IsNumStart(char c) { return std::isdigit(static_cast<unsigned char>(c)) || c == '-'; }
 		static bool IsNumTail(char c) { return std::isdigit(static_cast<unsigned char>(c)); }
 	};
-
-	JsonObject Parse(string_view jsonStr);
 }
