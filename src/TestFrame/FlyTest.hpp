@@ -104,7 +104,7 @@ namespace
 		}
 	};
 
-	class Condition;
+	class Condition; // TODO need this pre declaration?
 	class Section
 	{
 		// Section don't have the data detail rely on Condition class, but Condition do.
@@ -121,6 +121,7 @@ namespace
 		bool shouldExecute() { return !_selfDone; }
 		void markDone() { _selfDone = true; }
 		Info info() const { return _info; }
+		void freeHeapMemory() { _subSections.~vector(); _info.~Info(); }
 	};
 
 	class Condition
@@ -157,6 +158,7 @@ namespace
 				if (!_state)
 				{
 					correspondSection.markDone();
+					correspondSection.freeHeapMemory();
 					_state = true;
 				}
 
@@ -276,7 +278,7 @@ namespace
 
 #define SECTION(DESCRIPTION) \
 	static Section CAT(section, __LINE__) { condition, Info(getFileName(__FILE__), __LINE__, DESCRIPTION) }; \
-    if (Condition condition{ CAT(section, __LINE__), onceState, track })
+	if (Condition condition{ CAT(section, __LINE__), onceState, track })
 
 #define ASSERT(EXP)                                                                            \
     do {                                                                                       \
