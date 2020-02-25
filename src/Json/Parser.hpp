@@ -10,6 +10,7 @@
 #include "ParseException.hpp"
 #include "Json.hpp"
 #include "../Basic/Debug.hpp"
+#include "../Basic/Exception.hpp"
 #include "LocationInfo.hpp"
 
 namespace Json 
@@ -21,17 +22,43 @@ namespace Json
 	using ::std::string_view;
 	using ::std::move;
 	using ::Debug::Assert;
+	using ::Basic::AccessOutOfRangeException;
 
 	JsonObject Parse(string_view jsonStr);
 
 	class Parser 
 	{
 	private:
+		class Index
+		{
+		private:
+			size_t _i = 0;
+			size_t _len;
+
+		public:
+			Index(size_t len) : _len(len) { }
+			size_t operator++ ()
+			{
+				if (++_i < _len)
+				{
+					return _i;
+				}
+
+				throw AccessOutOfRangeException();
+			}
+
+			operator size_t()
+			{
+				return _i;
+			}
+		};
+		
 		friend JsonObject Parse(string_view);
 		string_view True = "true";
 		string_view False = "false";
 		string_view Null = "null";
 		string_view Str;
+		// Index _currentIndex;
 		size_t _currentLocation = 0;
 		size_t _len;
 
@@ -260,8 +287,9 @@ namespace Json
 		{
 			auto i = start;
 			// Integer
-			// TODO ++i out of range
-			Start:
+			// TODO ++i maybe out of range all ++i, like while(++i)...
+			// TODO Some point could end
+		Start:
 			switch (auto c = Str[i])
 			{
 			case '-':
@@ -281,12 +309,24 @@ namespace Json
 					throw InvalidNumberException(CurrentLocationInfo());
 				}
 			}
+
+#define UNIT_END_CHECK                \
+	if (i == _len || IsSpace(Str[i])) \
+	{                                 \
+		return;                       \
+	}
+
+			UNIT_END_CHECK;
+
 			// Fraction
 			if (Str[i] == '.')
 			{
 				++i;
 				while (IS_DIGIT(Str[i])) { ++i; }
 			}
+
+			UNIT_END_CHECK;
+
 			// Exponent
 			switch (Str[i]) 
 			{
@@ -309,20 +349,14 @@ namespace Json
 						throw InvalidNumberException(CurrentLocationInfo());
 					}
 				}
-			default:
-				while (i < _len)
-				{
-					if (!IsSpace(Str[i]))
-					{
-						//throw InvalidNumberException(CurrentLocationInfo());
-						// TODO check the correct ending, other unit parse is same
-						return;
-					}
 
-					++i;
-				}
+				UNIT_END_CHECK;
+				// TODO check the correct ending, other unit parse is same
+			default:
+				throw InvalidNumberException(CurrentLocationInfo());
 			}
 		}
+#undef UNIT_END_CHECK
 #undef IS_DIGIT
 #undef IS_DIGIT_1TO9
 
