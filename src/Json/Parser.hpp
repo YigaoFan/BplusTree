@@ -287,7 +287,8 @@ namespace Json
 		{
 			auto i = start;
 			// Integer
-			// TODO ++i maybe out of range all ++i, like while(++i)...
+			// TODO ++i maybe out of range all ++i
+			// while(++i) maybe access end of string_view
 			// TODO Some point could end
 		Start:
 			switch (auto c = Str[i])
