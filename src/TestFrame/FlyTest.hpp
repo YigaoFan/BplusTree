@@ -276,9 +276,15 @@ namespace
     RegisterTestCase CAT(registerTestcase, __LINE__) { make_pair<Info, TestCaseFunction>(Info(getFileName(__FILE__), __LINE__, DESCRIPTION), CAT(testcase, __LINE__)) }; \
     void CAT(testcase, __LINE__) (Condition&& condition, bool& onceState, SectionRouteTrack& track, size_t& successCount)
 
-#define SECTION(DESCRIPTION) \
+#define SECTION_1(DESCRIPTION) \
 	static Section CAT(section, __LINE__) { condition, Info(getFileName(__FILE__), __LINE__, DESCRIPTION) }; \
 	if (Condition condition{ CAT(section, __LINE__), onceState, track })
+
+#define EXPAND(X) X
+#define SECTION_2(DESCRIPTION, SKIP) if constexpr (false)
+#define GET_3RD_ARG(ARG1, ARG2, ARG3, ...) ARG3
+#define SECTION_MACRO_CHOOSER(...) EXPAND(GET_3RD_ARG(__VA_ARGS__, SECTION_2, SECTION_1,))
+#define SECTION(...) EXPAND(SECTION_MACRO_CHOOSER(__VA_ARGS__)(__VA_ARGS__))
 
 #define ASSERT(EXP)                                                                            \
     do {                                                                                       \
