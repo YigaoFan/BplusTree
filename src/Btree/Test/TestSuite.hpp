@@ -1,15 +1,11 @@
-// extern void elementTest();
-// extern void nodeTest();
-extern void btreeTest();
-extern void liteVectorTest();
+extern void btreeTest(bool isSkipped);
+extern void liteVectorTest(bool isSkipped);
 
 namespace CollectionsTest
 {
-	void AllTest() 
+	void AllTest(bool isSkipped)
 	{
-		// elementTest();
-		// nodeTest();
-		//liteVectorTest(); // If not call, _test_ vector memory will not free before main end
-		btreeTest();
+		liteVectorTest(true); // If not call, _test_ vector memory will not free before main end
+		btreeTest(isSkipped);
 	}
 }

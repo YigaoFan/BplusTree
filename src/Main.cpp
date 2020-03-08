@@ -1,9 +1,9 @@
-#define MEMO_CHECK false
+#define MEMO_CHECK true
 #if MEMO_CHECK
 #include <crtdbg.h>
 #endif
 
-#define BTREE_TEST_SWITCH false
+#define BTREE_TEST_SWITCH true
 #define JSON_TEST_SWITCH true
 
 #if BTREE_TEST_SWITCH
@@ -20,6 +20,9 @@
 #define JSON_TEST(FUNC)
 #endif
 
+#include <iostream>
+#include "Btree/Test/MemoryMemo.hpp"
+
 int main()
 {
 #if MEMO_CHECK
@@ -30,8 +33,8 @@ int main()
 	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDOUT);
 #endif
-	BTREE_TEST(CollectionsTest::AllTest());
-	JSON_TEST(JsonTest::AllTest());
+	BTREE_TEST(CollectionsTest::AllTest(false));
+	JSON_TEST(JsonTest::AllTest(true));
 
 #if MEMO_CHECK
 	 _CrtDumpMemoryLeaks();

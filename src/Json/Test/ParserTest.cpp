@@ -32,7 +32,7 @@ TESTCASE("Parser test")
 #endif
 	}
 
-	SECTION("Parse array")
+	SECTION("Parse array", skip)
 	{
 		auto jsonStr = "[1, 2, 3, ]";
 		auto json = parse(jsonStr);
@@ -85,8 +85,12 @@ TESTCASE("Parser test")
 	}
 }
 
-void parserTest()
+void parserTest(bool isSkipped)
 {
-	allTest();
+	if (!isSkipped)
+	{
+		allTest();
+	}
+
 	_tests_.~vector();
 }

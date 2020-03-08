@@ -7,7 +7,7 @@ using namespace Collections;
 using ::std::string;
 
 
-TESTCASE("LiteVector test")
+TESTCASE("Int LiteVector test")
 {
 	using IntLiVec = LiteVector<int, size_t, 10>; // Just stack allocate
 	auto v = IntLiVec{ 0, 1, };
@@ -143,8 +143,22 @@ TESTCASE("LiteVector test")
 	}
 }
 
-void liteVectorTest()
+TESTCASE("String LiteVector test")
 {
-	allTest();
+	using ::std::string;
+	using StrLiVec = LiteVector<string, int, 10>;
+	auto v = StrLiVec{ "Hello", "World" };
+	ASSERT(v.Count() == 2);
+
+
+}
+
+void liteVectorTest(bool isSkipped)
+{
+	if (!isSkipped)
+	{
+		allTest();
+	}
+
 	_tests_.~vector();
 }
