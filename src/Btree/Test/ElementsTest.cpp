@@ -1,199 +1,112 @@
 #include <string>
 #include <array>
 #include <utility>
-#include <cassert>
 #include <iostream>
+#include <memory>
 #include "../../TestFrame/FlyTest.hpp"
 #include "../Elements.hpp"
-#include "Utility.hpp"
-using namespace Btree;
-using std::string;
-using std::array;
-using std::make_pair;
-using std::pair;
-using std::cout;
-using std::endl;
-using std::make_shared;
+#include "../Enumerator.hpp"
+using namespace Collections;
+using namespace ::std;
 
-class DummyNode {
-public:
-	unique_ptr<DummyNode> clone() const
+TESTCASE("Element test")
+{
+	auto lessThan = [](int const& a, int const& b) { return a < b; };
+	auto lessThanPtr = make_shared<function<bool(int const&, int const&)>>(lessThan);
+
+	auto kv0 = make_pair<int, string>(0, "Hello world, fanyigao");
+	auto kv1 = make_pair<int, string>(1, "Hello world, fanyigao");
+	auto kv2 = make_pair<int, string>(2, "Hello world, fanyigao");
+	auto kv3 = make_pair<int, string>(3, "Hello world, fanyigao");
+	auto kv4 = make_pair<int, string>(4, "Hello world, fanyigao");
+	auto kv5 = make_pair<int, string>(5, "Hello world, fanyigao");
+	auto kv6 = make_pair<int, string>(6, "Hello world, fanyigao");
+	auto kv7 = make_pair<int, string>(7, "Hello world, fanyigao");
+	auto kv8 = make_pair<int, string>(8, "Hello world, fanyigao");
+	auto kv9 = make_pair<int, string>(9, "Hello world, fanyigao");
+
+	auto kvs = array<decltype(kv0), 4>
 	{
-		return make_unique<DummyNode>(*this);
-	}
-};
-
-TESTCASE("Element test") {
-	function<bool(const string&, const string&)> lessThan = [] (const string& a, const string& b) {
-		return a < b;
+		kv0,
+		kv1,
+		kv2,
+		kv3,
 	};
-	using ELE = Elements<string, string, 3, DummyNode>;
 
-	SECTION("Test leaf full Element construct") {
-		array<pair<string, string>, 3> keyValueArray {
-			make_pair("1", "a"),
-			make_pair("2", "b"),
-			make_pair("3", "c"),
-		};
-		ELE leafEle {
-			keyValueArray.begin(),
-			keyValueArray.end(),
-			make_shared<decltype(lessThan)>(lessThan)
-		};
+	using Ele = Elements<int, string, 4>;
 
-		ASSERT(leafEle.count() == 3);
-		ASSERT(leafEle.full());
-		ASSERT(leafEle.have("1"));
-		ASSERT(leafEle.have("2"));
-		ASSERT(leafEle.have("3"));
-		ASSERT(!leafEle.have("4"));
-		ASSERT(ELE::value(leafEle["1"]) == "a");
-		ASSERT(ELE::value(leafEle["2"]) == "b");
-		ASSERT(ELE::value(leafEle["3"]) == "c");
-		ASSERT(ELE::value(leafEle[0].second) == "a");
-		ASSERT(ELE::value(leafEle[1].second) == "b");
-		ASSERT(ELE::value(leafEle[2].second) == "c");
-		ASSERT(leafEle[0].first == "1");
-		ASSERT(leafEle[1].first == "2");
-		ASSERT(leafEle[2].first == "3");
+	SECTION("Init list")
+	{
+		auto es = Ele(lessThanPtr, kv0, kv1, kv2, kv3);
+		ASSERT(es[0].first == kv0.first);
+		ASSERT(es[1].first == kv1.first);
+		ASSERT(es[2].first == kv2.first);
+		ASSERT(es[3].first == kv3.first);
+		ASSERT(es.Count() == 4);
+	}
 
-		SECTION("Test copy") {
-			ELE b { leafEle };
+	SECTION("Enumerator cons")
+	{
+		auto es = Ele(lessThanPtr, CreateEnumerator(kvs));
+		ASSERT(es[0].first == kv0.first);
+		ASSERT(es[1].first == kv1.first);
+		ASSERT(es[2].first == kv2.first);
+		ASSERT(es[3].first == kv3.first);
+		ASSERT(es.Count() == 4);
+	}
 
-			ASSERT(b.count() == 3);
-			ASSERT(b.full());
-			ASSERT(!b.remove("1"));
-			ASSERT(!b.have("1"));
-			ASSERT(leafEle.have("1"));
-		}
-
-		SECTION("Test move") {
-			ELE b{std::move(leafEle)};
-
-			ASSERT(b.count() == 3);
-			ASSERT(b.full());
-			ASSERT(!b.remove("1"));
-			ASSERT(!b.have("1"));
-			ASSERT(!leafEle.have("1"));
-		}
-
-		SECTION("Test remove") {
-				// TODO could use function to simplify below code
-			ASSERT(!leafEle.remove("2"));
-			ASSERT(!leafEle.have("2"));
-			ASSERT(leafEle.count() == 2);
-			ASSERT(!leafEle.remove("1"));
-			ASSERT(!leafEle.have("1"));
-			ASSERT(leafEle.count() == 1);
-			ASSERT(leafEle.remove("3"));
-			ASSERT(!leafEle.have("3"));
-			ASSERT(leafEle.count() == 0);
-
-			SECTION("Test append and insert") {
-				leafEle.append(make_pair(string{"3"}, string{"c"}));
-				ASSERT_THROW(runtime_error, leafEle.insert(make_pair(string{"4"}, string{"d"})));
-				ASSERT_THROW(runtime_error, leafEle.insert(make_pair(string{"3"}, string{"c"})));
-				leafEle.insert(make_pair(string{"2"}, string{"b"}));
-				ASSERT(leafEle.count() == 2);
-				ASSERT(ELE::value(leafEle["2"]) == "b");
-				ASSERT(ELE::value(leafEle["3"]) == "c");
-			}
-		}
-
-		SECTION("Test full append") {
-			ASSERT_THROW(runtime_error, leafEle.append(make_pair(string{"4"}, string{"d"})));
-		}
-
-		SECTION("Test exchange") {
-			ASSERT(leafEle.full());
-			auto&& max = leafEle.exchangeMax(make_pair<string, string>("4", "d"));
-			ASSERT(max.first == "3");
-			ASSERT(max.second == "c");
-			ASSERT(ELE::value(leafEle["4"]) == "d");
-		}
-
-		SECTION("Test iterator") {
-			for (auto& e : leafEle) {
-
-			}
-		}
-
-		SECTION("Test construct Element on heap") {
-			ELE* heapEle = new ELE {
-				keyValueArray.begin(),
-				keyValueArray.end(),
-				make_shared<decltype(lessThan)>(lessThan)
-			};
-
-			delete heapEle;
-		}
-
-		SECTION("Test no full construct") {
-			ELE notFullEle (
-				keyValueArray.begin(),
-				//&keyValueArray[keyValueArray.size() - 1],
-				keyValueArray.end(),
-				make_shared<decltype(lessThan)>(lessThan)
-			);
-			ASSERT(notFullEle.count() == 2);
+	SECTION("Empty cons")
+	{
+		auto es = Ele(lessThanPtr);
+		for (auto& kv : kvs)
+		{
+			es.Add(kv);
+			ASSERT(es.ContainsKey(kv.first));
+			ASSERT(es.GetValue(kv.first) == kv.second);
+			ASSERT(es[es.Count() - 1].first == kv.first);
 		}
 	}
 
-	SECTION("Test middle Element construct") {
-		auto n1 = make_unique<DummyNode>();
-		auto n2 = make_unique<DummyNode>();
-		auto n3 = make_unique<DummyNode>();
+	SECTION("Member function")
+	{
+		auto es = Ele(lessThanPtr, kv0, kv1, kv2, kv3);
 
-		array<pair<string, unique_ptr<DummyNode>>, 3> keyValueArray {
-			make_pair("1", std::move(n1)),
-			make_pair("2", std::move(n2)),
-			make_pair("3", std::move(n3)),
-		};
-
-		ELE middle{keyValueArray.begin(), keyValueArray.end(), make_shared<decltype(lessThan)>(lessThan)};
-
-		ASSERT(middle.count() == 3);
-		ASSERT(middle.full());
-		ASSERT(middle.have("1"));
-		ASSERT(middle.have("2"));
-		ASSERT(middle.have("3"));
-		ASSERT(!middle.have("4"));
-		ASSERT(ELE::ptr(middle["1"]) == n1.get());
-		ASSERT(ELE::ptr(middle["2"]) == n2.get());
-		ASSERT(ELE::ptr(middle["3"]) == n3.get());
-		ASSERT(ELE::ptr(middle[0].second) == n1.get());
-		ASSERT(ELE::ptr(middle[1].second) == n2.get());
-		ASSERT(ELE::ptr(middle[2].second) == n3.get());
-		ASSERT(middle[0].first == "1");
-		ASSERT(middle[1].first == "2");
-		ASSERT(middle[2].first == "3");
-
-		SECTION("Test copy") {
-			ELE b{middle};
-
-			ASSERT(ELE::ptr(b["1"]) != ELE::ptr(middle["1"]));
-			ASSERT(ELE::ptr(b["2"]) != ELE::ptr(middle["2"]));
-			ASSERT(ELE::ptr(b["3"]) != ELE::ptr(middle["3"]));
+		SECTION("Move cons")
+		{
 		}
 
-		SECTION("Test move") {
-			ELE m{std::move(middle)};
-			ASSERT(middle.count() == 0);
-			ASSERT(m.count() == 3);
-			ASSERT(ELE::ptr(m["1"]) == n1.get());
-			ASSERT(ELE::ptr(m["2"]) == n2.get());
-			ASSERT(ELE::ptr(m["3"]) == n3.get());
-			ASSERT_THROW(runtime_error, ELE::ptr(middle["1"]));
-			ASSERT_THROW(runtime_error, ELE::ptr(middle["2"]));
-			ASSERT_THROW(runtime_error, ELE::ptr(middle["3"]));
+		SECTION("Copy cons")
+		{
+		}
+
+		SECTION("ExchangeMax")
+		{
+		}
+
+		SECTION("ExchangeMin")
+		{
+		}
+
+		SECTION("IndexKeyOf")
+		{
+		}
+
+		SECTION("SelectBranch")
+		{
+		}
+
+		SECTION("GetEnumerator")
+		{
 		}
 	}
-
-	// TODO maybe need to test deconstruct
 }
 
-void
-elementTest()
+void elementsTest(bool isSkipped)
 {
-	allTest();
+	if (!isSkipped)
+	{
+		allTest();
+	}
+
+	_tests_.~vector();
 }

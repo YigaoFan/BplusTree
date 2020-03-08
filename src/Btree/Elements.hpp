@@ -21,7 +21,8 @@ namespace Collections
 	using ::Basic::InvalidOperationException;
 	
 	// TODO when BtreeOrder is big, use binary search in iterate process
-	template <typename Key, typename Value, order_int BtreeOrder, typename LessThan>
+	template <typename Key, typename Value, order_int BtreeOrder, 
+		typename LessThan=function<bool(Key const&, Key const&)>>
 	class Elements : public LiteVector<pair<Key, Value>, order_int, BtreeOrder>
 	{
 	public:
@@ -30,7 +31,11 @@ namespace Collections
 		shared_ptr<LessThan> LessThanPtr;
 
 	public:
-		Elements(shared_ptr<LessThan> lessThanPtr) : Base(), LessThanPtr(lessThanPtr)
+		// Items in constructor is sorted, will be moved
+
+		template <typename... Ts>
+		Elements(shared_ptr<LessThan> lessThanPtr, Ts... ts)
+			: Base(move(ts)...), LessThanPtr(lessThanPtr)
 		{ }
 
 		Elements(IEnumerator<Item&>& enumerator, shared_ptr<LessThan> lessThanPtr)
@@ -55,7 +60,8 @@ namespace Collections
 		Elements(Elements const& that) : Base(that), LessThanPtr(that.LessThanPtr)
 		{ }
 
-		Elements(Elements&& that) noexcept : Base(move(static_cast<Base&>(that))), LessThanPtr(move(that.LessThanPtr))
+		Elements(Elements&& that) noexcept
+			: Base(move(that)), LessThanPtr(move(that.LessThanPtr))
 		{ }
 
 		bool ContainsKey(Key const& key) const
@@ -86,14 +92,6 @@ namespace Collections
 
 			return keys;
 		}
-
-		/// Remove the item corresponding to the key.
-		/// Invoker should ensure key exists in this Elements.
-		/// \param key
-		//void RemoveKey(Key const& key)
-		//{
-		//	return Base::RemoveAt(IndexKeyOf(key));
-		//}
 
 		void Add(Item p, function<void()> changeMinCallback = [](){})
 		{
