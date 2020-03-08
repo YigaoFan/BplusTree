@@ -34,11 +34,20 @@ namespace Collections
 		// Items in constructor is sorted, will be moved
 
 		template <typename... Ts>
-		Elements(shared_ptr<LessThan> lessThanPtr, Ts... ts)
-			: Base(move(ts)...), LessThanPtr(lessThanPtr)
+		Elements(shared_ptr<LessThan> lessThanPtr)
+			: Base(), LessThanPtr(lessThanPtr)
 		{ }
 
 		Elements(IEnumerator<Item&>& enumerator, shared_ptr<LessThan> lessThanPtr)
+			: Base(), LessThanPtr(lessThanPtr)
+		{
+			while (enumerator.MoveNext())
+			{
+				Base::Add(move(enumerator.Current()));
+			}
+		}
+
+		Elements(IEnumerator<Item&>&& enumerator, shared_ptr<LessThan> lessThanPtr)
 			: Base(), LessThanPtr(lessThanPtr)
 		{
 			while (enumerator.MoveNext())

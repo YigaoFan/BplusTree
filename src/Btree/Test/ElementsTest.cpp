@@ -35,19 +35,9 @@ TESTCASE("Element test")
 
 	using Ele = Elements<int, string, 4>;
 
-	SECTION("Init list")
-	{
-		auto es = Ele(lessThanPtr, kv0, kv1, kv2, kv3);
-		ASSERT(es[0].first == kv0.first);
-		ASSERT(es[1].first == kv1.first);
-		ASSERT(es[2].first == kv2.first);
-		ASSERT(es[3].first == kv3.first);
-		ASSERT(es.Count() == 4);
-	}
-
 	SECTION("Enumerator cons")
 	{
-		auto es = Ele(lessThanPtr, CreateEnumerator(kvs));
+		auto es = Ele(CreateEnumerator(kvs), lessThanPtr);
 		ASSERT(es[0].first == kv0.first);
 		ASSERT(es[1].first == kv1.first);
 		ASSERT(es[2].first == kv2.first);
@@ -69,7 +59,7 @@ TESTCASE("Element test")
 
 	SECTION("Member function")
 	{
-		auto es = Ele(lessThanPtr, kv0, kv1, kv2, kv3);
+		auto es = Ele(CreateEnumerator(kvs), lessThanPtr);
 
 		SECTION("Move cons")
 		{
