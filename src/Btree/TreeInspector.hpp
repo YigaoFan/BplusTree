@@ -19,7 +19,7 @@ namespace Collections
 		{
 			for (auto sn : n->SubNodes())
 			{
-                deepers.push_back(sn);
+				deepers.push_back(sn);
 			}
 		}
 
