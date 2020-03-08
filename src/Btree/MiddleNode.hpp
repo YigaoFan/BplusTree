@@ -166,6 +166,30 @@ namespace Collections
 		{
 			throw NotImplementException();
 		}
+
+		vector<Key> SubNodeMinKeys() const override
+		{
+			vector<Key> ks;
+			ks.reserve(_elements.Count());
+			for (auto k : _elements.Keys())
+			{
+				ks.push_back(k);
+			}
+
+			return ks;
+		}
+
+		vector<Base*> SubNodes() const override
+		{
+			vector<Base*> subs;
+			subs.reserve(_elements.Count());
+			for (auto& e : _elements)
+			{
+				subs.push_back(e.second.get());
+			}
+
+			return subs;
+		}
 	private:
 		MiddleNode(IEnumerator<unique_ptr<Base>>&& enumerator, shared_ptr<_LessThan> lessThanPtr)
 			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertPtrToKeyPtrPair, _1)), lessThanPtr)
@@ -206,12 +230,9 @@ namespace Collections
 		void AddSubNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
 		{
 			// newNextNode must not be MinSon
-			// TODO need to set relation if need
 			if (!_elements.Full())
 			{
-				this->SetSubNodeCallback(newNextNode->Middle(), newNextNode);
-				_elements.Emplace(_elements.IndexKeyOf(srcNode->MinKey()) + 1, { StoredKey(newNextNode->MinKey()), move(newNextNode) });
-				return;
+				return this->ProcessedAdd({ StoredKey(newNextNode->MinKey()), move(newNextNode) });
 			}
 
 			auto next = _queryNext(this);
@@ -224,32 +245,16 @@ namespace Collections
 		{
 			// node has no key
 			auto i = IndexOfSubNode(node);
-			//if (!node->Middle())
-			//{
-			//	auto leafNode = LEF_CAST(node);
-			//	// Fresh the _next of LeafNode
-			//	if (i != 0)
-			//	{
-			// 在这里设置的话，即使 i = 0，这只是 MiddleNode 内部的，所以这个节点左边仍然可能有节点
-			//		LEF_CAST(_elements[i - 1].second.get())->Next(leafNode->Next());
-			//	}
-
-			//	// Fresh the _previous of LeafNode
-			//	if (i != _elements.Count() - 1)
-			//	{
-			//		LEF_CAST(_elements[i + 1].second.get())->Previous(leafNode->Previous());
-			//	}
-			//}
-
 			_elements.RemoveAt(i);
 			if (i == 0)
 			{
 				(*this->_minKeyChangeCallbackPtr)(MinKey(), this);
 			}
-			// Below two variables is to macro
+
 			constexpr auto lowBound = Base::LowBound;
 			if (_elements.Count() < lowBound)
 			{
+				// Below two variables is to macro
 				auto next = _queryNext(this);
 				auto previous = _queryPrevious(this);
 				AFTER_REMOVE_COMMON(false);
@@ -258,7 +263,7 @@ namespace Collections
 				// 加层和减层这两个操作只能发生在 root
 				// 所以下面这句在普通 MiddleNode 发生不了
 				// 下面这句如何确保是 root 节点调用的呢？
-				this->_shallowTreeCallbackPtr->operator ()();
+				(*this->_shallowTreeCallbackPtr)();
 			}
 		}
 

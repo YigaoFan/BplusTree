@@ -12,6 +12,7 @@
 #include "Basic.hpp"
 #include "Enumerator.hpp"
 #include "NodeFactory.hpp"
+#include "TreeInspector.hpp"
 #include "../Basic/Exception.hpp"
 #include "CollectionException.hpp"
 
@@ -88,13 +89,17 @@ namespace Collections
 		return Total == 0 ?
 			0 : (Total % ItemCapacity == 0 ? (Total / ItemCapacity) : (Total / ItemCapacity + 1));
 	}
-	
+
+	template <order_int BtreeOrder, typename Key, typename Value>
+	class UniversalEnumerator;
+
 	template <order_int BtreeOrder, typename Key, typename Value>
 	class Btree 
 	{
 	public:
 		using _LessThan = LessThan<Key>;
 	private:
+		friend class UniversalEnumerator<BtreeOrder, Key, Value>;
 		using Base   = NodeBase<Key, Value, BtreeOrder>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
 		typename Base::UpNodeAddSubNodeCallback _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
@@ -171,6 +176,8 @@ namespace Collections
 			this->SetRootCallbacks();
 			this->_keyCount = that._keyCount;
 			this->_lessThanPtr = that._lessThanPtr;
+
+			return *this;
 		}
 
 		Btree& operator= (Btree&& that) noexcept 
@@ -180,6 +187,13 @@ namespace Collections
 			this->_keyCount = that._keyCount;
 			that._keyCount = 0;
 			this->_lessThanPtr = move(that._lessThanPtr);
+
+			return *this;
+		}
+
+		void PrintTree()
+		{
+			InspectNodeKeys(_root.get());
 		}
 
 		bool ContainsKey(Key const& key) const

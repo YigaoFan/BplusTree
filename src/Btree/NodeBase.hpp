@@ -71,7 +71,8 @@ namespace Collections
 		virtual bool MoveDown(NodeBase* &) const = 0;
 		virtual bool MoveLeft(NodeBase* &) const = 0;
 		virtual bool MoveRight(NodeBase* &) const = 0;
-
+		virtual vector<Key> SubNodeMinKeys() const = 0;
+		virtual vector<NodeBase*> SubNodes() const = 0;
 		
 	protected:
 		template <Operation Op>

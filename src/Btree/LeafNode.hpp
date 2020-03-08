@@ -126,6 +126,16 @@ namespace Collections
 			throw NotImplementException();
 		}
 
+		vector<Key> SubNodeMinKeys() const override
+		{
+			return _elements.Keys();
+		}
+
+		vector<Base*> SubNodes() const override
+		{
+			return {};
+		}
+
 		LeafNode* Next() const { return _next; }
 		LeafNode* Previous() const { return _previous; }
 		void Next(LeafNode* next) { _next = next; }
