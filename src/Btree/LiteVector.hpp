@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 #include <array>
+#include <type_traits>
 
 namespace Collections
 {
@@ -11,6 +12,7 @@ namespace Collections
 	using ::std::move;
 	using ::std::vector;
 	using ::std::array;
+	using ::std::remove_const_t;
 
 	template <typename T, typename size_int, size_int Capacity>
 	class LiteVector
@@ -18,7 +20,6 @@ namespace Collections
 	private:
 		array<uint8_t, sizeof(T) * Capacity> _mem;
 		T* const _ptr = reinterpret_cast<T*>(&_mem[0]);
-	protected:
 		size_int _count = 0;
 
 	public:
@@ -52,9 +53,10 @@ namespace Collections
 
 		virtual ~LiteVector()
 		{
-			for (size_int i = 0; i < _count; ++i)
+			while (_count != 0)
 			{
-				_ptr[i].~T();
+				auto& e = _ptr[--_count];
+				e.~T();
 			}
 		}
 
@@ -65,7 +67,7 @@ namespace Collections
 
 		void RemoveAt(size_int i)
 		{
-			MoveItems(-1, i + 1);
+			MoveLeft<true>(i);
 			--_count;
 		}
 
@@ -89,19 +91,21 @@ namespace Collections
 
 		T PopOut()
 		{
-			return move(_ptr[(_count--) - 1]);
+			return move(_ptr[--_count]);
 		}
 
 		T FrontPopOut()
 		{
 			auto p = move(_ptr[0]);
-			RemoveAt(0);
+			MoveLeft<false>(0);
+			--_count;
 			return move(p);
 		}
 
 		void Emplace(size_int i, T t)
 		{
-			MoveItems(1, i);
+			// TODO back 会不会不对？
+			MoveRight(i);
 			_ptr[i] = move(t);
 			++_count;
 		}
@@ -137,32 +141,33 @@ namespace Collections
 			}
 		}
 
-		void MoveItems(int32_t direction, size_int index)
+		/// i item will be covered
+		template <bool NeedToDestroy>
+		void MoveLeft(size_int i)
 		{
-			MoveItems(direction, begin() + index);
+			if constexpr (NeedToDestroy)
+			{
+				_ptr[i].~T();
+			}
+
+			remove_const_t<decltype(_ptr)> start = begin() + i;
+			new (start)T(move(*(start + 1)));
+			++start;
+			for (; start != (this->end() - 1); ++start)
+			{
+				*(start) = move(*(start + 1));
+			}
 		}
 
-		/// Start included, still exist
-		/// \param direction
-		/// \param start
-		void MoveItems(int32_t direction, decltype(_ptr) start)
+		void MoveRight(size_int index)
 		{
-			if (direction == 0) { return; }
-			if (direction < 0)
+			decltype(_ptr) start = begin() + index;
+			auto rbegin = this->end() - 1;
+			new (this->end())T(move(*rbegin));
+			--rbegin;
+			for (; rbegin != (start - 1); --rbegin)
 			{
-				auto e = this->end();
-				for (auto begin = start; begin != e; ++begin)
-				{
-					*(begin + direction) = move(*begin);
-				}
-			}
-			else
-			{
-				auto rend = start - 1;
-				for (auto rbegin = this->end() - 1; rbegin != rend; --rbegin)
-				{
-					*(rbegin + direction) = move(*rbegin);
-				}
+				*(rbegin + 1) = move(*rbegin);
 			}
 		}
 	};

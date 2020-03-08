@@ -90,10 +90,10 @@ namespace Collections
 		/// Remove the item corresponding to the key.
 		/// Invoker should ensure key exists in this Elements.
 		/// \param key
-		void RemoveKey(Key const& key)
-		{
-			return Base::RemoveAt(IndexKeyOf(key));
-		}
+		//void RemoveKey(Key const& key)
+		//{
+		//	return Base::RemoveAt(IndexKeyOf(key));
+		//}
 
 		void Add(Item p, function<void()> changeMinCallback = [](){})
 		{
@@ -102,7 +102,7 @@ namespace Collections
 				return Append(move(p));
 			}
 
-			if ((*LessThanPtr)(this->operator[](this->_count - 1).first, p.first))
+			if ((*LessThanPtr)(this->operator[](this->Count() - 1).first, p.first))
 			{
 				return Append(move(p));
 			}
@@ -186,7 +186,7 @@ namespace Collections
 		template <typename T>
 		order_int SelectBranch(T const& key) const
 		{
-			for (decltype(this->_count) i = 1; i < this->_count; ++i)
+			for (decltype(this->Count()) i = 1; i < this->Count(); ++i)
 			{
 				if ((*LessThanPtr)(key, this->operator[](i).first))
 				{
@@ -194,7 +194,7 @@ namespace Collections
 				}
 			}
 
-			return this->_count - 1;
+			return this->Count() - 1;
 		}
 
 		auto GetEnumerator() { return CreateEnumerator(*this); }
@@ -205,7 +205,7 @@ namespace Collections
 		template <bool WithCheck=true>
 		void Insert(Item p, function<void()> changeMinCallback)
 		{
-			for (decltype(this->_count) i = 0; i < this->_count; ++i)
+			for (decltype(this->Count()) i = 0; i < this->Count(); ++i)
 			{
 				auto& lessThan = *LessThanPtr;
 				if (lessThan(p.first, this->operator[](i).first))
