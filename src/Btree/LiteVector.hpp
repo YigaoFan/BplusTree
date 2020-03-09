@@ -67,7 +67,7 @@ namespace Collections
 
 		void RemoveAt(size_int i)
 		{
-			MoveLeft<true>(i);
+			MoveLeft(i);
 			--_count;
 		}
 
@@ -75,12 +75,11 @@ namespace Collections
 		{
 			vector<T> outItems;
 			outItems.reserve(count);
-			for (decltype(_count) i = _count - count; i < _count; ++i)
+			for (; count != 0; --count)
 			{
-				outItems.push_back(move(_ptr[i]));
+				outItems.emplace_back(PopOut());
 			}
 
-			_count -= count;
 			return outItems;
 		}
 
@@ -91,20 +90,22 @@ namespace Collections
 
 		T PopOut()
 		{
-			return move(_ptr[--_count]);
+			auto t = move(_ptr[--_count]);
+			_ptr[_count].~T();
+			return t;
 		}
 
 		T FrontPopOut()
 		{
 			auto p = move(_ptr[0]);
-			MoveLeft<false>(0);
+			MoveLeft(0);
 			--_count;
 			return move(p);
 		}
 
 		void Emplace(size_int i, T t)
 		{
-			// TODO back 会不会不对？
+			// TODO back 锟结不锟结不锟皆ｏ拷
 			MoveRight(i);
 			_ptr[i] = move(t);
 			++_count;
@@ -142,33 +143,29 @@ namespace Collections
 		}
 
 		/// i item will be covered
-		template <bool NeedToDestroy>
 		void MoveLeft(size_int i)
 		{
-			if constexpr (NeedToDestroy)
-			{
-				_ptr[i].~T();
-			}
-
 			remove_const_t<decltype(_ptr)> start = begin() + i;
-			new (start)T(move(*(start + 1)));
-			++start;
 			for (; start != (this->end() - 1); ++start)
 			{
 				*(start) = move(*(start + 1));
 			}
+
+			start->~T();
 		}
 
 		void MoveRight(size_int index)
 		{
 			decltype(_ptr) start = begin() + index;
 			auto rbegin = this->end() - 1;
-			new (this->end())T(move(*rbegin));
+			new (rbegin + 1)T(move(*rbegin));
 			--rbegin;
 			for (; rbegin != (start - 1); --rbegin)
 			{
 				*(rbegin + 1) = move(*rbegin);
 			}
+
+			start->~T();
 		}
 	};
 }
