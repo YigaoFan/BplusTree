@@ -6,7 +6,7 @@ namespace CollectionsTest
 {
 	void AllTest(bool isSkipped)
 	{
-		liteVectorTest(true);
+		liteVectorTest(isSkipped);
 		btreeTest(isSkipped);
 		elementsTest(isSkipped);
 	}

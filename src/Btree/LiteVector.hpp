@@ -77,7 +77,7 @@ namespace Collections
 			outItems.reserve(count);
 			for (; count != 0; --count)
 			{
-				outItems.emplace_back(PopOut());
+				outItems.insert(outItems.begin(), PopOut());
 			}
 
 			return outItems;
@@ -103,9 +103,9 @@ namespace Collections
 			return move(p);
 		}
 
+		/// Emplace on back is wrong behavior
 		void Emplace(size_int i, T t)
 		{
-			// TODO back �᲻�᲻�ԣ�
 			MoveRight(i);
 			_ptr[i] = move(t);
 			++_count;

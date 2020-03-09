@@ -176,38 +176,62 @@ TESTCASE("Str-Str btree test")
 		Btr btree{ lessThan, basicKeyValueArray };
 	}
 
-	SECTION("Random add and remove", skip)
+	SECTION("Random add and remove")
 	{
 		using ::std::cout;
 		using ::std::random_device;
 		using ::std::mt19937;
+		using Btr = Btree<4, string, string>;
 		for (auto i = 0; i < 100; ++i)
 		{
-			using Btr = Btree<4, string, string>;
 			Btr btree(lessThan);
 			random_device rd;
 			mt19937 g(rd());
 			shuffle(completeKeyValueArray.begin(), completeKeyValueArray.end(), g);
-			cout << "Shuffled array: ";
-			for (auto& e : completeKeyValueArray)
+			
+			for (auto& p : completeKeyValueArray)
 			{
-				cout << e.first << " ";
+				btree.Add(p);
+				try
+				{
+					ASSERT(btree.ContainsKey(p.first));
+				}
+				catch (AssertionFailure const& e)
+				{
+					cout << "Shuffled array: ";
+					for (auto& e : completeKeyValueArray)
+					{
+						cout << e.first << " ";
+					}
+					cout << endl;
+
+					throw e;
+				}
 			}
-			cout << endl;
 
-			ADD_LOT_FROM(completeKeyValueArray);
-
-			for (auto& e : completeKeyValueArray)
+			for (auto& p : completeKeyValueArray)
 			{
-				btree.Remove(e.first);
-				ASSERT(!btree.ContainsKey(e.first));
+				btree.Remove(p.first);
+				try
+				{
+					ASSERT(!btree.ContainsKey(p.first));
+				}
+				catch (AssertionFailure const& e)
+				{
+					cout << "Shuffled array: ";
+					for (auto& e : completeKeyValueArray)
+					{
+						cout << e.first << " ";
+					}
+					cout << endl;
+
+					throw e;
+				}
 			}
 		}
 		// check balance work or not?
 		// 4 14 3 7 18 16 5 17 1 19 10 11 2 6 15 8 13 9 0 12
 		// 1 5 18 11 2 0 9 17 4 10 16 13 8 6 7 19 15 12 3 14
-		// 4 8 10 1 14 15 2 16 6 0 5 13 9 7 18 12 17 3 19 11 TODO
-		// 8 12 16 10 5 0 14 2 15 13 11 4 17 1 3 18 19 7 6 9
 
 		//auto kv1 = make_pair<string, string>("1", "a");
 		//auto kv5 = make_pair<string, string>("5", "a");

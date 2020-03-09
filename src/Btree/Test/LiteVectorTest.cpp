@@ -111,10 +111,8 @@ TESTCASE("Int LiteVector test")
 		ASSERT(v[2] == 1);
 		ASSERT(v.Count() == 3);
 
-		// 0, 2, 1, 3
-		// like emplace back, maybe not right behaviour
-		v.Emplace(3, 3);
-		ASSERT(v[3] == 3);
+		v.Emplace(2, 3);
+		ASSERT(v[2] == 3);
 		ASSERT(v.Count() == 4);
 	}
 
