@@ -193,6 +193,7 @@ namespace Collections
 
 		void PrintTree()
 		{
+			// TODO this arg can be anything which like cout
 			InspectNodeKeys(_root.get());
 		}
 
