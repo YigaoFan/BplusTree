@@ -3,14 +3,14 @@
 #include <crtdbg.h>
 #endif
 
-#define BTREE_TEST_SWITCH true
+#define COLLECTIONS_TEST_SWITCH true
 #define JSON_TEST_SWITCH true
 
-#if BTREE_TEST_SWITCH
+#if COLLECTIONS_TEST_SWITCH
 #include "Btree/Test/TestSuite.hpp"
-#define BTREE_TEST(FUNC) FUNC
+#define COLLECTIONS_TEST(FUNC) FUNC
 #else
-#define BTREE_TEST(FUNC)
+#define COLLECTIONS_TEST(FUNC)
 #endif
 
 #if JSON_TEST_SWITCH
@@ -30,7 +30,7 @@ int main()
 	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDOUT);
 #endif
-	BTREE_TEST(CollectionsTest::AllTest(false));
+	COLLECTIONS_TEST(CollectionsTest::AllTest(false));
 	JSON_TEST(JsonTest::AllTest(true));
 
 #if MEMO_CHECK
