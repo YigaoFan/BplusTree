@@ -100,7 +100,12 @@ TESTCASE("Str-Str btree test")
 			b.Remove("3");
 			ASSERT(!b.ContainsKey("3"));
 			ASSERT(btree.ContainsKey("3"));
-			//b.~Btr(); TODO here is problem
+			//b.~Btr(); 
+			// This manual call destructor, out scope will call, too
+			// pointer will not be set to null after call destructor of unique_ptr on Windows 
+			// so cannot call destructor multiple times on Windows
+			// But Mac platform will set to null
+			// Maybe the destructor implement standard of unique_ptr is undefined.
 		}
 
 		SECTION("Normal function")
