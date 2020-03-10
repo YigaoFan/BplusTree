@@ -13,11 +13,8 @@ namespace Json
 		string_view AllString;
 		size_t Location;
 
-		/**
-		 * should ensure string exists in scope of usage
-		 */
-		LocationInfo(string_view str, size_t location)
-			: AllString(str), Location(location)
+		/// should ensure string exists in scope of usage
+		LocationInfo(string_view str, size_t location) : AllString(str), Location(location)
 		{ }
 
 		char CharAtLocation() const
@@ -27,7 +24,7 @@ namespace Json
 
 		string StringAround() const
 		{
-			return string(Location >= 4 ? AllString.substr(Location - 4, 9) : AllString.substr(Location, 9));
+			return string(Location >= 2 ? AllString.substr(Location - 2, 2) : AllString.substr(Location, 2));
 		}
 	};
 }

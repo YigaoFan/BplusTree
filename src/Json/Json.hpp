@@ -40,11 +40,11 @@ namespace Json
 	public:
 		// How to dynamic cons JsonObject with any type? has this demand?
 		JsonObject();
-		explicit JsonObject(_Object object);
-		explicit JsonObject(vector<shared_ptr<JsonObject>> array);
-		explicit JsonObject(double num);
-		explicit JsonObject(string str);
-		explicit JsonObject(bool value);
+		JsonObject(_Object object);
+		JsonObject(vector<shared_ptr<JsonObject>> array);
+		JsonObject(double num);
+		JsonObject(string str);
+		JsonObject(bool value);
 		JsonObject(JsonObject&& that) noexcept;
 		JsonObject(JsonObject const& that);
 
