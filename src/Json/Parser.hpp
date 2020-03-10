@@ -58,17 +58,17 @@ namespace Json
 			switch (type)
 			{
 			case JsonType::Object:
-				return ParseObject();
+				return JsonObject(ParseObject());
 			case JsonType::Array:
-				return ParseArray();
+				return JsonObject(ParseArray());
 			case JsonType::Number:
-				return ParseNum();
+				return JsonObject(ParseNum());
 			case JsonType::String:
-				return ParseString();
+				return JsonObject(ParseString());
 			case JsonType::True:
-				return ParseTrue();
+				return JsonObject(ParseTrue());
 			case JsonType::False:
-				return ParseFalse();
+				return JsonObject(ParseFalse());
 			case JsonType::Null:
 				ParseNull();
 				return JsonObject();
@@ -91,10 +91,9 @@ namespace Json
 		/// Detect forward unit parse type and move start to next position
 		JsonType DetectForwardUnitType()
 		{
-			auto& start = _currentIndex;
-			for (auto& i = start; i < _len; ++i)
+			for (auto& i = _currentIndex; i < _len;)
 			{
-				auto c = Str[i];
+				auto c = Str[i++];
 				switch (c) 
 				{
 				case '{': return JsonType::Object;
@@ -125,12 +124,13 @@ namespace Json
 		// TODO use i but not add 1 and check once, should use _currentIndex
 		JsonObject::_Object ParseObject()
 		{
+			auto& i = _currentIndex;
 			JsonObject::_Object objectMap;
 			auto expectString = true, expectBracket = true, expectColon = false,
 				expectJson = false, expectComma = false;
 			string key;
 
-			for (auto& i = _currentIndex; i < _len;)
+			while (i < _len)
 			{
 				auto c = Str[i];
 				if (IsSpace(c))
@@ -140,7 +140,8 @@ namespace Json
 				}
 				else if (expectString && c == '"')
 				{
-					key = ParseString(++i);
+					++i;
+					key = ParseString();
 					expectString = expectBracket = false;
 					expectColon = true;
 				}
@@ -175,6 +176,7 @@ namespace Json
 				}
 			}
 
+			// TODO locate info should perfect
 			throw InvalidStringException(CurrentLocationInfo(), "Object not end on suitable location");
 		}
 
@@ -261,50 +263,25 @@ namespace Json
 			return num;
 		}
 
+#define INC_THEN_RETURN_IF_END if (++i == _len) { return; }
+#define INC_THEN_EXCEPTION_IF_END if (++i == _len) { throw InvalidNumberException(LocationInfoAt(i)); }
 		void CheckNumGrammar(size_t start) const
 		{
 			auto i = start;
-			// Integer
-			// TODO ++i maybe out of range all ++i
-			// while(++i) maybe access end of string_view?
-			// TODO Some point could end
 		Start:
 			switch (auto c = Str[i])
 			{
 			case '-':
-				++i;
+				INC_THEN_EXCEPTION_IF_END;
 				goto Start;
 			case '0':
-				++i;
+				INC_THEN_RETURN_IF_END;
 				break;
 			default:
 				if (IS_DIGIT_1TO9(c))
 				{
-					++i;
-					while (IS_DIGIT(Str[i])) { ++i; }
-				}
-				else
-				{
-					throw InvalidNumberException(CurrentLocationInfo());
-				}
-			}
-
-#define UNIT_END_CHECK                \
-	if (i == _len || IsSpace(Str[i])) \
-	{                                 \
-		return;                       \
-	}
-
-			UNIT_END_CHECK;
-
-			// Fraction
-			if (Str[i] == '.')
-			{
-				++i;
-				if (IS_DIGIT(Str[i]))
-				{
-					++i;
-					while (IS_DIGIT(Str[i])) { ++i; }
+					INC_THEN_RETURN_IF_END;
+					while (IS_DIGIT(Str[i])) { INC_THEN_RETURN_IF_END; }
 				}
 				else
 				{
@@ -312,24 +289,41 @@ namespace Json
 				}
 			}
 
-			UNIT_END_CHECK;
+			// Fraction
+			if (Str[i] == '.')
+			{
+				INC_THEN_EXCEPTION_IF_END;
+				if (IS_DIGIT(Str[i]))
+				{
+					INC_THEN_RETURN_IF_END;
+					while (IS_DIGIT(Str[i])) { INC_THEN_RETURN_IF_END; }
+				}
+				else
+				{
+					throw InvalidNumberException(LocationInfoAt(i));
+				}
+			}
+			else
+			{
+				return;
+			}
 
 			// Exponent
 			switch (Str[i]) 
 			{
 			case 'E':
 			case 'e':
-				++i;
+				INC_THEN_EXCEPTION_IF_END;
 				switch (Str[i])
 				{
 				case '+':
 				case '-':
-					++i;
+					INC_THEN_EXCEPTION_IF_END;
 				default:
 					if (IS_DIGIT(Str[i]))
 					{
-						++i;
-						while (IS_DIGIT(Str[i])) { ++i; }
+						INC_THEN_RETURN_IF_END;
+						while (IS_DIGIT(Str[i])) { INC_THEN_RETURN_IF_END; }
 					}
 					else
 					{
@@ -337,12 +331,12 @@ namespace Json
 					}
 				}
 
-				UNIT_END_CHECK;
 			default:
-				throw InvalidNumberException(LocationInfoAt(i));
+				return;
 			}
 		}
-#undef UNIT_END_CHECK
+#undef INC_THEN_EXCEPTION_IF_END
+#undef INC_THEN_RETURN_IF_END
 #undef IS_DIGIT
 #undef IS_DIGIT_1TO9
 

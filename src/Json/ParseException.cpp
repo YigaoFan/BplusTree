@@ -15,11 +15,6 @@ namespace Json
 		: runtime_error("This is a defense exception, please fix the error with message: " + message)
 	{ }
 
-
-	ParseEmptyStringException::ParseEmptyStringException()
-		: runtime_error("Expect not empty string")
-	{ }
-
 	ParseExpectValueException::ParseExpectValueException()
 		: runtime_error("Expect a string that not just contains space")
 	{ }
@@ -27,10 +22,6 @@ namespace Json
 	ParseNotSingleRootException::ParseNotSingleRootException(LocationInfo info)
 		: runtime_error(string{&"JSON string is not a single root: " [ info.CharAtLocation()]} // how this work
 						+ " at " + to_string(info.Location) + " of ..." + info.StringAround()) // not worry, chars will be copied
-	{ }
-
-	PairNotFoundException::PairNotFoundException(size_t start, size_t end, char expected)
-		: runtime_error(string{"Can't find "} + expected + " pair between " + to_string(start) + " and " + to_string(end))
 	{ }
 
 	ParseNumberTooBigException::ParseNumberTooBigException(string const& tooBigNum)

@@ -12,7 +12,7 @@ namespace Json
 	public:
 		string_view AllString;
 		size_t Location;
-
+		/// TODO out of string_view range
 		/// should ensure string exists in scope of usage
 		LocationInfo(string_view str, size_t location) : AllString(str), Location(location)
 		{ }

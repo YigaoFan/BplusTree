@@ -23,12 +23,6 @@ namespace Json
 		explicit ProgramError(string const& message);
 	};
 
-	class ParseEmptyStringException : public runtime_error
-	{
-	public:
-		ParseEmptyStringException();
-	};
-
 	class ParseExpectValueException : public runtime_error
 	{
 	public:
@@ -39,12 +33,6 @@ namespace Json
 	{
 	public:
 		explicit ParseNotSingleRootException(LocationInfo info);
-	};
-
-	class PairNotFoundException : public runtime_error
-	{
-	public:
-		PairNotFoundException(size_t start, size_t end, char expected);
 	};
 
 	class ParseNumberTooBigException : public runtime_error

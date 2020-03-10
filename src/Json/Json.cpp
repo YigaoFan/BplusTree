@@ -131,6 +131,20 @@ namespace Json
 		return _type == JsonType::True;
 	}
 
+	size_t JsonObject::Count() const
+	{
+		if (IsArray())
+		{
+			return GetArray().size();
+		}
+		else if (IsObject())
+		{
+			return GetObject().size();
+		}
+
+		Assert(false);
+	}
+
 	string JsonObject::ToString()
 	{
 		switch (_type)
@@ -141,7 +155,9 @@ namespace Json
 			auto& objectMap = GetObject(); // TODO reduce the judge in GetObject()
 			for (auto& pair : objectMap)
 			{
+				objStr += '"';
 				objStr += pair.first;
+				objStr += '"';
 				objStr += ':';
 				objStr += pair.second->ToString();
 				objStr += ',';
@@ -164,7 +180,7 @@ namespace Json
 		}
 
 		case JsonType::Number:return to_string(GetNumber());
-		case JsonType::String:return GetString();
+		case JsonType::String:return string("\"") + GetString() + string("\"");
 		case JsonType::True:  return "true";
 		case JsonType::False: return "false";
 		case JsonType::Null:  return "null";
