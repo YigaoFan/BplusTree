@@ -20,9 +20,6 @@
 #define JSON_TEST(FUNC)
 #endif
 
-#include <iostream>
-#include "Btree/Test/MemoryMemo.hpp"
-
 int main()
 {
 #if MEMO_CHECK
@@ -33,8 +30,8 @@ int main()
 	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDOUT);
 #endif
-	BTREE_TEST(CollectionsTest::AllTest(false));
-	JSON_TEST(JsonTest::AllTest(true));
+	BTREE_TEST(CollectionsTest::AllTest(true));
+	JSON_TEST(JsonTest::AllTest(false));
 
 #if MEMO_CHECK
 	 _CrtDumpMemoryLeaks();

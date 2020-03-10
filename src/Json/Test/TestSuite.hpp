@@ -1,9 +1,9 @@
-extern void parserTest(bool isSkipped);
+extern void parserTest(bool executed);
 
 namespace JsonTest
 {
-	void AllTest(bool isSkipped)
+	void AllTest(bool executed)
 	{
-		parserTest(isSkipped);
+		parserTest(executed);
 	}
 }

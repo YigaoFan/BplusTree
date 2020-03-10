@@ -91,9 +91,9 @@ TESTCASE("Element test")
 	}
 }
 
-void elementsTest(bool isSkipped)
+void elementsTest(bool executed)
 {
-	if (!isSkipped)
+	if (executed)
 	{
 		allTest();
 	}

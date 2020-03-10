@@ -332,9 +332,9 @@ TESTCASE("Int-Str btree test")
 	}
 }
 
-void btreeTest(bool isSkipped)
+void btreeTest(bool executed)
 {
-	if (!isSkipped)
+	if (executed)
 	{
 		allTest();
 	}

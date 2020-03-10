@@ -151,9 +151,9 @@ TESTCASE("String LiteVector test")
 
 }
 
-void liteVectorTest(bool isSkipped)
+void liteVectorTest(bool executed)
 {
-	if (!isSkipped)
+	if (executed)
 	{
 		allTest();
 	}

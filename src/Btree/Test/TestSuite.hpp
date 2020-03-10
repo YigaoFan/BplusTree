@@ -1,13 +1,13 @@
-extern void btreeTest(bool isSkipped);
-extern void liteVectorTest(bool isSkipped);
-extern void elementsTest(bool isSkipped);
+extern void btreeTest(bool executed);
+extern void liteVectorTest(bool executed);
+extern void elementsTest(bool executed);
 
 namespace CollectionsTest
 {
-	void AllTest(bool isSkipped)
+	void AllTest(bool executed)
 	{
-		liteVectorTest(isSkipped);
-		btreeTest(isSkipped);
-		elementsTest(isSkipped);
+		liteVectorTest(executed);
+		btreeTest(executed);
+		elementsTest(executed);
 	}
 }

@@ -85,9 +85,9 @@ TESTCASE("Parser test")
 	}
 }
 
-void parserTest(bool isSkipped)
+void parserTest(bool executed)
 {
-	if (!isSkipped)
+	if (executed)
 	{
 		allTest();
 	}
