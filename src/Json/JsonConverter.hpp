@@ -1,10 +1,45 @@
 #pragma once
 #include <string>
+#include <type_traits>
+#include <tuple>
 #include "Json.hpp"
 
 namespace Json
 {
 	using ::std::string;
+	using ::std::false_type;
+	using ::std::true_type;
+	using ::std::declval;
+	using ::std::make_tuple;
+	
+	template <typename T, typename... Args>
+	decltype(void(T{declval<Args>()...}), true_type())
+	test(int);
+
+	template <typename T, typename... Args>
+	false_type
+	test(...); //... mean ?
+
+	template <typename T, typename... Args>
+	struct IsBracesConstructible : decltype(test<T, Args...>(0))
+	{ };
+
+	struct AnyType
+	{
+		template <typename T>
+		operator T();		
+	};
+	
+	template <typename T>
+	auto ToTuple(T&& objct)
+	{
+		if constexpr (IsBracesConstructible<T, AnyType, AnyType>())
+		{
+			auto&& [p1, p2] = objct;
+			return make_tuple(p1, p2);
+		}
+		else if constexpr 
+	}
 
 	class JsonConverter
 	{
