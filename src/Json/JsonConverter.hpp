@@ -2,6 +2,7 @@
 #include <string>
 #include <type_traits>
 #include <tuple>
+#include <utility>
 #include "Json.hpp"
 
 namespace Json
@@ -196,12 +197,24 @@ namespace Json
 
 	class JsonConverter
 	{
+		// using ::std::index_sequence;
+
 	public:
+		template <typename Tuple, size_t... Indexs>
+		string SerializeEach(Tuple&& tuple, ::std::index_sequence<Indexs...>)
+		{
+			using ::std::get;
+			return (Serialize(get<Indexs>(forward<Tuple>(tuple)))...);
+		}
+
 		template <typename T>
 		static string Serialize(T const &t)
 		{
-			// Convert struct to tuple
-			// Iterate item ToString
+			using ::std::tuple_size;
+			using ::std::make_index_sequence;
+			auto t = ToTuple(forward<T>(t)); // forward maybe use wrong
+			auto is = make_index_sequence<tuple_size<remove_reference_t<decltype(t)>>()>{};
+			return SerializeEach(move(t), is);
 		}
 
 		template <>

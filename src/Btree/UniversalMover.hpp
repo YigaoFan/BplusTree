@@ -11,13 +11,13 @@ namespace Collections
     using ::std::vector;
 
     template <order_int BtreeOrder, typename Key, typename Value>
-    class UniversalEnumerator
+    class UniversalMover
     {
     private:
         Btree<BtreeOrder, Key, Value>& _btree;
         vector<NodeBase*> _deepStack;
     public:
-        UniversalEnumerator(decltype(_btree)& btree)
+        UniversalMover(decltype(_btree) btree)
             : _btree(btree)
         { }
 
@@ -33,7 +33,7 @@ namespace Collections
             return false;
         }
 
-        // 有点复杂，万一 MoveDown 之后，还 MoveRight 了，怎么 MoveUp ?
+        // 锟叫点复锟接ｏ拷锟斤拷一 MoveDown 之锟襟，伙拷 MoveRight 锟剿ｏ拷锟斤拷么 MoveUp ?
 
         bool MoveDown(NodeBase*& nextNode)
         {
