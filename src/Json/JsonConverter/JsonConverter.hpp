@@ -3,9 +3,9 @@
 #include <type_traits>
 #include <tuple>
 #include <utility>
-#include "Json.hpp"
+#include "../Json.hpp"
 
-namespace Json
+namespace Json::JsonConverter
 {
 	using ::std::declval;
 	using ::std::declval;
@@ -35,7 +35,7 @@ namespace Json
 	};
 
 	template <typename T>
-	auto ToTuple(T &&object) noexcept
+	auto ToTuple(T&& object) noexcept
 	{
 		using type = decay_t<T>;
 		// Here can use Boost macro replaced

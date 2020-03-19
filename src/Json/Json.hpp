@@ -77,7 +77,7 @@ namespace Json
 		// Think necessary
 		_Object const& GetObject() const;
 		// // how modify array item external
-		const _Array& GetArray()   const;
+		_Array const& GetArray()   const;
 		double GetNumber()         const;
 		string GetString()         const;
 		bool   GetBool()           const;
