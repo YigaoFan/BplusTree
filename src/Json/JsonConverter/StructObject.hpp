@@ -20,9 +20,9 @@ namespace Json::JsonConverter
 		StructObject();
 		StructObject(string structName);
 		StructObject(string_view structName);
-		void StructName(string structName);
-		string StructName();
-		void StructName(string_view structName);
+		void TypeName(string structName);
+		string TypeName();
+		void TypeName(string_view structName);
 		void AppendDataMember(string type, string name);
 		void AppendDataMember(string_view type, string_view name);
 		string GetType(uint32_t i);

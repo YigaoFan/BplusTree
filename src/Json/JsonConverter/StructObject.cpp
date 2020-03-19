@@ -21,17 +21,17 @@ namespace Json::JsonConverter
 		: _structName(ConsStringFromView(structName))
 	{ }
 
-	void StructObject::StructName(string structName)
+	void StructObject::TypeName(string structName)
 	{
 		_structName = move(structName);
 	}
 
-	void StructObject::StructName(string_view structName)
+	void StructObject::TypeName(string_view structName)
 	{
 		_structName = ConsStringFromView(structName);
 	}
 
-	string StructObject::StructName()
+	string StructObject::TypeName()
 	{
 		return _structName;
 	}
