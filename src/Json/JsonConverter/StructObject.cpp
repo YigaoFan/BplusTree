@@ -31,7 +31,7 @@ namespace Json::JsonConverter
 		_typeName = ConsStringFromView(structName);
 	}
 
-	string StructObject::TypeName()
+	string StructObject::TypeName() const
 	{
 		return _typeName;
 	}
@@ -46,12 +46,12 @@ namespace Json::JsonConverter
 		AppendDataMember(ConsStringFromView(type), ConsStringFromView(name));
 	}
 
-	string StructObject::GetType(uint32_t i)
+	string StructObject::GetType(uint32_t i) const
 	{
 		return _dataMembers[i].first;
 	}
 
-	string StructObject::GetType(string const& name)
+	string StructObject::GetType(string const& name) const
 	{
 		using Basic::KeyNotFoundException;
 
@@ -66,13 +66,18 @@ namespace Json::JsonConverter
 		throw KeyNotFoundException(name);
 	}
 
-	string StructObject::GetName(uint32_t i)
+	string StructObject::GetName(uint32_t i) const
 	{
 		return _dataMembers[i].second;
 	}
 
-	pair<string, string> StructObject::GetTypeNamePair(uint32_t i)
+	pair<string, string> StructObject::GetTypeNamePair(uint32_t i) const
 	{
 		return _dataMembers[i];
+	}
+
+	vector<pair<string, string>> StructObject::DataMembers() const
+	{
+		return _dataMembers;
 	}
 }

@@ -21,13 +21,14 @@ namespace Json::JsonConverter
 		StructObject(string structName);
 		StructObject(string_view structName);
 		void TypeName(string structName);
-		string TypeName();
+		string TypeName() const;
 		void TypeName(string_view structName);
 		void AppendDataMember(string type, string name);
 		void AppendDataMember(string_view type, string_view name);
-		string GetType(uint32_t i);
-		string GetType(string const& name);
-		string GetName(uint32_t i);
-		pair<string, string> GetTypeNamePair(uint32_t i);
+		string GetType(uint32_t i) const;
+		string GetType(string const& name) const;
+		string GetName(uint32_t i) const;
+		pair<string, string> GetTypeNamePair(uint32_t i) const;
+		vector<pair<string, string>> DataMembers() const;
 	};
 }
