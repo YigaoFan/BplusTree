@@ -4,28 +4,46 @@
 #include <vector>
 #include <cctype>
 #include "StructObject.hpp"
+#include "../ParseException.hpp"
+#include "../../Basic/Debug.hpp"
+#include "WordEnumerator.hpp"
 
 namespace Json::JsonConverter
 {
 	using ::std::string;
 	using ::std::string_view;
 	using ::std::vector;
+	using ::Debug::Assert;
 	
 	// Below item should be tested
 
-	vector<string_view> Split(string_view str, char delimiter)
+	vector<string_view> Split(string_view str, char separator)
 	{
 		vector<string_view> splited;
+		auto i = 0, unitStart = 0;
+		auto separated = true;
 
-		for (auto i = 0, last = 0; i < str.size(); ++i)
+		auto tryAdd = [&splited](auto str, auto start, auto index)
 		{
-			if (str[i] == delimiter)
+			if (start != index)
 			{
-				splited.emplace_back(str.substr(last, i - last));
-				last = i + 1;
+				splited.emplace_back(str.substr(start, index - start));
+			}
+		};
+		// " abc "
+		// "  abc "
+		// "abc "
+		// " abc"
+		for (; i < str.size(); ++i)
+		{
+			if (str[i] == separator)
+			{
+				tryAdd(str, unitStart, i);
+				unitStart = i + 1;
 			}
 		}
 
+		tryAdd(str, unitStart, i);
 		return splited;
 	}
 
@@ -57,7 +75,7 @@ namespace Json::JsonConverter
 		{
 			if (!isblank(static_cast<unsigned char>(str[i])))
 			{
-				return str.substr(i, str.size() - i);
+				return str.substr(i);
 			}
 		}
 
@@ -77,64 +95,57 @@ namespace Json::JsonConverter
 		return true;
 	}
 
-	string_view ParseTypeName(vector<string>& structDef, uint32_t& i)
+	string_view ParseTypeName(WordEnumerator& wordEnumerator)
 	{
+		auto& en = wordEnumerator;
 		string_view structKeyword = "struct";
-		while (!Contain(structDef[i], structKeyword))
+		while (en.MoveNext())
 		{
-			++i;
-		}
-
-		// Should have something like Enumerator or generator to unify line internal and between lines
-		auto structLine = structDef[i];
-		auto nextWordIndex = structLine.find(structKeyword) + structKeyword.size();
-		if (nextWordIndex < structLine.size())
-		{
-			auto sub = structLine.substr(nextWordIndex, structLine.size() - nextWordIndex);
-			if (!IsBlank(sub))
+			if (en.Current() == structKeyword)
 			{
-				return TrimEnd(TrimStart(sub));
-			}
-			else
-			{
-				++i;
-				while (!IsBlank(structDef[i]))
-				{
-					auto sub = structDef[i];
-					return TrimEnd(TrimStart(sub));
-				}
-
-				throw;// TODO Exception
+				goto GetTypeName;
 			}
 		}
+
+		goto NotFound;
+
+	GetTypeName:
+		if (en.MoveNext())
+		{
+			return en.Current();
+		}
+
+	NotFound:
+		throw InvalidStringException("Type name of struct not found");
 	}
 
 	// Not support derive
 	// Not support private data member
 	// Not support default set value
 	// Not support public keyword inside
-	StructObject ParseStruct(vector<string> structDef)
+	StructObject ParseStruct(vector<string_view> structDef)
 	{
-		uint32_t i = 0;
-		
-		auto obj = StructObject(ParseTypeName(structDef, i));
+		// Remove the newline in string_view
+		auto e = WordEnumerator(structDef, ' ');
+		auto def = StructObject(ParseTypeName(e));
 
-		auto tokens = Split(structDef.substr(0, i), ' ');// Enter
-		auto structName = tokens[1];
-		
-
-		auto j = ++i;
-		while (structDef[j] != '}')
+		if (e.MoveNext() && e.Current() == "{")
 		{
-			++i;
+			e.ChangeSeparator(';');
+			while (e.MoveNext() && !Contain(e.Current(), "}"))
+			{
+				auto var = TrimEnd(TrimStart(e.Current()));
+				auto infos = Split(var, ' ');
+				Assert(infos.size() == 2, "data member not split into two part");
+				def.AppendDataMember(infos[0], infos[1]);
+			}
+
+			return def;
 		}
-		// Remove all blank between ; in {}
-		auto datas = Split(structDef.substr(i, j - 1), ';');
-
-		for (auto& d : datas)
+		else
 		{
-			auto infos = Split(d, ' ');
-			obj.AppendDataMember(infos[0], infos[1]);
+			// 按理说，这些语法方面应该由编译器去检查
+			throw InvalidStringException("struct doesn't have {");
 		}
 	}
 }

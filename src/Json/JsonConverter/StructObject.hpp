@@ -13,7 +13,7 @@ namespace Json::JsonConverter
 	class StructObject
 	{
 	private:
-		string _structName;
+		string _typeName;
 		// Public data member: type and name
 		vector<pair<string, string>> _dataMembers;
 	public:

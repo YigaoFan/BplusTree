@@ -14,26 +14,26 @@ namespace Json::JsonConverter
 	{ }
 
 	StructObject::StructObject(string structName)
-		: _structName(move(structName))
+		: _typeName(move(structName))
 	{ }
 
 	StructObject::StructObject(string_view structName)
-		: _structName(ConsStringFromView(structName))
+		: _typeName(ConsStringFromView(structName))
 	{ }
 
 	void StructObject::TypeName(string structName)
 	{
-		_structName = move(structName);
+		_typeName = move(structName);
 	}
 
 	void StructObject::TypeName(string_view structName)
 	{
-		_structName = ConsStringFromView(structName);
+		_typeName = ConsStringFromView(structName);
 	}
 
 	string StructObject::TypeName()
 	{
-		return _structName;
+		return _typeName;
 	}
 
 	void StructObject::AppendDataMember(string type, string name)
