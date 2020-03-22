@@ -1,8 +1,10 @@
 #include <string_view>
 #include "../../../TestFrame/FlyTest.hpp"
 #include "../StructParser.hpp"
+#include "../DeserialFunctionGenerator.hpp"
 using namespace Json::JsonConverter;
 using ::std::string_view;
+using namespace ::std;
 
 TESTCASE("StructParser test")
 {
@@ -12,6 +14,11 @@ TESTCASE("StructParser test")
 		"int i; double  d;",
 		"string s; }",
 	};
+	auto functionDef = GenerateDeserializerForStruct(strs);
+	for (auto& l : functionDef)
+	{
+		cout << l << endl;
+	}
 	auto def = ParseStruct(strs);
 	ASSERT(def.TypeName() == "A");
 	int i;

@@ -123,6 +123,7 @@ namespace Json::JsonConverter
 	// Not support private data member
 	// Not support default set value
 	// Not support public keyword inside
+	// Not support ref data member
 	// 换行符处理过的
 	StructObject ParseStruct(vector<string_view> structDef)
 	{

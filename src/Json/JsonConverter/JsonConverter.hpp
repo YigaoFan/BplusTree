@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <tuple>
 #include <utility>
+#include <array>
 #include "../Json.hpp"
 
 namespace Json::JsonConverter
@@ -14,6 +15,8 @@ namespace Json::JsonConverter
 	using ::std::make_tuple;
 	using ::std::string;
 	using ::std::true_type;
+	using ::std::vector;
+	using ::std::array;
 
 	// Below code to ToTuple inspire from Chris Ohk
 	// https://gist.github.com/utilForever/1a058050b8af3ef46b58bcfa01d5375d
@@ -251,21 +254,54 @@ namespace Json::JsonConverter
 		template <typename T>
 		static T Deserialize(JsonObject const &json)
 		{
+			static_assert("Not support type, please implement it");
+		}
+
+		template <typename T>
+		static vector<T> Deserialize(JsonObject const& json)
+		{
+			vector<T> des;
+			for (auto& objPtr : json.GetArray())
+			{
+				des.push_back(Deserialize<T>(*objPtr));
+			}
+
+			return des;
+		}
+
+		template <typename T, auto Count>
+		static array<T, Count> Deserialize(JsonObject const& json)
+		{
+			return
+			{
+				// iterate item
+				Deserialize<T>(json[]);
+			};
 		}
 
 		template <>
-		static string Deserialize<string>(string const &jsonStr)
+		static string Deserialize(JsonObject const &json)
 		{
+			return json.GetString();
 		}
 
 		template <>
-		static int Deserialize(string const &jsonStr)
+		static int Deserialize(JsonObject const &json)
 		{
+			return json.GetNumber();
 		}
 
 		template <>
-		static bool Deserialize(string const &jsonStr)
+		// TODO could use deduction guide
+		static double Deserialize(JsonObject const& json)
 		{
+			return json.GetNumber();
+		}
+
+		template <>
+		static bool Deserialize(JsonObject const &json)
+		{
+			return json.GetBool();
 		}
 	};
 }
