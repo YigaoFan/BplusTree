@@ -3,12 +3,30 @@
 #include "../StructParser.hpp"
 #include "../DeserialFunctionGenerator.hpp"
 #include "../SerialFunctionGenerator.hpp"
+#include "../JsonConverter.hpp"
+#include "../../Parser.hpp"
 using namespace Json::JsonConverter;
+using namespace Json;
 using ::std::string_view;
 using namespace ::std;
 
 TESTCASE("StructParser test")
 {
+	map<string, int> m
+	{
+		{"a", 1},
+		{"b", 2},
+		{"c", 3},
+	};
+	auto mStr = Serialize(m);
+	cout << mStr << endl;
+	auto json = Parse(mStr);
+	auto ds = Deserialize<decltype(m)>(json);
+
+	vector<int> v{ 1, 2, 3 };
+	auto s = Serialize(v);
+	cout << s << endl;
+
 	vector<string_view> strs
 	{
 		"  struct  A {",

@@ -10,7 +10,6 @@
 namespace Json::JsonConverter
 {
 	using ::std::declval;
-	using ::std::declval;
 	using ::std::false_type;
 	using ::std::forward;
 	using ::std::make_tuple;
@@ -20,6 +19,7 @@ namespace Json::JsonConverter
 	using ::std::array;
 	using ::std::map;
 	using ::std::to_string;
+	using ::std::decay_t;
 
 	// Below code to ToTuple inspire from Chris Ohk
 	// https://gist.github.com/utilForever/1a058050b8af3ef46b58bcfa01d5375d
@@ -201,139 +201,166 @@ namespace Json::JsonConverter
 		}
 	}
 
-	class JsonConverter
+	/*template <typename Tuple, size_t... Indexs>
+	string SerializeEach(Tuple&& tuple, ::std::index_sequence<Indexs...>)
 	{
-		// using ::std::index_sequence;
+		using ::std::get;
+		return (Serialize(get<Indexs>(forward<Tuple>(tuple)))...);
+	}*/
 
-	public:
-		template <typename Tuple, size_t... Indexs>
-		string SerializeEach(Tuple&& tuple, ::std::index_sequence<Indexs...>)
+	template <typename T>
+	string Serialize(T const& t)
+	{
+		static_assert(false, "not support type");
+		//using ::std::tuple_size;
+		//using ::std::make_index_sequence;
+		//auto t = ToTuple(forward<T>(t)); // forward maybe use wrong
+		//auto is = make_index_sequence<tuple_size<remove_reference_t<decltype(t)>>()>{};
+		//return SerializeEach(move(t), is);
+	}
+
+	template <>
+	string Serialize<string>(string const& t)
+	{
+		return "\"" + t + "\"";
+	}
+
+	template <>
+	string Serialize<int>(int const& t)
+	{
+		return to_string(t);
+	}
+
+	// https://stackoverflow.com/questions/2183087/why-cant-i-use-float-value-as-a-template-parameter
+	template <>
+	string Serialize<float>(float const& t)
+	{
+		return to_string(t);
+	}
+
+	template <>
+	string Serialize<bool>(bool const& t)
+	{
+		return t ? "true" : "false";
+	}
+
+
+	template <typename T>
+	string Serialize(vector<T> const& t)
+	{
+		string s = "[";
+		for (auto& i : t)
 		{
-			using ::std::get;
-			return (Serialize(get<Indexs>(forward<Tuple>(tuple)))...);
+			s += Serialize(i);
+			s += ", ";
 		}
 
-		template <typename T>
-		static string Serialize(T const &t)
+		s += ']';
+		return s;
+	}
+
+	template <typename T, auto Count>
+	string Serialize(array<T, Count> const& t)
+	{
+		string s = "[";
+		for (auto& i : t)
 		{
-			using ::std::tuple_size;
-			using ::std::make_index_sequence;
-			auto t = ToTuple(forward<T>(t)); // forward maybe use wrong
-			auto is = make_index_sequence<tuple_size<remove_reference_t<decltype(t)>>()>{};
-			return SerializeEach(move(t), is);
+			s += Serialize(i);
+			s += ", ";
 		}
 
-		template <>
-		static string Serialize<string>(string const& t)
+		s += ']';
+		return s;
+	}
+
+	template <typename Key, typename Value>
+	string Serialize(map<Key, Value> const& t)
+	{
+		string s = "{";
+		for (auto& p : t)
 		{
-			return "\"" + t + "\"";
+			s += Serialize(p.first);
+			s += ':';
+			s += Serialize(p.second);
+			s += ", ";
 		}
 
-		template <>
-		static string Serialize<int>(int const& t)
+		s += '}';
+		return s;
+	}
+
+	/*template <typename T>
+	T Deserialize(string const& jsonStr)
+	{
+		static_assert(false, "not support type");
+	}*/
+
+
+
+	template <typename T>
+	vector<T> DeserializeImp(JsonObject const& json, vector<T>*)
+	{
+		vector<T> des;
+		for (auto& objPtr : json.GetArray())
 		{
-			return to_string(t);
+			des.push_back(Deserialize<T>(*objPtr));
 		}
 
-		// https://stackoverflow.com/questions/2183087/why-cant-i-use-float-value-as-a-template-parameter
-		template <>
-		static string Serialize<float>(float const& t)
+		return des;
+	}
+
+	//template <typename T, auto Count>
+	//array<T, Count> Deserialize(JsonObject const& json)
+	//{
+	//	return
+	//	{
+	//		// iterate item
+	//		Deserialize<T>(json[]);
+	//	};
+	//}
+
+	template <typename Key, typename Value>
+	map<Key, Value> DeserializeImp(JsonObject const& json, map<Key, Value>*)
+	{
+		map<Key, Value> des;
+
+		for (auto& p : json.GetObject())
 		{
-		    return to_string(t);
+			des.insert({ p.first, Deserialize<Value>(*p.second) });
 		}
 
-		template <>
-		static string Serialize<bool>(bool const& t)
-		{
-			return t ? "true" : "false";
-		}
+		return des;
+	}
 
+	template <typename T>
+	T Deserialize(JsonObject const& json)
+	{
+		using type = decay_t<T>;
+		return DeserializeImp(json, static_cast<type*>(nullptr));
+	}
 
-		template <typename T>
-		static string Serialize(vector<T> const& t)
-		{
-		}
+	template <>
+	string Deserialize(JsonObject const& json)
+	{
+		return json.GetString();
+	}
 
-		template <typename T, auto Count>
-		static string Serialize(array<T, Count> const& t)
-		{
-		}
+	template <>
+	int Deserialize(JsonObject const& json)
+	{
+		return static_cast<int>(json.GetNumber());
+	}
 
-		template <typename Key, typename Value>
-		static string Serialize(map<Key, Value> const& t)
-		{
-		}
+	template <>
+	// TODO could use deduction guide
+	double Deserialize(JsonObject const& json)
+	{
+		return json.GetNumber();
+	}
 
-
-		template <typename T>
-		static T Deserialize(string const &jsonStr)
-		{
-			// 在 T 中实现 deserialize 的方法，或者一些相关信息的代码
-			// make T class data member as tuple and iterate them
-			// each item corresponding a Deserialize specialization function
-		}
-
-		template <typename T>
-		static T Deserialize(JsonObject const &json)
-		{
-			static_assert("Not support type, please implement it");
-		}
-
-		template <typename T>
-		static vector<T> Deserialize(JsonObject const& json)
-		{
-			vector<T> des;
-			for (auto& objPtr : json.GetArray())
-			{
-				des.push_back(Deserialize<T>(*objPtr));
-			}
-
-			return des;
-		}
-
-		template <typename T, auto Count>
-		static array<T, Count> Deserialize(JsonObject const& json)
-		{
-			return
-			{
-				// iterate item
-				Deserialize<T>(json[]);
-			};
-		}
-
-		template <typename Key, typename Value>
-		static map<Key, Value> Deserialize(JsonObject const& json)
-		{
-			return
-			{
-				// iterate item
-				Deserialize<T>(json[]);
-			};
-		}
-
-		template <>
-		static string Deserialize(JsonObject const &json)
-		{
-			return json.GetString();
-		}
-
-		template <>
-		static int Deserialize(JsonObject const &json)
-		{
-			return json.GetNumber();
-		}
-
-		template <>
-		// TODO could use deduction guide
-		static double Deserialize(JsonObject const& json)
-		{
-			return json.GetNumber();
-		}
-
-		template <>
-		static bool Deserialize(JsonObject const &json)
-		{
-			return json.GetBool();
-		}
-	};
+	template <>
+	bool Deserialize(JsonObject const& json)
+	{
+		return json.GetBool();
+	}
 }
