@@ -2,6 +2,7 @@
 #include "../../../TestFrame/FlyTest.hpp"
 #include "../StructParser.hpp"
 #include "../DeserialFunctionGenerator.hpp"
+#include "../SerialFunctionGenerator.hpp"
 using namespace Json::JsonConverter;
 using ::std::string_view;
 using namespace ::std;
@@ -14,7 +15,13 @@ TESTCASE("StructParser test")
 		"int i; double  d;",
 		"string s; }",
 	};
-	auto functionDef = GenerateDeserializerForStruct(strs);
+	auto serDef = GenerateStructSerializer(strs);
+	for (auto& l : serDef)
+	{
+		cout << l << endl;
+	}
+
+	auto functionDef = GenerateStructDeserializer(strs);
 	for (auto& l : functionDef)
 	{
 		cout << l << endl;

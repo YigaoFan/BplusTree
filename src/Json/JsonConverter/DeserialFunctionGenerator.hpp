@@ -38,7 +38,7 @@ namespace Json::JsonConverter
 		}
 	}
 
-	vector<string> GenerateDeserializerForStruct(vector<string_view> structDef)
+	vector<string> GenerateStructDeserializer(vector<string_view> structDef)
 	{
 		// TODO 处理换行符，要不要处理，可以用类似 PipelineEnumerator 来做，那就需要重构下 WordEnumerator
 		auto def = ParseStruct(structDef);
@@ -54,45 +54,7 @@ namespace Json::JsonConverter
 		{
 			auto& type = p.first;
 			auto& name = p.second;
-			auto t = GetJsonType(type);
-			string line;
-			line += "Deserialize<";
-			switch (t)
-			{
-			case JsonType::Array:
-				// Array element should be same type (not explict check), each item should be convert, too
-				// should distinguish vector and array
-				// if vector, should know Item type
-				// if array, should know Item type and Count
-				// should use help of structure binding?
-				// 或者怎么使得 Struct 的 type 可以获得一些子类型，例如获得 vector 的 T
-				/*line += "vector";
-				line += "<T>";*/
-				line += type;
-
-				break;
-			case JsonType::Object:
-				line += type;
-				break;
-
-			case JsonType::Number:
-				line += "int";// int or double depend on struct def
-				break;
-			case JsonType::String:
-				line += "string";
-				break;
-			case JsonType::True:
-			case JsonType::False:
-				line += "bool";
-				break;
-			case JsonType::Null:
-				throw;// TODO add exception
-			default:
-				break;
-			}
-
-			line += '>';
-			line += "(json[\"" + name + "\"]),";
+			string line = ("Deserialize<" + type + ">(json[\"" + name + "\"]),");
 			functionDef.push_back(line);
 		}
 

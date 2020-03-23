@@ -4,6 +4,7 @@
 #include <tuple>
 #include <utility>
 #include <array>
+#include <map>
 #include "../Json.hpp"
 
 namespace Json::JsonConverter
@@ -17,6 +18,8 @@ namespace Json::JsonConverter
 	using ::std::true_type;
 	using ::std::vector;
 	using ::std::array;
+	using ::std::map;
+	using ::std::to_string;
 
 	// Below code to ToTuple inspire from Chris Ohk
 	// https://gist.github.com/utilForever/1a058050b8af3ef46b58bcfa01d5375d
@@ -221,27 +224,46 @@ namespace Json::JsonConverter
 		}
 
 		template <>
-		static string Serialize<string>(string const &t)
+		static string Serialize<string>(string const& t)
 		{
+			return t;
 		}
 
 		template <>
-		static string Serialize<int>(int const &t)
+		static string Serialize<int>(int const& t)
 		{
+			return to_string(t);
 		}
 
 		// https://stackoverflow.com/questions/2183087/why-cant-i-use-float-value-as-a-template-parameter
-		//template <>
-		//static string Serialize<float>(int const& t)
-		//{
-		//    // Convert struct to tuple
-		//    // Iterate item ToString
-		//}
+		template <>
+		static string Serialize<float>(float const& t)
+		{
+		    return to_string(t);
+		}
 
 		template <>
-		static string Serialize<bool>(bool const &t)
+		static string Serialize<bool>(bool const& t)
+		{
+			return t ? "true" : "false";
+		}
+
+
+		template <typename T>
+		static string Serialize(vector<T> const& t)
 		{
 		}
+
+		template <typename T, auto Count>
+		static string Serialize(array<T, Count> const& t)
+		{
+		}
+
+		template <typename Key, typename Value>
+		static string Serialize(map<Key, Value> const& t)
+		{
+		}
+
 
 		template <typename T>
 		static T Deserialize(string const &jsonStr)
@@ -271,6 +293,16 @@ namespace Json::JsonConverter
 
 		template <typename T, auto Count>
 		static array<T, Count> Deserialize(JsonObject const& json)
+		{
+			return
+			{
+				// iterate item
+				Deserialize<T>(json[]);
+			};
+		}
+
+		template <typename Key, typename Value>
+		static map<Key, Value> Deserialize(JsonObject const& json)
 		{
 			return
 			{
