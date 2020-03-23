@@ -226,7 +226,7 @@ namespace Json::JsonConverter
 		template <>
 		static string Serialize<string>(string const& t)
 		{
-			return t;
+			return "\"" + t + "\"";
 		}
 
 		template <>
