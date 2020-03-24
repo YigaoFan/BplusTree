@@ -69,8 +69,6 @@ TESTCASE("StructParser test")
 	ASSERT(def.GetType(i) == type);
 	ASSERT(def.GetType(name) == type);
 	ASSERT(def.GetName(i) == name);
-
-	// TODO User-defined stuct data member
 }
 
 void structParserTest(bool executed)
