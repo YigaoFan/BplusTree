@@ -3,6 +3,8 @@
 #include <type_traits>
 #include <tuple>
 #include <utility>
+#include <memory>
+#include <vector>
 #include <array>
 #include <map>
 #include "../Json.hpp"
@@ -20,6 +22,10 @@ namespace Json::JsonConverter
 	using ::std::map;
 	using ::std::to_string;
 	using ::std::decay_t;
+	using ::std::vector;
+	using ::std::shared_ptr;
+	using ::std::make_shared;
+	using ::std::make_pair;
 
 	// Below code to ToTuple inspire from Chris Ohk
 	// https://gist.github.com/utilForever/1a058050b8af3ef46b58bcfa01d5375d
@@ -201,101 +207,76 @@ namespace Json::JsonConverter
 		}
 	}
 
-	/*template <typename Tuple, size_t... Indexs>
-	string SerializeEach(Tuple&& tuple, ::std::index_sequence<Indexs...>)
-	{
-		using ::std::get;
-		return (Serialize(get<Indexs>(forward<Tuple>(tuple)))...);
-	}*/
-
 	template <typename T>
-	string Serialize(T const& t)
+	JsonObject Serialize(T const& t)
 	{
 		static_assert(false, "not support type");
-		//using ::std::tuple_size;
-		//using ::std::make_index_sequence;
-		//auto t = ToTuple(forward<T>(t)); // forward maybe use wrong
-		//auto is = make_index_sequence<tuple_size<remove_reference_t<decltype(t)>>()>{};
-		//return SerializeEach(move(t), is);
 	}
 
 	template <>
-	string Serialize<string>(string const& t)
+	JsonObject Serialize<string>(string const& t)
 	{
-		return "\"" + t + "\"";
+		return JsonObject(t);
 	}
 
 	template <>
-	string Serialize<int>(int const& t)
+	JsonObject Serialize(int const& t)
 	{
-		return to_string(t);
-	}
-
-	// https://stackoverflow.com/questions/2183087/why-cant-i-use-float-value-as-a-template-parameter
-	template <>
-	string Serialize<float>(float const& t)
-	{
-		return to_string(t);
+		return JsonObject(static_cast<double>(t));
 	}
 
 	template <>
-	string Serialize<bool>(bool const& t)
+	JsonObject Serialize(double const& t)
 	{
-		return t ? "true" : "false";
+		return JsonObject(t);
 	}
 
+	template <>
+	JsonObject Serialize(bool const& t)
+	{
+		return JsonObject(t);
+	}
 
 	template <typename T>
-	string Serialize(vector<T> const& t)
+	JsonObject Serialize(vector<T> const& t)
 	{
-		string s = "[";
+		vector<shared_ptr<JsonObject>> vec;
+		vec.reserve(t.size());
+
 		for (auto& i : t)
 		{
-			s += Serialize(i);
-			s += ", ";
+			vec.emplace_back(make_shared<JsonObject>(Serialize(i)));
 		}
 
-		s += ']';
-		return s;
+		return JsonObject(vec);
 	}
 
 	template <typename T, auto Count>
-	string Serialize(array<T, Count> const& t)
+	JsonObject Serialize(array<T, Count> const& t)
 	{
-		string s = "[";
+		vector<shared_ptr<JsonObject>> vec;
+		vec.reserve(t.size());
+
 		for (auto& i : t)
 		{
-			s += Serialize(i);
-			s += ", ";
+			vec.emplace_back(make_shared<JsonObject>(Serialize(i)));
 		}
 
-		s += ']';
-		return s;
+		return JsonObject(vec);
 	}
 
-	template <typename Key, typename Value>
-	string Serialize(map<Key, Value> const& t)
+	template <typename Value>
+	JsonObject Serialize(map<string, Value> const& t)
 	{
-		string s = "{";
+		map<string, shared_ptr<JsonObject>> m;
+
 		for (auto& p : t)
 		{
-			s += Serialize(p.first);
-			s += ':';
-			s += Serialize(p.second);
-			s += ", ";
+			m.emplace(make_pair(p.first, make_shared<JsonObject>(Serialize(p.second))));
 		}
 
-		s += '}';
-		return s;
+		return JsonObject(m);
 	}
-
-	/*template <typename T>
-	T Deserialize(string const& jsonStr)
-	{
-		static_assert(false, "not support type");
-	}*/
-
-
 
 	template <typename T>
 	vector<T> DeserializeImp(JsonObject const& json, vector<T>*)
@@ -308,16 +289,6 @@ namespace Json::JsonConverter
 
 		return des;
 	}
-
-	//template <typename T, auto Count>
-	//array<T, Count> Deserialize(JsonObject const& json)
-	//{
-	//	return
-	//	{
-	//		// iterate item
-	//		Deserialize<T>(json[]);
-	//	};
-	//}
 
 	template <typename Key, typename Value>
 	map<Key, Value> DeserializeImp(JsonObject const& json, map<Key, Value>*)
@@ -352,7 +323,6 @@ namespace Json::JsonConverter
 	}
 
 	template <>
-	// TODO could use deduction guide
 	double Deserialize(JsonObject const& json)
 	{
 		return json.GetNumber();

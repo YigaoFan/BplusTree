@@ -18,14 +18,13 @@ TESTCASE("StructParser test")
 		{"b", 2},
 		{"c", 3},
 	};
-	auto mStr = Serialize(m);
-	cout << mStr << endl;
-	auto json = Parse(mStr);
-	auto ds = Deserialize<decltype(m)>(json);
+	auto j = Serialize(m);
+	cout << j.ToString() << endl;
+	auto ds = Deserialize<decltype(m)>(j);
 
 	vector<int> v{ 1, 2, 3 };
-	auto s = Serialize(v);
-	cout << s << endl;
+	auto json = Serialize(v);
+	cout << json.ToString() << endl;
 
 	vector<string_view> strs
 	{

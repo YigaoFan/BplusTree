@@ -133,16 +133,15 @@ namespace Json
 
 	size_t JsonObject::Count() const
 	{
-		if (IsArray())
+		switch (_type)
 		{
-			return GetArray().size();
-		}
-		else if (IsObject())
-		{
+		case Json::Object:
 			return GetObject().size();
+		case Json::Array:
+			return GetArray().size();
+		default:
+			throw InvalidAccessException("Only Object and Array can use JsonObject::Count()");
 		}
-
-		Assert(false);
 	}
 
 	string JsonObject::ToString()

@@ -28,7 +28,6 @@ namespace Json
 		Null,
 	};
 	// how to read data from Json
-	// TODO Split header file
 	class JsonObject 
 	{
 		friend class Parser;
