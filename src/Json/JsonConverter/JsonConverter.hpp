@@ -272,7 +272,7 @@ namespace Json::JsonConverter
 
 		for (auto& p : t)
 		{
-			m.emplace(make_pair(p.first, make_shared<JsonObject>(Serialize(p.second))));
+			m.insert({ p.first, make_shared<JsonObject>(Serialize(p.second)) });
 		}
 
 		return JsonObject(m);
@@ -290,10 +290,10 @@ namespace Json::JsonConverter
 		return des;
 	}
 
-	template <typename Key, typename Value>
-	map<Key, Value> DeserializeImp(JsonObject const& json, map<Key, Value>*)
+	template <typename Value>
+	map<string, Value> DeserializeImp(JsonObject const& json, map<string, Value>*)
 	{
-		map<Key, Value> des;
+		map<string, Value> des;
 
 		for (auto& p : json.GetObject())
 		{

@@ -18,26 +18,6 @@ namespace Json::JsonConverter
 		return !str[h] ? 5381 : (StrToInt(str, h + 1) * 33) ^ str[h];
 	}
 
-	JsonType GetJsonType(string_view type)
-	{
-		switch (StrToInt(type.data()))
-		{
-		case StrToInt("int"):
-		case StrToInt("double"):
-			return JsonType::Number; // 如果类型不一致，会自动有类型转换吗，还是需要手动 static_cast
-		case StrToInt("string"):
-			return JsonType::String;
-		case StrToInt("bool"):
-			return JsonType::True; // TODO should be bool
-		case StrToInt("array"):
-		case StrToInt("vector"):
-			return JsonType::Array;
-			// case null? is what? C++ 没有这个类型表示
-		default:
-			return JsonType::Object;
-		}
-	}
-
 	vector<string> GenerateStructDeserializer(vector<string_view> structDef)
 	{
 		// TODO 处理换行符，要不要处理，可以用类似 PipelineEnumerator 来做，那就需要重构下 WordEnumerator
