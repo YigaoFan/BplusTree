@@ -11,8 +11,7 @@ namespace Json::JsonConverter
 	vector<string_view> Split(string_view str, char separator)
 	{
 		vector<string_view> splited;
-		auto i = 0, unitStart = 0;
-		auto separated = true;
+
 
 		auto tryAdd = [&splited](auto str, auto start, auto index)
 		{
@@ -25,6 +24,7 @@ namespace Json::JsonConverter
 		// "  abc "
 		// "abc "
 		// " abc"
+		auto i = 0, unitStart = 0;
 		for (; i < str.size(); ++i)
 		{
 			if (str[i] == separator)
