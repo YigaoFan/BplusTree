@@ -7,6 +7,28 @@ namespace FuncLib
 	using ::std::filesystem::path;
 	using ::std::enable_shared_from_this;
 	using ::std::shared_ptr;
+	using ::std::move;
+
+	class File
+	{
+	private:
+		static path& Path(path p)
+		{
+			thread_local path p;
+			return p;
+		}
+
+	public:
+		static void SetPath(path p)
+		{
+			Path() = p;
+		}
+
+		static path GetPath()
+		{
+			return Path();
+		}
+	};
 
 	template <typename T>
 	class DiskPos
