@@ -9,10 +9,16 @@ namespace FuncLib
 	using ::std::shared_ptr;
 	using ::std::move;
 
-	class File
+	enum DataType
+	{
+		Node,
+		Other,
+	};
+
+	class File // 这里或者 allocator 里面要有分区信息，供 Reader 去读
 	{
 	private:
-		static path& Path(path p)
+		static path& Path()
 		{
 			thread_local path p;
 			return p;
@@ -37,7 +43,7 @@ namespace FuncLib
 
 	public:
 		DiskPos();
-		T Read();
+		shared_ptr<T> Read();
 		~DiskPos();
 
 	private:
