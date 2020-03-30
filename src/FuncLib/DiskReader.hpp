@@ -11,7 +11,7 @@ namespace FuncLib
 	class DiskReader
 	{
 	private:
-		path _filePath;
+		path _filePath;// TODO 这个 path 不用保存在硬盘里，因为就是硬盘正在读的这个文件
 
 	public:
 		DiskReader(path filePath)

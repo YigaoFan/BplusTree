@@ -19,7 +19,7 @@ namespace FuncLib
 	class DiskPtrBase
 	{
 	private:
-		shared_ptr<T> tPtr = nullptr;
+		shared_ptr<T> tPtr = nullptr; // TODO Cache
 		DiskPos<T> _pos;
 
 	public:
@@ -31,6 +31,11 @@ namespace FuncLib
 			}
 
 			return tPtr;
+		}
+
+		~DiskPtrBase()
+		{
+			_pos.WriteObject();
 		}
 	};
 
@@ -44,6 +49,7 @@ namespace FuncLib
 	class DiskPtr : public DiskPtrBase<T>
 	{
 	public:
+		// this ptr can destory data on disk
 		DiskPtr(DiskPtr& const) = delete;
 		WeakDiskPtr<T> GetWeakPtr()
 		{
@@ -51,26 +57,7 @@ namespace FuncLib
 		}
 	};
 
-	struct DiskBase
-	{
-		void WriteToDisk();
-	};
-
 	// POD, 写进去的都是 POD，非 POD 也要转换为 POD
-	template <typename T, typename=enable_if_t<is_pod_v<T>>>
-	class DiskPtr
-	{
-		void WriteToDisk();
-
-	};
-
-	// Not POD you should implement it like Node
-	/*template <typename T, typename = enable_if_t<!is_pod_v<T>>>
-	class DiskPtr
-	{
-		void WriteToDisk();
-
-	};*/
 
 	// For Node
 	template <typename T>
@@ -90,48 +77,7 @@ namespace FuncLib
 		// 用缓存？
 	};
 
-	template <>
-	class DiskPtr<string>
-	{
-	private:
-		string* _src = nullptr;
-		DiskPos<string> _pos;
-
-	public:
-		DiskPtr MakeDiskPtr(string s, shared_ptr<DiskAllocator> allocator)
-		{
-			auto p = allocator->Allocate(s);
-			return DiskPtr(move(s), p);
-		}
-
-		string* operator-> ()
-		{
-			if (_src == nullptr)
-			{
-				_src = new string(_pos.ReadObject());
-			}
-
-			return _src;
-		}
-
-		~DiskPtr()
-		{
 			// Update content to disk
 			// Or register update event in allocator, 然后集中更新
 			// Use DiskPos to update
-		}
-
-	private:
-		DiskPtr(string s, decltype(_pos) position)
-			: _src(new string(move(s))), _pos(move(position))
-		{
-
-		}
-	};
-
-	// POD
-	template <>
-	class DiskPtr<int>
-	{
-	};
 }

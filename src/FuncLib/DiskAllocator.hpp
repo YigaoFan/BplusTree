@@ -9,6 +9,7 @@ namespace FuncLib
 	using ::std::shared_ptr;
 	using ::std::move;
 
+	constexpr uint32_t DiskBlockSize = 100; // TODO modify
 	enum DataType
 	{
 		Node,

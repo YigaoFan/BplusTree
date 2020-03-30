@@ -17,8 +17,9 @@ namespace FuncLib
 
 		uint32_t _start;
 		uint32_t _size;
-		DiskReader _reader;
+		//DiskReader _reader;
 	public:
+		// DiskPos 调用 Converter 来转换存储和读取涉及到的转换
 		DiskPos(uint32_t start, uint32_t size)
 			: _start(start), _size(size)
 		{ }
@@ -33,6 +34,11 @@ namespace FuncLib
 			}
 
 			return this->_cache[_start];
+		}
+
+		void WriteObject()
+		{
+
 		}
 
 		~DiskPos();
