@@ -9,14 +9,15 @@ namespace FuncLib
 	using ::std::shared_ptr;
 	using ::std::move;
 
-	constexpr uint32_t DiskBlockSize = 100; // TODO modify
+	// Need to change, if on different PC
+	constexpr uint32_t DiskBlockSize = 4096;
 	enum DataType
 	{
 		Node,
 		Other,
 	};
 
-	class File // 这里或者 allocator 里面要有分区信息，供 Reader 去读
+	class CurrentFile // 这里或者 allocator 里面要有分区信息，供 Reader 去读
 	{
 	private:
 		static path& Path()
@@ -37,27 +38,6 @@ namespace FuncLib
 		}
 	};
 
-	template <typename T>
-	class DiskPos
-	{
-	private:
-
-	public:
-		DiskPos();
-		shared_ptr<T> Read();
-		~DiskPos();
-
-	private:
-
-	};
-
-	DiskPos::DiskPos()
-	{
-	}
-
-	DiskPos::~DiskPos()
-	{
-	}
 	class DiskAllocator : public enable_shared_from_this<DiskAllocator>
 	{
 	public:

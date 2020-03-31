@@ -1,25 +1,32 @@
 #pragma once
 #include <type_traits>
 #include <algorithm>
+#include <vector>
 #include <array>
 #include <string>
+#include <memory>
 #include "../Btree/NodeBase.hpp"
 #include "../Btree/MiddleNode.hpp"
 #include "../Btree/LeafNode.hpp"
 #include "DiskAllocator.hpp"
 #include "DiskPtr.hpp"
+#include "FileUtil.hpp"
 
 namespace FuncLib
 {
 	using ::std::is_trivial_v;
 	using ::std::is_standard_layout_v;
 	using ::std::memcpy;
+	using ::std::vector;
 	using ::std::array;
 	using ::std::string;
+	using ::std::shared_ptr;
+	using ::std::make_shared;
 	using ::Collections::NodeBase;
 	using ::Collections::LeafNode;
 	using ::Collections::MiddleNode;
 
+	// 不定大小的类型，比如 string，如何保留大小信息读取
 	template <typename T>
 	struct DiskDataConverter
 	{
@@ -35,15 +42,15 @@ namespace FuncLib
 			return mem;
 		}
 
-		// TODO special support
 		/*template <auto Count>
 		static T ConvertFromDiskData(char const(&raw)[Count])
 		{
 			return reinterpret_cast<T>(raw);
 		}*/
 
-		static T ConvertFromDiskData(array<uint8_t, sizeof(T)> raw)
+		static T ConvertFromDiskData(uint32_t startInFile)
 		{
+			array<uint8_t, sizeof(T)> raw = FileUtil::Read<T>(startInFile, sizeof(T));
 			T* p = reinterpret_cast<T*>(&raw);
 			return *p;
 		}
@@ -52,22 +59,25 @@ namespace FuncLib
 	template <>
 	struct DiskDataConverter<string>
 	{
-		using T = string;
-		array<uint8_t, sizeof(T)> ConvertToDiskData(string const& t)
+		vector<uint8_t> ConvertToDiskData(string const& t)
 		{
-			array<uint8_t, sizeof(T)> mem;
-			memcpy(&mem, &t, sizeof(T));
-			return mem;
+			return { t.begin(), t.end() };
 		}
 
-		T ConvertFromDiskData(array<uint8_t, sizeof(T)> raw)
+		shared_ptr<string> ConvertFromDiskData(uint32_t startInFile)
 		{
-			T* p = reinterpret_cast<T*>(&raw);
-			return *p;
+			auto size = FileUtil::Read<uint32_t>(startInFile, sizeof(uint32_t));
+			auto contentStart = startInFile + sizeof(uint32_t);
+			auto chars = FileUtil::Read(contentStart, size);
+			return make_shared<string>(chars.begin(), chars.end());
 		}
 	};
 
-	constexpr uint32_t BtreeOrder = DiskBlockSize / 10; // TODO modify
+	using LibBtreeLeaf = LeafNode<string, string, BtreeOrder>;
+	using LibBtreeMid = MiddleNode<string, string, BtreeOrder>;
+	constexpr uint32_t BigOne = 
+		sizeof(LibBtreeLeaf) > sizeof(LibBtreeMid) ? sizeof(LibBtreeLeaf) : sizeof(LibBtreeMid);
+	constexpr uint32_t BtreeOrder = DiskBlockSize / BigOne;
 
 	template <>
 	struct DiskDataConverter<NodeBase<string, string, BtreeOrder>>
@@ -138,22 +148,25 @@ namespace FuncLib
 		}
 	};
 
-	template <>
-	struct DiskDataConverter<DiskPos>
+	/*template <typename T>
+	DiskDataConverter() -> DiskDataConverter<*/
+	template <typename T>
+	struct DiskDataConverter<DiskPos<T>>
 	{
-		using T = DiskPos;
+		using Pos = DiskPos<T>;
 
-		array<uint8_t, sizeof(T)> ConvertToDiskData(string const& t)
+		array<uint8_t, sizeof(Pos)> ConvertToDiskData(Pos p)
 		{
-			array<uint8_t, sizeof(T)> mem;
-			memcpy(&mem, &t, sizeof(T));
+			array<uint8_t, sizeof(Pos)> mem;
+			memcpy(&mem, &p, sizeof(Pos));
 			return mem;
 		}
 
-		T ConvertFromDiskData(array<uint8_t, sizeof(T)> raw)
+		T ConvertFromDiskData(uint32_t startInFile)
 		{
-			T* p = reinterpret_cast<T*>(&raw);
-			return *p;
+			using Index = typename Pos::Index;
+			auto i = FileUtil::Read<Index>(startInFile, sizeof(Index));
+			return Pos(i);
 		}
 	};
 }
