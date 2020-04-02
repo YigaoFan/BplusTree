@@ -18,11 +18,14 @@ namespace FuncLib
 	template <typename T>
 	class DiskPtrBase
 	{
-	private:
+	protected:
 		shared_ptr<T> tPtr = nullptr; // TODO Cache
 		DiskPos<T> _pos;
 
 	public:
+		DiskPtrBase(DiskPos<T> pos) : _pos(pos)
+		{ }
+
 		T* operator-> ()
 		{
 			if (tPtr == nullptr)
@@ -42,13 +45,25 @@ namespace FuncLib
 	template <typename T>
 	class WeakDiskPtr : public DiskPtrBase<T>
 	{
+	private:
+		friend struct DiskDataConverter<WeakDiskPtr>;
+		using Base = DiskPtrBase<T>;
 
+	public:
+		using Base::Base;
 	};
 
 	template <typename T>
 	class DiskPtr : public DiskPtrBase<T>
 	{
+	private:
+		friend struct DiskDataConverter<DiskPtr>;
 	public:
+		using Base = DiskPtrBase<T>;
+
+	public:
+		using Base::Base;
+
 		// this ptr can destory data on disk
 		DiskPtr(DiskPtr& const) = delete;
 		WeakDiskPtr<T> GetWeakPtr()
