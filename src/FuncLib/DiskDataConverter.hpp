@@ -107,26 +107,11 @@ namespace FuncLib
 	using LibTreeMid = MiddleNode<string, string, 3>;
 	using LibTreeMidEle = Elements<string, string, 3>;
 	
-	template <typename Key, typename Value>
-	// BtreeOrder 3 not effect Item size
-	constexpr size_t ItemSize = sizeof(typename DiskDataConverter<Elements<Key, Value, 3>>::Item);
-	template <typename Key, typename Value>
-	constexpr size_t MidElementsItemSize = ItemSize<string, unique_ptr<>>; // TODO should read from converted Mid
-	template <typename Key, typename Value>
-	constexpr size_t LeafElementsItemSize = ItemSize<string, string>;
-	template <typename Key, typename Value>
-	constexpr size_t MidConstPartSize = DiskDataConverter<MiddleNode<Key, Value, 3>>::ConstPartSize;
-	template <typename Key, typename Value>
-	constexpr size_t LeafConstPartSize = DiskDataConverter<LeafNode<Key, Value, 3>>::ConstPartSize;
-
-	constexpr size_t constInMidNode = 4;
-	constexpr size_t constInLeafNode = 4;
-	template <typename Key, typename Value>
-	constexpr size_t BtreeOrder_Mid = (DiskBlockSize - MidConstPartSize<Key, Value>) / MidElementsItemSize<Key, Value>;
-	template <typename Key, typename Value>
-	constexpr size_t BtreeOrder_Leaf = (DiskBlockSize - LeafConstPartSize<Key, Value>) / LeafElementsItemSize<Key, Value>;
-	template <typename Key, typename Value>
-	constexpr size_t BtreeOrder = Min(BtreeOrder_Mid<Key, Value>, BtreeOrder_Leaf<Key, Value>);
+	struct BtreePointerPlaceholder
+	{
+		// 不然用外界传 Byte 进来的方式
+		void* Pointer;// 实际读取到内存后也不需要用到这个指针（不像那些回调函数），只是转换到内存的时候需要用这个读
+	};
 
 	template <auto Order, typename Key, typename Value>
 	struct DiskDataConverter<Btree<Order, Key, Value>>
@@ -145,19 +130,27 @@ namespace FuncLib
 	template <typename Key, typename Value, auto Count>
 	struct DiskDataConverter<Elements<Key, Value, Count>>
 	{
-		using Middle = LibTreeMid;
-		using Item = int;// TODO
-		struct DiskMid
+		using ThisType = Elements<Key, Value, Count>;
+		struct Item
 		{
-			void* UpPtr;
-
+			// if pair content is POD, directly move to here
+			// else replace with DiskPtr
+			Key Key;
+			Value Value;
 		};
 
-		static array<byte, UnitSize> ConvertToDiskData(Middle& t)
+		struct DiskElements
+		{
+			void* TreePtr;// To read LessThan ptr
+			size_t Count;
+			array<Item> Items;
+		};
+
+		static array<byte, sizeof(DiskElements)> ConvertToDiskData(ThisType& t)
 		{
 		}
 
-		static shared_ptr<Middle> ConvertFromDiskData(uint32_t startInFile)
+		static shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile)
 		{
 
 		}
@@ -211,9 +204,9 @@ namespace FuncLib
 		}
 	};
 
-	constexpr uint32_t UnitSize =
+	/*constexpr uint32_t UnitSize =
 		SelectBigger(sizeof(typename DiskDataConverter<LibTreeLeaf>),
-			sizeof(typename DiskDataConverter<LibTreeMid>::Converted));
+			sizeof(typename DiskDataConverter<LibTreeMid>::Converted));*/
 
 	template <typename Key, typename Value, auto Count>
 	struct DiskDataConverter<NodeBase<Key, Value, Count>>
@@ -247,6 +240,27 @@ namespace FuncLib
 			}
 		}
 	};
+
+	template <typename Key, typename Value>
+	// BtreeOrder 3 not effect Item size
+	constexpr size_t ItemSize = sizeof(typename DiskDataConverter<Elements<Key, Value, 3>>::Item);
+	template <typename Key, typename Value>
+	constexpr size_t MidElementsItemSize = ItemSize<string, unique_ptr<>>; // TODO should read from converted Mid
+	template <typename Key, typename Value>
+	constexpr size_t LeafElementsItemSize = ItemSize<string, string>;
+	template <typename Key, typename Value>
+	constexpr size_t MidConstPartSize = DiskDataConverter<MiddleNode<Key, Value, 3>>::ConstPartSize;
+	template <typename Key, typename Value>
+	constexpr size_t LeafConstPartSize = DiskDataConverter<LeafNode<Key, Value, 3>>::ConstPartSize;
+
+	constexpr size_t constInMidNode = 4;
+	constexpr size_t constInLeafNode = 4;
+	template <typename Key, typename Value>
+	constexpr size_t BtreeOrder_Mid = (DiskBlockSize - MidConstPartSize<Key, Value>) / MidElementsItemSize<Key, Value>;
+	template <typename Key, typename Value>
+	constexpr size_t BtreeOrder_Leaf = (DiskBlockSize - LeafConstPartSize<Key, Value>) / LeafElementsItemSize<Key, Value>;
+	template <typename Key, typename Value>
+	constexpr size_t BtreeOrder = Min(BtreeOrder_Mid<Key, Value>, BtreeOrder_Leaf<Key, Value>);
 
 	template <typename T>
 	struct DiskDataConverter<DiskPos<T>>
