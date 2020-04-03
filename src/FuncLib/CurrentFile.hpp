@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include <vector>
+#include <cstddef>
 
 namespace FuncLib
 {
@@ -9,6 +10,7 @@ namespace FuncLib
 	using ::std::move;
 	using ::std::ifstream;
 	using ::std::vector;
+	using ::std::byte;
 
 	// Need to change, if on different PC
 	constexpr uint32_t DiskBlockSize = 4096;
@@ -49,7 +51,7 @@ namespace FuncLib
 			{
 			}
 
-			char[sizeof(T)] mem;
+			byte[sizeof(T)] mem;
 			T* const p = reinterpret_cast<T*>(&mem[0]);
 			for (auto i = 0; i < size && fs.get(c); ++i)
 			{
@@ -59,7 +61,7 @@ namespace FuncLib
 			return move(*p);
 		}
 
-		static vector<char> Read(uint32_t start, uint32_t size)
+		static vector<byte> Read(uint32_t start, uint32_t size)
 		{
 			auto p = GetPath();
 			ifstream fs(p, ifstream::binary | ifstream::in);
@@ -68,12 +70,12 @@ namespace FuncLib
 			{
 			}
 
-			vector<char> mem;
+			vector<byte> mem;
 			mem.reserve(size);
 
 			for (auto i = 0; i < size && fs.get(c); ++i)
 			{
-				mem.push_back(c);
+				mem.push_back(static_cast<byte>(c));
 			}
 
 			return mem;

@@ -51,9 +51,9 @@ namespace Collections
 		typename Base::UpNodeAddSubNodeCallback _addSubNodeCallback = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
 		typename Base::UpNodeDeleteSubNodeCallback _deleteSubNodeCallback = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
 		typename Base::MinKeyChangeCallback _minKeyChangeCallback = bind(&MiddleNode::SubNodeMinKeyChangeCallback, this, _1, _2);
+		typename Base::ShallowTreeCallback* _shallowTreeCallbackPtr = nullptr;
 		function<MiddleNode *(MiddleNode const*)> _queryPrevious = [](auto) { return nullptr; };
 		function<MiddleNode *(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
-		typename Base::ShallowTreeCallback* _shallowTreeCallbackPtr = nullptr;
 		using _LessThan = LessThan<Key>;
 		Elements<StoredKey, unique_ptr<Base>, BtreeOrder, _LessThan> _elements;
 
