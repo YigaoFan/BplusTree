@@ -10,6 +10,8 @@
 #include "../Btree/LeafNode.hpp"
 #include "../Btree/Btree.hpp"
 #include "../Btree/Elements.hpp"
+#include "../Btree/LiteVector.hpp"
+#include "../Btree/Basic.hpp"
 #include "DiskAllocator.hpp"
 #include "DiskPtr.hpp"
 #include "CurrentFile.hpp"
@@ -31,6 +33,9 @@ namespace FuncLib
 	using ::Collections::LeafNode;
 	using ::Collections::MiddleNode;
 	using ::Collections::Elements;
+	using ::Collections::LiteVector;
+	using ::Collections::order_int;
+	using ::Collections::LessThan;
 	
 	enum ToPlace
 	{
@@ -106,14 +111,8 @@ namespace FuncLib
 	using LibTreeLeafEle = Elements<string, string, 3>;
 	using LibTreeMid = MiddleNode<string, string, 3>;
 	using LibTreeMidEle = Elements<string, string, 3>;
-	
-	struct BtreePointerPlaceholder
-	{
-		// 不然用外界传 Byte 进来的方式
-		void* Pointer;// 实际读取到内存后也不需要用到这个指针（不像那些回调函数），只是转换到内存的时候需要用这个读
-	};
 
-	template <auto Order, typename Key, typename Value>
+	template <typename Key, typename Value, order_int Order>
 	struct DiskDataConverter<Btree<Order, Key, Value>>
 	{
 		static array<byte, UnitSize> ConvertToDiskData(Middle& t)
@@ -127,32 +126,89 @@ namespace FuncLib
 		}
 	};
 
-	template <typename Key, typename Value, auto Count>
-	struct DiskDataConverter<Elements<Key, Value, Count>>
+	// T is the type which could directly copy into disk
+	template <typename T, typename size_int, size_int Capacity>
+	struct DiskDataConverter<LiteVector<T, size_int, Capacity>>
 	{
-		using ThisType = Elements<Key, Value, Count>;
-		struct Item
-		{
-			// if pair content is POD, directly move to here
-			// else replace with DiskPtr
-			Key Key;
-			Value Value;
-		};
+		using ThisType = LiteVector<T, size_int, Capacity>;
 
-		struct DiskElements
+		static
+		array<byte, sizeof(Capacity) + sizeof(T) * Capacity>
+		ConvertToDiskData(ThisType const& vec)
 		{
-			void* TreePtr;// To read LessThan ptr
-			size_t Count;
-			array<Item> Items;
-		};
+			array<byte, sizeof(Capacity) + sizeof(T) * Capacity> mem;
 
-		static array<byte, sizeof(DiskElements)> ConvertToDiskData(ThisType& t)
-		{
+			// Count
+			auto c = vec.Count();
+			auto countSize = sizeof(Capacity);
+			memcpy(&mem, &c, countSize);
+			// Items
+			for (auto i = 0; i < vec.Count(); ++i)
+			{
+				auto size = sizeof(T);
+				auto s = &vec[i];
+				auto d = &mem[i * size + countSize];
+				memcpy(d, s, size);
+			}
+
+			return mem;
 		}
 
-		static shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile)
+		template <ToPlace Place = ToPlace::Heap>
+		static auto ConvertFromDiskData(uint32_t startInFile)
 		{
+			if constexpr (Place == ToPlace::Stack)
+			{
 
+			}
+			else
+			{
+				//shared_ptr<ThisType>
+			}
+		}
+	};
+
+	// This not same to LiteVector
+	// , not to Key, Value is the type which can be copied into disk directly
+	template <typename Key, typename Value, order_int Order>
+	struct DiskDataConverter<Elements<Key, Value, Order>>
+	{
+		using ThisType = Elements<Key, Value, Order>;
+
+		static auto ConvertToDiskData(ThisType& t)
+		{
+			//struct Item
+			//{
+			//	// if pair content is POD, directly move to here
+			//	// else replace with DiskPtr
+			//	// recursive
+			//	Key Key;
+			//	Value Value;
+			//};
+
+			// Converted Key and Value
+			auto ck = ConvertToDiskData(Key);
+			auto cv = ConvertToDiskData(Value);
+			struct Item
+			{
+				decltype(ck) Key;
+				decltype(cv) Value;
+			};
+			LiteVector<Item, order_int, Order> vec;
+			for (auto& i : t)
+			{
+				vec.Add(Convert(i));
+			}
+
+			return DiskDataConverter<Item>::ConvertToDiskData(vec);
+		}
+
+		static shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile, shared_ptr<LessThan<Key>> lessThanPtr)
+		{
+			// Each type should have a constructor of all data member to easy set
+
+			// Read LiteVector
+			// And set LessThan
 		}
 	};
 
@@ -204,24 +260,22 @@ namespace FuncLib
 		}
 	};
 
-	/*constexpr uint32_t UnitSize =
-		SelectBigger(sizeof(typename DiskDataConverter<LibTreeLeaf>),
-			sizeof(typename DiskDataConverter<LibTreeMid>::Converted));*/
-
-	template <typename Key, typename Value, auto Count>
+	template <typename Key, typename Value, order_int Count>
 	struct DiskDataConverter<NodeBase<Key, Value, Count>>
 	{
-		using Node = NodeBase<string, string, BtreeOrder>;
+		using Node = NodeBase<string, string, Count>;
+		using MidNode = MiddleNode<string, string, Count>;
+		using LeafNode = LeafNode<string, string, Count>;
 
 		static array<byte, UnitSize> ConvertToDiskData(Node& node)
 		{
 			if (node.Middle())
 			{
-				return DiskDataConverter<LibTreeMid>::ConvertToDiskData(static_cast<LibTreeMid&>(node));
+				return DiskDataConverter<MidNode>::ConvertToDiskData(static_cast<MidNode&>(node));
 			}
 			else
 			{
-				return DiskDataConverter<LibTreeLeaf>::ConvertToDiskData(static_cast<LibTreeLeaf&>(node));
+				return DiskDataConverter<LeafNode>::ConvertToDiskData(static_cast<LeafNode&>(node));
 			}
 		}
 
