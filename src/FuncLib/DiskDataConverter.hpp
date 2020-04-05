@@ -174,6 +174,25 @@ namespace FuncLib
 	struct DiskDataConverter<Elements<Key, Value, Order>>
 	{
 		using ThisType = Elements<Key, Value, Order>;
+		// CompileIf is duplicate in MiddleNode.hpp
+		template <bool Value, typename A, typename B>
+		struct CompileIf;
+
+		template <typename A, typename B>
+		struct CompileIf<true, A, B>
+		{
+			using Result = A;
+		};
+
+		template <typename A, typename B>
+		struct CompileIf<false, A, B>
+		{
+			using Result = B;
+		};
+
+		template <typename T>
+		// TODO below condition should judge if dynamiclly increase memory usage
+		using Convert = CompileIf<is_trivial_v<T>&& is_standard_layout_v<T>, T, DiskPtr<T>>;
 
 		static auto ConvertToDiskData(ThisType& t)
 		{
@@ -187,17 +206,19 @@ namespace FuncLib
 			//};
 
 			// Converted Key and Value
+			// If type has heap memory, convert to DiskPtr<T> type
+			// or convert to POD type
 			auto ck = ConvertToDiskData(Key);
 			auto cv = ConvertToDiskData(Value);
 			struct Item
 			{
-				decltype(ck) Key;
-				decltype(cv) Value;
+				Convert<Key> Key;
+				Convert<Value> Value;
 			};
 			LiteVector<Item, order_int, Order> vec;
 			for (auto& i : t)
 			{
-				vec.Add(Convert(i));
+				vec.Add({i.first, i.second});
 			}
 
 			return DiskDataConverter<Item>::ConvertToDiskData(vec);
