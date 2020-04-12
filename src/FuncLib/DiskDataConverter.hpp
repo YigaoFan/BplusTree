@@ -2,6 +2,7 @@
 #include <type_traits>
 #include <vector>
 #include <array>
+#include <utility>
 #include <string>
 #include <memory>
 #include <cstddef>
@@ -15,6 +16,7 @@
 #include "DiskAllocator.hpp"
 #include "DiskPtr.hpp"
 #include "CurrentFile.hpp"
+#include "StructToTuple.hpp"
 
 namespace FuncLib
 {
@@ -28,6 +30,13 @@ namespace FuncLib
 	using ::std::make_shared;
 	using ::std::byte;
 	using ::std::size_t;
+	using ::std::is_class_v;
+	using ::std::forward;
+	using ::std::index_sequence;
+	using ::std::make_index_sequence;
+	using ::std::tuple_size_v;
+	using ::std::size;
+	using ::std::get;
 	using ::Collections::Btree;
 	using ::Collections::NodeBase;
 	using ::Collections::LeafNode;
@@ -43,6 +52,12 @@ namespace FuncLib
 		Heap,
 	};
 
+	enum SizeDemand
+	{
+		Fixed,
+		Dynamic,
+	};
+
 	template <typename T>
 	struct ReturnType;
 
@@ -52,22 +67,28 @@ namespace FuncLib
 		using Type = R;
 	};
 
+	// TODO test
+	template <typename T>
+	constexpr size_t CalNeedDiskSize()
+	{
+		return sizeof(ReturnType<decltype(DiskDataConverter<T>::ConvertToDiskData)>::Type);
+	}
+
 	constexpr size_t Min(size_t one, size_t two)
 	{
 		return one > two ? one : two;
 	}
 
-	template <typename T>
-	struct DiskDataConverter
-	{
-		static_assert(is_trivial_v<T> && is_standard_layout_v<T>,
-			"Only support type which can use memory copy directly, "
-			"Write a specialization for this template class to convert it to copyable");
+	template <typename T, bool = is_standard_layout_v<T>&& is_trivial_v<T>>
+	struct DiskDataConverter;
 
+	template <typename T>
+	struct DiskDataConverter<T, true>
+	{
 		static array<byte, sizeof(T)> ConvertToDiskData(T t)
 		{
 			array<byte, sizeof(T)> mem;
-			memcpy(&mem, &t, sizeof(T));
+			memcpy(&mem, &t, sizeof(T)); // TODO replace with std::copy?
 			return mem;
 		}
 
@@ -88,15 +109,59 @@ namespace FuncLib
 		}
 	};
 
+	template <typename T>
+	struct DiskDataConverter<T, false>
+	{
+		static_assert(is_class_v<T>, "Only support class type when not specialize");
+
+		template <typename T, size_t... Is>
+		auto CombineEachConvert(T&& tup, index_sequence<Is...>)
+		{
+			auto converter = template <auto Index>[&tup]()
+			{
+				auto& i = get<Index>(tup);
+				return DiskDataConverter<decltype(i)>::ConvertToDiskData(i);
+			};
+
+			return (converter.operator () <Is> ()...);//maybe has syntax error, or use 0 + ... + ns like
+
+			//constexpr size_t count = size(a) + size(b) + size(c);
+			//return d;
+		}
+
+		static auto ConvertToDiskData(T&& t)
+		{
+			auto tup = ToTuple(forward<T>(t));// TODO check forward use right?
+			// TODO how to forward or move tup
+			return CombineEachConvert(tup, make_index_sequence<tuple_size_v<decltype(tup)>>());
+		}
+
+		static auto ConvertFromDiskData(uint32_t startInFile)
+		{
+			// TODO
+		}
+	};
+
 	template <>
 	struct DiskDataConverter<string>
 	{
 		// TODO return value could be iterated
-		vector<byte> ConvertToDiskData(string const& t)
+		template <SizeDemand Demand = SizeDemand::Fixed>
+		auto ConvertToDiskData(string const& t)
 		{
-			return { t.begin(), t.end() };
+			if constexpr (Demand == SizeDemand::Dynamic)
+			{
+				return vector<byte>(t.begin(), t.end());
+			}
+			else
+			{
+				auto chars = ConvertToDiskData<SizeDemand::Dynamic>(t);
+				// use chars to cons a DiskPtr, return DiskPtr::ConvertToDiskDataS
+			}
 		}
 
+		// TODO 这里可能也要区分是从指针 ConvertFrom 的，还是直接读的是字符串
+		// 两者读取会稍有不同
 		shared_ptr<string> ConvertFromDiskData(uint32_t startInFile)
 		{
 			auto size = CurrentFile::Read<uint32_t>(startInFile, sizeof(uint32_t));
@@ -113,7 +178,7 @@ namespace FuncLib
 	using LibTreeMidEle = Elements<string, string, 3>;
 
 	template <typename Key, typename Value, order_int Order>
-	struct DiskDataConverter<Btree<Order, Key, Value>>
+	struct DiskDataConverter<Btree<Order, Key, Value>, false>// TODO why here need false, string not need, see error info
 	{
 		static array<byte, UnitSize> ConvertToDiskData(Middle& t)
 		{
@@ -128,27 +193,25 @@ namespace FuncLib
 
 	// T is the type which could directly copy into disk
 	template <typename T, typename size_int, size_int Capacity>
-	struct DiskDataConverter<LiteVector<T, size_int, Capacity>>
+	struct DiskDataConverter<LiteVector<T, size_int, Capacity>, false>
 	{
 		using ThisType = LiteVector<T, size_int, Capacity>;
 
-		static
-		array<byte, sizeof(Capacity) + sizeof(T) * Capacity>
-		ConvertToDiskData(ThisType const& vec)
+		static auto ConvertToDiskData(ThisType const& vec)
 		{
-			array<byte, sizeof(Capacity) + sizeof(T) * Capacity> mem;
+			constexpr auto unitSize = CalNeedDiskSize<T>();
+			constexpr auto countSize = sizeof(Capacity);
+			array<byte, countSize + unitSize * Capacity> mem;
 
 			// Count
 			auto c = vec.Count();
-			auto countSize = sizeof(Capacity);
 			memcpy(&mem, &c, countSize);
 			// Items
 			for (auto i = 0; i < vec.Count(); ++i)
 			{
-				auto size = sizeof(T);
-				auto s = &vec[i];
-				auto d = &mem[i * size + countSize];
-				memcpy(d, s, size);
+				auto s = &DiskDataConverter<T>::ConvertToDiskData(vec[i]);
+				auto d = &mem[i * unitSize + countSize];
+				memcpy(d, s, unitSize);
 			}
 
 			return mem;
@@ -171,28 +234,9 @@ namespace FuncLib
 	// This not same to LiteVector
 	// , not to Key, Value is the type which can be copied into disk directly
 	template <typename Key, typename Value, order_int Order>
-	struct DiskDataConverter<Elements<Key, Value, Order>>
+	struct DiskDataConverter<Elements<Key, Value, Order>, false>
 	{
 		using ThisType = Elements<Key, Value, Order>;
-		// CompileIf is duplicate in MiddleNode.hpp
-		template <bool Value, typename A, typename B>
-		struct CompileIf;
-
-		template <typename A, typename B>
-		struct CompileIf<true, A, B>
-		{
-			using Result = A;
-		};
-
-		template <typename A, typename B>
-		struct CompileIf<false, A, B>
-		{
-			using Result = B;
-		};
-
-		template <typename T>
-		// TODO below condition should judge if dynamiclly increase memory usage
-		using Convert = CompileIf<is_trivial_v<T>&& is_standard_layout_v<T>, T, DiskPtr<T>>;
 
 		static auto ConvertToDiskData(ThisType& t)
 		{
@@ -234,7 +278,7 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, auto Count>
-	struct DiskDataConverter<MiddleNode<Key, Value, Count>>
+	struct DiskDataConverter<MiddleNode<Key, Value, Count>, false>
 	{
 		using Middle = LibTreeMid;
 
@@ -248,7 +292,7 @@ namespace FuncLib
 
 		using Converted = DiskMid;
 
-		static array<byte, UnitSize> ConvertToDiskData(Middle& t)
+		static auto ConvertToDiskData(Middle& t)
 		{
 			return DiskDataConverter<DiskMid>::ConvertToDiskData({ true, nullptr, });
 		}
@@ -260,7 +304,7 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, auto Count>
-	struct DiskDataConverter<LeafNode<Key, Value, Count>>
+	struct DiskDataConverter<LeafNode<Key, Value, Count>, false>
 	{
 		using Leaf = LibTreeLeaf;
 		struct DiskLeaf
@@ -269,7 +313,7 @@ namespace FuncLib
 		};
 
 		using Converted = DiskLeaf;
-		static array<byte, UnitSize> ConvertToDiskData(Leaf& t)
+		static auto ConvertToDiskData(Leaf& t)
 		{
 			auto middle = false;
 			CurrentFile::Write<bool>();
@@ -282,7 +326,7 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct DiskDataConverter<NodeBase<Key, Value, Count>>
+	struct DiskDataConverter<NodeBase<Key, Value, Count>, false>
 	{
 		using Node = NodeBase<string, string, Count>;
 		using MidNode = MiddleNode<string, string, Count>;
@@ -338,7 +382,7 @@ namespace FuncLib
 	constexpr size_t BtreeOrder = Min(BtreeOrder_Mid<Key, Value>, BtreeOrder_Leaf<Key, Value>);
 
 	template <typename T>
-	struct DiskDataConverter<DiskPos<T>>
+	struct DiskDataConverter<DiskPos<T>, false>
 	{
 		using Pos = DiskPos<T>;
 		using Index = typename Pos::Index;
@@ -364,7 +408,7 @@ namespace FuncLib
 	};
 
 	template <typename T>
-	struct DiskDataConverter<DiskPtr<T>>
+	struct DiskDataConverter<DiskPtr<T>, false>
 	{
 		using Ptr = DiskPtr<T>;
 
@@ -381,7 +425,7 @@ namespace FuncLib
 	};
 
 	template <typename T>
-	struct DiskDataConverter<WeakDiskPtr<T>>
+	struct DiskDataConverter<WeakDiskPtr<T>, false>
 	{
 		using Ptr = WeakDiskPtr<T>;
 
