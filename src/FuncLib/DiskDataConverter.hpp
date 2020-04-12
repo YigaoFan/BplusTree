@@ -171,11 +171,11 @@ namespace FuncLib
 		}
 	};
 
-	using LibTree = Btree<3, string, string>;
-	using LibTreeLeaf = LeafNode<string, string, 3>;
-	using LibTreeLeafEle = Elements<string, string, 3>;
-	using LibTreeMid = MiddleNode<string, string, 3>;
-	using LibTreeMidEle = Elements<string, string, 3>;
+	//using LibTree = Btree<3, string, string>;
+	//using LibTreeLeaf = LeafNode<string, string, 3>;
+	//using LibTreeLeafEle = Elements<string, string, 3>;
+	//using LibTreeMid = MiddleNode<string, string, 3>;
+	//using LibTreeMidEle = Elements<string, string, 3>;
 
 	template <typename Key, typename Value, order_int Order>
 	struct DiskDataConverter<Btree<Order, Key, Value>, false>// TODO why here need false, string not need, see error info
@@ -240,26 +240,13 @@ namespace FuncLib
 
 		static auto ConvertToDiskData(ThisType& t)
 		{
-			//struct Item
-			//{
-			//	// if pair content is POD, directly move to here
-			//	// else replace with DiskPtr
-			//	// recursive
-			//	Key Key;
-			//	Value Value;
-			//};
-
-			// Converted Key and Value
-			// If type has heap memory, convert to DiskPtr<T> type
-			// or convert to POD type
-			auto ck = ConvertToDiskData(Key);
-			auto cv = ConvertToDiskData(Value);
 			struct Item
 			{
-				Convert<Key> Key;
-				Convert<Value> Value;
+				Key Key;
+				Value Value;
 			};
 			LiteVector<Item, order_int, Order> vec;
+
 			for (auto& i : t)
 			{
 				vec.Add({i.first, i.second});
@@ -277,27 +264,34 @@ namespace FuncLib
 		}
 	};
 
+	template <typename Key, typename Value, order_int Count>
+	struct Node
+	{
+		bool Middle;
+		DiskPtr<NodeBase<Key, Value, Count>> UpNodePtr;
+		DiskPtr<Btree<Count, Key, Value>> BtreePtr;
+		// TODO
+		// 需要把三个 Node 相关的类的模板接口和实现分开声明，才能在实现中相互引用
+	};
+
 	template <typename Key, typename Value, auto Count>
 	struct DiskDataConverter<MiddleNode<Key, Value, Count>, false>
 	{
-		using Middle = LibTreeMid;
+		using ThisType = MiddleNode<Key, Value, Count>;
 
-		// TODO should be POD
 		struct DiskMid
 		{
-			bool Middle;
+			Node<Key, Value, Count> Base;
 			void* UpPtr;
-			ReturnType<decltype(DiskDataConverter<LibTreeMidEle>::ConvertToDiskData)>::Type Elements;
+			Elements<Key, Value, Count> Elements; // 注意这里的 Key 可能是引用，Value 是指针
 		};
 
-		using Converted = DiskMid;
-
-		static auto ConvertToDiskData(Middle& t)
+		static auto ConvertToDiskData(ThisType& t, DiskPtr<ThisType> upNode)
 		{
 			return DiskDataConverter<DiskMid>::ConvertToDiskData({ true, nullptr, });
 		}
 
-		static shared_ptr<Middle> ConvertFromDiskData(uint32_t startInFile)
+		static shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile)
 		{
 
 		}
@@ -306,21 +300,27 @@ namespace FuncLib
 	template <typename Key, typename Value, auto Count>
 	struct DiskDataConverter<LeafNode<Key, Value, Count>, false>
 	{
-		using Leaf = LibTreeLeaf;
+		using ThisType = LeafNode<Key, Value, Count>;
+
 		struct DiskLeaf
 		{
-
+			Node<Key, Value, Count> Base;
+			void* PreLeaf;// 这个还有被保存的顺序要求，可不可以实现某种递归，一个一个向底下触发，这应该就要求有某种缓存
+			void* NxtLeaf;
+			Elements<Key, Value, Count> Elements;
 		};
 
 		using Converted = DiskLeaf;
-		static auto ConvertToDiskData(Leaf& t)
+		// preNode and nextNode should be stored at DiskBtreeConverter
+		// 所以这个类型的 ConvertToDiskData 就不符合通用的接口了——只一个 ThisType 对象参数
+		static auto ConvertToDiskData(ThisType& t, DiskPtr<ThisType> preNode, DiskPtr<ThisType> nextNode)
 		{
 			auto middle = false;
 			CurrentFile::Write<bool>();
 
 		}
 
-		static shared_ptr<Leaf> ConvertFromDiskData(uint32_t startInFile)
+		static shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile)
 		{
 		}
 	};
@@ -351,11 +351,11 @@ namespace FuncLib
 
 			if (middle)
 			{
-				return DiskDataConverter<LibTreeMid>::ConvertFromDiskData(contentStart);
+				return DiskDataConverter<MidNode>::ConvertFromDiskData(contentStart);
 			}
 			else
 			{
-				return DiskDataConverter<LibTreeLeaf>::ConvertFromDiskData(contentStart);
+				return DiskDataConverter<LeafNode>::ConvertFromDiskData(contentStart);
 			}
 		}
 	};
