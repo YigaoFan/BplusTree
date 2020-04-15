@@ -8,20 +8,21 @@ namespace FuncLib
 {
 	using ::std::shared_ptr;
 	using ::std::map;
+	using ::std::size_t;
 
 	template <typename T>
 	class DiskPos
 	{
 	private:
 		friend struct DiskDataConverter<DiskPos>;
-		static map<uint32_t, shared_ptr<T>> _cache; // 用 start 应该是没事的, if change, should delete
+		static map<size_t, shared_ptr<T>> _cache; // 用 start 应该是没事的, if change, should delete
 
-		uint32_t _start;
+		size_t _start;
 	public:
 		using Index = decltype(_start);
 
 		// DiskPos 调用 Converter 来转换存储和读取涉及到的转换
-		DiskPos(uint32_t start) : _start(start)
+		DiskPos(size_t start) : _start(start)
 		{ }
 
 		shared_ptr<T> ReadObject()
