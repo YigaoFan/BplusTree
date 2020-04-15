@@ -2,6 +2,7 @@
 #include <type_traits>
 #include <vector>
 #include <array>
+#include <tuple>
 #include <utility>
 #include <string>
 #include <memory>
@@ -34,9 +35,12 @@ namespace FuncLib
 	using ::std::forward;
 	using ::std::index_sequence;
 	using ::std::make_index_sequence;
+	using ::std::tuple;
 	using ::std::tuple_size_v;
+	using ::std::tuple_element;
 	using ::std::size;
 	using ::std::get;
+	using ::std::move;
 	using ::Collections::Btree;
 	using ::Collections::NodeBase;
 	using ::Collections::LeafNode;
@@ -46,13 +50,13 @@ namespace FuncLib
 	using ::Collections::order_int;
 	using ::Collections::LessThan;
 	
-	enum ToPlace
+	enum class ToPlace
 	{
 		Stack,
 		Heap,
 	};
 
-	enum SizeDemand
+	enum class SizeDemand
 	{
 		Fixed,
 		Dynamic,
@@ -109,24 +113,36 @@ namespace FuncLib
 		}
 	};
 
+	template <typename T, auto N1, auto... Is1, auto N2, auto... Is2>
+	array<T, N1 + N2> AddArray(array<T, N1> a1, index_sequence<Is1...>, array<T, N2> a2, index_sequence<Is2...>)
+	{
+		return { move(a1[Is1])..., move(a2[Is2])..., };
+	}
+
+	template <typename T, auto N1, auto N2>
+	array<T, N1 + N2> operator+ (array<T, N1> a1, array<T, N2> a2)
+	{
+		auto is1 = make_index_sequence<N1>();
+		auto is2 = make_index_sequence<N2>();
+		return AddArray(move(a1), is1, move(a2), is2);
+	}
+
 	template <typename T>
 	struct DiskDataConverter<T, false>
 	{
 		static_assert(is_class_v<T>, "Only support class type when not specialize");
 
-		template <typename T, size_t... Is>
+		template <typename T, auto... Is>
 		auto CombineEachConvert(T&& tup, index_sequence<Is...>)
 		{
-			auto converter = template <auto Index>[&tup]()
+			auto converter = [&tup]<auto Index>()
 			{
 				auto& i = get<Index>(tup);
+				// Should return array type
 				return DiskDataConverter<decltype(i)>::ConvertToDiskData(i);
 			};
 
-			return (converter.operator () <Is> ()...);//maybe has syntax error, or use 0 + ... + ns like
-
-			//constexpr size_t count = size(a) + size(b) + size(c);
-			//return d;
+			return (... + converter.operator ()<Is>());
 		}
 
 		static auto ConvertToDiskData(T&& t)
@@ -136,9 +152,40 @@ namespace FuncLib
 			return CombineEachConvert(tup, make_index_sequence<tuple_size_v<decltype(tup)>>());
 		}
 
-		static auto ConvertFromDiskData(uint32_t startInFile)
+		template <typename T, typename UnitConverter, auto... Is>
+		static T ConsT(UnitConverter converter, index_sequence<Is...>)
 		{
-			// TODO
+			return { converter.operator ()<Is>()... };
+		}
+
+		template <auto Index, typename Tuple>
+		struct DiskDataInternalOffset;
+
+		template <typename Head, typename... Tail>
+		struct DiskDataInternalOffset<0, tuple<Head, Tail...>>
+		{
+			static constexpr auto Offset = 0;
+		};
+
+		template <auto Index, typename Head, typename... Tail>
+		struct DiskDataInternalOffset<Index, tuple<Head, Tail...>>
+		{
+			using NextUnit = DiskDataInternalOffset<Index - 1, tuple<Tail...>>;
+			static constexpr auto CurrentTypeSize = CalNeedDiskSize<Head>();
+			static constexpr auto Offset = CurrentTypeSize + NextUnit::Offset;
+		};
+
+		static T ConvertFromDiskData(uint32_t startInFile)
+		{
+			using Tuple = ReturnType<ToTuple<T>>::Type;
+			auto converter = []<auto Index>()
+			{
+				constexpr auto start = DiskDataInternalOffset<Index, Tuple>::Offset;
+				using T = tuple_element<Index, Tuple>::type;
+				return DiskDataConverter<T>::ConvertFromDiskData(start);
+			};
+
+			return ConsT<T>(converter, make_index_sequence<tuple_size_v<decltype(tup)>>());
 		}
 	};
 
