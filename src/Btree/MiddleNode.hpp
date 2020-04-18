@@ -40,7 +40,7 @@ namespace Collections
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeFactory;
 	// 最好把 MiddleNode 和 LeafNode 的构造与 Btree 隔绝起来，使用 NodeBase 来作用，顶多使用强制转型来调用一些函数
-	template <typename Key, typename Value, order_int BtreeOrder>
+	template <typename Key, typename Value, order_int BtreeOrder, template <typename> class Ptr = unique_ptr>
 	class MiddleNode : public NodeBase<Key, Value, BtreeOrder>
 	{
 	private:
@@ -55,7 +55,7 @@ namespace Collections
 		function<MiddleNode *(MiddleNode const*)> _queryPrevious = [](auto) { return nullptr; };
 		function<MiddleNode *(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
 		using _LessThan = LessThan<Key>;
-		Elements<StoredKey, unique_ptr<Base>, BtreeOrder, _LessThan> _elements;
+		Elements<StoredKey, Ptr<Base>, BtreeOrder, _LessThan> _elements;
 
 	public:
 		bool Middle() const override { return true; }
@@ -64,14 +64,14 @@ namespace Collections
 			: Base(), _elements(lessThanPtr)
 		{ }	
 
-		MiddleNode(IEnumerator<unique_ptr<Base>&>& enumerator, shared_ptr<_LessThan> lessThanPtr)
-			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>&, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertRefPtrToKeyPtrPair, _1)), lessThanPtr)
+		MiddleNode(IEnumerator<Ptr<Base>&>& enumerator, shared_ptr<_LessThan> lessThanPtr)
+			: Base(), _elements(EnumeratorPipeline<Ptr<Base>&, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertRefPtrToKeyPtrPair, _1)), lessThanPtr)
 		{
 			SetSubNode();
 		}
 
 		MiddleNode(MiddleNode const& that)
-			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, unique_ptr<Base>>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
+			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, Ptr<Base>>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
 		{ }
 
 		MiddleNode(MiddleNode&& that) noexcept
@@ -82,7 +82,7 @@ namespace Collections
 
 		~MiddleNode() override = default;
 
-		unique_ptr<Base> Clone() const override
+		Ptr<Base> Clone() const override
 		{
 			// If mark copy constructor private, this method cannot compile pass
 			// In make_unique internal will call MiddleNode copy constructor,
@@ -106,7 +106,7 @@ namespace Collections
 			return MinSon()->Keys();
 		}
 
-		unique_ptr<Base> HandleOverOnlySon()
+		Ptr<Base> HandleOverOnlySon()
 		{
 #ifdef BTREE_DEBUG 
 			Assert(_elements.Count() == 1); // TODO implement Assert
@@ -191,8 +191,8 @@ namespace Collections
 			return subs;
 		}
 	private:
-		MiddleNode(IEnumerator<unique_ptr<Base>>&& enumerator, shared_ptr<_LessThan> lessThanPtr)
-			: Base(), _elements(EnumeratorPipeline<unique_ptr<Base>, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertPtrToKeyPtrPair, _1)), lessThanPtr)
+		MiddleNode(IEnumerator<Ptr<Base>>&& enumerator, shared_ptr<_LessThan> lessThanPtr)
+			: Base(), _elements(EnumeratorPipeline<Ptr<Base>, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertPtrToKeyPtrPair, _1)), lessThanPtr)
 		{
 			SetSubNode();
 		}
@@ -227,7 +227,7 @@ namespace Collections
 			}
 		}
 
-		void AddSubNodeCallback(Base* srcNode, unique_ptr<Base> newNextNode)
+		void AddSubNodeCallback(Base* srcNode, Ptr<Base> newNextNode)
 		{
 			// newNextNode must not be MinSon
 			if (!_elements.Full())
@@ -351,7 +351,7 @@ namespace Collections
 			}
 		}
 
-		void SetSubNodeCallback(bool middle, unique_ptr<Base> const& node)
+		void SetSubNodeCallback(bool middle, Ptr<Base> const& node)
 		{
 			node->SetUpNodeCallback(&_addSubNodeCallback, &_deleteSubNodeCallback, &_minKeyChangeCallback);
 
@@ -425,19 +425,19 @@ namespace Collections
 			return _elements.ExchangeMax(move(item));
 		}
 
-		static typename decltype(_elements)::Item ConvertRefPtrToKeyPtrPair(unique_ptr<Base>& node)
+		static typename decltype(_elements)::Item ConvertRefPtrToKeyPtrPair(Ptr<Base>& node)
 		{
 			using pairType = typename decltype(_elements)::Item;
 			return make_pair<pairType::first_type, pairType::second_type>(StoredKey(node->MinKey()), move(node));
 		}
 
-		static typename decltype(_elements)::Item ConvertPtrToKeyPtrPair(unique_ptr<Base> node)
+		static typename decltype(_elements)::Item ConvertPtrToKeyPtrPair(Ptr<Base> node)
 		{
 			using pairType = typename decltype(_elements)::Item;
 			return make_pair<pairType::first_type, pairType::second_type>(StoredKey(node->MinKey()), move(node));
 		}
 
-		static unique_ptr<Base> CloneSubNode(typename decltype(_elements)::Item const& item)
+		static Ptr<Base> CloneSubNode(typename decltype(_elements)::Item const& item)
 		{
 			return item.second->Clone();
 		}

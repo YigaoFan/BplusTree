@@ -244,6 +244,28 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Order>
+	struct DiskDataConverter<Btree<Order, Key, Value, unique_ptr>, false>
+	{
+		using ThisType = Btree<Order, Key, Value, unique_ptr>;
+		struct BtreeOnDisk
+		{
+			key_int KeyCount;
+			DiskPtr<NodeBase<Key, Value, Order>> Root;
+		};
+
+		static auto ConvertToDiskData(ThisType const& t)
+		{
+			return DiskDataConverter<BtreeOnDisk>::ConvertToDiskData({ t._keyCount, t._root });
+		}
+
+		static shared_ptr<ThisType> ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile, shared_ptr<LessThan<Key>> lessThanPtr)
+		{
+			auto p = DiskDataConverter<BtreeOnDisk>::ConvertFromDiskData(startInFile);
+			return make_shared<ThisType>(move(p.Root), p.KeyCount, lessThanPtr);
+		}
+	};
+
+	template <typename Key, typename Value, order_int Order>
 	struct DiskDataConverter<Btree<Order, Key, Value, DiskPtr>, false>
 	{
 		using ThisType = Btree<Order, Key, Value, DiskPtr>;
@@ -346,7 +368,7 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, auto Count>
-	struct DiskDataConverter<MiddleNode<Key, Value, Count>, false>
+	struct DiskDataConverter<MiddleNode<Key, Value, Count, DiskPtr>, false>
 	{
 		using ThisType = MiddleNode<Key, Value, Count>;
 
@@ -368,7 +390,7 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, auto Count>
-	struct DiskDataConverter<LeafNode<Key, Value, Count>, false>
+	struct DiskDataConverter<LeafNode<Key, Value, Count, DiskPtr>, false>
 	{
 		using ThisType = LeafNode<Key, Value, Count>;
 
@@ -399,8 +421,8 @@ namespace FuncLib
 	struct DiskDataConverter<NodeBase<Key, Value, Count>, false>
 	{
 		using ThisType = NodeBase<string, string, Count>;
-		using MidNode = MiddleNode<string, string, Count>;
-		using LeafNode = LeafNode<string, string, Count>;
+		using MidNode = MiddleNode<string, string, Count, DiskPtr>;
+		using LeafNode = LeafNode<string, string, Count, DiskPtr>;
 
 		static array<byte, UnitSize> ConvertToDiskData(ThisType& node)
 		{

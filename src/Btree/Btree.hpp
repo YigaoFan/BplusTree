@@ -96,6 +96,8 @@ namespace Collections
 	class Btree;
 	template <typename T>
 	struct DiskDataConverter;// 这个前置声明对吗，需要修饰命名空间吗
+	template <typename T>
+	struct DiskPtr;// 这个前置声明对吗，需要修饰命名空间吗
 	template <order_int BtreeOrder, typename Key, typename Value, template <typename> class Ptr = unique_ptr>
 	class Btree 
 	{
@@ -104,15 +106,16 @@ namespace Collections
 	private:
 		friend class UniversalEnumerator<BtreeOrder, Key, Value>;
 		friend class DiskDataConverter<Btree>;// 这里不用 false 是因为这里是使用方，实现方需要根据不同情况写特化
-		using Base   = NodeBase<Key, Value, BtreeOrder>;
+		friend class DiskPtr<Btree>;// 这里不用 false 是因为这里是使用方，实现方需要根据不同情况写特化
+		using Node   = NodeBase<Key, Value, BtreeOrder>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
-		typename Base::UpNodeAddSubNodeCallback _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
-		typename Base::UpNodeDeleteSubNodeCallback _deleteRootCallback = bind(&Btree::DeleteRootCallback, this, _1);
-		typename Base::MinKeyChangeCallback _minKeyChangeCallback = bind(&Btree::RootMinKeyChangeCallback, this, _1, _2);
-		typename Base::ShallowTreeCallback _shallowTreeCallback = bind(&Btree::ShallowRootCallback, this);
+		typename Node::UpNodeAddSubNodeCallback _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
+		typename Node::UpNodeDeleteSubNodeCallback _deleteRootCallback = bind(&Btree::DeleteRootCallback, this, _1);
+		typename Node::MinKeyChangeCallback _minKeyChangeCallback = bind(&Btree::RootMinKeyChangeCallback, this, _1, _2);
+		typename Node::ShallowTreeCallback _shallowTreeCallback = bind(&Btree::ShallowRootCallback, this);
 		shared_ptr<_LessThan> _lessThanPtr;
 		key_int              _keyCount{ 0 };
-		Ptr<Base>     _root;
+		Ptr<Node>            _root;
 
 	public:
 		Btree(_LessThan lessThan) : Btree(move(lessThan), array<pair<Key, Value>, 0>())
@@ -250,7 +253,7 @@ namespace Collections
 		}
 
 	private:
-		Btree(Ptr<Base> root, key_int keyCount, shared_ptr<_LessThan> lessThan)
+		Btree(Ptr<Node> root, key_int keyCount, shared_ptr<_LessThan> lessThan)
 			: _root(move(root)), _keyCount(keyCount), _lessThanPtr(lessThan)
 		{ }
 
@@ -274,7 +277,7 @@ namespace Collections
 		static auto ConsNodeInArrayImp(array<T, Count> srcArray, shared_ptr<_LessThan> lessThan, index_sequence<Is...> is)
 		{
 			constexpr auto nodesCount = is.size() == 0 ? 1 : is.size();
-			array<Ptr<Base>, nodesCount> consNodes;
+			array<Ptr<Node>, nodesCount> consNodes;
 			auto constor = [&srcArray, &consNodes, &lessThan](auto index, auto itemsCount, auto preItemsCount)
 			{
 				auto begin = srcArray.begin() + preItemsCount;
@@ -340,19 +343,19 @@ namespace Collections
 		}
 
 		// Below methods for root call
-		void AddRootCallback(Base* srcNode, Ptr<Base> newNextNode)
+		void AddRootCallback(Node* srcNode, Ptr<Node> newNextNode)
 		{
 			// TODO Assert the srcNode == _root when debug
 			_root->ResetShallowCallbackPointer();
-			array<Ptr<Base>, 2> nodes { move(_root), move(newNextNode) }; // TODO have average?
+			array<Ptr<Node>, 2> nodes { move(_root), move(newNextNode) }; // TODO have average?
 			_root = NodeFactoryType::MakeNode(CreateEnumerator(nodes), _lessThanPtr);
 			SetRootCallbacks();
 		}
 
-		void RootMinKeyChangeCallback(Key const&, Base*)
+		void RootMinKeyChangeCallback(Key const&, Node*)
 		{ }
 
-		void DeleteRootCallback(Base* root)
+		void DeleteRootCallback(Node* root)
 		{
 			if (root->Middle())
 			{

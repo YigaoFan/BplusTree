@@ -12,11 +12,12 @@ namespace Collections
 {
 	using ::std::move;
 	using ::std::make_unique;
+	using ::std::unique_ptr;
 	using ::std::remove_pointer_t;
 	using ::std::back_inserter;
 	using ::Basic::NotImplementException;
 
-	template <typename Key, typename Value, order_int BtreeOrder>
+	template <typename Key, typename Value, order_int BtreeOrder, template <typename> class Ptr = unique_ptr>
 	class LeafNode : public NodeBase<Key, Value, BtreeOrder>
 	{
 	private:
@@ -47,7 +48,7 @@ namespace Collections
 
 		~LeafNode() override = default;
 
-		unique_ptr<Base> Clone() const override { return make_unique<LeafNode>(*this); }
+		Ptr<Base> Clone() const override { return make_unique<LeafNode>(*this); }
 
 		vector<Key> Keys() const override
 		{
