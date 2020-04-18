@@ -38,7 +38,7 @@ namespace Collections
 		using ShallowTreeCallback = function<void()>;
 
 	protected:
-		static const order_int LowBound = 1 + ((BtreeOrder - 1) / 2);
+		static constexpr order_int LowBound = 1 + ((BtreeOrder - 1) / 2);
 		UpNodeAddSubNodeCallback* _upNodeAddSubNodeCallbackPtr = nullptr;
 		UpNodeDeleteSubNodeCallback* _upNodeDeleteSubNodeCallbackPtr = nullptr;
 		MinKeyChangeCallback* _minKeyChangeCallbackPtr = nullptr;

@@ -95,12 +95,6 @@ namespace FuncLib
 		}
 	};
 
-	// Maybe use DiskPos replace
-	struct Pos
-	{
-		size_t _pos;
-	};
-
 	class File
 	{
 	private:

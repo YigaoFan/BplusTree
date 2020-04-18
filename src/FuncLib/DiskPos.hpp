@@ -3,12 +3,14 @@
 #include <memory>
 #include <map>
 #include "DiskDataConverter.hpp"
+#include "CurrentFile.hpp"
 
 namespace FuncLib
 {
 	using ::std::shared_ptr;
 	using ::std::map;
 	using ::std::size_t;
+	using ::std::filesystem::path;
 
 	template <typename T>
 	class DiskPos
@@ -18,16 +20,17 @@ namespace FuncLib
 		static map<size_t, shared_ptr<T>> _cache; // 用 start 应该是没事的, if change, should delete
 
 		size_t _start;
+		shared_ptr<File> _file;
 	public:
 		using Index = decltype(_start);
 
-		// DiskPos 调用 Converter 来转换存储和读取涉及到的转换
-		DiskPos(size_t start) : _start(start)
+		DiskPos(shared_ptr<File> file, size_t start)
+			: _start(start), _file(file)
 		{ }
 
 		shared_ptr<T> ReadObject()
 		{
-			return DiskDataConverter::ConvertFromDiskData<T>(_start);
+			return DiskDataConverter::ConvertFromDiskData<T, ToPlace::Heap>(_start);
 			/*if (!this->_cache.contains(_start))
 			{
 				auto p = shared_ptr(CurrentFile::Read(_start, _size));

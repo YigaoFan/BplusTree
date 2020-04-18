@@ -6,6 +6,7 @@
 #include "Enumerator.hpp"
 #include "LeafNode.hpp"
 #include "MiddleNode.hpp"
+#include "../Basic/TypeTrait.hpp"
 
 namespace Collections
 {
@@ -16,12 +17,7 @@ namespace Collections
 	using ::std::unique_ptr;
 	using ::std::remove_reference_t;
 	using ::std::function;
-
-	template<typename Test, template<typename...> class Ref>
-	struct IsSpecialization : std::false_type {};
-
-	template<template<typename...> class Ref, typename... Args>
-	struct IsSpecialization<Ref<Args...>, Ref> : std::true_type {};
+	using ::Basic::IsSpecialization;
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeFactory
@@ -36,6 +32,7 @@ namespace Collections
 		template <bool LeafCons=true, typename... Ts>
 		static unique_ptr<Node> MakeNode(Enumerator<Ts...> enumerator, shared_ptr<_LessThan> lessThan)
 		{
+			// remove_reference_t sometimes not very good
 			if constexpr (IsSpecialization<remove_reference_t<typename Enumerator<Ts...>::ValueType>, unique_ptr>::value)
 			{
 				return make_unique<Middle>(enumerator, lessThan);

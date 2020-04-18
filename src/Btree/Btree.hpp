@@ -92,14 +92,18 @@ namespace Collections
 
 	template <order_int BtreeOrder, typename Key, typename Value>
 	class UniversalEnumerator;
-
-	template <order_int BtreeOrder, typename Key, typename Value>
+	template <order_int BtreeOrder, typename Key, typename Value, template <typename> class Ptr>
+	class Btree;
+	template <typename T>
+	struct DiskDataConverter;// 这个前置声明对吗，需要修饰命名空间吗
+	template <order_int BtreeOrder, typename Key, typename Value, template <typename> class Ptr = unique_ptr>
 	class Btree 
 	{
 	public:
 		using _LessThan = LessThan<Key>;
 	private:
 		friend class UniversalEnumerator<BtreeOrder, Key, Value>;
+		friend class DiskDataConverter<Btree>;// 这里不用 false 是因为这里是使用方，实现方需要根据不同情况写特化
 		using Base   = NodeBase<Key, Value, BtreeOrder>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
 		typename Base::UpNodeAddSubNodeCallback _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
@@ -108,7 +112,7 @@ namespace Collections
 		typename Base::ShallowTreeCallback _shallowTreeCallback = bind(&Btree::ShallowRootCallback, this);
 		shared_ptr<_LessThan> _lessThanPtr;
 		key_int              _keyCount{ 0 };
-		unique_ptr<Base>     _root;
+		Ptr<Base>     _root;
 
 	public:
 		Btree(_LessThan lessThan) : Btree(move(lessThan), array<pair<Key, Value>, 0>())
@@ -245,7 +249,11 @@ namespace Collections
 			++_keyCount;
 		}
 
-	private:		
+	private:
+		Btree(Ptr<Base> root, key_int keyCount, shared_ptr<_LessThan> lessThan)
+			: _root(move(root)), keyCount(keyCount), _lessThanPtr(lessThan)
+		{ }
+
 		template <auto Total, auto Index, auto... Is>
 		static void ForEachCons(function<void(int, int, int)> func)
 		{
@@ -266,7 +274,7 @@ namespace Collections
 		static auto ConsNodeInArrayImp(array<T, Count> srcArray, shared_ptr<_LessThan> lessThan, index_sequence<Is...> is)
 		{
 			constexpr auto nodesCount = is.size() == 0 ? 1 : is.size();
-			array<unique_ptr<Base>, nodesCount> consNodes;
+			array<Ptr<Base>, nodesCount> consNodes;
 			auto constor = [&srcArray, &consNodes, &lessThan](auto index, auto itemsCount, auto preItemsCount)
 			{
 				auto begin = srcArray.begin() + preItemsCount;
@@ -332,11 +340,11 @@ namespace Collections
 		}
 
 		// Below methods for root call
-		void AddRootCallback(Base* srcNode, unique_ptr<Base> newNextNode)
+		void AddRootCallback(Base* srcNode, Ptr<Base> newNextNode)
 		{
 			// TODO Assert the srcNode == _root when debug
 			_root->ResetShallowCallbackPointer();
-			array<unique_ptr<Base>, 2> nodes { move(_root), move(newNextNode) }; // TODO have average?
+			array<Ptr<Base>, 2> nodes { move(_root), move(newNextNode) }; // TODO have average?
 			_root = NodeFactoryType::MakeNode(CreateEnumerator(nodes), _lessThanPtr);
 			SetRootCallbacks();
 		}

@@ -5,6 +5,7 @@
 
 #define COLLECTIONS_TEST_SWITCH true
 #define JSON_TEST_SWITCH true
+#define FUNC_LIB_TEST_SWITCH true
 
 #if COLLECTIONS_TEST_SWITCH
 #include "Btree/Test/TestSuite.hpp"
@@ -20,6 +21,13 @@
 #define JSON_TEST(FUNC)
 #endif
 
+#if FUNC_LIB_TEST_SWITCH
+#include "FuncLib/Test/TestSuite.hpp"
+#define FUNC_LIB_TEST(FUNC) FUNC
+#else
+#define FUNC_LIB_TEST(FUNC)
+#endif
+
 int main()
 {
 #if MEMO_CHECK
@@ -32,6 +40,7 @@ int main()
 #endif
 	COLLECTIONS_TEST(CollectionsTest::AllTest(false));
 	JSON_TEST(JsonTest::AllTest(true));
+	FUNC_LIB_TEST(FuncLibTest::AllTest(true));
 
 #if MEMO_CHECK
 	 _CrtDumpMemoryLeaks();

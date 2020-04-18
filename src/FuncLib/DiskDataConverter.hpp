@@ -28,6 +28,7 @@ namespace FuncLib
 	using ::std::array;
 	using ::std::string;
 	using ::std::shared_ptr;
+	using ::std::unique_ptr;
 	using ::std::make_shared;
 	using ::std::byte;
 	using ::std::size_t;
@@ -48,6 +49,7 @@ namespace FuncLib
 	using ::Collections::Elements;
 	using ::Collections::LiteVector;
 	using ::Collections::order_int;
+	using ::Collections::key_int;
 	using ::Collections::LessThan;
 	
 	enum class ToPlace
@@ -224,17 +226,43 @@ namespace FuncLib
 	//using LibTreeMid = MiddleNode<string, string, 3>;
 	//using LibTreeMidEle = Elements<string, string, 3>;
 
+
 	template <typename Key, typename Value, order_int Order>
-	struct DiskDataConverter<Btree<Order, Key, Value>, false>// TODO why here need false, string not need, see error info
+	// TODO why here need false, string not need, see error info
+	struct DiskDataConverter<Btree<Order, Key, Value, unique_ptr>, false>
 	{
-		static array<byte, UnitSize> ConvertToDiskData(Middle& t)
+		using ThisType = Btree<Order, Key, Value, unique_ptr>;
+
+		static auto ConvertToDiskData(ThisType const& t)
 		{
-			auto middle = true;
+
 		}
 
-		static shared_ptr<Middle> ConvertFromDiskData(uint32_t startInFile)
+		static shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile)
 		{
 
+		}
+	};
+
+	template <typename Key, typename Value, order_int Order>
+	struct DiskDataConverter<Btree<Order, Key, Value, DiskPtr>, false>
+	{
+		using ThisType = Btree<Order, Key, Value, DiskPtr>;
+		struct BtreeOnDisk
+		{
+			key_int KeyCount;
+			DiskPtr<NodeBase<Key, Value, Order>> Root;
+		};
+
+		static auto ConvertToDiskData(ThisType const& t)
+		{
+			return DiskDataConverter<BtreeOnDisk>::ConvertToDiskData({t._keyCount, t._root});
+		}
+
+		static shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile, shared_ptr<LessThan<Key>> lessThanPtr)
+		{
+			auto p = DiskDataConverter<BtreeOnDisk>::ConvertFromDiskData(startInFile);
+			return make_shared<ThisType>(move(p.Root), p.KeyCount, lessThanPtr);
 		}
 	};
 
@@ -311,14 +339,11 @@ namespace FuncLib
 		}
 	};
 
+	// 可能读相邻节点会出现一些 callback 没有设置的情况
 	template <typename Key, typename Value, order_int Count>
 	struct Node
 	{
 		bool Middle;
-		DiskPtr<NodeBase<Key, Value, Count>> UpNodePtr;
-		DiskPtr<Btree<Count, Key, Value>> BtreePtr;
-		// TODO
-		// 需要把三个 Node 相关的类的模板接口和实现分开声明，才能在实现中相互引用
 	};
 
 	template <typename Key, typename Value, auto Count>
@@ -329,7 +354,6 @@ namespace FuncLib
 		struct DiskMid
 		{
 			Node<Key, Value, Count> Base;
-			void* UpPtr;
 			Elements<Key, Value, Count> Elements; // 注意这里的 Key 可能是引用，Value 是指针
 		};
 
@@ -375,11 +399,11 @@ namespace FuncLib
 	template <typename Key, typename Value, order_int Count>
 	struct DiskDataConverter<NodeBase<Key, Value, Count>, false>
 	{
-		using Node = NodeBase<string, string, Count>;
+		using ThisType = NodeBase<string, string, Count>;
 		using MidNode = MiddleNode<string, string, Count>;
 		using LeafNode = LeafNode<string, string, Count>;
 
-		static array<byte, UnitSize> ConvertToDiskData(Node& node)
+		static array<byte, UnitSize> ConvertToDiskData(ThisType& node)
 		{
 			if (node.Middle())
 			{
@@ -391,7 +415,7 @@ namespace FuncLib
 			}
 		}
 
-		shared_ptr<Node> ConvertFromDiskData(uint32_t startInFile)
+		shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile)
 		{
 			auto middle = CurrentFile::Read<bool>(startInFile, sizeof(bool));
 			auto contentStart = startInFile + sizeof(bool);
@@ -431,10 +455,10 @@ namespace FuncLib
 	template <typename T>
 	struct DiskDataConverter<DiskPos<T>, false>
 	{
-		using Pos = DiskPos<T>;
-		using Index = typename Pos::Index;
+		using ThisType = DiskPos<T>;
+		using Index = typename ThisType::Index;
 
-		auto ConvertToDiskData(Pos p)
+		auto ConvertToDiskData(ThisType p)
 		{
 			return DiskDataConverter<Index>::ConvertToDiskData(p._start);
 		}
@@ -445,11 +469,11 @@ namespace FuncLib
 			auto i = DiskDataConverter<Index>::ConvertFromDiskData<ToPlace::Stack>(p._start);
 			if constexpr (Place == ToPlace::Stack)
 			{
-				return Pos(i);
+				return ThisType(i);
 			}
 			else
 			{
-				return make_shared<Pos>(i);
+				return make_shared<ThisType>(i);
 			}
 		}
 	};
@@ -457,16 +481,16 @@ namespace FuncLib
 	template <typename T>
 	struct DiskDataConverter<DiskPtr<T>, false>
 	{
-		using Ptr = DiskPtr<T>;
+		using ThisType = DiskPtr<T>;
 
-		auto ConvertToDiskData(Ptr& p)
+		auto ConvertToDiskData(ThisType& p)
 		{
 			return DiskDataConverter<decltype(p._pos)>::ConvertToDiskData(p._pos);
 		}
 
-		shared_ptr<Ptr> ConvertFromDiskData(uint32_t startInFile)
+		shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile)
 		{
-			return make_shared<Ptr>(
+			return make_shared<ThisType>(
 				DiskDataConverter<decltype(p._pos)>::ConvertFromDiskData<ToPlace::Stack>(p._pos));
 		}
 	};
@@ -474,16 +498,16 @@ namespace FuncLib
 	template <typename T>
 	struct DiskDataConverter<WeakDiskPtr<T>, false>
 	{
-		using Ptr = WeakDiskPtr<T>;
+		using ThisType = WeakDiskPtr<T>;
 
-		auto ConvertToDiskData(Ptr& p)
+		auto ConvertToDiskData(ThisType& p)
 		{
 			return DiskDataConverter<decltype(p._pos)>::ConvertToDiskData(p._pos);
 		}
 
-		shared_ptr<Ptr> ConvertFromDiskData(uint32_t startInFile)
+		shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile)
 		{
-			return make_shared<Ptr>(
+			return make_shared<ThisType>(
 				DiskDataConverter<decltype(p._pos)>::ConvertFromDiskData<ToPlace::Stack>(p._pos));
 		}
 	};
