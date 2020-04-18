@@ -14,9 +14,8 @@
 #include "../Btree/Elements.hpp"
 #include "../Btree/LiteVector.hpp"
 #include "../Btree/Basic.hpp"
-#include "DiskAllocator.hpp"
 #include "DiskPtr.hpp"
-#include "CurrentFile.hpp"
+#include "File.hpp"
 #include "StructToTuple.hpp"
 
 namespace FuncLib
@@ -99,9 +98,9 @@ namespace FuncLib
 		}
 
 		template <ToPlace Place = ToPlace::Heap>
-		static auto ConvertFromDiskData(uint32_t startInFile)
+		static auto ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
 		{
-			array<byte, sizeof(T)> raw = CurrentFile::Read<T>(startInFile, sizeof(T));
+			array<byte, sizeof(T)> raw = file->Read<T>(startInFile, sizeof(T));
 			T* p = reinterpret_cast<T*>(&raw);
 
 			if constexpr (Place == ToPlace::Stack)
@@ -177,14 +176,14 @@ namespace FuncLib
 			static constexpr auto Offset = CurrentTypeSize + NextUnit::Offset;
 		};
 
-		static T ConvertFromDiskData(uint32_t startInFile)
+		static T ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
 		{
 			using Tuple = ReturnType<ToTuple<T>>::Type;
-			auto converter = []<auto Index>()
+			auto converter = [=file]<auto Index>()// = syntax right?
 			{
 				constexpr auto start = DiskDataInternalOffset<Index, Tuple>::Offset;
 				using T = tuple_element<Index, Tuple>::type;
-				return DiskDataConverter<T>::ConvertFromDiskData(start);
+				return DiskDataConverter<T>::ConvertFromDiskData(file, start);
 			};
 
 			return ConsT<T>(converter, make_index_sequence<tuple_size_v<decltype(tup)>>());
@@ -211,11 +210,11 @@ namespace FuncLib
 
 		// TODO 这里可能也要区分是从指针 ConvertFrom 的，还是直接读的是字符串
 		// 两者读取会稍有不同
-		shared_ptr<string> ConvertFromDiskData(uint32_t startInFile)
+		shared_ptr<string> ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
 		{
-			auto size = CurrentFile::Read<uint32_t>(startInFile, sizeof(uint32_t));
+			auto size = file->Read<uint32_t>(startInFile, sizeof(uint32_t));
 			auto contentStart = startInFile + sizeof(uint32_t);
-			auto chars = CurrentFile::Read(contentStart, size);
+			auto chars = file->Read(contentStart, size);
 			return make_shared<string>(chars.begin(), chars.end());
 		}
 	};
@@ -238,7 +237,7 @@ namespace FuncLib
 
 		}
 
-		static shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile)
+		static shared_ptr<ThisType> ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
 		{
 
 		}
@@ -259,7 +258,7 @@ namespace FuncLib
 			return DiskDataConverter<BtreeOnDisk>::ConvertToDiskData({t._keyCount, t._root});
 		}
 
-		static shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile, shared_ptr<LessThan<Key>> lessThanPtr)
+		static shared_ptr<ThisType> ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile, shared_ptr<LessThan<Key>> lessThanPtr)
 		{
 			auto p = DiskDataConverter<BtreeOnDisk>::ConvertFromDiskData(startInFile);
 			return make_shared<ThisType>(move(p.Root), p.KeyCount, lessThanPtr);
@@ -293,7 +292,7 @@ namespace FuncLib
 		}
 
 		template <ToPlace Place = ToPlace::Heap>
-		static auto ConvertFromDiskData(uint32_t startInFile)
+		static auto ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
 		{
 			if constexpr (Place == ToPlace::Stack)
 			{
@@ -330,7 +329,7 @@ namespace FuncLib
 			return DiskDataConverter<Item>::ConvertToDiskData(vec);
 		}
 
-		static shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile, shared_ptr<LessThan<Key>> lessThanPtr)
+		static shared_ptr<ThisType> ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile, shared_ptr<LessThan<Key>> lessThanPtr)
 		{
 			// Each type should have a constructor of all data member to easy set
 
@@ -339,7 +338,7 @@ namespace FuncLib
 		}
 	};
 
-	// 可能读相邻节点会出现一些 callback 没有设置的情况
+	// 可能读相邻节点会出现一些 callback 没有设置的情况，不一定，仔细分析程序中调用别的节点的逻辑
 	template <typename Key, typename Value, order_int Count>
 	struct Node
 	{
@@ -362,7 +361,7 @@ namespace FuncLib
 			return DiskDataConverter<DiskMid>::ConvertToDiskData({ true, nullptr, });
 		}
 
-		static shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile)
+		static shared_ptr<ThisType> ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
 		{
 
 		}
@@ -391,7 +390,7 @@ namespace FuncLib
 
 		}
 
-		static shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile)
+		static shared_ptr<ThisType> ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
 		{
 		}
 	};
@@ -415,18 +414,18 @@ namespace FuncLib
 			}
 		}
 
-		shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile)
+		shared_ptr<ThisType> ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
 		{
 			auto middle = CurrentFile::Read<bool>(startInFile, sizeof(bool));
 			auto contentStart = startInFile + sizeof(bool);
 
 			if (middle)
 			{
-				return DiskDataConverter<MidNode>::ConvertFromDiskData(contentStart);
+				return DiskDataConverter<MidNode>::ConvertFromDiskData(file, contentStart);
 			}
 			else
 			{
-				return DiskDataConverter<LeafNode>::ConvertFromDiskData(contentStart);
+				return DiskDataConverter<LeafNode>::ConvertFromDiskData(file, contentStart);
 			}
 		}
 	};
@@ -464,9 +463,9 @@ namespace FuncLib
 		}
 
 		template <ToPlace Place = ToPlace::Heap>
-		auto ConvertFromDiskData(uint32_t startInFile)
+		auto ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
 		{
-			auto i = DiskDataConverter<Index>::ConvertFromDiskData<ToPlace::Stack>(p._start);
+			auto i = DiskDataConverter<Index>::ConvertFromDiskData<ToPlace::Stack>(file, p._start);
 			if constexpr (Place == ToPlace::Stack)
 			{
 				return ThisType(i);
@@ -488,10 +487,10 @@ namespace FuncLib
 			return DiskDataConverter<decltype(p._pos)>::ConvertToDiskData(p._pos);
 		}
 
-		shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile)
+		shared_ptr<ThisType> ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
 		{
 			return make_shared<ThisType>(
-				DiskDataConverter<decltype(p._pos)>::ConvertFromDiskData<ToPlace::Stack>(p._pos));
+				DiskDataConverter<decltype(p._pos)>::ConvertFromDiskData<ToPlace::Stack>(file, p._pos));
 		}
 	};
 
@@ -505,10 +504,10 @@ namespace FuncLib
 			return DiskDataConverter<decltype(p._pos)>::ConvertToDiskData(p._pos);
 		}
 
-		shared_ptr<ThisType> ConvertFromDiskData(uint32_t startInFile)
+		shared_ptr<ThisType> ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
 		{
 			return make_shared<ThisType>(
-				DiskDataConverter<decltype(p._pos)>::ConvertFromDiskData<ToPlace::Stack>(p._pos));
+				DiskDataConverter<decltype(p._pos)>::ConvertFromDiskData<ToPlace::Stack>(file, p._pos));
 		}
 	};
 }

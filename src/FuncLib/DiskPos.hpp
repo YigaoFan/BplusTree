@@ -3,7 +3,7 @@
 #include <memory>
 #include <map>
 #include "DiskDataConverter.hpp"
-#include "CurrentFile.hpp"
+#include "File.hpp"
 
 namespace FuncLib
 {

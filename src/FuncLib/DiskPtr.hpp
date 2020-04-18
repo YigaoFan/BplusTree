@@ -5,7 +5,7 @@
 #include <vector>
 #include <functional>
 #include "DiskPos.hpp"
-#include "CurrentFile.hpp"
+#include "File.hpp"
 #include "../Btree/Btree.hpp"
 #include "../Basic/TypeTrait.hpp"
 
@@ -22,18 +22,13 @@ namespace FuncLib
 	using ::Collections::order_int;
 	using ::Basic::IsSpecialization;
 
-	// Btree should have a type para to pass pointer type
-	// 要考虑全部持久化后，以 NodeBase 类型去构造内存里的 MiddleNode 和 LeafNode
-	// 所以要支持某种转发机制，让 DiskPtr<NodeBase> 转发到 DiskPtr<MiddleNode> 或者 DiskPtr<LeafNode>
-
-
 	template <typename T>
 	class DiskPtrBase
 	{
 	protected:
 		shared_ptr<T> tPtr = nullptr; // TODO Cache
 		DiskPos<T> _pos;
-		vector<function<void(T*)>> _contentSetter;
+		vector<function<void(T*)>> _contentSetters;
 
 	public:
 		DiskPtrBase(DiskPos<T> pos) : _pos(pos)
@@ -41,7 +36,7 @@ namespace FuncLib
 
 		void RegisterSetter(function<void(T*)> callback)
 		{
-			_contentSetter.push_back(move(callback));
+			_contentSetters.push_back(move(callback));
 		}
 
 		T* operator-> ()
@@ -51,14 +46,14 @@ namespace FuncLib
 				tPtr = _pos.ReadObject();
 			}
 			
-			if (!_contentSetter.empty())
+			if (!_contentSetters.empty())
 			{
-				for (auto& f : _contentSetter)
+				for (auto& f : _contentSetters)
 				{
 					f(tPtr.get());
 				}
 
-				_contentSetter.clear();
+				_contentSetters.clear();
 			}
 
 			return tPtr;
@@ -100,15 +95,7 @@ namespace FuncLib
 		}
 	};
 
-
-	// For Node
-	/*template <typename T>
-	class DiskPtr
-	{
-		void WriteToDisk();
-
-	};*/
-	// Btree 中用到了几种数据？
+	// Btree 中用到了几种数据
 	// 一种是实体，比如 Key，Value 最终在叶子节点存的都是实体，Node 之类应该是也是
 	// 一种是存的指针，比如 unique_ptr，也就是说指针本身也要持久化
 	//template <typename T>

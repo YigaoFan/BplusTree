@@ -251,7 +251,7 @@ namespace Collections
 
 	private:
 		Btree(Ptr<Base> root, key_int keyCount, shared_ptr<_LessThan> lessThan)
-			: _root(move(root)), keyCount(keyCount), _lessThanPtr(lessThan)
+			: _root(move(root)), _keyCount(keyCount), _lessThanPtr(lessThan)
 		{ }
 
 		template <auto Total, auto Index, auto... Is>

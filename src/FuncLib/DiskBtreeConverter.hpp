@@ -20,7 +20,7 @@ namespace FuncLib
 	using ::Collections::LeafNode;
 
 	// DiskPtr should have this class as data member
-	template <typename Key, typename Value, order_int Order>
+	/*template <typename Key, typename Value, order_int Order>
 	class DiskBtreeEnvironmentCarrier
 	{
 	private:
@@ -68,7 +68,5 @@ namespace FuncLib
 
 	private:
 
-	};
-
-	
+	};*/
 }
