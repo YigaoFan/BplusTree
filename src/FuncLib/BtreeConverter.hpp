@@ -23,11 +23,10 @@ namespace FuncLib
 	private:
 		using Content = Btree<Order, Key, Value, DiskPtr>;
 	public:
-		static DiskPtr<Content>
-		ConvertToDisk(Btree<Order, Key, Value, unique_ptr> const& btree, shared_ptr<File> file)
+		static DiskPtr<Content> ConvertToDisk(Btree<Order, Key, Value, unique_ptr> const& btree, shared_ptr<File> file)
 		{
 			using T = Btree<Order, Key, Value, unique_ptr>;
-			return { file->Allocate<T>(DiskDataConverter<T>::ConvertToDiskData(btree, file)) };
+			return file->Allocate<T>(DiskDataConverter<T>::ConvertToDiskData(btree, file));
 		}
 
 		static DiskPtr<Content>
