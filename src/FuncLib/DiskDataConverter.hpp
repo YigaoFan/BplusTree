@@ -193,7 +193,6 @@ namespace FuncLib
 	template <>
 	struct DiskDataConverter<string>
 	{
-		// TODO return value could be iterated
 		template <SizeDemand Demand = SizeDemand::Fixed>
 		auto ConvertToDiskData(string const& t)
 		{
@@ -225,6 +224,72 @@ namespace FuncLib
 	//using LibTreeMid = MiddleNode<string, string, 3>;
 	//using LibTreeMidEle = Elements<string, string, 3>;
 
+	template <typename Key, typename Value, order_int Count>
+	struct DiskDataConverter<NodeBase<Key, Value, Count, unique_ptr>, false>
+	{
+		using ThisType = NodeBase<string, string, Count, unique_ptr>;
+		using ThatType = NodeBase<Key, Value, Count, DiskPtr>;
+
+		static DiskPtr<ThatType> ConvertToDiskPtr(shared_ptr<File> file, ThisType const& node)
+		{
+			// How to make DiskPtr<MiddleNode> -> DiskPtr<NodeBase> valid
+			if (node.Middle())
+			{
+				using MidNode = MiddleNode<string, string, Count, unique_ptr>;
+				return DiskDataConverter<MidNode>::ConvertToDiskPtr(file, static_cast<MidNode const&>(node));
+			}
+			else
+			{
+				using LeafNode = LeafNode<string, string, Count, unique_ptr>;
+				return DiskDataConverter<LeafNode>::ConvertToDiskPtr(file, static_cast<LeafNode const&>(node));
+			}
+		}
+	};
+
+	// 可能读相邻节点会出现一些 callback 没有设置的情况，不一定，仔细分析程序中调用别的节点的逻辑
+	template <typename T, order_int Count>
+	struct DiskNode
+	{
+		bool Middle;
+		LiteVector<T, Count> Elements;
+	};
+
+	template <typename Key, typename Value, order_int Count>
+	struct DiskDataConverter<MiddleNode<Key, Value, Count, unique_ptr>, false>
+	{
+		using ThisType = MiddleNode<Key, Value, Count, unique_ptr>;
+		using ThatType = MiddleNode<Key, Value, Count, DiskPtr>;
+
+		static DiskPtr<ThatType> ConvertToDiskPtr(shared_ptr<File> file, ThisType const& t)
+		{
+			using ThatKey = Key;
+			DiskNode<ThatKey, DiskPtr<ThatNode>, Count> node{ false };
+			using Node = NodeBase<Key, Value, Count, unique_ptr>;
+			using ThatNode = NodeBase<Key, Value, Count, DiskPtr>;
+			for (auto& e : t._elements)
+			{
+				auto p = DiskDataConverter<Node>::ConvertToDiskPtr(file, *e.second);
+				node.Elements.Add({ p->MinKey(), move(p) });// MinKey is not right
+			}
+
+			using T = Key;
+			return file->Allocate<ThatType>(DiskDataConverter<DiskNode<T, Count>>::ConvertToDiskData(move(node));
+		}
+	};
+
+	template <typename Key, typename Value, order_int Count>
+	struct DiskDataConverter<LeafNode<Key, Value, Count, unique_ptr>, false>
+	{
+		using ThisType = LeafNode<Key, Value, Count, unique_ptr>;
+		using ThatType = LeafNode<Key, Value, Count, DiskPtr>;
+
+		static DiskPtr<ThisType> ConvertToDiskPtr(shared_ptr<File> file, ThisType const& t)
+		{
+			using T = Key;
+			return file->Allocate<ThisType>(
+				DiskDataConverter<DiskNode<T, Count>>::ConvertToDiskData({ false, t._elements}));
+		}
+	};
 
 	template <typename Key, typename Value, order_int Order>
 	// TODO why here need false, string not need, see error info
@@ -232,25 +297,25 @@ namespace FuncLib
 	{
 		using ThisType = Btree<Order, Key, Value, unique_ptr>;
 
-		static auto ConvertToDiskData(ThisType const& t)
+		struct BtreeOnDisk
 		{
-
-		}
-
-		static shared_ptr<ThisType> ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
+			key_int KeyCount;
+			DiskPtr<typename ThisType::Node> Root;
+		};
+		static auto ConvertToDiskData(shared_ptr<File> file, ThisType const& t)
 		{
-
+			return DiskDataConverter<BtreeOnDisk>::ConvertToDiskData(file, {});
 		}
 	};
 
 	template <typename Key, typename Value, order_int Order>
-	struct DiskDataConverter<Btree<Order, Key, Value, unique_ptr>, false>
+	struct DiskDataConverter<Btree<Order, Key, Value, DiskPtr>, false>
 	{
-		using ThisType = Btree<Order, Key, Value, unique_ptr>;
+		using ThisType = Btree<Order, Key, Value, DiskPtr>;
 		struct BtreeOnDisk
 		{
 			key_int KeyCount;
-			DiskPtr<NodeBase<Key, Value, Order>> Root;
+			DiskPtr<NodeBase<Key, Value, Order, DiskPtr>> Root;
 		};
 
 		static auto ConvertToDiskData(ThisType const& t)
@@ -360,30 +425,6 @@ namespace FuncLib
 		}
 	};
 
-	// 可能读相邻节点会出现一些 callback 没有设置的情况，不一定，仔细分析程序中调用别的节点的逻辑
-	template <typename Key, typename Value, order_int Count>
-	struct Node
-	{
-		bool Middle;
-	};
-
-	template <typename Key, typename Value, auto Count>
-	struct DiskDataConverter<MiddleNode<Key, Value, Count, unique_ptr>, false>
-	{
-		using ThisType = MiddleNode<Key, Value, Count>;
-
-		struct DiskMid
-		{
-			Node<Key, Value, Count> Base;
-			Elements<Key, Value, Count> Elements; // 注意这里的 Key 可能是引用，Value 是指针
-		};
-
-		static auto ConvertToDiskData(ThisType& t, DiskPtr<ThisType> upNode)
-		{
-			return DiskDataConverter<DiskMid>::ConvertToDiskData({ true, nullptr, });
-		}
-	};
-
 	template <typename Key, typename Value, auto Count>
 	struct DiskDataConverter<MiddleNode<Key, Value, Count, DiskPtr>, false>
 	{
@@ -402,30 +443,8 @@ namespace FuncLib
 
 		static shared_ptr<ThisType> ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
 		{
+			// provide LeafNode previous, next and callback
 
-		}
-	};
-
-	template <typename Key, typename Value, auto Count>
-	struct DiskDataConverter<LeafNode<Key, Value, Count, unique_ptr>, false>
-	{
-		using ThisType = LeafNode<Key, Value, Count>;
-
-		struct DiskLeaf
-		{
-			Node<Key, Value, Count> Base;
-			void* PreLeaf;// 这个还有被保存的顺序要求，可不可以实现某种递归，一个一个向底下触发，这应该就要求有某种缓存
-			void* NxtLeaf;
-			Elements<Key, Value, Count> Elements;
-		};
-
-		using Converted = DiskLeaf;
-		// preNode and nextNode should be stored at DiskBtreeConverter
-		// 所以这个类型的 ConvertToDiskData 就不符合通用的接口了——只一个 ThisType 对象参数
-		static auto ConvertToDiskData(ThisType& t, DiskPtr<ThisType> preNode, DiskPtr<ThisType> nextNode)
-		{
-			auto middle = false;
-			CurrentFile::Write<bool>();
 		}
 	};
 
@@ -457,25 +476,7 @@ namespace FuncLib
 		}
 	};
 
-	template <typename Key, typename Value, order_int Count>
-	struct DiskDataConverter<NodeBase<Key, Value, Count, unique_ptr>, false>
-	{
-		using ThisType = NodeBase<string, string, Count>;
-		using MidNode = MiddleNode<string, string, Count, DiskPtr>;
-		using LeafNode = LeafNode<string, string, Count, DiskPtr>;
 
-		static array<byte, UnitSize> ConvertToDiskData(ThisType& node)
-		{
-			if (node.Middle())
-			{
-				return DiskDataConverter<MidNode>::ConvertToDiskData(static_cast<MidNode&>(node));
-			}
-			else
-			{
-				return DiskDataConverter<LeafNode>::ConvertToDiskData(static_cast<LeafNode&>(node));
-			}
-		}
-	};
 
 	template <typename Key, typename Value, order_int Count>
 	struct DiskDataConverter<NodeBase<Key, Value, Count, DiskPtr>, false>
