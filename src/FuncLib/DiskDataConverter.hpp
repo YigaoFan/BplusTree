@@ -179,7 +179,7 @@ namespace FuncLib
 		static T ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
 		{
 			using Tuple = ReturnType<ToTuple<T>>::Type;
-			auto converter = [=file]<auto Index>()// = syntax right?
+			auto converter = [file = file]<auto Index>()// = syntax right?
 			{
 				constexpr auto start = DiskDataInternalOffset<Index, Tuple>::Offset;
 				using T = tuple_element<Index, Tuple>::type;
@@ -368,6 +368,23 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, auto Count>
+	struct DiskDataConverter<MiddleNode<Key, Value, Count, unique_ptr>, false>
+	{
+		using ThisType = MiddleNode<Key, Value, Count>;
+
+		struct DiskMid
+		{
+			Node<Key, Value, Count> Base;
+			Elements<Key, Value, Count> Elements; // 注意这里的 Key 可能是引用，Value 是指针
+		};
+
+		static auto ConvertToDiskData(ThisType& t, DiskPtr<ThisType> upNode)
+		{
+			return DiskDataConverter<DiskMid>::ConvertToDiskData({ true, nullptr, });
+		}
+	};
+
+	template <typename Key, typename Value, auto Count>
 	struct DiskDataConverter<MiddleNode<Key, Value, Count, DiskPtr>, false>
 	{
 		using ThisType = MiddleNode<Key, Value, Count>;
@@ -386,6 +403,29 @@ namespace FuncLib
 		static shared_ptr<ThisType> ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
 		{
 
+		}
+	};
+
+	template <typename Key, typename Value, auto Count>
+	struct DiskDataConverter<LeafNode<Key, Value, Count, unique_ptr>, false>
+	{
+		using ThisType = LeafNode<Key, Value, Count>;
+
+		struct DiskLeaf
+		{
+			Node<Key, Value, Count> Base;
+			void* PreLeaf;// 这个还有被保存的顺序要求，可不可以实现某种递归，一个一个向底下触发，这应该就要求有某种缓存
+			void* NxtLeaf;
+			Elements<Key, Value, Count> Elements;
+		};
+
+		using Converted = DiskLeaf;
+		// preNode and nextNode should be stored at DiskBtreeConverter
+		// 所以这个类型的 ConvertToDiskData 就不符合通用的接口了——只一个 ThisType 对象参数
+		static auto ConvertToDiskData(ThisType& t, DiskPtr<ThisType> preNode, DiskPtr<ThisType> nextNode)
+		{
+			auto middle = false;
+			CurrentFile::Write<bool>();
 		}
 	};
 
@@ -418,7 +458,27 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct DiskDataConverter<NodeBase<Key, Value, Count>, false>
+	struct DiskDataConverter<NodeBase<Key, Value, Count, unique_ptr>, false>
+	{
+		using ThisType = NodeBase<string, string, Count>;
+		using MidNode = MiddleNode<string, string, Count, DiskPtr>;
+		using LeafNode = LeafNode<string, string, Count, DiskPtr>;
+
+		static array<byte, UnitSize> ConvertToDiskData(ThisType& node)
+		{
+			if (node.Middle())
+			{
+				return DiskDataConverter<MidNode>::ConvertToDiskData(static_cast<MidNode&>(node));
+			}
+			else
+			{
+				return DiskDataConverter<LeafNode>::ConvertToDiskData(static_cast<LeafNode&>(node));
+			}
+		}
+	};
+
+	template <typename Key, typename Value, order_int Count>
+	struct DiskDataConverter<NodeBase<Key, Value, Count, DiskPtr>, false>
 	{
 		using ThisType = NodeBase<string, string, Count>;
 		using MidNode = MiddleNode<string, string, Count, DiskPtr>;

@@ -147,32 +147,18 @@ namespace FuncLib
 	// Or register update event in allocator, 然后集中更新
 	// Use DiskPos to update
 
-	template <typename Key, typename Value, order_int BtreeOrder>
-	class DiskPtr<Btree<BtreeOrder, Key, Value, DiskPtr>> : public DiskPtrBase<Btree<BtreeOrder, Key, Value>>
-	// TODO change Btree parameter order
-	{
-	private:
-		using Content = Btree<BtreeOrder, Key, Value, DiskPtr>;
-		using Base = DiskPtrBase<Btree<BtreeOrder, Key, Value>>;
-	public:
-		static DiskPtr ReadBtreeFrom(shared_ptr<File> file, shared_ptr<LessThan> lessThanPtr, size_t startOffset = 0)
-		{
-			auto p = DiskPtr({ file, startOffset });
-			p.RegisterSetter([lessThanPtr = move(lessThanPtr)](Content* treePtr)
-			{
-				treePtr->_lessThanPtr = lessThanPtr;
-				// TODO 这个 Content::Base 定义的不太规范，应该为基类
-				SetProperty(treePtr->_root, [lessThanPtr = lessThanPtr](typename Content::Node* node)
-				{
-					node->_elements.LessThanPtr = lessThanPtr;
-				});
-			});
-			return p;
-		}
+	//template <typename Key, typename Value, order_int BtreeOrder>
+	//class DiskPtr<Btree<BtreeOrder, Key, Value, DiskPtr>> : public DiskPtrBase<Btree<BtreeOrder, Key, Value>>
+	//// TODO change Btree parameter order
+	//{
+	//private:
+	//	using Base = DiskPtrBase<Btree<BtreeOrder, Key, Value>>;
+	//public:
 
-	private:
-		using Base::Base;
-	};
+
+	//private:
+	//	using Base::Base;
+	//};
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	using DiskBtree = DiskPtr<Btree<BtreeOrder, Key, Value, DiskPtr>>;

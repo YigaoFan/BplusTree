@@ -107,10 +107,12 @@ namespace FuncLib
 		}
 
 		template <typename T>
-		void Write(uint32_t start, uint32_t size)
+		void Write()
 		{
 			// TODO
 		}
+
+		// 有了 File 之后，如何书写在原来分配的位置
 
 		~File()
 		{

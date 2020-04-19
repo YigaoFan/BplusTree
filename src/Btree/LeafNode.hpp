@@ -18,7 +18,7 @@ namespace Collections
 	using ::Basic::NotImplementException;
 
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename> class Ptr = unique_ptr>
-	class LeafNode : public NodeBase<Key, Value, BtreeOrder>
+	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Ptr>
 	{
 	private:
 		using _LessThan = LessThan<Key>;

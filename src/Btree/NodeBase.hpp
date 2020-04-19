@@ -28,7 +28,7 @@ namespace Collections
 		Remove,
 	};
 
-	template <typename Key, typename Value, order_int BtreeOrder>
+	template <typename Key, typename Value, order_int BtreeOrder, template <typename> class Ptr = unique_ptr>
 	class NodeBase
 	{
 	public:

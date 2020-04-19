@@ -41,7 +41,7 @@ namespace Collections
 	class NodeFactory;
 	// 最好把 MiddleNode 和 LeafNode 的构造与 Btree 隔绝起来，使用 NodeBase 来作用，顶多使用强制转型来调用一些函数
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename> class Ptr = unique_ptr>
-	class MiddleNode : public NodeBase<Key, Value, BtreeOrder>
+	class MiddleNode : public NodeBase<Key, Value, BtreeOrder, Ptr>
 	{
 	private:
 		friend class NodeFactory<Key, Value, BtreeOrder>;
