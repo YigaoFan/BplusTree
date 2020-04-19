@@ -17,6 +17,7 @@ namespace FuncLib
 	using ::std::shared_ptr;
 	using ::std::move;
 	using ::std::enable_if_t;
+	using ::std::is_base_of_v;
 	using ::std::remove_cvref_t;
 	using ::Collections::Btree;
 	using ::Collections::order_int;
@@ -35,18 +36,42 @@ namespace FuncLib
 		DiskPtrBase(DiskPos<T> pos) : _pos(pos)
 		{ }
 
+		// TODO test
+		template <typename Derive, typename = enable_if_t<is_base_of_v<T, Derive>>>
+		DiskPtrBase(DiskPtrBase<Derive>&& deriveOne)
+			: tPtr(deriveOne.tPtr), _pos(deriveOne._pos)
+		{ }
+		
 		void RegisterSetter(function<void(T*)> callback)
 		{
 			_contentSetters.push_back(move(callback));
 		}
 
+		T& operator* ()
+		{
+			ReadEntity();
+			return *tPtr;
+		}
+
 		T* operator-> ()
+		{
+			ReadEntity();
+			return tPtr;
+		}
+
+		~DiskPtrBase()
+		{
+			_pos.WriteObject();
+		}
+
+	private:
+		void ReadEntity()
 		{
 			if (tPtr == nullptr)
 			{
 				tPtr = _pos.ReadObject();
 			}
-			
+
 			if (!_contentSetters.empty())
 			{
 				for (auto& f : _contentSetters)
@@ -56,13 +81,6 @@ namespace FuncLib
 
 				_contentSetters.clear();
 			}
-
-			return tPtr;
-		}
-
-		~DiskPtrBase()
-		{
-			_pos.WriteObject();
 		}
 	};
 
@@ -146,21 +164,4 @@ namespace FuncLib
 	// Update content to disk
 	// Or register update event in allocator, 然后集中更新
 	// Use DiskPos to update
-
-	//template <typename Key, typename Value, order_int BtreeOrder>
-	//class DiskPtr<Btree<BtreeOrder, Key, Value, DiskPtr>> : public DiskPtrBase<Btree<BtreeOrder, Key, Value>>
-	//// TODO change Btree parameter order
-	//{
-	//private:
-	//	using Base = DiskPtrBase<Btree<BtreeOrder, Key, Value>>;
-	//public:
-
-
-	//private:
-	//	using Base::Base;
-	//};
-
-	template <typename Key, typename Value, order_int BtreeOrder>
-	using DiskBtree = DiskPtr<Btree<BtreeOrder, Key, Value, DiskPtr>>;
-
 }
