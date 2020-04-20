@@ -21,26 +21,29 @@ namespace FuncLib
 	class BtreeConverter
 	{
 	private:
-		using Content = Btree<Order, Key, Value, DiskPtr>;
+		using Entity = Btree<Order, Key, Value, DiskPtr>;
+
 	public:
-		static DiskPtr<Content> ConvertToDisk(Btree<Order, Key, Value, unique_ptr> const& btree, shared_ptr<File> file)
+		static DiskPtr<Entity>
+		ConvertToDisk(Btree<Order, Key, Value, unique_ptr> const& btree, shared_ptr<File> file)
 		{
 			using T = Btree<Order, Key, Value, unique_ptr>;
 			return file->Allocate<T>(DiskDataConverter<T>::ConvertToDiskData(btree, file));
 		}
 
-		static DiskPtr<Content>
+		static DiskPtr<Entity>
 		ReadTreeFrom(shared_ptr<File> file, shared_ptr<LessThan<Key>> lessThanPtr, size_t startOffset = 0)
 		{
-			auto p = DiskPtr<Content>({ file, startOffset });
-			p.RegisterSetter([lessThanPtr = move(lessThanPtr)](Content* treePtr)
+			auto p = DiskPtr<Entity>({ file, startOffset });
+			p.RegisterSetter([lessThanPtr = move(lessThanPtr)](Entity* treePtr)
 			{
 				treePtr->_lessThanPtr = lessThanPtr;
-				SetProperty(treePtr->_root, [lessThanPtr = lessThanPtr](typename Content::Node* node)
+				SetProperty(treePtr->_root, [lessThanPtr = lessThanPtr](typename Entity::Node* node)
 				{
 					node->_elements.LessThanPtr = lessThanPtr;
 				});
 			});
+			// 这里还有个关键点是提供那几个回调
 			return p;
 		}
 	};

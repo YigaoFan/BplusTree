@@ -131,7 +131,7 @@ namespace FuncLib
 	template <typename T>
 	struct DiskDataConverter<T, false>
 	{
-		static_assert(is_class_v<T>, "Only support class type when not specialize");
+		static_assert(is_class_v<T>, "Only support class type");
 
 		template <typename T, auto... Is>
 		auto CombineEachConvert(T&& tup, index_sequence<Is...>)
@@ -150,7 +150,7 @@ namespace FuncLib
 		{
 			auto tup = ToTuple(forward<T>(t));// TODO check forward use right?
 			// TODO how to forward or move tup
-			return CombineEachConvert(tup, make_index_sequence<tuple_size_v<decltype(tup)>>());
+			return CombineEachConvert(move(tup), make_index_sequence<tuple_size_v<decltype(tup)>>());
 		}
 
 		template <typename T, typename UnitConverter, auto... Is>
@@ -179,7 +179,7 @@ namespace FuncLib
 		static T ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile)
 		{
 			using Tuple = ReturnType<ToTuple<T>>::Type;
-			auto converter = [file = file]<auto Index>()// = syntax right?
+			auto converter = [file = file]<auto Index>()
 			{
 				constexpr auto start = DiskDataInternalOffset<Index, Tuple>::Offset;
 				using T = tuple_element<Index, Tuple>::type;
@@ -232,7 +232,6 @@ namespace FuncLib
 
 		static DiskPtr<ThatType> ConvertToDiskPtr(shared_ptr<File> file, ThisType const& node)
 		{
-			// How to make DiskPtr<MiddleNode> -> DiskPtr<NodeBase> valid
 			if (node.Middle())
 			{
 				using MidNode = MiddleNode<string, string, Count, unique_ptr>;
@@ -254,6 +253,28 @@ namespace FuncLib
 		LiteVector<T, Count> Elements;
 	};
 
+	template <typename T, bool = is_standard_layout_v<T>&& is_trivial_v<T>>
+	struct Convert
+	{
+		using Type = T;
+
+		static Type FixedSizeConvert(T const& t)
+		{
+			return t;
+		}
+	};
+
+	template <typename T>
+	struct Convert<T, false>
+	{
+		using Type = DiskPtr<T>;
+
+		static Type FixedSizeConvert(T const& t)
+		{
+			return t;
+		}
+	};
+
 	template <typename Key, typename Value, order_int Count>
 	struct DiskDataConverter<MiddleNode<Key, Value, Count, unique_ptr>, false>
 	{
@@ -262,18 +283,22 @@ namespace FuncLib
 
 		static DiskPtr<ThatType> ConvertToDiskPtr(shared_ptr<File> file, ThisType const& t)
 		{
-			using ThatKey = Key;
-			DiskNode<ThatKey, DiskPtr<ThatNode>, Count> node{ false };
-			using Node = NodeBase<Key, Value, Count, unique_ptr>;
-			using ThatNode = NodeBase<Key, Value, Count, DiskPtr>;
+			using ThatKey = Key;// TODO
+			using ThatValue = DiskPtr<NodeBase<Key, Value, Count, DiskPtr>>;
+			struct Pair
+			{
+				ThatKey Key;
+				ThatValue Value;
+			};
+			DiskNode<Pair, Count> node{ false };
 			for (auto& e : t._elements)
 			{
+				using Node = NodeBase<Key, Value, Count, unique_ptr>;
 				auto p = DiskDataConverter<Node>::ConvertToDiskPtr(file, *e.second);
-				node.Elements.Add({ p->MinKey(), move(p) });// MinKey is not right
+				node.Elements.Add({ p->MinKey(), move(p) });// TODO MinKey is not right
 			}
 
-			using T = Key;
-			return file->Allocate<ThatType>(DiskDataConverter<DiskNode<T, Count>>::ConvertToDiskData(move(node));
+			return file->Allocate<ThatType>(DiskDataConverter<DiskNode<Pair, Count>>::ConvertToDiskData(move(node));
 		}
 	};
 
@@ -283,11 +308,27 @@ namespace FuncLib
 		using ThisType = LeafNode<Key, Value, Count, unique_ptr>;
 		using ThatType = LeafNode<Key, Value, Count, DiskPtr>;
 
-		static DiskPtr<ThisType> ConvertToDiskPtr(shared_ptr<File> file, ThisType const& t)
+		static DiskPtr<ThatType> ConvertToDiskPtr(shared_ptr<File> file, ThisType const& t)
 		{
-			using T = Key;
-			return file->Allocate<ThisType>(
-				DiskDataConverter<DiskNode<T, Count>>::ConvertToDiskData({ false, t._elements}));
+			using ThatKey = Convert<Key>::Type;
+			using ThatValue = Convert<Value>::Type;
+			struct Pair
+			{
+				ThatKey Key;
+				ThatValue Value;
+			};
+			DiskNode<Pair, Count> node{ false };
+			auto converter = [](auto& pair)
+			{
+				return Pair{ Convert<Key>::FixedSizeConvert(e.first), Convert<Value>::FixedSizeConvert(e.second) };
+			};
+			for (auto& e : t._elements)
+			{
+				node.Elements.Add(converter(e));// LINQ?
+			}
+
+			return file->Allocate<ThatType>(
+				DiskDataConverter<DiskNode<Pair, Count>>::ConvertToDiskData(move(node)));
 		}
 	};
 
@@ -321,28 +362,6 @@ namespace FuncLib
 		static auto ConvertToDiskData(ThisType const& t)
 		{
 			return DiskDataConverter<BtreeOnDisk>::ConvertToDiskData({ t._keyCount, t._root });
-		}
-
-		static shared_ptr<ThisType> ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile, shared_ptr<LessThan<Key>> lessThanPtr)
-		{
-			auto p = DiskDataConverter<BtreeOnDisk>::ConvertFromDiskData(startInFile);
-			return make_shared<ThisType>(move(p.Root), p.KeyCount, lessThanPtr);
-		}
-	};
-
-	template <typename Key, typename Value, order_int Order>
-	struct DiskDataConverter<Btree<Order, Key, Value, DiskPtr>, false>
-	{
-		using ThisType = Btree<Order, Key, Value, DiskPtr>;
-		struct BtreeOnDisk
-		{
-			key_int KeyCount;
-			DiskPtr<NodeBase<Key, Value, Order>> Root;
-		};
-
-		static auto ConvertToDiskData(ThisType const& t)
-		{
-			return DiskDataConverter<BtreeOnDisk>::ConvertToDiskData({t._keyCount, t._root});
 		}
 
 		static shared_ptr<ThisType> ConvertFromDiskData(shared_ptr<File> file, uint32_t startInFile, shared_ptr<LessThan<Key>> lessThanPtr)
@@ -398,13 +417,13 @@ namespace FuncLib
 	struct DiskDataConverter<Elements<Key, Value, Order>, false>
 	{
 		using ThisType = Elements<Key, Value, Order>;
-
+		
 		static auto ConvertToDiskData(ThisType& t)
 		{
 			struct Item
 			{
-				Key Key;
-				Value Value;
+				Convert<Key>::Type Key;
+				Convert<Value>::Type Value;
 			};
 			LiteVector<Item, order_int, Order> vec;
 

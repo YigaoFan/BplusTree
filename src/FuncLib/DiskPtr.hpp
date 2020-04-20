@@ -1,5 +1,4 @@
 #pragma once
-#include <string>
 #include <memory>
 #include <type_traits>
 #include <vector>
@@ -11,14 +10,13 @@
 
 namespace FuncLib
 {
-	using ::std::string;
 	using ::std::vector;
 	using ::std::function;
 	using ::std::shared_ptr;
 	using ::std::move;
 	using ::std::enable_if_t;
 	using ::std::is_base_of_v;
-	using ::std::remove_cvref_t;
+	using ::std::remove_cvref_t;// decay?
 	using ::Collections::Btree;
 	using ::Collections::order_int;
 	using ::Collections::LessThan;
@@ -33,8 +31,12 @@ namespace FuncLib
 		vector<function<void(T*)>> _contentSetters;
 
 	public:
-		DiskPtrBase(DiskPos<T> pos) : _pos(pos)
+		DiskPtrBase(shared_ptr<T> pos) : _pos(pos)
 		{ }
+
+		DiskPtrBase(DiskPos<T> pos) : _pos(pos)
+		{
+		}
 
 		// TODO test
 		template <typename Derive, typename = enable_if_t<is_base_of_v<T, Derive>>>
@@ -61,9 +63,16 @@ namespace FuncLib
 
 		~DiskPtrBase()
 		{
-			_pos.WriteObject();
+			if (tPtr != nullptr)
+			{
+				_pos.WriteObject();
+			}
 		}
-
+	protected:
+		static void Write()
+		{
+			// TODO
+		}
 	private:
 		void ReadEntity()
 		{
@@ -100,11 +109,16 @@ namespace FuncLib
 	{
 	private:
 		friend struct DiskDataConverter<DiskPtr>;
-	public:
 		using Base = DiskPtrBase<T>;
-
 	public:
 		using Base::Base;
+
+		// T should be type which has convert to Disk
+		static DiskPtr<T> MakeDiskPtr(shared_ptr<T> entityPtr, shared_ptr<File> file)
+		{
+			// TODO ConvertToByte
+			return file->Allocate<T>(ConvertToByte(entityPtr));
+		}
 
 		// this ptr can destory data on disk
 		DiskPtr(DiskPtr& const) = delete;

@@ -23,7 +23,7 @@ namespace Collections
 	private:
 		using _LessThan = LessThan<Key>;
 		using Base = NodeBase<Key, Value, BtreeOrder>;
-		Elements<Key, Value, BtreeOrder, _LessThan> _elements;
+		Elements<Key, Value, BtreeOrder, _LessThan> _elements;// Key, Value type should change
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
 	public:
@@ -52,8 +52,6 @@ namespace Collections
 
 		vector<Key> Keys() const override
 		{
-			//return this->elements_.Keys();// TODO why can not use elements directly?
-			// I test struct can use this.
 			return CollectKeys();
 		}
 

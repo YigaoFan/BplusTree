@@ -4,6 +4,7 @@
 #include <vector>
 #include <array>
 #include <type_traits>
+#include "IEnumerator.hpp"
 
 namespace Collections
 {
@@ -31,6 +32,23 @@ namespace Collections
 		LiteVector(T t, Ts... ts)
 		{
 			Init(move(t), move(ts)...);
+		}
+
+		// TODO 想办法重构下 IEnumerator，简化下 T 这个类型，相当于支持在 Enumerator 支持存值，有点 move iterator 的味道
+		LiteVector<IEnumerator<T>& enumerator>
+		{
+			while (enumerator.MoveNext())
+			{
+				Add(move(enumerator.Current()));
+			}
+		}
+
+		LiteVector<IEnumerator<T>&& enumerator>
+		{
+			while (enumerator.MoveNext())
+			{
+				Add(move(enumerator.Current()));
+			}
 		}
 
 		LiteVector(LiteVector const& that)

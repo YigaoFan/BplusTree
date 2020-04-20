@@ -21,8 +21,7 @@ namespace Collections
 	using ::Basic::InvalidOperationException;
 	
 	// TODO when BtreeOrder is big, use binary search in iterate process
-	template <typename Key, typename Value, order_int BtreeOrder, 
-		typename LessThan=function<bool(Key const&, Key const&)>>
+	template <typename Key, typename Value, order_int BtreeOrder, typename LessThan = LessThan<Key>>
 	class Elements : public LiteVector<pair<Key, Value>, order_int, BtreeOrder>
 	{
 	public:
@@ -33,9 +32,11 @@ namespace Collections
 	public:
 		// Items in constructor is sorted, will be moved
 
-		template <typename... Ts>
 		Elements(shared_ptr<LessThan> lessThanPtr)
 			: Base(), LessThanPtr(lessThanPtr)
+		{ }
+
+		Elements() : Base()
 		{ }
 
 		Elements(IEnumerator<Item&>& enumerator, shared_ptr<LessThan> lessThanPtr)
@@ -72,6 +73,11 @@ namespace Collections
 		Elements(Elements&& that) noexcept
 			: Base(move(that)), LessThanPtr(move(that.LessThanPtr))
 		{ }
+
+		void LessThanPredicate(shared_ptr<LessThan> lessThanPtr)
+		{
+			LessThanPtr = lessThanPtr;
+		}
 
 		bool ContainsKey(Key const& key) const
 		{
