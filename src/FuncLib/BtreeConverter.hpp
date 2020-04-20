@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 #include "DiskPtr.hpp"
-#include "DiskDataConverter.hpp"
+#include "ByteConverter.hpp"
 #include "File.hpp"
 #include "../Btree/Basic.hpp"
 #include "../Btree/Btree.hpp"
@@ -28,7 +28,7 @@ namespace FuncLib
 		ConvertToDisk(Btree<Order, Key, Value, unique_ptr> const& btree, shared_ptr<File> file)
 		{
 			using T = Btree<Order, Key, Value, unique_ptr>;
-			return file->Allocate<T>(DiskDataConverter<T>::ConvertToDiskData(btree, file));
+			return file->Allocate<T>(ByteConverter<T>::ConvertToDiskData(btree, file));
 		}
 
 		static DiskPtr<Entity>

@@ -95,7 +95,7 @@ namespace Collections
 	template <order_int BtreeOrder, typename Key, typename Value, template <typename> class Ptr>
 	class Btree;
 	template <typename T>
-	struct DiskDataConverter;// 这个前置声明对吗，需要修饰命名空间吗
+	struct ByteConverter;// 这个前置声明对吗，需要修饰命名空间吗
 	template <typename T>
 	struct DiskPtr;// 这个前置声明对吗，需要修饰命名空间吗
 	template <order_int BtreeOrder, typename Key, typename Value, template <typename> class Ptr = unique_ptr>
@@ -105,7 +105,7 @@ namespace Collections
 		using _LessThan = LessThan<Key>;
 	private:
 		friend class UniversalEnumerator<BtreeOrder, Key, Value>;
-		friend class DiskDataConverter<Btree>;// 这里不用 false 是因为这里是使用方，实现方需要根据不同情况写特化
+		friend class ByteConverter<Btree>;// 这里不用 false 是因为这里是使用方，实现方需要根据不同情况写特化
 		friend class DiskPtr<Btree>;// 这里不用 false 是因为这里是使用方，实现方需要根据不同情况写特化
 		using Node   = NodeBase<Key, Value, BtreeOrder>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;

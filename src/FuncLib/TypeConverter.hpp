@@ -22,10 +22,12 @@ namespace FuncLib
 	using ::Collections::NodeBase;
 	using ::Collections::LeafNode;
 	using ::Collections::MiddleNode;
+	using ::Collections::Btree;
 
 	template <typename T, bool = is_standard_layout_v<T> && is_trivial_v<T>>// condition may change
 	struct TypeConverter// POD type
 	{
+		using From = T;
 		using To = T;
 
 		static Type ConvertFrom(T const& t, shared_ptr<File> file)// file is not must use, only for string like
@@ -134,12 +136,41 @@ namespace FuncLib
 	template <typename Key, typename Value, order_int Count>
 	struct TypeConverter<unique_ptr<NodeBase<Key, Value, Count, unique_ptr>>, false>
 	{
-		using Type = DiskPtr<NodeBase<Key, Value, Count, DiskPtr>>;
+		using From = unique_ptr<NodeBase<Key, Value, Count, unique_ptr>>;
+		using To = DiskPtr<NodeBase<Key, Value, Count, DiskPtr>>;
 
-		static Type ConvertFrom(unique_ptr<NodeBase<Key, Value, Count, unique_ptr>> const& t, shared_ptr<File> file)
+		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
-			using From = unique_ptr<NodeBase<Key, Value, Count, unique_ptr>>;
-			return Type::MakeDiskPtr(TypeConverter<From>::ConvertFrom(t.get(), file), file);
+			return To::MakeDiskPtr(TypeConverter<From>::ConvertFrom(from.get(), file), file);
+		}
+	};
+
+	template <typename Key, typename Value, order_int Count>
+	struct TypeConverter<Btree<Count, Key, Value, unique_ptr>, false>
+	{
+		using From = Btree<Count, Key, Value, unique_ptr>;
+		using To = Btree<Count, Key, Value, DiskPtr>;
+
+		static To ConvertFrom(From const& from, shared_ptr<File> file)
+		{
+			// TODO Btree 中应该加一个这样的构造函数
+			return
+			{ 
+				from._keyCount, 
+				TypeConverter<unique_ptr<NodeBase<Key, Value, Count, unique_ptr>>>::ConvertFrom(from, file) 
+			};
+		}
+	};
+
+	template <>
+	struct TypeConverter<string>
+	{
+		using From = string;
+		using To = TODO;
+
+		static To ConvertFrom(From const& from, shared_ptr<File> file)
+		{
+			// TODO
 		}
 	};
 }

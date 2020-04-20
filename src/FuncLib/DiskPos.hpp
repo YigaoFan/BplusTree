@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 #include <map>
-#include "DiskDataConverter.hpp"
+#include "ByteConverter.hpp"
 #include "File.hpp"
 
 namespace FuncLib
@@ -14,7 +14,7 @@ namespace FuncLib
 	class DiskPos
 	{
 	private:
-		friend struct DiskDataConverter<DiskPos>;// TODO pre declare no problem?
+		friend struct ByteConverter<DiskPos>;// TODO pre declare no problem?
 		static map<size_t, shared_ptr<T>> _cache; // 用 start 应该是没事的, if change, should delete
 
 		size_t _start;
@@ -25,7 +25,7 @@ namespace FuncLib
 
 		shared_ptr<T> ReadObject()
 		{
-			return DiskDataConverter::ConvertFromDiskData<T>(_file, _start);
+			return ByteConverter::ConvertFromDiskData<T>(_file, _start);
 			//if (!this->_cache.contains(_start))
 			//{
 			//	auto p = shared_ptr(CurrentFile::Read(_start, _size));

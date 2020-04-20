@@ -97,7 +97,7 @@ namespace FuncLib
 	class WeakDiskPtr : public DiskPtrBase<T>
 	{
 	private:
-		friend struct DiskDataConverter<WeakDiskPtr>;
+		friend struct ByteConverter<WeakDiskPtr>;
 		using Base = DiskPtrBase<T>;
 
 	public:
@@ -108,7 +108,7 @@ namespace FuncLib
 	class DiskPtr : public DiskPtrBase<T>
 	{
 	private:
-		friend struct DiskDataConverter<DiskPtr>;
+		friend struct ByteConverter<DiskPtr>;
 		using Base = DiskPtrBase<T>;
 	public:
 		using Base::Base;
