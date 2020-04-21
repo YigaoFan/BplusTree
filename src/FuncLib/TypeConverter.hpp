@@ -12,6 +12,7 @@
 
 namespace FuncLib
 {
+	using ::std::string;
 	using ::std::is_trivial_v;
 	using ::std::is_standard_layout_v;
 	using ::std::unique_ptr;
@@ -120,7 +121,7 @@ namespace FuncLib
 
 		static shared_ptr<To> ConvertFrom(From const* from, shared_ptr<File> file)
 		{
-			if (from.Middle())
+			if (from->Middle())
 			{
 				using FromMidNode = MiddleNode<string, string, Count, unique_ptr>;
 				return make_shared<To>(TypeConverter<FromMidNode>::ConvertFrom(static_cast<FromMidNode const&>(*from), file));
@@ -166,11 +167,11 @@ namespace FuncLib
 	struct TypeConverter<string>
 	{
 		using From = string;
-		using To = TODO;
+		using To = DiskPtr<string>;
 
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
-			// TODO
+			return file->Allocate<string>(ByteConverter<string>::ConvertToByte(from));
 		}
 	};
 }

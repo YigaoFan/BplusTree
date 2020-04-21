@@ -21,8 +21,10 @@
 namespace FuncLib
 {
 	using ::std::is_trivial_v;
+	using ::std::declval;
 	using ::std::is_standard_layout_v;
 	using ::std::memcpy;
+	using ::std::copy;
 	using ::std::vector;
 	using ::std::array;
 	using ::std::string;
@@ -50,18 +52,6 @@ namespace FuncLib
 	using ::Collections::order_int;
 	using ::Collections::key_int;
 	using ::Collections::LessThan;
-	
-	enum class ToPlace
-	{
-		Stack,
-		Heap,
-	};
-
-	enum class SizeDemand
-	{
-		Fixed,
-		Dynamic,
-	};
 
 	template <typename T>
 	struct ReturnType;
@@ -100,20 +90,11 @@ namespace FuncLib
 			return mem;
 		}
 
-		template <ToPlace Place = ToPlace::Heap>
-		static auto ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static T ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
 			array<byte, sizeof(T)> raw = file->Read<T>(startInFile, sizeof(T));
 			T* p = reinterpret_cast<T*>(&raw);
-
-			if constexpr (Place == ToPlace::Stack)
-			{
-				return *p;
-			}
-			else
-			{
-				return make_shared<T>(*p);
-			}
+			return *p;
 		}
 	};
 
@@ -194,42 +175,33 @@ namespace FuncLib
 		}
 	};
 
-	// 由最上面的话，这里没有 string
-	//template <>
-	//struct ByteConverter<string>
-	//{
-	//	template <SizeDemand Demand = SizeDemand::Fixed>
-	//	auto ConvertToByte(string const& t)
-	//	{
-	//		if constexpr (Demand == SizeDemand::Dynamic)
-	//		{
-	//			return vector<byte>(t.begin(), t.end());
-	//		}
-	//		else
-	//		{
-	//			auto chars = ConvertToByte<SizeDemand::Dynamic>(t);
-	//			// use chars to cons a DiskPtr, return DiskPtr::ConvertToByteS
-	//		}
-	//	}
+	template <>
+	struct ByteConverter<string>
+	{
+		static vector<byte> ConvertToByte(string const& t)
+		{
+			auto size = t.size();
+			auto arr = ByteConverter<decltype(size)>::ConvertToByte(size);
+			vector<byte> bytes{ arr.begin(), arr.end() };
+			bytes.reserve(size + arr.size());
+			copy(t.begin(), t.end(), bytes.end());
+			return bytes;
+		}
 
-	//	// TODO 这里可能也要区分是从指针 ConvertFrom 的，还是直接读的是字符串
-	//	// 两者读取会稍有不同
-	//	shared_ptr<string> ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
-	//	{
-	//		auto size = file->Read<uint32_t>(startInFile, sizeof(uint32_t));
-	//		auto contentStart = startInFile + sizeof(uint32_t);
-	//		auto chars = file->Read(contentStart, size);
-	//		return make_shared<string>(chars.begin(), chars.end());
-	//	}
-	//};
+		static string ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		{
+			auto size = file->Read<size_t>(startInFile, sizeof(size_t));
+			auto contentStart = startInFile + sizeof(size_t);
+			auto chars = file->Read(contentStart, size);
+			return { chars.begin(), chars.end() };
+		}
+	};
 
 	//using LibTree = Btree<3, string, string>;
 	//using LibTreeLeaf = LeafNode<string, string, 3>;
 	//using LibTreeLeafEle = Elements<string, string, 3>;
 	//using LibTreeMid = MiddleNode<string, string, 3>;
 	//using LibTreeMidEle = Elements<string, string, 3>;
-
-
 
 	// Btree 要对两个类 friend，ByteConverter 和 TypeConverter。其它类类似
 	template <typename Key, typename Value, order_int Order>
@@ -247,14 +219,13 @@ namespace FuncLib
 			return ByteConverter<BtreeOnDisk>::ConvertToByte({ t._keyCount, t._root });
 		}
 
-		static shared_ptr<ThisType> ConvertFromByte(shared_ptr<File> file, uint32_t startInFile, shared_ptr<LessThan<Key>> lessThanPtr)
+		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
 			auto p = ByteConverter<BtreeOnDisk>::ConvertFromByte(startInFile);
 			return make_shared<ThisType>(move(p.Root), p.KeyCount, lessThanPtr);
 		}
 	};
 
-	// T is the type which could directly copy into disk
 	template <typename T, typename size_int, size_int Capacity>
 	struct ByteConverter<LiteVector<T, size_int, Capacity>, false>
 	{
@@ -280,22 +251,11 @@ namespace FuncLib
 			return mem;
 		}
 
-		template <ToPlace Place = ToPlace::Heap>
-		static auto ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
-			if constexpr (Place == ToPlace::Stack)
-			{
-
-			}
-			else
-			{
-				//shared_ptr<ThisType>
-			}
 		}
 	};
 
-	// This not same to LiteVector
-	// , not to Key, Value is the type which can be copied into disk directly
 	template <typename Key, typename Value, order_int Order>
 	struct ByteConverter<Elements<Key, Value, Order>, false>
 	{
@@ -318,7 +278,7 @@ namespace FuncLib
 			return ByteConverter<Item>::ConvertToByte(vec);
 		}
 
-		static shared_ptr<ThisType> ConvertFromByte(shared_ptr<File> file, uint32_t startInFile, shared_ptr<LessThan<Key>> lessThanPtr)
+		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
 			// Each type should have a constructor of all data member to easy set
 
@@ -327,28 +287,22 @@ namespace FuncLib
 		}
 	};
 
-	template <typename Key, typename Value, order_int Count>
-	struct DiskNode
-	{
-		bool Middle;
-		Elements<Key, Value, Count> Elements;
-	};
-
 	template <typename Key, typename Value, auto Count>
 	struct ByteConverter<MiddleNode<Key, Value, Count, DiskPtr>, false>
 	{
-		using ThisType = MiddleNode<Key, Value, Count>;
+		using ThisType = MiddleNode<Key, Value, Count, DiskPtr>;
 
 		static vector<byte> ConvertToByte(ThisType const& t)
 		{
-			DiskNode<Key, Value, Count> node{ true, t._elements };
-			return ByteConverter<decltype(node)>::ConvertToByte(node);
+			return ByteConverter<decltype(t._elements)>::ConvertToByte(t._elements);
 		}
 
-		static shared_ptr<ThisType> ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
-			// provide LeafNode previous, next and callback
-
+			using T = decltype(declval<ThisType>()._elements);
+			auto elements = ByteConverter<T>::ConvertFromByte(file, startInFile);
+			auto node = ThisType(elements); // provide LeafNode previous, next and callback inner
+			return node;
 		}
 	};
 
@@ -359,13 +313,14 @@ namespace FuncLib
 
 		static auto ConvertToByte(ThisType const& t)
 		{
-			DiskNode<Key, Value, Count> node{ false, t._elements };
-			return ByteConverter<decltype(node)>::ConvertToByte(node);
+			return ByteConverter<decltype(t._elements)>::ConvertToByte(t._elements);
 		}
 
-		static shared_ptr<ThisType> ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
-			// Jmp Middle Byte
+			using T = decltype(declval<ThisType>()._elements);
+			auto elements = ByteConverter<T>::ConvertFromByte(file, startInFile);
+			return { elements };
 		}
 	};
 
@@ -378,22 +333,30 @@ namespace FuncLib
 
 		static vector<byte> ConvertToByte(ThisType const* node)
 		{
-			if (node.Middle())
+			vector<byte> bytes;
+			auto middle = node->Middle();
+			auto arr = ByteConverter<bool>::ConvertToByte(middle);
+			// copy 会自动扩充 vector 里面的 size 吗，应该不是直接裸拷吧
+			copy(arr.begin(), arr.end(), bytes.end());
+
+			if (middle)
 			{
 				auto byteArray = ByteConverter<MidNode>::ConvertToByte(static_cast<MidNode const&>(*node));
-				return { byteArray.begin(), byteArray.end() };
+				copy(byteArray.begin(), byteArray.end(), bytes.end());
+				return bytes;
 			}
 			else
 			{
 				auto byteArray = ByteConverter<LeafNode>::ConvertToByte(static_cast<LeafNode const&>(*node));
-				return { byteArray.begin(), byteArray.end() };
+				copy(byteArray.begin(), byteArray.end(), bytes.end());
+				return bytes;
 			}
 		}
 
 		shared_ptr<ThisType> ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
-			auto middle = CurrentFile::Read<bool>(startInFile, sizeof(bool));
-			auto contentStart = startInFile + sizeof(bool);
+			auto middle = file->Read<bool>(startInFile, sizeof(bool));
+			auto contentStart = startInFile + sizeof(middle);
 
 			if (middle)
 			{
@@ -438,18 +401,10 @@ namespace FuncLib
 			return ByteConverter<Index>::ConvertToByte(p._start);
 		}
 
-		template <ToPlace Place = ToPlace::Heap>
-		auto ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
-			auto i = ByteConverter<Index>::ConvertFromByte<ToPlace::Stack>(file, p._start);
-			if constexpr (Place == ToPlace::Stack)
-			{
-				return ThisType(i);
-			}
-			else
-			{
-				return make_shared<ThisType>(i);
-			}
+			auto i = ByteConverter<Index>::ConvertFromByte(file, p._start);
+			return ThisType(i);
 		}
 	};
 
@@ -463,10 +418,9 @@ namespace FuncLib
 			return ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos);
 		}
 
-		shared_ptr<ThisType> ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
-			return make_shared<ThisType>(
-				ByteConverter<decltype(p._pos)>::ConvertFromByte<ToPlace::Stack>(file, p._pos));
+			return ByteConverter<decltype(p._pos)>::ConvertFromByte(file, p._pos);
 		}
 	};
 
@@ -481,10 +435,9 @@ namespace FuncLib
 		}
 
 		// TODO 下面这种操作的接口可能会改，因为本来就是来自 Pos 的操作吗
-		shared_ptr<ThisType> ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
-			return make_shared<ThisType>(
-				ByteConverter<decltype(p._pos)>::ConvertFromByte<ToPlace::Stack>(file, p._pos));
+			return ByteConverter<decltype(p._pos)>::ConvertFromByte(file, p._pos);
 		}
 	};
 }
