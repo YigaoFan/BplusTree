@@ -2,6 +2,7 @@
 #include <memory>
 #include "DiskPtr.hpp"
 #include "ByteConverter.hpp"
+#include "TypeConverter.hpp"
 #include "File.hpp"
 #include "../Btree/Basic.hpp"
 #include "../Btree/Btree.hpp"
@@ -12,6 +13,7 @@
 namespace FuncLib
 {
 	using ::std::shared_ptr;
+	using ::std::make_shared;
 	using ::std::unique_ptr;
 	using ::Collections::order_int;
 	using ::Collections::LessThan;
@@ -28,7 +30,7 @@ namespace FuncLib
 		ConvertToDisk(Btree<Order, Key, Value, unique_ptr> const& btree, shared_ptr<File> file)
 		{
 			using T = Btree<Order, Key, Value, unique_ptr>;
-			return file->Allocate<T>(ByteConverter<T>::ConvertToDiskData(btree, file));
+			return DiskPtr<Entity>::MakeDiskPtr(make_shared<Entity>(TypeConverter<T>::ConvertFrom(btree, file)));
 		}
 
 		static DiskPtr<Entity>

@@ -6,6 +6,7 @@
 #include <functional>
 #include <string>
 #include <memory>
+#include <utility>
 #include "DiskPos.hpp"
 
 namespace FuncLib
@@ -14,7 +15,9 @@ namespace FuncLib
 	using ::std::move;
 	using ::std::ifstream;
 	using ::std::ofstream;
+	using ::std::fstream;
 	using ::std::vector;
+	using ::std::pair;
 	using ::std::byte;
 	using ::std::function;
 	using ::std::string;
@@ -32,7 +35,7 @@ namespace FuncLib
 	private:
 		path _filename;
 		size_t _currentPos;
-		vector<vector<byte>> _bufferQueue;
+		vector<pair<uint32_t, vector<byte>>> _bufferQueue;
 		bool _hasFlush = false;
 	public:
 		File(path filename, size_t startPos = 0) : _filename(move(filename)), _currentPos(startPos)
@@ -47,9 +50,9 @@ namespace FuncLib
 		template <typename T>
 		DiskPos<T> Allocate(vector<byte> writeData)
 		{
-			_currentPos += writeData.size();
 			auto pos = _currentPos;
-			_bufferQueue.push_back(move(writeData));
+			_currentPos += writeData.size();
+			_bufferQueue.push_back({ pos, move(writeData) });
 			return { GetPtr(), pos };
 		}
 
@@ -58,7 +61,7 @@ namespace FuncLib
 		{
 			auto pos = _currentPos;
 			_currentPos += Size;
-			_bufferQueue.push_back({ wirteData.begin(), wirteData.end() });
+			_bufferQueue.push_back({ pos, { wirteData.begin(), wirteData.end() } });
 			return { GetPtr(), pos };
 		}
 
@@ -66,9 +69,17 @@ namespace FuncLib
 		{
 			if (!_hasFlush)
 			{
-				ofstream fs(_filename, ios_base::out | ios_base::binary);
-				for (auto& bytes : _bufferQueue)
+				// TODO test
+				//ofstream fs(_filename, ios_base::out | ios_base::in | ios_base::binary);
+				// difference?
+				fstream fs(_filename, ios_base::out | ios_base::in | ios_base::binary);
+				for (auto& p : _bufferQueue)
 				{
+					auto offset = p.first;
+					//fs.seekp ?
+					fs.seekg(offset);
+					auto& bytes = p.second;
+
 					// char not ensure to equal to byte
 					fs.write((char*)(&bytes[0]), bytes.size());
 				}
@@ -115,12 +126,16 @@ namespace FuncLib
 		}
 
 		template <typename T>
-		void Write()
+		void Write(uint32_t start, vector<byte> data)
 		{
-			// TODO
+			_bufferQueue.push_back({ start, move(data) });
 		}
 
-		// 有了 File 之后，如何书写在原来分配的位置
+		template <typename T, auto Size>
+		void Write(uint32_t start, array<byte, Size> data)
+		{
+			_bufferQueue.push_back({ start, { wirteData.begin(), wirteData.end() } });
+		}
 
 		~File()
 		{

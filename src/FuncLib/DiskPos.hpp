@@ -36,9 +36,10 @@ namespace FuncLib
 			//return this->_cache[_start];
 		}
 
-		void WriteObject()
+		void WriteObject(shared_ptr<T> entity)
 		{
-
+			// 这里需要递归写入子内容吗
+			_file->Write(ByteConverter<T>::ConvertToByte(*entity));
 		}
 
 		~DiskPos();

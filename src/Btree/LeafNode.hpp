@@ -140,6 +140,11 @@ namespace Collections
 		void Next(LeafNode* next) { _next = next; }
 		void Previous(LeafNode* previous) { _previous = previous; }
 	private:
+		LeafNode(decltype(_elements) elements) : Base(), _elements(move(elements))// TODO less than?
+		{
+			// TODO
+		}
+
 		vector<Key> CollectKeys(vector<Key> previousNodesKeys = {}) const
 		{
 			auto ks = _elements.Keys();

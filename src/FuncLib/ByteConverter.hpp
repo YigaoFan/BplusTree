@@ -54,6 +54,8 @@ namespace FuncLib
 	using ::Collections::key_int;
 	using ::Collections::LessThan;
 
+	// 这里统一一下用的整数类型
+
 	template <typename T>
 	struct ReturnType;
 
@@ -65,10 +67,7 @@ namespace FuncLib
 
 	// TODO test
 	template <typename T>
-	constexpr size_t CalNeedDiskSize()
-	{
-		return sizeof(ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type);
-	}
+	constexpr size_t ConvertedByteSize = sizeof(ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type);
 
 	constexpr size_t Min(size_t one, size_t two)
 	{
@@ -120,10 +119,10 @@ namespace FuncLib
 	{
 		static_assert(is_class_v<T>, "Only support class type");
 		// 这里 T 指的是聚合类吗？
-		static constexpr size_t Size = sizeof(T);// TODO
+		static constexpr size_t Size = ConvertedByteSize<T>;
 
 		template <typename T, auto... Is>
-		auto CombineEachConvert(T&& tup, index_sequence<Is...>)
+		auto CombineEachConvert(T const& tup, index_sequence<Is...>)
 		{
 			auto converter = [&tup]<auto Index>()
 			{
@@ -132,14 +131,13 @@ namespace FuncLib
 				return ByteConverter<decltype(i)>::ConvertToByte(i);
 			};
 
-			return (... + converter.operator ()<Is>());
+			return (... + converter.operator()<Is>());
 		}
 
-		static auto ConvertToByte(T&& t)
+		static auto ConvertToByte(T const& t)
 		{
 			auto tup = ToTuple(forward<T>(t));// TODO check forward use right?
-			// TODO how to forward or move tup
-			return CombineEachConvert(move(tup), make_index_sequence<tuple_size_v<decltype(tup)>>());
+			return CombineEachConvert(tup, make_index_sequence<tuple_size_v<decltype(tup)>>());
 		}
 
 		template <typename T, typename UnitConverter, auto... Is>
@@ -161,7 +159,7 @@ namespace FuncLib
 		struct DiskDataInternalOffset<Index, tuple<Head, Tail...>>
 		{
 			using NextUnit = DiskDataInternalOffset<Index - 1, tuple<Tail...>>;
-			static constexpr auto CurrentTypeSize = CalNeedDiskSize<Head>();
+			static constexpr auto CurrentTypeSize = ConvertedByteSize<Head>;
 			static constexpr auto Offset = CurrentTypeSize + NextUnit::Offset;
 		};
 
@@ -229,7 +227,7 @@ namespace FuncLib
 		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
 			auto t = ByteConverter<DiskBtree>::ConvertFromByte(file, startInFile);
-			return { t.KeyCount, move(t.Root) };
+			return { t.KeyCount, move(t.Root) };// TODO set callback inner
 		}
 	};
 
@@ -241,7 +239,6 @@ namespace FuncLib
 
 		static array<byte, Size> ConvertToByte(ThisType const& vec)
 		{
-			//constexpr auto unitSize = CalNeedDiskSize<T>();
 			constexpr auto unitSize = ByteConverter<T>::Size;
 			constexpr auto countSize = sizeof(Capacity);
 			array<byte, Size> mem;
@@ -330,8 +327,7 @@ namespace FuncLib
 		{
 			using T = decltype(declval<ThisType>()._elements);
 			auto elements = ByteConverter<T>::ConvertFromByte(file, startInFile);
-			auto node = ThisType(elements); // provide LeafNode previous, next and callback inner
-			return node;
+			return { move(elements) };// provide LeafNode previous, next and callback inner
 		}
 	};
 
@@ -350,7 +346,7 @@ namespace FuncLib
 		{
 			using T = decltype(declval<ThisType>()._elements);
 			auto elements = ByteConverter<T>::ConvertFromByte(file, startInFile);
-			return { elements };
+			return { move(elements) };
 		}
 	};
 
@@ -361,23 +357,23 @@ namespace FuncLib
 		using MidNode = MiddleNode<string, string, Count, DiskPtr>;
 		using LeafNode = LeafNode<string, string, Count, DiskPtr>;
 
-		static vector<byte> ConvertToByte(ThisType const* node)
+		static vector<byte> ConvertToByte(ThisType const& node)
 		{
 			vector<byte> bytes;
-			auto middle = node->Middle();
+			auto middle = node.Middle();
 			auto arr = ByteConverter<bool>::ConvertToByte(middle);
 			// copy 会自动扩充 vector 里面的 size 吗，应该不是直接裸拷吧
 			copy(arr.begin(), arr.end(), bytes.end());
 
 			if (middle)
 			{
-				auto byteArray = ByteConverter<MidNode>::ConvertToByte(static_cast<MidNode const&>(*node));
+				auto byteArray = ByteConverter<MidNode>::ConvertToByte(static_cast<MidNode const&>(node));
 				copy(byteArray.begin(), byteArray.end(), bytes.end());
 				return bytes;
 			}
 			else
 			{
-				auto byteArray = ByteConverter<LeafNode>::ConvertToByte(static_cast<LeafNode const&>(*node));
+				auto byteArray = ByteConverter<LeafNode>::ConvertToByte(static_cast<LeafNode const&>(node));
 				copy(byteArray.begin(), byteArray.end(), bytes.end());
 				return bytes;
 			}

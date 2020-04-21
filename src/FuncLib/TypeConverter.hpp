@@ -31,39 +31,16 @@ namespace FuncLib
 		using From = T;
 		using To = T;
 
-		static Type ConvertFrom(T const& t, shared_ptr<File> file)// file is not must use, only for string like
+		// file is not must use, only for string like
+		static Type ConvertFrom(T const& t, shared_ptr<File> file)
 		{
 			return t;
 		}
 	};
 
-	//template <typename T>
-	//struct TypeConverter<T, false>// TODO may reduce
-	//{
-	//	using Type = DiskPtr<T>;
-
-	//	static Type ConvertFrom(T const& t, shared_ptr<File> file)
-	//	{
-	//		return t;
-	//	}
-	//};
-
-	//template <typename From>
-	//struct TypeConverter
-	//{
-	//	using To = void;
-	//	static To ConvertFrom(From const& from, shared_ptr<File> file)
-	//	{
-	//		static_assert(false, "Not support type convert");
-	//	}
-	//};
-
-	// 值类型和指针类型
 	template <typename Key, typename Value, order_int Count>
 	struct TypeConverter<Elements<Key, Value, Count>, false>
-	// 这里的第二个类型参数使用的时候可以省略吗
 	{
-		// "类型是一种约定"
 		using From = Elements<Key, Value, Count>;
 		using To = Elements<typename TypeConverter<Key>::To, typename TypeConverter<Value>::To, Count>;
 
@@ -158,7 +135,7 @@ namespace FuncLib
 			return
 			{ 
 				from._keyCount, 
-				TypeConverter<unique_ptr<NodeBase<Key, Value, Count, unique_ptr>>>::ConvertFrom(from, file) 
+				TypeConverter<unique_ptr<NodeBase<Key, Value, Count, unique_ptr>>>::ConvertFrom(from._root, file) 
 			};
 		}
 	};
@@ -169,9 +146,10 @@ namespace FuncLib
 		using From = string;
 		using To = DiskPtr<string>;
 
+		// 这里的操作感觉很神奇，到底我这个程序是怎么实现的
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
-			return file->Allocate<string>(ByteConverter<string>::ConvertToByte(from));
+			return To::MakeDiskPtr(make_shared<string>(from), file);
 		}
 	};
 }

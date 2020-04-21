@@ -191,6 +191,11 @@ namespace Collections
 			return subs;
 		}
 	private:
+		MiddleNode(decltype(_elements) elements) : Base(), _elements(move(elements))// TODO less than?
+		{
+			SetSubNode();
+		}
+
 		MiddleNode(IEnumerator<Ptr<Base>>&& enumerator, shared_ptr<_LessThan> lessThanPtr)
 			: Base(), _elements(EnumeratorPipeline<Ptr<Base>, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertPtrToKeyPtrPair, _1)), lessThanPtr)
 		{
@@ -314,6 +319,7 @@ namespace Collections
 
 		void SetSubNode()
 		{
+			// TODO use SetProperty below
 			Leaf* lastLeaf = nullptr;
 			MiddleNode* lastMidNode = nullptr;
 			bool subIsMiddle = MinSon()->Middle();

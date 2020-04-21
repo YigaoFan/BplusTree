@@ -253,9 +253,17 @@ namespace Collections
 		}
 
 	private:
-		Btree(Ptr<Node> root, key_int keyCount, shared_ptr<_LessThan> lessThan)
-			: _root(move(root)), _keyCount(keyCount), _lessThanPtr(lessThan)
-		{ }
+		Btree(Ptr<Node> root, key_int keyCount) : _root(move(root)), _keyCount(keyCount)
+		{
+			// TODO set callback
+			this->SetRootCallbacks();
+		}
+
+		// 感觉这些类型有的用推导，有的直接写出来了，有些随意
+		void LessThanPredicate(decltype(_lessThanPtr) lessThanPtr)
+		{
+			_lessThanPtr = lessThanPtr;
+		}
 
 		template <auto Total, auto Index, auto... Is>
 		static void ForEachCons(function<void(int, int, int)> func)
@@ -338,6 +346,7 @@ namespace Collections
 
 		void SetRootCallbacks()
 		{
+			// TODO use SetProperty below
 			_root->SetUpNodeCallback(&_addRootCallback, &_deleteRootCallback, &_minKeyChangeCallback);
 			_root->SetShallowCallbackPointer(&_shallowTreeCallback);
 		}
