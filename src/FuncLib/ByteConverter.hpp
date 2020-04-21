@@ -27,6 +27,7 @@ namespace FuncLib
 	using ::std::copy;
 	using ::std::vector;
 	using ::std::array;
+	using ::std::pair;
 	using ::std::string;
 	using ::std::shared_ptr;
 	using ::std::unique_ptr;
@@ -83,6 +84,8 @@ namespace FuncLib
 	template <typename T>
 	struct ByteConverter<T, true>
 	{
+		static constexpr size_t Size = sizeof(T);
+
 		static array<byte, sizeof(T)> ConvertToByte(T t)
 		{
 			array<byte, sizeof(T)> mem;
@@ -117,6 +120,7 @@ namespace FuncLib
 	{
 		static_assert(is_class_v<T>, "Only support class type");
 		// 这里 T 指的是聚合类吗？
+		static constexpr size_t Size = sizeof(T);// TODO
 
 		template <typename T, auto... Is>
 		auto CombineEachConvert(T&& tup, index_sequence<Is...>)
@@ -175,6 +179,7 @@ namespace FuncLib
 		}
 	};
 
+	// string 不能被嵌套调用，因为大小不固定
 	template <>
 	struct ByteConverter<string>
 	{
@@ -208,21 +213,23 @@ namespace FuncLib
 	struct ByteConverter<Btree<Order, Key, Value, DiskPtr>, false>
 	{
 		using ThisType = Btree<Order, Key, Value, DiskPtr>;
-		struct BtreeOnDisk
+		struct DiskBtree
 		{
-			key_int KeyCount;
-			DiskPtr<NodeBase<Key, Value, Order, DiskPtr>> Root;
+			decltype(declval<ThisType>()._keyCount) KeyCount;
+			decltype(declval<ThisType>()._root) Root;
 		};
 
-		static auto ConvertToByte(ThisType const& t)
+		static constexpr size_t Size = ByteConverter<DiskBtree>::Size;
+
+		static array<byte, Size> ConvertToByte(ThisType const& t)
 		{
-			return ByteConverter<BtreeOnDisk>::ConvertToByte({ t._keyCount, t._root });
+			return ByteConverter<DiskBtree>::ConvertToByte({ t._keyCount, t._root });
 		}
 
 		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
-			auto p = ByteConverter<BtreeOnDisk>::ConvertFromByte(startInFile);
-			return make_shared<ThisType>(move(p.Root), p.KeyCount, lessThanPtr);
+			auto t = ByteConverter<DiskBtree>::ConvertFromByte(file, startInFile);
+			return { t.KeyCount, move(t.Root) };
 		}
 	};
 
@@ -230,12 +237,14 @@ namespace FuncLib
 	struct ByteConverter<LiteVector<T, size_int, Capacity>, false>
 	{
 		using ThisType = LiteVector<T, size_int, Capacity>;
+		static constexpr size_t Size = sizeof(Capacity) + ByteConverter<T>::Size * Capacity;
 
-		static auto ConvertToByte(ThisType const& vec)
+		static array<byte, Size> ConvertToByte(ThisType const& vec)
 		{
-			constexpr auto unitSize = CalNeedDiskSize<T>();
+			//constexpr auto unitSize = CalNeedDiskSize<T>();
+			constexpr auto unitSize = ByteConverter<T>::Size;
 			constexpr auto countSize = sizeof(Capacity);
-			array<byte, countSize + unitSize * Capacity> mem;
+			array<byte, Size> mem;
 
 			// Count
 			auto c = vec.Count();
@@ -253,6 +262,37 @@ namespace FuncLib
 
 		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
+			constexpr auto unitSize = ByteConverter<T>::Size;
+			auto count = file->Read<decltype(Capacity)>(startInFile, sizeof(Capacity));
+			ThisType vec;
+			for (auto i = 0, offset = sizeof(Capacity); i < count; ++i, offset += unitSize)
+			{
+				vec.Add(ByteConverter<T>::ConvertFromByte(file, offset));
+			}
+
+			return vec;
+		}
+	};
+
+	template <typename Key, typename Value>
+	struct ByteConverter<pair<Key, Value>, false>
+	{
+		using ThisType = pair<Key, Value>;
+		static constexpr size_t Size = ByteConverter<Key>::Size + ByteConverter<Value>::Size;
+
+		static array<byte, Size> ConvertToByte(ThisType const& t)
+		{
+			return ByteConverter<Key>::ConvertToByte(t.first)
+				+ ByteConverter<Value>::ConvertToByte(t.second);
+		}
+
+		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		{
+			auto keySize = ByteConverter<Key>::Size;
+			return { 
+				ByteConverter<Key>::ConvertFromByte(file, startInFile),
+				ByteConverter<Key>::ConvertFromByte(file, startInFile + keySize) 
+			};
 		}
 	};
 
@@ -260,37 +300,26 @@ namespace FuncLib
 	struct ByteConverter<Elements<Key, Value, Order>, false>
 	{
 		using ThisType = Elements<Key, Value, Order>;
-		
-		static auto ConvertToByte(ThisType& t)
+		static constexpr size_t Size = LiteVector<pair<Key, Value>, order_int, Order>::Size;
+
+		static array<byte, Size> ConvertToByte(ThisType& t)
 		{
-			struct Item
-			{
-				Convert<Key>::Type Key;
-				Convert<Value>::Type Value;
-			};
-			LiteVector<Item, order_int, Order> vec;
-
-			for (auto& i : t)
-			{
-				vec.Add({i.first, i.second});
-			}
-
-			return ByteConverter<Item>::ConvertToByte(vec);
+			return ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::ConvertToByte(t);
 		}
 
 		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
 			// Each type should have a constructor of all data member to easy set
-
-			// Read LiteVector
-			// And set LessThan
+			// TODO Check each constructor
+			return ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::ConvertFromByte(file, startInFile);
 		}
 	};
 
-	template <typename Key, typename Value, auto Count>
+	template <typename Key, typename Value, order_int Count>
 	struct ByteConverter<MiddleNode<Key, Value, Count, DiskPtr>, false>
 	{
 		using ThisType = MiddleNode<Key, Value, Count, DiskPtr>;
+		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._elements)>::Size;
 
 		static vector<byte> ConvertToByte(ThisType const& t)
 		{
@@ -306,12 +335,13 @@ namespace FuncLib
 		}
 	};
 
-	template <typename Key, typename Value, auto Count>
+	template <typename Key, typename Value, order_int Count>
 	struct ByteConverter<LeafNode<Key, Value, Count, DiskPtr>, false>
 	{
 		using ThisType = LeafNode<Key, Value, Count, DiskPtr>;
+		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._elements)>::Size;
 
-		static auto ConvertToByte(ThisType const& t)
+		static array<byte, Size> ConvertToByte(ThisType const& t)
 		{
 			return ByteConverter<decltype(t._elements)>::ConvertToByte(t._elements);
 		}
@@ -395,8 +425,9 @@ namespace FuncLib
 	{
 		using ThisType = DiskPos<T>;
 		using Index = typename ThisType::Index;
+		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._start)>::Size;
 
-		auto ConvertToByte(ThisType const& p)
+		array<byte, Size> ConvertToByte(ThisType const& p)
 		{
 			return ByteConverter<Index>::ConvertToByte(p._start);
 		}
@@ -412,8 +443,9 @@ namespace FuncLib
 	struct ByteConverter<DiskPtr<T>, false>
 	{
 		using ThisType = DiskPtr<T>;
+		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._pos)>::Size;
 
-		auto ConvertToByte(ThisType const& p)
+		array<byte, Size> ConvertToByte(ThisType const& p)
 		{
 			return ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos);
 		}
@@ -428,8 +460,9 @@ namespace FuncLib
 	struct ByteConverter<WeakDiskPtr<T>, false>
 	{
 		using ThisType = WeakDiskPtr<T>;
+		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._pos)>::Size;
 
-		auto ConvertToByte(ThisType const& p)
+		array<byte, Size> ConvertToByte(ThisType const& p)
 		{
 			return ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos);
 		}
