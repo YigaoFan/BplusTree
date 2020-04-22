@@ -36,7 +36,6 @@ namespace FuncLib
 		path _filename;
 		size_t _currentPos;
 		vector<pair<uint32_t, vector<byte>>> _bufferQueue;
-		bool _hasFlush = false;
 	public:
 		File(path filename, size_t startPos = 0) : _filename(move(filename)), _currentPos(startPos)
 		{ }
@@ -47,28 +46,37 @@ namespace FuncLib
 		}
 
 		// vector 和 array 是不是应该写在不同的区，两个稳定程度不一样，array 变化还可以写在原地，除非析构了
-		template <typename T>
-		DiskPos<T> Allocate(vector<byte> writeData)
+		template <typename T>// maybe future use
+		size_t Allocate(vector<byte> writeData)
 		{
 			auto pos = _currentPos;
 			_currentPos += writeData.size();
 			_bufferQueue.push_back({ pos, move(writeData) });
-			return { GetPtr(), pos };
+			return pos;
 		}
 
-		template <typename T, auto Size>
-		DiskPos<T> Allocate(array<byte, Size> writeData)
+		template <typename T>// maybe future use
+		size_t Allocate(size_t size)
+		{
+			auto pos = _currentPos;
+			_currentPos += size;
+			return pos;
+		}
+
+		template <auto Size>
+		size_t Allocate(array<byte, Size> writeData)
 		{
 			auto pos = _currentPos;
 			_currentPos += Size;
 			_bufferQueue.push_back({ pos, { wirteData.begin(), wirteData.end() } });
-			return { GetPtr(), pos };
+			return pos;
 		}
 
 		void Flush()
 		{
-			if (!_hasFlush)
+			if (!_bufferQueue.empty())
 			{
+				Filter();
 				// TODO test
 				//ofstream fs(_filename, ios_base::out | ios_base::in | ios_base::binary);
 				// difference?
@@ -91,10 +99,9 @@ namespace FuncLib
 		template <typename T>
 		T Read(uint32_t start, uint32_t size)
 		{
+			// TODO test
 			ifstream fs(_filename, ifstream::binary | ifstream::in);
-			char c;
-			while (((start--) != 0) && fs.get(c))
-			{ }
+			fs.seekg(start);
 
 			byte[sizeof(T)] mem;
 			T* const p = reinterpret_cast<T*>(&mem[0]);
@@ -103,6 +110,7 @@ namespace FuncLib
 				mem[i] = c;
 			}
 
+			fs.close();
 			return move(*p);
 		}
 
@@ -140,6 +148,13 @@ namespace FuncLib
 		~File()
 		{
 			Flush();
+		}
+
+	private:
+		void Filter()
+		{
+			// sort
+			// check first position duplicate
 		}
 	};
 }

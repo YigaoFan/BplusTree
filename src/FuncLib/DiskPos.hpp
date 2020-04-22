@@ -1,14 +1,14 @@
 #pragma once
-#include <memory>
 #include <map>
-#include "ByteConverter.hpp"
+#include <memory>
 #include "File.hpp"
+#include "ByteConverter.hpp"
 
 namespace FuncLib
 {
-	using ::std::shared_ptr;
 	using ::std::map;
 	using ::std::size_t;
+	using ::std::shared_ptr;
 
 	template <typename T>
 	class DiskPos
@@ -17,8 +17,8 @@ namespace FuncLib
 		friend struct ByteConverter<DiskPos>;// TODO pre declare no problem?
 		static map<size_t, shared_ptr<T>> _cache; // 用 start 应该是没事的, if change, should delete
 
-		size_t _start;
 		shared_ptr<File> _file;
+		size_t _start;
 	public:
 		DiskPos(shared_ptr<File> file, size_t start) : _start(start), _file(file)
 		{ }
@@ -43,5 +43,7 @@ namespace FuncLib
 		}
 
 		~DiskPos();
+
+	private:
 	};
 }

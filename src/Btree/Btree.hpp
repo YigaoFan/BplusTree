@@ -15,6 +15,7 @@
 #include "TreeInspector.hpp"
 #include "../Basic/Exception.hpp"
 #include "CollectionException.hpp"
+#include "../FuncLib/PtrSetter.hpp"
 
 namespace Collections
 {
@@ -92,12 +93,10 @@ namespace Collections
 
 	template <order_int BtreeOrder, typename Key, typename Value>
 	class UniversalEnumerator;
-	template <order_int BtreeOrder, typename Key, typename Value, template <typename> class Ptr>
-	class Btree;
 	template <typename T>
-	struct ByteConverter;// 这个前置声明对吗，需要修饰命名空间吗
+	struct FuncLib::ByteConverter;// 这个前置声明对吗，需要修饰命名空间吗
 	template <typename T>
-	struct DiskPtr;// 这个前置声明对吗，需要修饰命名空间吗
+	struct FuncLib::DiskPtr;// 这个前置声明对吗，需要修饰命名空间吗
 	template <order_int BtreeOrder, typename Key, typename Value, template <typename> class Ptr = unique_ptr>
 	class Btree 
 	{
@@ -105,8 +104,8 @@ namespace Collections
 		using _LessThan = LessThan<Key>;
 	private:
 		friend class UniversalEnumerator<BtreeOrder, Key, Value>;
-		friend class ByteConverter<Btree>;// 这里不用 false 是因为这里是使用方，实现方需要根据不同情况写特化
-		friend class DiskPtr<Btree>;// 这里不用 false 是因为这里是使用方，实现方需要根据不同情况写特化
+		friend class FuncLib::ByteConverter<Btree>;
+		friend class FuncLib::DiskPtr<Btree>;
 		using Node   = NodeBase<Key, Value, BtreeOrder>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
 		typename Node::UpNodeAddSubNodeCallback _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
@@ -255,7 +254,7 @@ namespace Collections
 	private:
 		Btree(Ptr<Node> root, key_int keyCount) : _root(move(root)), _keyCount(keyCount)
 		{
-			// TODO set callback
+			// TODO set less than pointer in different level
 			this->SetRootCallbacks();
 		}
 
@@ -346,9 +345,8 @@ namespace Collections
 
 		void SetRootCallbacks()
 		{
-			// TODO use SetProperty below
-			_root->SetUpNodeCallback(&_addRootCallback, &_deleteRootCallback, &_minKeyChangeCallback);
-			_root->SetShallowCallbackPointer(&_shallowTreeCallback);
+			SET_PROPERTY(_root, ->SetUpNodeCallback(&_addRootCallback, &_deleteRootCallback, &_minKeyChangeCallback));
+			SET_PROPERTY(_root, ->SetUpNodeCallback(&_shallowTreeCallback));
 		}
 
 		// Below methods for root call

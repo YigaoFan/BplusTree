@@ -8,6 +8,7 @@
 #include "Elements.hpp"
 #include "NodeBase.hpp"
 #include "LeafNode.hpp"
+#include "../FuncLib/PtrSetter.hpp"
 #include "NodeAddRemoveCommon.hpp"
 
 namespace Collections 
@@ -330,14 +331,15 @@ namespace Collections
 
 				if (subIsMiddle)
 				{
+					// TODO type cast
 					auto midNode = MID_CAST(node.get());
 					// set previous and next between MiddleNode
 					if (lastMidNode != nullptr)
 					{
 						auto nowMin = midNode->MinLeafInMyRange();
 						auto lastMax = lastMidNode->MaxLeafInMyRange();
-						lastMax->Next(nowMin); // TODO newNextNode should also set in MiddleNode? not in itself
-						nowMin->Previous(lastMax);
+						SET_PROPERTY(lastMax, ->Next(nowMin));// TODO newNextNode should also set in MiddleNode? not in itself
+						SET_PROPERTY(nowMin, ->Previous(lastMax));
 					}
 
 					lastMidNode = midNode;
@@ -348,8 +350,8 @@ namespace Collections
 					auto nowLeaf = LEF_CAST(node.get());
 					if (lastLeaf != nullptr)
 					{
-						nowLeaf->Previous(lastLeaf);
-						lastLeaf->Next(nowLeaf);
+						SET_PROPERTY(nowLeaf, ->Previous(lastLeaf));// TODO newNextNode should also set in MiddleNode? not in itself
+						SET_PROPERTY(lastLeaf, ->Next(nowLeaf));
 					}
 
 					lastLeaf = nowLeaf;
@@ -359,13 +361,14 @@ namespace Collections
 
 		void SetSubNodeCallback(bool middle, Ptr<Base> const& node)
 		{
-			node->SetUpNodeCallback(&_addSubNodeCallback, &_deleteSubNodeCallback, &_minKeyChangeCallback);
+			SET_PROPERTY(node, ->SetUpNodeCallback(&_addSubNodeCallback, &_deleteSubNodeCallback, &_minKeyChangeCallback));
 
 			if (middle)
 			{
+				// TODO type cast
 				auto midNode = MID_CAST(node.get());
-				midNode->_queryPrevious = bind(&MiddleNode::QuerySubNodePreviousCallback, this, _1);
-				midNode->_queryNext = bind(&MiddleNode::QuerySubNodeNextCallback, this, _1);
+				SET_PROPERTY(midNode, ->_queryPrevious = bind(&MiddleNode::QuerySubNodePreviousCallback, this, _1));
+				SET_PROPERTY(midNode, ->_queryNext = bind(&MiddleNode::QuerySubNodeNextCallback, this, _1));
 			}
 		}
 #undef MID_CAST		

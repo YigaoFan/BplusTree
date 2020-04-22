@@ -33,6 +33,7 @@ namespace FuncLib
 			return DiskPtr<Entity>::MakeDiskPtr(make_shared<Entity>(TypeConverter<T>::ConvertFrom(btree, file)));
 		}
 
+		// file 里面的分配信息是不是要保存一下，只是读倒没有问题，写就有问题了
 		static DiskPtr<Entity>
 		ReadTreeFrom(shared_ptr<File> file, shared_ptr<LessThan<Key>> lessThanPtr, size_t startOffset = 0)
 		{

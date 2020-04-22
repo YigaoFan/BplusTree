@@ -3,16 +3,18 @@
 #include <type_traits>
 #include <vector>
 #include <functional>
-#include "DiskPos.hpp"
 #include "File.hpp"
+#include "DiskPos.hpp"
+#include "ByteConverter.hpp"
 #include "../Basic/TypeTrait.hpp"
 
 namespace FuncLib
 {
+	using ::std::move;
+	using ::std::is_same_v;
 	using ::std::vector;
 	using ::std::function;
 	using ::std::shared_ptr;
-	using ::std::move;
 	using ::std::enable_if_t;
 	using ::std::is_base_of_v;
 	using ::std::remove_cvref_t;// decay?
@@ -27,12 +29,11 @@ namespace FuncLib
 		vector<function<void(T*)>> _contentSetters;
 
 	public:
-		DiskPtrBase(shared_ptr<T> pos) : _pos(pos)
+		DiskPtrBase(shared_ptr<T> tPtr, DiskPos<T> pos) : _tPtr(tPtr), _pos(pos)
 		{ }
 
 		DiskPtrBase(DiskPos<T> pos) : _pos(pos)
-		{
-		}
+		{ }
 
 		// TODO test
 		template <typename Derive, typename = enable_if_t<is_base_of_v<T, Derive>>>
@@ -55,6 +56,12 @@ namespace FuncLib
 		{
 			ReadEntity();
 			return _tPtr;
+		}
+
+		bool operator!= ()
+		{
+			// DiskPtr should support nullptr, compare to nullptr
+			// TODO how to overload
 		}
 
 		~DiskPtrBase()
@@ -106,7 +113,17 @@ namespace FuncLib
 
 		static DiskPtr<T> MakeDiskPtr(shared_ptr<T> entityPtr, shared_ptr<File> file)
 		{
-			return file->Allocate<T>(ByteConverter<T>::ConvertToByte(*entityPtr));// 硬存大小分配只有这里
+			size_t pos;
+			if constexpr (is_same_v<ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type, vector<byte>>)
+			{
+				pos = file->Allocate(ByteConverter<T>::ConvertToByte(*entityPtr))
+			}
+			else
+			{
+				pos = file->Allocate(ByteConverter<T>::Size);
+			}
+
+			return { entityPtr, { file, pos } }; // 硬存大小分配只有这里
 		}
 
 		// this ptr can destory data on disk
@@ -117,47 +134,43 @@ namespace FuncLib
 		}
 	};
 
-	template <typename Ptr>
-	struct GetContentType;
+	//template <typename Ptr>
+	//struct GetContentType;
 
-	template <typename T>
-	struct GetContentType<unique_ptr<T>>
-	{
-		using Type = T;
-	};
+	//template <typename T>
+	//struct GetContentType<unique_ptr<T>>
+	//{
+	//	using Type = T;
+	//};
 
-	template <typename T>
-	struct GetContentType<DiskPtr<T>>
-	{
-		using Type = T;
-	};
+	//template <typename T>
+	//struct GetContentType<DiskPtr<T>>
+	//{
+	//	using Type = T;
+	//};
 
-	template <typename T>
-	struct GetContentType<T*>
-	{
-		using Type = T;
-	};
+	//template <typename T>
+	//struct GetContentType<T*>
+	//{
+	//	using Type = T;
+	//};
 
-	template <typename Ptr>
-	void SetProperty(Ptr& t, function<void(typename GetContentType<Ptr>::Type*)> setter)
-	{
-		using Type = remove_cvref_t<Ptr>;
-		if constexpr (IsSpecialization<Type, unique_ptr>::value)
-		{
-			setter(t.get());
-		}
-		else
-		{
-			static_assert(IsSpecialization<Type, DiskPtr>::value);
-			t.RegisterSetter(setter);
-		}
-	}
+	//template <typename Ptr>
+	//void SetProperty(Ptr& t, function<void(typename GetContentType<Ptr>::Type*)> setter)
+	//{
+	//	using Type = remove_cvref_t<Ptr>;
+	//	if constexpr (IsSpecialization<Type, unique_ptr>::value)
+	//	{
+	//		setter(t.get());
+	//	}
+	//	else
+	//	{
+	//		static_assert(IsSpecialization<Type, DiskPtr>::value);
+	//		t.RegisterSetter(setter);
+	//	}
+	//}
 
 	//	// 这里想到了一个问题，如何防止一个地方被重复读取
 	//	// 即硬盘里的都是原始的，需要还原的，但每个都还原，就会重复了
 	//	// 用缓存？
-
-	// Update content to disk
-	// Or register update event in allocator, 然后集中更新
-	// Use DiskPos to update
 }
