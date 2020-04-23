@@ -8,6 +8,7 @@
 #include "../Basic/Exception.hpp"
 #include "CollectionException.hpp"
 #include "LiteVector.hpp"
+#include "../FuncLib/FriendFuncLibDeclare.hpp"
 
 namespace Collections
 {
@@ -25,6 +26,8 @@ namespace Collections
 	class Elements : public LiteVector<pair<Key, Value>, order_int, BtreeOrder>
 	{
 	public:
+		friend struct FuncLib::ByteConverter<Elements>;
+		friend struct FuncLib::TypeConverter<Elements>;
 		using Item = pair<Key, Value>;
 		using Base = LiteVector<Item, order_int, BtreeOrder>;
 		shared_ptr<LessThan> LessThanPtr;

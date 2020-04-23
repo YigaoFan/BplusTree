@@ -77,7 +77,7 @@ namespace FuncLib
 	// 这里的所有类型都是 Convert 好了的，TypeConverter 和 ByteConverter 过程中都有可能发生硬盘空间的分配，比如类型转换中的 string
 	// 需要保证的是 ByteConverter 过程中不发生类型转换
 
-	template <typename T, bool = is_standard_layout_v<T> && is_trivial_v<T>>
+	template <typename T, bool/* = is_standard_layout_v<T> && is_trivial_v<T>*/>
 	struct ByteConverter;
 
 	template <typename T>
@@ -415,58 +415,4 @@ namespace FuncLib
 	constexpr size_t BtreeOrder_Leaf = (DiskBlockSize - LeafConstPartSize<Key, Value>) / LeafElementsItemSize<Key, Value>;
 	template <typename Key, typename Value>
 	constexpr size_t BtreeOrder = Min(BtreeOrder_Mid<Key, Value>, BtreeOrder_Leaf<Key, Value>);
-
-	template <typename T>
-	struct ByteConverter<DiskPos<T>, false>
-	{
-		using ThisType = DiskPos<T>;
-		using Index = typename ThisType::Index;
-		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._start)>::Size;
-
-		array<byte, Size> ConvertToByte(ThisType const& p)
-		{
-			return ByteConverter<Index>::ConvertToByte(p._start);
-		}
-
-		ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
-		{
-			auto i = ByteConverter<Index>::ConvertFromByte(file, startInFile);
-			return ThisType(i);
-		}
-	};
-
-	template <typename T>
-	struct ByteConverter<DiskPtr<T>, false>
-	{
-		using ThisType = DiskPtr<T>;
-		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._pos)>::Size;
-
-		array<byte, Size> ConvertToByte(ThisType const& p)
-		{
-			return ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos);
-		}
-
-		ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
-		{
-			return ByteConverter<decltype(p._pos)>::ConvertFromByte(file, p._pos);
-		}
-	};
-
-	template <typename T>
-	struct ByteConverter<WeakDiskPtr<T>, false>
-	{
-		using ThisType = WeakDiskPtr<T>;
-		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._pos)>::Size;
-
-		array<byte, Size> ConvertToByte(ThisType const& p)
-		{
-			return ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos);
-		}
-
-		// TODO 下面这种操作的接口可能会改，因为本来就是来自 Pos 的操作吗
-		ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
-		{
-			return ByteConverter<decltype(p._pos)>::ConvertFromByte(file, p._pos);
-		}
-	};
 }

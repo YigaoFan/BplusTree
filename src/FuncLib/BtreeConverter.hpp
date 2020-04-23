@@ -30,7 +30,7 @@ namespace FuncLib
 		ConvertToDisk(Btree<Order, Key, Value, unique_ptr> const& btree, shared_ptr<File> file)
 		{
 			using T = Btree<Order, Key, Value, unique_ptr>;
-			return DiskPtr<Entity>::MakeDiskPtr(make_shared<Entity>(TypeConverter<T>::ConvertFrom(btree, file)));
+			return DiskPtr<Entity>::MakeDiskPtr(make_shared<Entity>(TypeConverter<T>::ConvertFrom(btree, file)), file);
 		}
 
 		// file 里面的分配信息是不是要保存一下，只是读倒没有问题，写就有问题了

@@ -16,6 +16,7 @@
 #include "../Basic/Exception.hpp"
 #include "CollectionException.hpp"
 #include "../FuncLib/PtrSetter.hpp"
+#include "../FuncLib/FriendFuncLibDeclare.hpp"
 
 namespace Collections
 {
@@ -93,19 +94,17 @@ namespace Collections
 
 	template <order_int BtreeOrder, typename Key, typename Value>
 	class UniversalEnumerator;
-	template <typename T>
-	struct FuncLib::ByteConverter;// 这个前置声明对吗，需要修饰命名空间吗
-	template <typename T>
-	struct FuncLib::DiskPtr;// 这个前置声明对吗，需要修饰命名空间吗
+
 	template <order_int BtreeOrder, typename Key, typename Value, template <typename> class Ptr = unique_ptr>
 	class Btree 
 	{
 	public:
 		using _LessThan = LessThan<Key>;
 	private:
+		// 待验证：因为它是某个模板的特化，所以模板需要前置声明，特化不需要
 		friend class UniversalEnumerator<BtreeOrder, Key, Value>;
-		friend class FuncLib::ByteConverter<Btree>;
-		friend class FuncLib::DiskPtr<Btree>;
+		friend struct FuncLib::ByteConverter<Btree>;
+		friend struct FuncLib::TypeConverter<Btree>;
 		using Node   = NodeBase<Key, Value, BtreeOrder>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
 		typename Node::UpNodeAddSubNodeCallback _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
@@ -178,7 +177,7 @@ namespace Collections
 
 		Btree& operator= (Btree const& that)
 		{
-			this->_root.reset(that._root->Clone());
+			this->_root.reset(that._root->Clone());// TODO reset is unique_ptr
 			this->SetRootCallbacks();
 			this->_keyCount = that._keyCount;
 			this->_lessThanPtr = that._lessThanPtr;

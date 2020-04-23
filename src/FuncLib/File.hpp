@@ -2,12 +2,12 @@
 #include <filesystem>
 #include <fstream>
 #include <vector>
+#include <array>
 #include <cstddef>
 #include <functional>
 #include <string>
 #include <memory>
 #include <utility>
-#include "DiskPos.hpp"
 
 namespace FuncLib
 {
@@ -17,6 +17,7 @@ namespace FuncLib
 	using ::std::ofstream;
 	using ::std::fstream;
 	using ::std::vector;
+	using ::std::array;
 	using ::std::pair;
 	using ::std::byte;
 	using ::std::function;
@@ -25,6 +26,7 @@ namespace FuncLib
 	using ::std::size_t;
 	using ::std::ios_base;
 	using ::std::enable_shared_from_this;
+	using ::std::shared_ptr;
 
 	// Need to change, if on different PC
 	constexpr uint32_t DiskBlockSize = 4096;
@@ -37,13 +39,11 @@ namespace FuncLib
 		size_t _currentPos;
 		vector<pair<uint32_t, vector<byte>>> _bufferQueue;
 	public:
-		File(path filename, size_t startPos = 0) : _filename(move(filename)), _currentPos(startPos)
-		{ }
-		
-		shared_ptr<File> GetPtr()
-		{
-			return shared_from_this();
-		}
+		File(path filename, size_t startPos = 0);
+		shared_ptr<File> GetPtr();
+		void Flush();
+		vector<byte> Read(uint32_t start, uint32_t size);
+		~File();
 
 		// vector 和 array 是不是应该写在不同的区，两个稳定程度不一样，array 变化还可以写在原地，除非析构了
 		template <typename T>// maybe future use
@@ -68,32 +68,8 @@ namespace FuncLib
 		{
 			auto pos = _currentPos;
 			_currentPos += Size;
-			_bufferQueue.push_back({ pos, { wirteData.begin(), wirteData.end() } });
+			_bufferQueue.push_back({ pos, { writeData.begin(), writeData.end() } });
 			return pos;
-		}
-
-		void Flush()
-		{
-			if (!_bufferQueue.empty())
-			{
-				Filter();
-				// TODO test
-				//ofstream fs(_filename, ios_base::out | ios_base::in | ios_base::binary);
-				// difference?
-				fstream fs(_filename, ios_base::out | ios_base::in | ios_base::binary);
-				for (auto& p : _bufferQueue)
-				{
-					auto offset = p.first;
-					//fs.seekp ?
-					fs.seekg(offset);
-					auto& bytes = p.second;
-
-					// char not ensure to equal to byte
-					fs.write((char*)(&bytes[0]), bytes.size());
-				}
-
-				fs.close();
-			}
 		}
 
 		template <typename T>
@@ -103,7 +79,8 @@ namespace FuncLib
 			ifstream fs(_filename, ifstream::binary | ifstream::in);
 			fs.seekg(start);
 
-			byte[sizeof(T)] mem;
+			byte mem[sizeof(T)];
+			char c;
 			T* const p = reinterpret_cast<T*>(&mem[0]);
 			for (auto i = 0; i < size && fs.get(c); ++i)
 			{
@@ -112,25 +89,6 @@ namespace FuncLib
 
 			fs.close();
 			return move(*p);
-		}
-
-		vector<byte> Read(uint32_t start, uint32_t size)
-		{
-			ifstream fs(_filename, ifstream::binary | ifstream::in);
-			char c;
-			while (((start--) != 0) && fs.get(c))
-			{
-			}
-
-			vector<byte> mem;
-			mem.reserve(size);
-
-			for (auto i = 0; i < size && fs.get(c); ++i)
-			{
-				mem.push_back(static_cast<byte>(c));
-			}
-
-			return mem;
 		}
 
 		template <typename T>
@@ -142,19 +100,9 @@ namespace FuncLib
 		template <typename T, auto Size>
 		void Write(uint32_t start, array<byte, Size> data)
 		{
-			_bufferQueue.push_back({ start, { wirteData.begin(), wirteData.end() } });
+			_bufferQueue.push_back({ start, { data.begin(), data.end() } });
 		}
-
-		~File()
-		{
-			Flush();
-		}
-
 	private:
-		void Filter()
-		{
-			// sort
-			// check first position duplicate
-		}
+		void Filter();
 	};
 }

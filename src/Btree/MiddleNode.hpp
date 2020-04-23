@@ -10,6 +10,7 @@
 #include "LeafNode.hpp"
 #include "../FuncLib/PtrSetter.hpp"
 #include "NodeAddRemoveCommon.hpp"
+#include "../FuncLib/FriendFuncLibDeclare.hpp"
 
 namespace Collections 
 {
@@ -45,6 +46,8 @@ namespace Collections
 	class MiddleNode : public NodeBase<Key, Value, BtreeOrder, Ptr>
 	{
 	private:
+		friend struct FuncLib::ByteConverter<MiddleNode>;
+		friend struct FuncLib::TypeConverter<MiddleNode>;
 		friend class NodeFactory<Key, Value, BtreeOrder>;
 		using Base = NodeBase<Key, Value, BtreeOrder>;
 		using StoredKey = typename CompileIf<is_fundamental_v<Key>, Key, reference_wrapper<Key const>>::Type;

@@ -41,9 +41,16 @@ namespace FuncLib
 			: _tPtr(deriveOne._tPtr), _pos(deriveOne._pos)
 		{ }
 		
-		void RegisterSetter(function<void(T*)> callback)
+		void RegisterSetter(function<void(T*)> setter)
 		{
-			_contentSetters.push_back(move(callback));
+			if (_tPtr == nullptr)
+			{
+				_contentSetters.push_back(move(callback));
+			}
+			else
+			{
+				setter(_tPtr.get());
+			}
 		}
 
 		T& operator* ()
@@ -116,7 +123,7 @@ namespace FuncLib
 			size_t pos;
 			if constexpr (is_same_v<ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type, vector<byte>>)
 			{
-				pos = file->Allocate(ByteConverter<T>::ConvertToByte(*entityPtr))
+				pos = file->Allocate(ByteConverter<T>::ConvertToByte(*entityPtr));
 			}
 			else
 			{
@@ -134,6 +141,40 @@ namespace FuncLib
 		}
 	};
 
+	template <typename T>
+	struct ByteConverter<DiskPtr<T>, false>
+	{
+		using ThisType = DiskPtr<T>;
+		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._pos)>::Size;
+
+		array<byte, Size> ConvertToByte(ThisType const& p)
+		{
+			return ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos);
+		}
+
+		ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		{
+			return ByteConverter<decltype(p._pos)>::ConvertFromByte(file, p._pos);
+		}
+	};
+
+	template <typename T>
+	struct ByteConverter<WeakDiskPtr<T>, false>
+	{
+		using ThisType = WeakDiskPtr<T>;
+		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._pos)>::Size;
+
+		array<byte, Size> ConvertToByte(ThisType const& p)
+		{
+			return ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos);
+		}
+
+		// TODO 下面这种操作的接口可能会改，因为本来就是来自 Pos 的操作吗
+		ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		{
+			return ByteConverter<decltype(p._pos)>::ConvertFromByte(file, p._pos);
+		}
+	};
 	//template <typename Ptr>
 	//struct GetContentType;
 
