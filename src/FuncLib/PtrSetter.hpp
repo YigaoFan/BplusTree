@@ -2,7 +2,9 @@
 
 #define SET_PROPERTY(PTR, SET_OP) \
 	{\
-		using Type = remove_cvref_t<decltype(PTR)>;\
+		using ::FuncLib::DiskPtr;\
+		using ::std::decay_t;\
+		using Type = decay_t<decltype(PTR)>;\
 		if constexpr (!IsSpecialization<Type, DiskPtr>::value)\
 		{\
 				PTR SET_OP;\

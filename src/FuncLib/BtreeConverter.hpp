@@ -1,6 +1,5 @@
 #pragma once
 #include <memory>
-#include "DiskPtr.hpp"
 #include "ByteConverter.hpp"
 #include "TypeConverter.hpp"
 #include "File.hpp"

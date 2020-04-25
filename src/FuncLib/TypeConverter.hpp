@@ -7,8 +7,8 @@
 #include "../Btree/NodeBase.hpp"
 #include "../Btree/MiddleNode.hpp"
 #include "../Btree/LeafNode.hpp"
-#include "DiskPtr.hpp"
 #include "File.hpp"
+#include "ByteConverter.hpp"
 
 namespace FuncLib
 {

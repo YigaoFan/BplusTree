@@ -15,8 +15,8 @@
 #include "TreeInspector.hpp"
 #include "../Basic/Exception.hpp"
 #include "CollectionException.hpp"
-#include "../FuncLib/PtrSetter.hpp"
 #include "../FuncLib/FriendFuncLibDeclare.hpp"
+#include "../FuncLib/PtrSetter.hpp"
 
 namespace Collections
 {
@@ -103,7 +103,7 @@ namespace Collections
 	private:
 		// 待验证：因为它是某个模板的特化，所以模板需要前置声明，特化不需要
 		friend class UniversalEnumerator<BtreeOrder, Key, Value>;
-		friend struct FuncLib::ByteConverter<Btree>;
+		friend struct FuncLib::ByteConverter<Btree>; // Btree here is undefined or incomplete type
 		friend struct FuncLib::TypeConverter<Btree>;
 		using Node   = NodeBase<Key, Value, BtreeOrder>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;

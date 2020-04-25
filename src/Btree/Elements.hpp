@@ -39,9 +39,6 @@ namespace Collections
 			: Base(), LessThanPtr(lessThanPtr)
 		{ }
 
-		Elements() : Base()
-		{ }
-
 		Elements(IEnumerator<Item&>& enumerator, shared_ptr<LessThan> lessThanPtr)
 			: Base(), LessThanPtr(lessThanPtr)
 		{
@@ -76,11 +73,6 @@ namespace Collections
 		Elements(Elements&& that) noexcept
 			: Base(move(that)), LessThanPtr(move(that.LessThanPtr))
 		{ }
-
-		void LessThanPredicate(shared_ptr<LessThan> lessThanPtr)
-		{
-			LessThanPtr = lessThanPtr;
-		}
 
 		bool ContainsKey(Key const& key) const
 		{
@@ -217,6 +209,13 @@ namespace Collections
 		auto GetEnumerator() const { return CreateEnumerator(*this); }
 
 	private:
+		Elements() : Base()
+		{ }
+
+		void LessThanPredicate(shared_ptr<LessThan> lessThanPtr)
+		{
+			LessThanPtr = lessThanPtr;
+		}
 		// TODO check template args
 		template <bool WithCheck=true>
 		void Insert(Item p, function<void()> changeMinCallback)

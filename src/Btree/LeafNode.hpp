@@ -8,7 +8,6 @@
 #include "NodeBase.hpp"
 #include "NodeAddRemoveCommon.hpp"
 #include "../FuncLib/FriendFuncLibDeclare.hpp"
-#include "../FuncLib/DiskPtr.hpp"
 
 namespace Collections
 {

@@ -8,9 +8,9 @@
 #include "Elements.hpp"
 #include "NodeBase.hpp"
 #include "LeafNode.hpp"
+#include "../FuncLib/FriendFuncLibDeclare.hpp"
 #include "../FuncLib/PtrSetter.hpp"
 #include "NodeAddRemoveCommon.hpp"
-#include "../FuncLib/FriendFuncLibDeclare.hpp"
 
 namespace Collections 
 {

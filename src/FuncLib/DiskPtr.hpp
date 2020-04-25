@@ -4,9 +4,6 @@
 #include <vector>
 #include <functional>
 #include "File.hpp"
-#include "DiskPos.hpp"
-#include "ByteConverter.hpp"
-#include "../Basic/TypeTrait.hpp"
 
 namespace FuncLib
 {
@@ -18,7 +15,6 @@ namespace FuncLib
 	using ::std::enable_if_t;
 	using ::std::is_base_of_v;
 	using ::std::remove_cvref_t;// decay?
-	using ::Basic::IsSpecialization;
 
 	template <typename T>
 	class DiskPtrBase
@@ -45,7 +41,7 @@ namespace FuncLib
 		{
 			if (_tPtr == nullptr)
 			{
-				_contentSetters.push_back(move(callback));
+				_contentSetters.push_back(move(setter));
 			}
 			else
 			{
@@ -69,6 +65,12 @@ namespace FuncLib
 		{
 			// DiskPtr should support nullptr, compare to nullptr
 			// TODO how to overload
+		}
+
+		operator T& () const
+		{
+			ReadEntity();
+			return *_tPtr;
 		}
 
 		~DiskPtrBase()
@@ -140,78 +142,4 @@ namespace FuncLib
 
 		}
 	};
-
-	template <typename T>
-	struct ByteConverter<DiskPtr<T>, false>
-	{
-		using ThisType = DiskPtr<T>;
-		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._pos)>::Size;
-
-		array<byte, Size> ConvertToByte(ThisType const& p)
-		{
-			return ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos);
-		}
-
-		ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
-		{
-			return ByteConverter<decltype(p._pos)>::ConvertFromByte(file, p._pos);
-		}
-	};
-
-	template <typename T>
-	struct ByteConverter<WeakDiskPtr<T>, false>
-	{
-		using ThisType = WeakDiskPtr<T>;
-		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._pos)>::Size;
-
-		array<byte, Size> ConvertToByte(ThisType const& p)
-		{
-			return ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos);
-		}
-
-		// TODO 下面这种操作的接口可能会改，因为本来就是来自 Pos 的操作吗
-		ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
-		{
-			return ByteConverter<decltype(p._pos)>::ConvertFromByte(file, p._pos);
-		}
-	};
-	//template <typename Ptr>
-	//struct GetContentType;
-
-	//template <typename T>
-	//struct GetContentType<unique_ptr<T>>
-	//{
-	//	using Type = T;
-	//};
-
-	//template <typename T>
-	//struct GetContentType<DiskPtr<T>>
-	//{
-	//	using Type = T;
-	//};
-
-	//template <typename T>
-	//struct GetContentType<T*>
-	//{
-	//	using Type = T;
-	//};
-
-	//template <typename Ptr>
-	//void SetProperty(Ptr& t, function<void(typename GetContentType<Ptr>::Type*)> setter)
-	//{
-	//	using Type = remove_cvref_t<Ptr>;
-	//	if constexpr (IsSpecialization<Type, unique_ptr>::value)
-	//	{
-	//		setter(t.get());
-	//	}
-	//	else
-	//	{
-	//		static_assert(IsSpecialization<Type, DiskPtr>::value);
-	//		t.RegisterSetter(setter);
-	//	}
-	//}
-
-	//	// 这里想到了一个问题，如何防止一个地方被重复读取
-	//	// 即硬盘里的都是原始的，需要还原的，但每个都还原，就会重复了
-	//	// 用缓存？
 }
