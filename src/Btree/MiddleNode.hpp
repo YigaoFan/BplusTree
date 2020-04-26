@@ -3,6 +3,7 @@
 #include <functional>
 #include <type_traits>
 #include "../Basic/Exception.hpp"
+#include "../Basic/TypeTrait.hpp"
 #include "Basic.hpp"
 #include "EnumeratorPipeline.hpp"
 #include "Elements.hpp"
@@ -22,22 +23,8 @@ namespace Collections
 	using ::std::bind;
 	using ::std::placeholders::_1;
 	using ::Basic::NotImplementException;
+	using ::Basic::CompileIf;
 	using ::std::is_fundamental_v;
-
-	template <bool Condition, typename A, typename B>	
-	struct CompileIf;
-
-	template <typename A, typename B>	
-	struct CompileIf<true, A, B>	
-	{	
-		using Type = A;	
-	};	
-
-	template <typename A, typename B>	
-	struct CompileIf<false, A, B>	
-	{	
-		using Type = B;	
-	};
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeFactory;
@@ -46,8 +33,8 @@ namespace Collections
 	class MiddleNode : public NodeBase<Key, Value, BtreeOrder, Ptr>
 	{
 	private:
-		friend struct FuncLib::ByteConverter<MiddleNode>;
-		friend struct FuncLib::TypeConverter<MiddleNode>;
+		friend struct FuncLib::ByteConverter<MiddleNode, false>;
+		friend struct FuncLib::TypeConverter<MiddleNode, false>;
 		friend class NodeFactory<Key, Value, BtreeOrder>;
 		using Base = NodeBase<Key, Value, BtreeOrder>;
 		using StoredKey = typename CompileIf<is_fundamental_v<Key>, Key, reference_wrapper<Key const>>::Type;

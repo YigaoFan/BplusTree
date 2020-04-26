@@ -1,26 +1,12 @@
 #pragma once
 #include <type_traits>
-#include "File.hpp"
+#include "../Basic/TypeTrait.hpp"
 
 namespace FuncLib
 {
 	using ::std::is_trivial_v;
 	using ::std::is_standard_layout_v;
-
-	template <bool Condition, typename A, typename B>
-	struct CompileIf;
-
-	template <typename A, typename B>
-	struct CompileIf<true, A, B>
-	{
-		using Type = A;
-	};
-
-	template <typename A, typename B>
-	struct CompileIf<false, A, B>
-	{
-		using Type = B;
-	};
+	using ::Basic::CompileIf;
 
 	template <typename T>
 	constexpr bool RawOrNot = is_standard_layout_v<T> && is_trivial_v<T> && sizeof(T) < DiskBlockSize;
@@ -32,4 +18,18 @@ namespace FuncLib
 	struct ByteConverter;
 	template <typename T, bool = is_standard_layout_v<T> && is_trivial_v<T>>
 	struct TypeConverter;
+
+	struct MemoryScheme
+	{
+		using Ptr = void;
+		template <typename T>
+		using Key = void;
+		template <typename T>
+		using Value = void;
+	};
+
+	struct DiskScheme
+	{
+
+	};
 }

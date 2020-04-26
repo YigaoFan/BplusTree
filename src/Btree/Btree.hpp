@@ -103,8 +103,8 @@ namespace Collections
 	private:
 		// 待验证：因为它是某个模板的特化，所以模板需要前置声明，特化不需要
 		friend class UniversalEnumerator<BtreeOrder, Key, Value>;
-		friend struct FuncLib::ByteConverter<Btree>; // Btree here is undefined or incomplete type
-		friend struct FuncLib::TypeConverter<Btree>;
+		friend struct FuncLib::ByteConverter<Btree, false>; // Btree here is undefined or incomplete type
+		friend struct FuncLib::TypeConverter<Btree, false>;
 		using Node   = NodeBase<Key, Value, BtreeOrder>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
 		typename Node::UpNodeAddSubNodeCallback _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
@@ -345,7 +345,7 @@ namespace Collections
 		void SetRootCallbacks()
 		{
 			SET_PROPERTY(_root, ->SetUpNodeCallback(&_addRootCallback, &_deleteRootCallback, &_minKeyChangeCallback));
-			SET_PROPERTY(_root, ->SetUpNodeCallback(&_shallowTreeCallback));
+			SET_PROPERTY(_root, ->SetShallowCallbackPointer(&_shallowTreeCallback));
 		}
 
 		// Below methods for root call

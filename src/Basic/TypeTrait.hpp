@@ -8,4 +8,19 @@ namespace Basic
 
 	template<template<typename...> class Ref, typename... Args>
 	struct IsSpecialization<Ref<Args...>, Ref> : std::true_type {};
+
+	template <bool Condition, typename A, typename B>
+	struct CompileIf;
+
+	template <typename A, typename B>
+	struct CompileIf<true, A, B>
+	{
+		using Type = A;
+	};
+
+	template <typename A, typename B>
+	struct CompileIf<false, A, B>
+	{
+		using Type = B;
+	};
 }

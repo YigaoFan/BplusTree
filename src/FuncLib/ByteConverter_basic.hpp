@@ -66,7 +66,7 @@ namespace FuncLib
 	// 这里的所有类型都是 Convert 好了的，TypeConverter 和 ByteConverter 过程中都有可能发生硬盘空间的分配，比如类型转换中的 string
 	// 需要保证的是 ByteConverter 过程中不发生类型转换
 
-	template <typename T, bool/* = is_standard_layout_v<T> && is_trivial_v<T>*/>
+	template <typename T, bool = is_standard_layout_v<T> && is_trivial_v<T>>
 	struct ByteConverter;
 
 	template <typename T>
@@ -255,7 +255,7 @@ namespace FuncLib
 	struct ByteConverter<Elements<Key, Value, Order>, false>
 	{
 		using ThisType = Elements<Key, Value, Order>;
-		static constexpr size_t Size = LiteVector<pair<Key, Value>, order_int, Order>::Size;
+		static constexpr size_t Size = ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::Size;
 
 		static array<byte, Size> ConvertToByte(ThisType& t)
 		{

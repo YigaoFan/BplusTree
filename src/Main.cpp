@@ -38,7 +38,7 @@ int main()
 	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDOUT);
 #endif
-	COLLECTIONS_TEST(CollectionsTest::AllTest(false));
+	COLLECTIONS_TEST(CollectionsTest::AllTest(true));
 	JSON_TEST(JsonTest::AllTest(true));
 	FUNC_LIB_TEST(FuncLibTest::AllTest(true));
 

@@ -25,7 +25,7 @@ namespace FuncLib
 	using ::Collections::MiddleNode;
 	using ::Collections::Btree;
 
-	template <typename T, bool/* = is_standard_layout_v<T> && is_trivial_v<T>*/>// condition may change
+	template <typename T, bool = is_standard_layout_v<T> && is_trivial_v<T>>// condition may change
 	struct TypeConverter// POD type
 	{
 		using From = T;

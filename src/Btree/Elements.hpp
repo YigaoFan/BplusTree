@@ -26,8 +26,8 @@ namespace Collections
 	class Elements : public LiteVector<pair<Key, Value>, order_int, BtreeOrder>
 	{
 	public:
-		friend struct FuncLib::ByteConverter<Elements>;
-		friend struct FuncLib::TypeConverter<Elements>;
+		friend struct FuncLib::ByteConverter<Elements, false>;
+		friend struct FuncLib::TypeConverter<Elements, false>;
 		using Item = pair<Key, Value>;
 		using Base = LiteVector<Item, order_int, BtreeOrder>;
 		shared_ptr<LessThan> LessThanPtr;
