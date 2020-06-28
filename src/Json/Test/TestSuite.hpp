@@ -6,7 +6,7 @@ namespace JsonTest
 {
 	void AllTest(bool executed)
 	{
-		parserTest(false);
+		parserTest(executed);
 		JsonConverterTest::AllTest(executed);
 	}
 }

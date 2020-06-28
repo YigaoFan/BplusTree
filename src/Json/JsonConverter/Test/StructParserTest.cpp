@@ -71,12 +71,4 @@ TESTCASE("StructParser test")
 	ASSERT(def.GetName(i) == name);
 }
 
-void structParserTest(bool executed)
-{
-	if (executed)
-	{
-		allTest();
-	}
-
-	_tests_.clear();
-}
+DEF_TEST_FUNC(structParserTest)

@@ -34,12 +34,4 @@ TESTCASE("WordEnumerator test")
 	ASSERT(!e.MoveNext());
 }
 
-void wordEnumeratorTest(bool executed)
-{
-	if (executed)
-	{
-		allTest();
-	}
-
-	_tests_.clear();
-}
+DEF_TEST_FUNC(wordEnumeratorTest)

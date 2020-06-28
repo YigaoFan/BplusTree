@@ -337,12 +337,4 @@ TESTCASE("Int-Str btree test")
 	}
 }
 
-void btreeTest(bool executed)
-{
-	if (executed)
-	{
-		allTest();
-	}
-
-	_tests_.clear();
-}
+DEF_TEST_FUNC(btreeTest)

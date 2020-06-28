@@ -91,12 +91,4 @@ TESTCASE("Element test")
 	}
 }
 
-void elementsTest(bool executed)
-{
-	if (executed)
-	{
-		allTest();
-	}
-
-	_tests_.clear();
-}
+DEF_TEST_FUNC(elementsTest)

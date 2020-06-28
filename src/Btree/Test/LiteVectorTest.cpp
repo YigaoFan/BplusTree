@@ -149,12 +149,4 @@ TESTCASE("String LiteVector test")
 	ASSERT(v.Count() == 2);
 }
 
-void liteVectorTest(bool executed)
-{
-	if (executed)
-	{
-		allTest();
-	}
-
-	_tests_.clear();
-}
+DEF_TEST_FUNC(liteVectorTest)
