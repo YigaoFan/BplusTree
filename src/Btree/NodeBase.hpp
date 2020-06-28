@@ -67,10 +67,6 @@ namespace Collections
 		virtual void ModifyValue(Key const&, Value) = 0;
 		virtual void Add(pair<Key, Value>) = 0;
 		virtual void Remove(Key const&) = 0;
-		// TODO Could use below method implement Enumerator: use LeafNode relation save state
-		virtual bool MoveDown(NodeBase* &) const = 0;
-		virtual bool MoveLeft(NodeBase* &) const = 0;
-		virtual bool MoveRight(NodeBase* &) const = 0;
 		virtual vector<Key> SubNodeMinKeys() const = 0;
 		virtual vector<NodeBase*> SubNodes() const = 0;
 		

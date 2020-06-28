@@ -145,21 +145,6 @@ namespace Collections
 			_elements[i].second->Remove(key);
 		}
 #undef SELECT_BRANCH
-		
-		bool MoveDown(Base*&) const override
-		{
-			throw NotImplementException();
-		}
-
-		bool MoveLeft(Base*&) const override
-		{
-			throw NotImplementException();
-		}
-
-		bool MoveRight(Base*&) const override
-		{
-			throw NotImplementException();
-		}
 
 		vector<Key> SubNodeMinKeys() const override
 		{
