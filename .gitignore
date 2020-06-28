@@ -21,6 +21,7 @@ bld/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
+[Bb]uild/
 
 # Visual Studio 2015 cache/options directory
 .vs/
@@ -261,3 +262,6 @@ __pycache__/
 *.pyc
 src/.DS_Store
 src/Btree/.DS_Store
+
+#Apple File System File
+.DS_Store
