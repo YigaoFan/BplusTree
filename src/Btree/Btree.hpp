@@ -95,7 +95,7 @@ namespace Collections
 	template <order_int BtreeOrder, typename Key, typename Value>
 	class UniversalEnumerator;
 
-	template <order_int BtreeOrder, typename Key, typename Value, template <typename> class Ptr = unique_ptr>
+	template <order_int BtreeOrder, typename Key, typename Value, template <typename...> class Ptr = unique_ptr>
 	class Btree 
 	{
 	public:

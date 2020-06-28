@@ -18,14 +18,14 @@ namespace Collections
 	using ::std::back_inserter;
 	using ::Basic::NotImplementException;
 
-	template <typename Key, typename Value, order_int BtreeOrder, template <typename> class Ptr = unique_ptr>
+	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
 	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Ptr>
 	{
 	private:
 		friend struct FuncLib::ByteConverter<LeafNode, false>;
 		friend struct FuncLib::TypeConverter<LeafNode, false>;
 		using _LessThan = LessThan<Key>;
-		using Base = NodeBase<Key, Value, BtreeOrder>;
+		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
 		Elements<Key, Value, BtreeOrder, _LessThan> _elements;// Key, Value type should change
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };

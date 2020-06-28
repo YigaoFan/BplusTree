@@ -22,21 +22,24 @@ namespace Collections
 	using ::std::make_pair;
 	using ::std::bind;
 	using ::std::placeholders::_1;
+	using ::std::placeholders::_2;
 	using ::Basic::NotImplementException;
 	using ::Basic::CompileIf;
+	using ::Basic::IsSpecialization;
 	using ::std::is_fundamental_v;
 
 	template <typename Key, typename Value, order_int BtreeOrder>
 	class NodeFactory;
 	// 最好把 MiddleNode 和 LeafNode 的构造与 Btree 隔绝起来，使用 NodeBase 来作用，顶多使用强制转型来调用一些函数
-	template <typename Key, typename Value, order_int BtreeOrder, template <typename> class Ptr = unique_ptr>
+	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
 	class MiddleNode : public NodeBase<Key, Value, BtreeOrder, Ptr>
 	{
 	private:
 		friend struct FuncLib::ByteConverter<MiddleNode, false>;
 		friend struct FuncLib::TypeConverter<MiddleNode, false>;
 		friend class NodeFactory<Key, Value, BtreeOrder>;
-		using Base = NodeBase<Key, Value, BtreeOrder>;
+		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
+		using Leaf = LeafNode<Key, Value, BtreeOrder, Ptr>;
 		using StoredKey = typename CompileIf<is_fundamental_v<Key>, Key, reference_wrapper<Key const>>::Type;
 		// TODO maybe below two item could be pointer, then entity stored in its' parent like Btree do
 		typename Base::UpNodeAddSubNodeCallback _addSubNodeCallback = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
@@ -197,7 +200,6 @@ namespace Collections
 		Base* MaxSon() const { return _elements[_elements.Count() - 1].second.get(); }
 		
 #define MID_CAST(NODE) static_cast<MiddleNode *>(NODE)
-		using Leaf = LeafNode<Key, Value, BtreeOrder>;
 #define LEF_CAST(NODE) static_cast<Leaf *>(NODE)
 		Leaf* MinLeafInMyRange() const
 		{
@@ -340,8 +342,9 @@ namespace Collections
 					auto nowLeaf = LEF_CAST(node.get());
 					if (lastLeaf != nullptr)
 					{
+						auto last = lastLeaf;// 直接用显式声明类型的 lastLeaf 不行，疑似是 clang 的 bug。
 						SET_PROPERTY(nowLeaf, ->Previous(lastLeaf));// TODO newNextNode should also set in MiddleNode? not in itself
-						SET_PROPERTY(lastLeaf, ->Next(nowLeaf));
+						SET_PROPERTY(last, ->Next(nowLeaf));
 					}
 
 					lastLeaf = nowLeaf;
@@ -427,13 +430,13 @@ namespace Collections
 		static typename decltype(_elements)::Item ConvertRefPtrToKeyPtrPair(Ptr<Base>& node)
 		{
 			using pairType = typename decltype(_elements)::Item;
-			return make_pair<pairType::first_type, pairType::second_type>(StoredKey(node->MinKey()), move(node));
+			return make_pair<typename pairType::first_type, typename pairType::second_type>(StoredKey(node->MinKey()), move(node));
 		}
 
 		static typename decltype(_elements)::Item ConvertPtrToKeyPtrPair(Ptr<Base> node)
 		{
 			using pairType = typename decltype(_elements)::Item;
-			return make_pair<pairType::first_type, pairType::second_type>(StoredKey(node->MinKey()), move(node));
+			return make_pair<typename pairType::first_type, typename pairType::second_type>(StoredKey(node->MinKey()), move(node));
 		}
 
 		static Ptr<Base> CloneSubNode(typename decltype(_elements)::Item const& item)

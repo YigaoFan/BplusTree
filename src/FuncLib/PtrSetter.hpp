@@ -5,15 +5,12 @@
 		using ::FuncLib::DiskPtr;\
 		using ::std::decay_t;\
 		using Type = decay_t<decltype(PTR)>;\
-		if constexpr (!IsSpecialization<Type, DiskPtr>::value)\
+		if constexpr (IsSpecialization<Type, DiskPtr>::value)\
 		{\
-				PTR SET_OP;\
+			PTR.RegisterSetter([&](auto ptr) { ptr SET_OP; });\
 		}\
 		else\
 		{\
-			PTR.RegisterSetter([&](auto ptr)\
-			{\
-				ptr SET_OP; \
-			});\
+			PTR SET_OP;\
 		}\
 	}

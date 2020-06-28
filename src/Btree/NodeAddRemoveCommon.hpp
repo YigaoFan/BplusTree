@@ -47,7 +47,7 @@
 \
 	if (nxtStealable && preStealable)\
 	{\
-		switch (Base::ChooseOperatePosition<Operation::Remove>(previous->_elements.Count(), this->_elements.Count(),\
+		switch (Base::ChooseRemovePosition(previous->_elements.Count(), this->_elements.Count(),\
 			next->_elements.Count()))\
 		{\
 		case Position::Next:\
@@ -106,7 +106,7 @@ else\
 	}\
 	else\
 	{\
-		switch (Base::ChooseOperatePosition<Operation::Add>(previous->_elements.Count(),\
+		switch (Base::ChooseAddPosition(previous->_elements.Count(),\
 			this->_elements.Count(),\
 			next->_elements.Count()))\
 		{\

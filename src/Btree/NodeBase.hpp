@@ -28,7 +28,7 @@ namespace Collections
 		Remove,
 	};
 
-	template <typename Key, typename Value, order_int BtreeOrder, template <typename> class Ptr = unique_ptr>
+	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
 	class NodeBase
 	{
 	public:
@@ -75,26 +75,22 @@ namespace Collections
 		virtual vector<NodeBase*> SubNodes() const = 0;
 		
 	protected:
-		template <Operation Op>
-		static Position ChooseOperatePosition(order_int preCount, order_int thisCount, order_int nxtCount)
+		static Position ChooseAddPosition(order_int preCount, order_int thisCount, order_int nxtCount)
 		{
-			if constexpr (Op == Operation::Add)
+			auto average = (preCount + thisCount + nxtCount) / 3;
+			if (int(preCount - average) < int(nxtCount - average))
 			{
-				auto average = (preCount + thisCount + nxtCount) / 3;
-				if (int(preCount - average) < int(nxtCount - average))
-				{
-					return Position::Previous;
-				}
-				else
-				{
-					return Position::Next;
-				}
+				return Position::Previous;
 			}
 			else
 			{
-				return ChooseOperatePosition<Operation::Add>(preCount, thisCount, nxtCount) == Position::Previous ?
-					Position::Next : Position::Previous;
+				return Position::Next;
 			}
+		}
+
+		static Position ChooseRemovePosition(order_int preCount, order_int thisCount, order_int nxtCount)
+		{
+			return ChooseAddPosition(preCount, thisCount, nxtCount) == Position::Previous ? Position::Next : Position::Previous;
 		}
 	};
 }

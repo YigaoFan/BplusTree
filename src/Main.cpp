@@ -1,11 +1,11 @@
-#define MEMO_CHECK true
+#define MEMO_CHECK false
 #if MEMO_CHECK
 #include <crtdbg.h>
 #endif
 
 #define COLLECTIONS_TEST_SWITCH true
 #define JSON_TEST_SWITCH true
-#define FUNC_LIB_TEST_SWITCH true
+#define FUNC_LIB_TEST_SWITCH false
 
 #if COLLECTIONS_TEST_SWITCH
 #include "Btree/Test/TestSuite.hpp"
