@@ -104,7 +104,7 @@ namespace
 		}
 	};
 
-	class Condition; // TODO need this pre declaration?
+	class Condition;
 	class Section
 	{
 		// Section don't have the data detail rely on Condition class, but Condition do.
@@ -112,7 +112,7 @@ namespace
 	private:
 		friend class Condition;
 		bool _selfDone{ false };
-		vector<Section*> _subSections{};
+		vector<Section*> _subSections;
 		Info _info;
 
 	public:
@@ -121,7 +121,7 @@ namespace
 		bool shouldExecute() { return !_selfDone; }
 		void markDone() { _selfDone = true; }
 		Info info() const { return _info; }
-		void freeHeapMemory() { _subSections.~vector(); _info.~Info(); }
+		void freeHeapMemory() { _subSections.clear(); }
 	};
 
 	class Condition
