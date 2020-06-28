@@ -208,10 +208,11 @@ namespace Json::JsonConverter
 	}
 
 	template <typename T>
-	JsonObject Serialize(T const& t)
-	{
-		static_assert(false, "not support type");
-	}
+	JsonObject Serialize(T const& t);
+	// {
+		// static_assert(false, "not support type");
+	// }
+	// why can not write like this?
 
 	template <>
 	JsonObject Serialize<string>(string const& t)
@@ -279,6 +280,33 @@ namespace Json::JsonConverter
 	}
 
 	template <typename T>
+	T Deserialize(JsonObject const&);
+
+	template <>
+	string Deserialize(JsonObject const& json)
+	{
+		return json.GetString();
+	}
+
+	template <>
+	int Deserialize(JsonObject const& json)
+	{
+		return static_cast<int>(json.GetNumber());
+	}
+
+	template <>
+	double Deserialize(JsonObject const& json)
+	{
+		return json.GetNumber();
+	}
+
+	template <>
+	bool Deserialize(JsonObject const& json)
+	{
+		return json.GetBool();
+	}
+
+	template <typename T>
 	vector<T> DeserializeImp(JsonObject const& json, vector<T>*)
 	{
 		vector<T> des;
@@ -308,29 +336,5 @@ namespace Json::JsonConverter
 	{
 		using type = decay_t<T>;
 		return DeserializeImp(json, static_cast<type*>(nullptr));
-	}
-
-	template <>
-	string Deserialize(JsonObject const& json)
-	{
-		return json.GetString();
-	}
-
-	template <>
-	int Deserialize(JsonObject const& json)
-	{
-		return static_cast<int>(json.GetNumber());
-	}
-
-	template <>
-	double Deserialize(JsonObject const& json)
-	{
-		return json.GetNumber();
-	}
-
-	template <>
-	bool Deserialize(JsonObject const& json)
-	{
-		return json.GetBool();
 	}
 }
