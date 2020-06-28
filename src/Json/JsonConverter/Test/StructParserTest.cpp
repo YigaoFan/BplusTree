@@ -19,12 +19,12 @@ TESTCASE("StructParser test")
 		{"c", 3},
 	};
 	auto j = Serialize(m);
-	cout << j.ToString() << endl;
+	// cout << j.ToString() << endl;
 	auto ds = Deserialize<decltype(m)>(j);
 
 	vector<int> v{ 1, 2, 3 };
 	auto json = Serialize(v);
-	cout << json.ToString() << endl;
+	// cout << json.ToString() << endl;
 
 	vector<string_view> strs
 	{
@@ -35,13 +35,13 @@ TESTCASE("StructParser test")
 	auto serDef = GenerateStructSerializer(strs);
 	for (auto& l : serDef)
 	{
-		cout << l << endl;
+		// cout << l << endl;
 	}
 
 	auto functionDef = GenerateStructDeserializer(strs);
 	for (auto& l : functionDef)
 	{
-		cout << l << endl;
+		// cout << l << endl;
 	}
 	auto def = ParseStruct(strs);
 	ASSERT(def.TypeName() == "A");

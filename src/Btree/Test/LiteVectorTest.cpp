@@ -50,8 +50,8 @@ TESTCASE("Int LiteVector test")
 
 		LiteVector<Item, size_t, 10> items { Item(a), Item(a), };
 		ASSERT(items.Count() == 2);
-		items.~LiteVector();
-		ASSERT(a == -9); // Local variable in LiteVector member function will call distructor, too
+		// items.~LiteVector();
+		// ASSERT(a == -9); // Local variable in LiteVector member function will call distructor, too
 	}
 
 	SECTION("Add")
@@ -147,8 +147,6 @@ TESTCASE("String LiteVector test")
 	using StrLiVec = LiteVector<string, int, 10>;
 	auto v = StrLiVec{ "Hello", "World" };
 	ASSERT(v.Count() == 2);
-
-
 }
 
 void liteVectorTest(bool executed)
@@ -158,5 +156,5 @@ void liteVectorTest(bool executed)
 		allTest();
 	}
 
-	_tests_.~vector();
+	_tests_.clear();
 }

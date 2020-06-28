@@ -344,5 +344,5 @@ void btreeTest(bool executed)
 		allTest();
 	}
 
-	_tests_.~vector();
+	_tests_.clear();
 }
