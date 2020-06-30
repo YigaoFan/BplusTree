@@ -54,10 +54,6 @@ namespace FuncLib
 		using Type = R;
 	};
 
-	// TODO test
-	template <typename T>
-	constexpr size_t ConvertedByteSize = sizeof(ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type);
-
 	constexpr size_t Min(size_t one, size_t two)
 	{
 		return one > two ? one : two;
@@ -68,6 +64,9 @@ namespace FuncLib
 
 	template <typename T, bool = is_standard_layout_v<T> && is_trivial_v<T>>
 	struct ByteConverter;
+
+	template <typename T>
+	constexpr size_t ConvertedByteSize = sizeof(ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type);
 
 	template <typename T>
 	struct ByteConverter<T, true>
@@ -106,12 +105,12 @@ namespace FuncLib
 	template <typename T>
 	struct ByteConverter<T, false>
 	{
-		static_assert(is_class_v<T>, "Only support class type");
+		// static_assert(is_class_v<T>, "Only support class type");
 		// 这里 T 指的是聚合类吗？
 		static constexpr size_t Size = ConvertedByteSize<T>;
 
-		template <typename T, auto... Is>
-		auto CombineEachConvert(T const& tup, index_sequence<Is...>)
+		template <typename Ty, auto... Is>
+		static auto CombineEachConvert(Ty const& tup, index_sequence<Is...>)
 		{
 			auto converter = [&tup]<auto Index>()
 			{
@@ -120,7 +119,7 @@ namespace FuncLib
 				return ByteConverter<decltype(i)>::ConvertToByte(i);
 			};
 
-			return (... + converter.operator()<Is>());
+			return (... + converter.template operator()<Is>());
 		}
 
 		static auto ConvertToByte(T const& t)
@@ -129,10 +128,10 @@ namespace FuncLib
 			return CombineEachConvert(tup, make_index_sequence<tuple_size_v<decltype(tup)>>());
 		}
 
-		template <typename T, typename UnitConverter, auto... Is>
-		static T ConsT(UnitConverter converter, index_sequence<Is...>)
+		template <typename Ty, typename UnitConverter, auto... Is>
+		static Ty ConsT(UnitConverter converter, index_sequence<Is...>)
 		{
-			return { converter.operator ()<Is>()... };
+			return { converter.template operator ()<Is>()... };
 		}
 
 		template <auto Index, typename Tuple>
@@ -154,15 +153,15 @@ namespace FuncLib
 
 		static T ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
-			using Tuple = ReturnType<ToTuple<T>>::Type;
+			using Tuple = typename ReturnType<decltype(ToTuple<T>)>::Type;
 			auto converter = [file = file]<auto Index>()
 			{
 				constexpr auto start = DiskDataInternalOffset<Index, Tuple>::Offset;
-				using T = tuple_element<Index, Tuple>::type;
-				return ByteConverter<T>::ConvertFromByte(file, start);
+				using SubType = typename tuple_element<Index, Tuple>::type;
+				return ByteConverter<SubType>::ConvertFromByte(file, start);
 			};
 
-			return ConsT<T>(converter, make_index_sequence<tuple_size_v<decltype(tup)>>());
+			return ConsT<T>(converter, make_index_sequence<tuple_size_v<Tuple>>());
 		}
 	};
 
@@ -176,7 +175,8 @@ namespace FuncLib
 			auto arr = ByteConverter<decltype(size)>::ConvertToByte(size);
 			vector<byte> bytes{ arr.begin(), arr.end() };
 			bytes.reserve(size + arr.size());
-			copy(t.begin(), t.end(), bytes.end());
+			byte const *str = reinterpret_cast<byte const *>(t.c_str());
+			bytes.insert(bytes.end(), str, str + t.size());
 			return bytes;
 		}
 
@@ -184,8 +184,9 @@ namespace FuncLib
 		{
 			auto size = file->Read<size_t>(startInFile, sizeof(size_t));
 			auto contentStart = startInFile + sizeof(size_t);
-			auto chars = file->Read(contentStart, size);
-			return { chars.begin(), chars.end() };
+			auto bytes = file->Read(contentStart, size);
+			char* str = reinterpret_cast<char*>(bytes.data());
+			return { str, str + bytes.size() };
 		}
 	};
 
@@ -220,7 +221,7 @@ namespace FuncLib
 			constexpr auto unitSize = ByteConverter<T>::Size;
 			auto count = file->Read<decltype(Capacity)>(startInFile, sizeof(Capacity));
 			ThisType vec;
-			for (auto i = 0, offset = sizeof(Capacity); i < count; ++i, offset += unitSize)
+			for (size_t i = 0, offset = sizeof(Capacity); i < count; ++i, offset += unitSize)
 			{
 				vec.Add(ByteConverter<T>::ConvertFromByte(file, offset));
 			}
@@ -270,24 +271,24 @@ namespace FuncLib
 		}
 	};
 
-	template <typename Key, typename Value>
-	// BtreeOrder 3 not effect Item size
-	constexpr size_t ItemSize = sizeof(typename ByteConverter<Elements<Key, Value, 3>>::Item);
-	template <typename Key, typename Value>
-	constexpr size_t MidElementsItemSize = ItemSize<string, unique_ptr<>>; // TODO should read from converted Mid
-	template <typename Key, typename Value>
-	constexpr size_t LeafElementsItemSize = ItemSize<string, string>;
-	template <typename Key, typename Value>
-	constexpr size_t MidConstPartSize = ByteConverter<MiddleNode<Key, Value, 3>>::ConstPartSize;
-	template <typename Key, typename Value>
-	constexpr size_t LeafConstPartSize = ByteConverter<LeafNode<Key, Value, 3>>::ConstPartSize;
+	// template <typename Key, typename Value>
+	// // BtreeOrder 3 not effect Item size
+	// constexpr size_t ItemSize = sizeof(typename ByteConverter<Elements<Key, Value, 3>>::Item);
+	// template <typename Key, typename Value>
+	// constexpr size_t MidElementsItemSize = ItemSize<string, unique_ptr<>>; // TODO should read from converted Mid
+	// template <typename Key, typename Value>
+	// constexpr size_t LeafElementsItemSize = ItemSize<string, string>;
+	// template <typename Key, typename Value>
+	// constexpr size_t MidConstPartSize = ByteConverter<MiddleNode<Key, Value, 3>>::ConstPartSize;
+	// template <typename Key, typename Value>
+	// constexpr size_t LeafConstPartSize = ByteConverter<LeafNode<Key, Value, 3>>::ConstPartSize;
 
-	constexpr size_t constInMidNode = 4;
-	constexpr size_t constInLeafNode = 4;
-	template <typename Key, typename Value>
-	constexpr size_t BtreeOrder_Mid = (DiskBlockSize - MidConstPartSize<Key, Value>) / MidElementsItemSize<Key, Value>;
-	template <typename Key, typename Value>
-	constexpr size_t BtreeOrder_Leaf = (DiskBlockSize - LeafConstPartSize<Key, Value>) / LeafElementsItemSize<Key, Value>;
-	template <typename Key, typename Value>
-	constexpr size_t BtreeOrder = Min(BtreeOrder_Mid<Key, Value>, BtreeOrder_Leaf<Key, Value>);
+	// constexpr size_t constInMidNode = 4;
+	// constexpr size_t constInLeafNode = 4;
+	// template <typename Key, typename Value>
+	// constexpr size_t BtreeOrder_Mid = (DiskBlockSize - MidConstPartSize<Key, Value>) / MidElementsItemSize<Key, Value>;
+	// template <typename Key, typename Value>
+	// constexpr size_t BtreeOrder_Leaf = (DiskBlockSize - LeafConstPartSize<Key, Value>) / LeafElementsItemSize<Key, Value>;
+	// template <typename Key, typename Value>
+	// constexpr size_t BtreeOrder = Min(BtreeOrder_Mid<Key, Value>, BtreeOrder_Leaf<Key, Value>);
 }

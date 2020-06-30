@@ -14,7 +14,7 @@ namespace FuncLib
 	{
 	private:
 		friend struct ByteConverter<DiskPos>;// TODO pre declare no problem?
-		static map<size_t, shared_ptr<T>> _cache; // ÓÃ start Ó¦¸ÃÊÇÃ»ÊÂµÄ, if change, should delete
+		static map<size_t, shared_ptr<T>> _cache; // ï¿½ï¿½ start Ó¦ï¿½ï¿½ï¿½ï¿½Ã»ï¿½Âµï¿½, if change, should delete
 
 		shared_ptr<File> _file;
 		size_t _start;
@@ -24,7 +24,7 @@ namespace FuncLib
 
 		shared_ptr<T> ReadObject()
 		{
-			return ByteConverter::ConvertFromDiskData<T>(_file, _start);
+			return ByteConverter<T>::ConvertFromDiskData(_file, _start);
 			//if (!this->_cache.contains(_start))
 			//{
 			//	auto p = shared_ptr(CurrentFile::Read(_start, _size));
@@ -37,7 +37,7 @@ namespace FuncLib
 
 		void WriteObject(shared_ptr<T> entity)
 		{
-			// ÕâÀïÐèÒªµÝ¹éÐ´Èë×ÓÄÚÈÝÂð
+			// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ý¹ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			_file->Write(ByteConverter<T>::ConvertToByte(*entity));
 		}
 
