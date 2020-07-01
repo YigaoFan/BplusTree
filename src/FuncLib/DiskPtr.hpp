@@ -61,11 +61,11 @@ namespace FuncLib
 			return _tPtr;
 		}
 
-		bool operator!= ()
-		{
+		// bool operator!= ()
+		// {
 			// DiskPtr should support nullptr, compare to nullptr
 			// TODO how to overload
-		}
+		// }
 
 		operator T& () const
 		{
@@ -115,7 +115,7 @@ namespace FuncLib
 	class DiskPtr : public DiskPtrBase<T>
 	{
 	private:
-		friend struct ByteConverter<DiskPtr>;
+		friend struct ByteConverter<DiskPtr, false>;
 		using Base = DiskPtrBase<T>;
 	public:
 		using Base::Base;
@@ -123,9 +123,9 @@ namespace FuncLib
 		static DiskPtr<T> MakeDiskPtr(shared_ptr<T> entityPtr, shared_ptr<File> file)
 		{
 			size_t pos;
-			if constexpr (is_same_v<ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type, vector<byte>>)
+			if constexpr (is_same_v<typename ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type, vector<byte>>)
 			{
-				pos = file->Allocate(ByteConverter<T>::ConvertToByte(*entityPtr));
+				pos = file->Write<T>(ByteConverter<T>::ConvertToByte(*entityPtr));
 			}
 			else
 			{
@@ -136,10 +136,19 @@ namespace FuncLib
 		}
 
 		// this ptr can destory data on disk
-		DiskPtr(DiskPtr& const) = delete;
+		DiskPtr(DiskPtr const&) = delete;
+
 		WeakDiskPtr<T> GetWeakPtr()
 		{
+			throw 1;
+		}
 
+		void reset(DiskPtr ptr)
+		{
+			// release resource
+			this->_tPtr = move(ptr->_tPtr);
+			this->_pos = move(ptr->_pos);
+			this->_contentSetters = move(ptr->_contentSetters);
 		}
 	};
 }

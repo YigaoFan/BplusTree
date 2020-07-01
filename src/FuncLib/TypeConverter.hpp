@@ -7,6 +7,7 @@
 #include "../Btree/NodeBase.hpp"
 #include "../Btree/MiddleNode.hpp"
 #include "../Btree/LeafNode.hpp"
+#include "../Btree/Btree.hpp"
 #include "File.hpp"
 #include "ByteConverter.hpp"
 
@@ -32,7 +33,7 @@ namespace FuncLib
 		using To = T;
 
 		// file is not must use, only for string like
-		static Type ConvertFrom(T const& t, shared_ptr<File> file)
+		static To ConvertFrom(From const& t, shared_ptr<File> file)
 		{
 			return t;
 		}
@@ -70,9 +71,9 @@ namespace FuncLib
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
 			// TODO MiddleNode 中应该加一个参数为 elements 的构造函数
-			using Key = Key;// TODO
-			using Value = unique_ptr<NodeBase<Key, Value, Count, unique_ptr>>;
-			return { TypeConverter<Elements<Key, Value, Count>>::ConvertFrom(from._elements, file) };
+			using K = Key;// TODO
+			using V = unique_ptr<NodeBase<Key, Value, Count, unique_ptr>>;
+			return { TypeConverter<Elements<K, V, Count>>::ConvertFrom(from._elements, file) };
 		}
 	};
 
@@ -106,7 +107,7 @@ namespace FuncLib
 			else
 			{
 				using FromLeafNode = LeafNode<string, string, Count, unique_ptr>;
-				return make_shared<To>(TypeConverter<FromLeafNode>::ConvertFrom(static_cast<FromLeafNode const&>(*from), file);
+				return make_shared<To>(TypeConverter<FromLeafNode>::ConvertFrom(static_cast<FromLeafNode const&>(*from), file));
 			}
 		}
 	};

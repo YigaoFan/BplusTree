@@ -13,8 +13,8 @@ namespace FuncLib
 	class DiskPos
 	{
 	private:
-		friend struct ByteConverter<DiskPos>;// TODO pre declare no problem?
-		static map<size_t, shared_ptr<T>> _cache; // ï¿½ï¿½ start Ó¦ï¿½ï¿½ï¿½ï¿½Ã»ï¿½Âµï¿½, if change, should delete
+		friend struct ByteConverter<DiskPos, false>;
+		static map<size_t, shared_ptr<T>> _cache; // ÓÃ start Ó¦¸ÃÊÇÃ»ÊÂµÄ, if change, should delete
 
 		shared_ptr<File> _file;
 		size_t _start;
@@ -37,12 +37,10 @@ namespace FuncLib
 
 		void WriteObject(shared_ptr<T> entity)
 		{
-			// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ý¹ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-			_file->Write(ByteConverter<T>::ConvertToByte(*entity));
+			// ÕâÀïÐèÒªµÝ¹éÐ´Èë×ÓÄÚÈÝÂð
+			_file->Write<T>(ByteConverter<T>::ConvertToByte(*entity));
 		}
 
 		~DiskPos();
-
-	private:
 	};
 }

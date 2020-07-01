@@ -7,7 +7,7 @@ using ::std::string;
 
 TESTCASE("Byte converter test")
 {
-    
+    // TODO test ConvertFromByte
     auto i = 10;
     auto a = ByteConverter<int>::ConvertToByte(i);
     // auto n = ByteConverter<int>::ConvertToByte(); this file should be a interface, that just provide bytes and other functions

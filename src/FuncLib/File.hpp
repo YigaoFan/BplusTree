@@ -26,6 +26,13 @@ namespace FuncLib
 	constexpr uint32_t DiskBlockSize = 4096;
 	using pos_int = size_t;
 
+	template <typename T>
+	concept Reader = requires(T t)
+	{
+		t.Read();// TODO add arg 
+		t.Write();
+	};
+
 	// 这里其实不一定是文件，比如它可以存在另外一台机器上，通过网络通信来实现这样的效果
 	class File : public enable_shared_from_this<File>
 	{

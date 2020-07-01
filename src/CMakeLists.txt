@@ -25,4 +25,10 @@ add_executable(RPC
         Json/JsonConverter/WordEnumerator.cpp
         Json/JsonConverter/Test/StructParserTest.cpp
         Json/JsonConverter/Test/WordEnumeratorTest.cpp
+
+        FuncLib/File.cpp
+        FuncLib/Test/FileTest.cpp
+        #FuncLib/Test/DiskPtrTest.cpp
+        FuncLib/Test/ByteConverterTest.cpp
+        FuncLib/Test/TypeConverterTest.cpp
         )

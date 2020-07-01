@@ -1,6 +1,7 @@
 // extern void diskBtreeTest(bool executed);
 extern void fileTest(bool executed);
 extern void byteConverterTest(bool executed);
+extern void typeConverterTest(bool executed);
 
 namespace FuncLibTest
 {
@@ -9,5 +10,6 @@ namespace FuncLibTest
 		// diskBtreeTest(executed);
 		fileTest(executed);
 		byteConverterTest(executed);
+		typeConverterTest(executed);
 	}
 }
