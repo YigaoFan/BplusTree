@@ -22,11 +22,6 @@ namespace Collections
 		Previous,
 		Next,
 	};
-	enum Operation
-	{
-		Add,
-		Remove,
-	};
 
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
 	class NodeBase
@@ -57,6 +52,7 @@ namespace Collections
 		{ }
 		virtual void ResetShallowCallbackPointer()
 		{ }
+		virtual void LessThanPredicate(shared_ptr<LessThan<Key>>);
 		virtual unique_ptr<NodeBase> Clone() const = 0;
 		virtual ~NodeBase() = default;
 		virtual bool Middle() const = 0;
@@ -89,4 +85,10 @@ namespace Collections
 			return ChooseAddPosition(preCount, thisCount, nxtCount) == Position::Previous ? Position::Next : Position::Previous;
 		}
 	};
+}
+
+#define DEF_LESS_THAN_SETTER \
+void LessThanPredicate(shared_ptr<LessThan<Key>> lessThan) override\
+{\
+	_elements.LessThanPtr = lessThan;\
 }

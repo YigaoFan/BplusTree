@@ -53,6 +53,8 @@ namespace Collections
 
 		Ptr<Base> Clone() const override { return make_unique<LeafNode>(*this); }
 
+		DEF_LESS_THAN_SETTER
+
 		vector<Key> Keys() const override
 		{
 			return CollectKeys();

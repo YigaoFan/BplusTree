@@ -73,6 +73,11 @@ namespace FuncLib
 			return *_tPtr;
 		}
 
+		shared_ptr<File> GetFile() const
+		{
+			return _pos.GetFile();
+		}
+
 		~DiskPtrBase()
 		{
 			if (_tPtr != nullptr)
@@ -123,13 +128,14 @@ namespace FuncLib
 		static DiskPtr<T> MakeDiskPtr(shared_ptr<T> entityPtr, shared_ptr<File> file)
 		{
 			size_t pos;
+			// could delay allocate or write here?
 			if constexpr (is_same_v<typename ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type, vector<byte>>)
 			{
 				pos = file->Write<T>(ByteConverter<T>::ConvertToByte(*entityPtr));
 			}
 			else
 			{
-				pos = file->Allocate(ByteConverter<T>::Size);
+				pos = file->Allocate<T>(ByteConverter<T>::Size);
 			}
 
 			return { entityPtr, { file, pos } }; // 硬存大小分配只有这里

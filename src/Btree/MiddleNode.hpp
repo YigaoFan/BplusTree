@@ -84,6 +84,8 @@ namespace Collections
 			return make_unique<MiddleNode>(*this);
 		}
 
+		DEF_LESS_THAN_SETTER
+
 		void SetShallowCallbackPointer(typename Base::ShallowTreeCallback* shallowTreeCallbackPtr) override
 		{
 			_shallowTreeCallbackPtr = shallowTreeCallbackPtr;

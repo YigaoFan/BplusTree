@@ -32,20 +32,16 @@ namespace FuncLib
 			return DiskPtr<Entity>::MakeDiskPtr(make_shared<Entity>(TypeConverter<T>::ConvertFrom(btree, file)), file);
 		}
 
-		// file 里面的分配信息是不是要保存一下，只是读倒没有问题，写就有问题了
+		// need to save allocate info in file
 		static DiskPtr<Entity>
 		ReadTreeFrom(shared_ptr<File> file, shared_ptr<LessThan<Key>> lessThanPtr, size_t startOffset = 0)
 		{
 			auto p = DiskPtr<Entity>({ file, startOffset });
 			p.RegisterSetter([lessThanPtr = move(lessThanPtr)](Entity* treePtr)
 			{
-				treePtr->_lessThanPtr = lessThanPtr;
-				SetProperty(treePtr->_root, [lessThanPtr = lessThanPtr](typename Entity::Node* node)
-				{
-					node->_elements.LessThanPtr = lessThanPtr;
-				});
+				treePtr->LessThanPredicate(lessThanPtr);
 			});
-			// 这里还有个关键点是提供那几个回调
+
 			return p;
 		}
 	};

@@ -253,7 +253,6 @@ namespace Collections
 	private:
 		Btree(Ptr<Node> root, key_int keyCount) : _root(move(root)), _keyCount(keyCount)
 		{
-			// TODO set less than pointer in different level
 			this->SetRootCallbacks();
 		}
 
@@ -261,6 +260,7 @@ namespace Collections
 		void LessThanPredicate(decltype(_lessThanPtr) lessThanPtr)
 		{
 			_lessThanPtr = lessThanPtr;
+			SET_PROPERTY(_root, ->LessThanPredicate(lessThanPtr));
 		}
 
 		template <auto Total, auto Index, auto... Is>

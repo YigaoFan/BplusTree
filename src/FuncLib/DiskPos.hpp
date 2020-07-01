@@ -41,6 +41,11 @@ namespace FuncLib
 			_file->Write<T>(ByteConverter<T>::ConvertToByte(*entity));
 		}
 
+		shared_ptr<File> GetFile() const
+		{
+			return _file;
+		}
+
 		~DiskPos();
 	};
 }
