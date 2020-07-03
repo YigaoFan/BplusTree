@@ -33,12 +33,12 @@ namespace FuncLib
 		using ThisType = DiskPtr<T>;
 		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._pos)>::Size;
 
-		array<byte, Size> ConvertToByte(ThisType const& p)
+		static array<byte, Size> ConvertToByte(ThisType const& p)
 		{
 			return ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos);
 		}
 
-		ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
 			return ByteConverter<decltype(declval<ThisType>()._pos)>::ConvertFromByte(file, startInFile);
 		}
@@ -50,19 +50,19 @@ namespace FuncLib
 		using ThisType = WeakDiskPtr<T>;
 		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._pos)>::Size;
 
-		array<byte, Size> ConvertToByte(ThisType const& p)
+		static array<byte, Size> ConvertToByte(ThisType const& p)
 		{
 			return ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos);
 		}
 
-		// TODO ÏÂÃæÕâÖÖ²Ù×÷µÄ½Ó¿Ú¿ÉÄÜ»á¸Ä£¬ÒòÎª±¾À´¾ÍÊÇÀ´×Ô Pos µÄ²Ù×÷Âð
-		ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		// TODO ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö²ï¿½ï¿½ï¿½ï¿½Ä½Ó¿Ú¿ï¿½ï¿½Ü»ï¿½Ä£ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Pos ï¿½Ä²ï¿½ï¿½ï¿½ï¿½ï¿½
+		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
 			return ByteConverter<decltype(declval<ThisType>()._pos)>::ConvertFromByte(file, startInFile);
 		}
 	};
 
-	// Btree Òª¶ÔÁ½¸öÀà friend£¬ByteConverter ºÍ TypeConverter¡£ÆäËüÀàÀàËÆ
+	// Btree Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ friendï¿½ï¿½ByteConverter ï¿½ï¿½ TypeConverterï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	template <typename Key, typename Value, order_int Order>
 	struct ByteConverter<Btree<Order, Key, Value, DiskPtr>, false>
 	{
@@ -93,7 +93,7 @@ namespace FuncLib
 		using ThisType = MiddleNode<Key, Value, Count, DiskPtr>;
 		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._elements)>::Size;
 
-		static vector<byte> ConvertToByte(ThisType const& t)
+		static array<byte, Size> ConvertToByte(ThisType const& t)
 		{
 			return ByteConverter<decltype(t._elements)>::ConvertToByte(t._elements);
 		}
@@ -139,7 +139,7 @@ namespace FuncLib
 			vector<byte> bytes;
 			auto middle = node.Middle();
 			auto arr = ByteConverter<bool>::ConvertToByte(middle);
-			// copy »á×Ô¶¯À©³ä vector ÀïÃæµÄ size Âð£¬Ó¦¸Ã²»ÊÇÖ±½ÓÂã¿½°É
+			// copy ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ vector ï¿½ï¿½ï¿½ï¿½ï¿½ size ï¿½ï¿½Ó¦ï¿½Ã²ï¿½ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ã¿½ï¿½ï¿½
 			copy(arr.begin(), arr.end(), bytes.end());
 
 			if (middle)
@@ -156,7 +156,7 @@ namespace FuncLib
 			}
 		}
 
-		shared_ptr<ThisType> ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static shared_ptr<ThisType> ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
 			auto middle = file->Read<bool>(startInFile, sizeof(bool));
 			auto contentStart = startInFile + sizeof(middle);

@@ -9,7 +9,7 @@ namespace FuncLib
 	using ::std::declval;
 	using ::std::shared_ptr;
 
-	// 这里统一一下用的整数类型
+	// 锟斤拷锟斤拷统一一锟斤拷锟矫碉拷锟斤拷锟斤拷锟斤拷锟斤拷
 
 	template <typename T>
 	struct ByteConverter<DiskPos<T>, false>
@@ -18,12 +18,12 @@ namespace FuncLib
 		using Index = typename ThisType::Index;
 		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._start)>::Size;
 
-		array<byte, Size> ConvertToByte(ThisType const& p)
+		static array<byte, Size> ConvertToByte(ThisType const& p)
 		{
 			return ByteConverter<Index>::ConvertToByte(p._start);
 		}
 
-		ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
 			auto i = ByteConverter<Index>::ConvertFromByte(file, startInFile);
 			return ThisType(i);

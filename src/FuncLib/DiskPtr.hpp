@@ -20,6 +20,8 @@ namespace FuncLib
 	class DiskPtrBase
 	{
 	protected:
+		template <typename Ty>
+		friend class DiskPtrBase;
 		shared_ptr<T> _tPtr = nullptr; // TODO Cache
 		DiskPos<T> _pos;
 		vector<function<void(T*)>> _contentSetters;
@@ -58,7 +60,13 @@ namespace FuncLib
 		T* operator-> ()
 		{
 			ReadEntity();
-			return _tPtr;
+			return _tPtr.get();
+		}
+
+		T* get()
+		{
+			throw 1;
+			return _tPtr.get();// TODO maybe modify use place
 		}
 
 		// bool operator!= ()

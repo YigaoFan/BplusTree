@@ -209,7 +209,10 @@ namespace Collections
 		auto GetEnumerator() const { return CreateEnumerator(*this); }
 
 	private:
-		Elements() : Base()
+		Elements(LiteVector<pair<Key, Value>, order_int, BtreeOrder> base) : Base(move(base))
+		{ }
+		
+		Elements() : Base() // TODO check used?
 		{ }
 
 		void LessThanPredicate(shared_ptr<LessThan> lessThanPtr)

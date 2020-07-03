@@ -86,6 +86,10 @@ namespace Collections
 
 		DEF_LESS_THAN_SETTER
 
+		DEF_COPY_NODE
+
+		DEF_NEW_EMPTY_NODE
+		
 		void SetShallowCallbackPointer(typename Base::ShallowTreeCallback* shallowTreeCallbackPtr) override
 		{
 			_shallowTreeCallbackPtr = shallowTreeCallbackPtr;

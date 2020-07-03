@@ -92,3 +92,39 @@ void LessThanPredicate(shared_ptr<LessThan<Key>> lessThan) override\
 {\
 	_elements.LessThanPtr = lessThan;\
 }
+
+#define DEF_COPY_NODE                                                         \
+	static auto CopyNode(auto thisPtr)                                        \
+	{                                                                         \
+		using NodeType = remove_const_t<remove_pointer_t<decltype(thisPtr)>>; \
+                                                                              \
+		if constexpr (IsSpecialization<Ptr<int>, DiskPtr>::value)             \
+		{                                                                     \
+			using FuncLib::FileResource;                                      \
+			auto f = FileResource::GetCurrentThreadFile();                    \
+			auto node = make_shared<NodeType>(*thisPtr);                      \
+			return DiskPtr<NodeType>::MakeDiskPtr(node, f);                   \
+		}                                                                     \
+		else                                                                  \
+		{                                                                     \
+			return make_unique<NodeType>(*thisPtr);                           \
+		}                                                                     \
+	}
+
+#define DEF_NEW_EMPTY_NODE                                                    \
+	static auto NewEmptyNode(auto thisPtr)                                    \
+	{                                                                         \
+		using NodeType = remove_const_t<remove_pointer_t<decltype(thisPtr)>>; \
+                                                                              \
+		if constexpr (IsSpecialization<Ptr<int>, DiskPtr>::value)             \
+		{                                                                     \
+			using FuncLib::FileResource;                                      \
+			auto f = FileResource::GetCurrentThreadFile();                    \
+			auto n = make_shared<NodeType>(thisPtr->_elements.LessThanPtr);   \
+			return DiskPtr<NodeType>::MakeDiskPtr(n, f);                      \
+		}                                                                     \
+		else                                                                  \
+		{                                                                     \
+			return make_unique<NodeType>(thisPtr->_elements.LessThanPtr);     \
+		}                                                                     \
+	}

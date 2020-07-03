@@ -90,7 +90,7 @@ TESTCASE("Type converter test")
     {
         using Leaf = LeafNode<int, int, 4>;
         Leaf l(predPtr);
-        // auto c_l = TypeConverter<decltype(l)>::ConvertFrom(l, file);
+        auto c_l = TypeConverter<decltype(l)>::ConvertFrom(l, file);
     }
 
     SECTION("MiddleNode Convert")

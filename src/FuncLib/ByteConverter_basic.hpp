@@ -82,9 +82,7 @@ namespace FuncLib
 
 		static T ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
-			array<byte, sizeof(T)> raw = file->Read<T>(startInFile, sizeof(T));
-			T* p = reinterpret_cast<T*>(&raw);
-			return *p;
+			return file->Read<T>(startInFile, sizeof(T));
 		}
 	};
 
@@ -206,10 +204,10 @@ namespace FuncLib
 			auto c = vec.Count();
 			memcpy(&mem, &c, countSize);
 			// Items
-			// TODO count should be Capacity
 			for (auto i = 0; i < vec.Count(); ++i)
 			{
-				auto s = &ByteConverter<T>::ConvertToByte(vec[i]);
+				auto c = ByteConverter<T>::ConvertToByte(vec[i]);
+				auto s = &c;
 				auto d = &mem[i * unitSize + countSize];
 				memcpy(d, s, unitSize);
 			}
@@ -260,7 +258,7 @@ namespace FuncLib
 		using ThisType = Elements<Key, Value, Order>;
 		static constexpr size_t Size = ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::Size;
 
-		static array<byte, Size> ConvertToByte(ThisType& t)
+		static array<byte, Size> ConvertToByte(ThisType const& t)
 		{
 			return ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::ConvertToByte(t);
 		}

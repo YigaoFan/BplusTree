@@ -10,8 +10,8 @@
 #include "../FuncLib/FriendFuncLibDeclare.hpp"
 
 #include <type_traits>
+#include "../FuncLib/FileResource.hpp"
 #include "../Basic/TypeTrait.hpp"
-// #include "../FuncLib/ByteConverter.hpp"
 
 namespace Collections
 {
@@ -33,7 +33,8 @@ namespace Collections
 	{
 	private:
 		friend struct FuncLib::ByteConverter<LeafNode, false>;
-		friend struct FuncLib::TypeConverter<LeafNode, false>;
+		friend struct FuncLib::TypeConverter<LeafNode<Key, Value, BtreeOrder, unique_ptr>, false>;
+		friend struct FuncLib::TypeConverter<LeafNode<Key, Value, BtreeOrder, DiskPtr>, false>;
 		using _LessThan = LessThan<Key>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
 		Elements<Key, Value, BtreeOrder, _LessThan> _elements;// Key, Value type should change
@@ -61,31 +62,16 @@ namespace Collections
 
 		~LeafNode() override = default;
 
-		static auto CopyNode(auto nodePtr)
-		{
-			using Type = decay_t<decltype(nodePtr)>;
-			using NodeType = remove_const_t<remove_pointer_t<decltype(nodePtr)>>;
-
-			// if constexpr (IsSpecialization<Ptr<int>, DiskPtr>::value)
-			if constexpr (false)
-			{
-				// how to obtain file from this pointer
-				auto file = nodePtr.GetFile();
-				auto node = make_shared<NodeType>(*nodePtr);
-				return DiskPtr<NodeType>::MakeDiskPtr(node, file);
-			}
-			else
-			{
-				return make_unique<NodeType>(*nodePtr);
-			}
-		}
-
 		Ptr<Base> Clone() const override 
 		{
 			return CopyNode(this);
 		}
 
 		DEF_LESS_THAN_SETTER
+
+		DEF_COPY_NODE
+
+		DEF_NEW_EMPTY_NODE
 
 		vector<Key> Keys() const override
 		{
@@ -253,24 +239,22 @@ namespace Collections
 		}
 
 
-		// below will divide into part
-		static auto NewEmptyNode(auto& oldNodePtr)
-		{
-			using Type = decay_t<decltype(oldNodePtr)>;
-			using NodeType = remove_pointer_t<decltype(oldNodePtr)>;
 
-			if constexpr (IsSpecialization<Type, DiskPtr>::value)
-			{
-				auto file = oldNodePtr.GetFile();
-				auto node = make_shared<NodeType>(oldNodePtr->_elements.LessThanPtr);
-				return DiskPtr<NodeType>::MakeDiskPtr(node, file);
-			}
-			else
-			{
-				return make_unique<NodeType>(oldNodePtr->_elements.LessThanPtr);
-			}
-		}
+		// static auto NewEmptyNode(auto thisPtr)
+		// {
+		// 	using NodeType = remove_const_t<remove_pointer_t<decltype(thisPtr)>>;
 
-
+		// 	if constexpr (IsSpecialization<Ptr<int>, DiskPtr>::value)
+		// 	{
+		// 		using FuncLib::FileResource;
+		// 		auto f = FileResource::GetCurrentThreadFile();
+		// 		auto n = make_shared<NodeType>(thisPtr->_elements.LessThanPtr);
+		// 		return DiskPtr<NodeType>::MakeDiskPtr(n, f); // TODO don't have pre declare, no problem?
+		// 	}
+		// 	else
+		// 	{
+		// 		return make_unique<NodeType>(thisPtr->_elements.LessThanPtr);
+		// 	}
+		// }
 	};
 }

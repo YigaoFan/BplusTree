@@ -135,7 +135,7 @@ if (!next->_elements.Full())\
 goto ConsNewNode;\
 \
 ConsNewNode:\
-auto newNxtNode = make_unique<remove_pointer_t<decltype(this)>>(_elements.LessThanPtr);\
+auto newNxtNode = NewEmptyNode(this);\
 if constexpr (IS_LEAF)\
 {\
 	this->SetRelationWhileSplitNewNext(newNxtNode.get());\
