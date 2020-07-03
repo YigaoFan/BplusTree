@@ -19,13 +19,13 @@ namespace Collections
 	using ::std::function;
 	using ::Basic::IsSpecialization;
 
-	template <typename Key, typename Value, order_int BtreeOrder>
+	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
 	class NodeFactory
 	{
 	private:
-		using Node = NodeBase<Key, Value, BtreeOrder>;
-		using Leaf = LeafNode<Key, Value, BtreeOrder>;
-		using Middle = MiddleNode<Key, Value, BtreeOrder>;
+		using Node = NodeBase<Key, Value, BtreeOrder, Ptr>;
+		using Leaf = LeafNode<Key, Value, BtreeOrder, Ptr>;
+		using Middle = MiddleNode<Key, Value, BtreeOrder, Ptr>;
 		using _LessThan = LessThan<Key>;
 
 	public:

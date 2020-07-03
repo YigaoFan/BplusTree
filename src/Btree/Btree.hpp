@@ -106,7 +106,7 @@ namespace Collections
 		friend struct FuncLib::ByteConverter<Btree, false>; // Btree here is undefined or incomplete type
 		friend struct FuncLib::TypeConverter<Btree, false>;
 		using Node   = NodeBase<Key, Value, BtreeOrder>;
-		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder>;
+		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder, Ptr>;
 		typename Node::UpNodeAddSubNodeCallback _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
 		typename Node::UpNodeDeleteSubNodeCallback _deleteRootCallback = bind(&Btree::DeleteRootCallback, this, _1);
 		typename Node::MinKeyChangeCallback _minKeyChangeCallback = bind(&Btree::RootMinKeyChangeCallback, this, _1, _2);

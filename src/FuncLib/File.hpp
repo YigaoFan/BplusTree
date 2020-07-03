@@ -33,7 +33,7 @@ namespace FuncLib
 		t.Write();
 	};
 
-	// 这里其实不一定是文件，比如它可以存在另外一台机器上，通过网络通信来实现这样的效果
+	// 锟斤拷锟斤拷锟斤拷实锟斤拷一锟斤拷锟斤拷锟侥硷拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟皆达拷锟斤拷锟斤拷锟斤拷一台锟斤拷锟斤拷锟较ｏ拷通锟斤拷锟斤拷锟斤拷通锟斤拷锟斤拷实锟斤拷锟斤拷锟斤拷锟斤拷效锟斤拷
 	class File : public enable_shared_from_this<File>
 	{
 	private:
@@ -90,7 +90,7 @@ namespace FuncLib
 		}
 
 		// add a function to rewrite all object in disk memory to make reduce memory fragmentation
-
+		// need to save allocate info in file
 		void Deallocate(pos_int pos, size_t size)
 		{
 			Flush();
@@ -106,7 +106,7 @@ namespace FuncLib
 			return pos;
 		}
 
-		// vector 和 array 是不是应该写在不同的区，两个稳定程度不一样，array 变化还可以写在原地，除非析构了
+		// vector 锟斤拷 array 锟角诧拷锟斤拷应锟斤拷写锟节诧拷同锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟饺讹拷锟教度诧拷一锟斤拷锟斤拷array 锟戒化锟斤拷锟斤拷锟斤拷写锟斤拷原锟截ｏ拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷
 		template <typename T, auto Size>
 		pos_int Write(array<byte, Size> writeData)
 		{

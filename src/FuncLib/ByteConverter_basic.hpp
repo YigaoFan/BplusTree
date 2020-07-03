@@ -43,7 +43,7 @@ namespace FuncLib
 	using ::Collections::LiteVector;
 	using ::Collections::order_int;
 
-	// ÕâÀïÍ³Ò»Ò»ÏÂÓÃµÄÕûÊıÀàĞÍ
+	// ï¿½ï¿½ï¿½ï¿½Í³Ò»Ò»ï¿½ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
 	template <typename T>
 	struct ReturnType;
@@ -59,8 +59,8 @@ namespace FuncLib
 		return one > two ? one : two;
 	}
 
-	// ÕâÀïµÄËùÓĞÀàĞÍ¶¼ÊÇ Convert ºÃÁËµÄ£¬TypeConverter ºÍ ByteConverter ¹ı³ÌÖĞ¶¼ÓĞ¿ÉÄÜ·¢ÉúÓ²ÅÌ¿Õ¼äµÄ·ÖÅä£¬±ÈÈçÀàĞÍ×ª»»ÖĞµÄ string
-	// ĞèÒª±£Ö¤µÄÊÇ ByteConverter ¹ı³ÌÖĞ²»·¢ÉúÀàĞÍ×ª»»
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¶ï¿½ï¿½ï¿½ Convert ï¿½ï¿½ï¿½ËµÄ£ï¿½TypeConverter ï¿½ï¿½ ByteConverter ï¿½ï¿½ï¿½ï¿½ï¿½Ğ¶ï¿½ï¿½Ğ¿ï¿½ï¿½Ü·ï¿½ï¿½ï¿½Ó²ï¿½Ì¿Õ¼ï¿½Ä·ï¿½ï¿½ä£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ğµï¿½ string
+	// ï¿½ï¿½Òªï¿½ï¿½Ö¤ï¿½ï¿½ï¿½ï¿½ ByteConverter ï¿½ï¿½ï¿½ï¿½ï¿½Ğ²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½
 
 	template <typename T, bool = is_standard_layout_v<T> && is_trivial_v<T>>
 	struct ByteConverter;
@@ -106,7 +106,7 @@ namespace FuncLib
 	struct ByteConverter<T, false>
 	{
 		// static_assert(is_class_v<T>, "Only support class type");
-		// ÕâÀï T Ö¸µÄÊÇ¾ÛºÏÀàÂğ£¿
+		// ï¿½ï¿½ï¿½ï¿½ T Ö¸ï¿½ï¿½ï¿½Ç¾Ûºï¿½ï¿½ï¿½ï¿½ï¿½
 		static constexpr size_t Size = ConvertedByteSize<T>;
 
 		template <typename Ty, auto... Is>
@@ -165,7 +165,7 @@ namespace FuncLib
 		}
 	};
 
-	// string ²»ÄÜ±»Ç¶Ì×µ÷ÓÃ£¬ÒòÎª´óĞ¡²»¹Ì¶¨
+	// string ï¿½ï¿½ï¿½Ü±ï¿½Ç¶ï¿½×µï¿½ï¿½Ã£ï¿½ï¿½ï¿½Îªï¿½ï¿½Ğ¡ï¿½ï¿½ï¿½Ì¶ï¿½
 	template <>
 	struct ByteConverter<string>
 	{
@@ -206,6 +206,7 @@ namespace FuncLib
 			auto c = vec.Count();
 			memcpy(&mem, &c, countSize);
 			// Items
+			// TODO count should be Capacity
 			for (auto i = 0; i < vec.Count(); ++i)
 			{
 				auto s = &ByteConverter<T>::ConvertToByte(vec[i]);
@@ -245,7 +246,8 @@ namespace FuncLib
 		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
 			auto keySize = ByteConverter<Key>::Size;
-			return { 
+			return 
+			{ 
 				ByteConverter<Key>::ConvertFromByte(file, startInFile),
 				ByteConverter<Key>::ConvertFromByte(file, startInFile + keySize) 
 			};

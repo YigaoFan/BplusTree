@@ -9,8 +9,18 @@
 #include "NodeAddRemoveCommon.hpp"
 #include "../FuncLib/FriendFuncLibDeclare.hpp"
 
+#include <type_traits>
+#include "../Basic/TypeTrait.hpp"
+// #include "../FuncLib/ByteConverter.hpp"
+
 namespace Collections
 {
+	using ::std::make_shared;
+	using ::std::decay_t;
+	using ::std::remove_const_t;
+	using ::FuncLib::DiskPtr;
+	using ::Basic::IsSpecialization;
+
 	using ::std::move;
 	using ::std::make_unique;
 	using ::std::unique_ptr;
@@ -51,7 +61,29 @@ namespace Collections
 
 		~LeafNode() override = default;
 
-		Ptr<Base> Clone() const override { return make_unique<LeafNode>(*this); }
+		static auto CopyNode(auto nodePtr)
+		{
+			using Type = decay_t<decltype(nodePtr)>;
+			using NodeType = remove_const_t<remove_pointer_t<decltype(nodePtr)>>;
+
+			// if constexpr (IsSpecialization<Ptr<int>, DiskPtr>::value)
+			if constexpr (false)
+			{
+				// how to obtain file from this pointer
+				auto file = nodePtr.GetFile();
+				auto node = make_shared<NodeType>(*nodePtr);
+				return DiskPtr<NodeType>::MakeDiskPtr(node, file);
+			}
+			else
+			{
+				return make_unique<NodeType>(*nodePtr);
+			}
+		}
+
+		Ptr<Base> Clone() const override 
+		{
+			return CopyNode(this);
+		}
 
 		DEF_LESS_THAN_SETTER
 
@@ -219,5 +251,26 @@ namespace Collections
 		{
 			return _elements.ExchangeMax(move(item));
 		}
+
+
+		// below will divide into part
+		static auto NewEmptyNode(auto& oldNodePtr)
+		{
+			using Type = decay_t<decltype(oldNodePtr)>;
+			using NodeType = remove_pointer_t<decltype(oldNodePtr)>;
+
+			if constexpr (IsSpecialization<Type, DiskPtr>::value)
+			{
+				auto file = oldNodePtr.GetFile();
+				auto node = make_shared<NodeType>(oldNodePtr->_elements.LessThanPtr);
+				return DiskPtr<NodeType>::MakeDiskPtr(node, file);
+			}
+			else
+			{
+				return make_unique<NodeType>(oldNodePtr->_elements.LessThanPtr);
+			}
+		}
+
+
 	};
 }

@@ -25,10 +25,10 @@ namespace Collections
 	using ::std::placeholders::_2;
 	using ::Basic::NotImplementException;
 	using ::Basic::CompileIf;
-	using ::Basic::IsSpecialization;
+	using ::Basic::IsSpecialization;// PtrSetter use
 	using ::std::is_fundamental_v;
 
-	template <typename Key, typename Value, order_int BtreeOrder>
+	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr>
 	class NodeFactory;
 	// 最好把 MiddleNode 和 LeafNode 的构造与 Btree 隔绝起来，使用 NodeBase 来作用，顶多使用强制转型来调用一些函数
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
@@ -37,7 +37,7 @@ namespace Collections
 	private:
 		friend struct FuncLib::ByteConverter<MiddleNode, false>;
 		friend struct FuncLib::TypeConverter<MiddleNode, false>;
-		friend class NodeFactory<Key, Value, BtreeOrder>;
+		friend class NodeFactory<Key, Value, BtreeOrder, Ptr>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
 		using Leaf = LeafNode<Key, Value, BtreeOrder, Ptr>;
 		using StoredKey = typename CompileIf<is_fundamental_v<Key>, Key, reference_wrapper<Key const>>::Type;

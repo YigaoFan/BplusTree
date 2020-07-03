@@ -28,7 +28,7 @@ add_executable(RPC
 
         FuncLib/File.cpp
         FuncLib/Test/FileTest.cpp
-        #FuncLib/Test/DiskPtrTest.cpp
+        FuncLib/Test/DiskBtreeTest.cpp
         FuncLib/Test/ByteConverterTest.cpp
         FuncLib/Test/TypeConverterTest.cpp
         )

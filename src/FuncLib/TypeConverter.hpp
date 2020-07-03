@@ -27,7 +27,7 @@ namespace FuncLib
 	using ::Collections::Btree;
 
 	template <typename T, bool = is_standard_layout_v<T> && is_trivial_v<T>>// condition may change
-	struct TypeConverter// POD type
+	struct TypeConverter// default Converter
 	{
 		using From = T;
 		using To = T;
@@ -101,12 +101,12 @@ namespace FuncLib
 		{
 			if (from->Middle())
 			{
-				using FromMidNode = MiddleNode<string, string, Count, unique_ptr>;
+				using FromMidNode = MiddleNode<Key, Value, Count, unique_ptr>;
 				return make_shared<To>(TypeConverter<FromMidNode>::ConvertFrom(static_cast<FromMidNode const&>(*from), file));
 			}
 			else
 			{
-				using FromLeafNode = LeafNode<string, string, Count, unique_ptr>;
+				using FromLeafNode = LeafNode<Key, Value, Count, unique_ptr>;
 				return make_shared<To>(TypeConverter<FromLeafNode>::ConvertFrom(static_cast<FromLeafNode const&>(*from), file));
 			}
 		}

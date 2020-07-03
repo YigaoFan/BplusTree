@@ -27,7 +27,7 @@ namespace Collections
 	class NodeBase
 	{
 	public:
-		using UpNodeAddSubNodeCallback = function<void(NodeBase*, unique_ptr<NodeBase>)>;
+		using UpNodeAddSubNodeCallback = function<void(NodeBase*, Ptr<NodeBase>)>;
 		using UpNodeDeleteSubNodeCallback = function<void(NodeBase*)>;
 		using MinKeyChangeCallback = function<void(Key const&, NodeBase*)>;
 		using ShallowTreeCallback = function<void()>;
@@ -52,8 +52,8 @@ namespace Collections
 		{ }
 		virtual void ResetShallowCallbackPointer()
 		{ }
-		virtual void LessThanPredicate(shared_ptr<LessThan<Key>>);
-		virtual unique_ptr<NodeBase> Clone() const = 0;
+		virtual void LessThanPredicate(shared_ptr<LessThan<Key>>) = 0;
+		virtual Ptr<NodeBase> Clone() const = 0;
 		virtual ~NodeBase() = default;
 		virtual bool Middle() const = 0;
 		virtual vector<Key> Keys() const = 0;

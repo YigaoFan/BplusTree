@@ -5,7 +5,7 @@
 
 #define COLLECTIONS_TEST_SWITCH true
 #define JSON_TEST_SWITCH true
-#define FUNC_LIB_TEST_SWITCH false
+#define FUNC_LIB_TEST_SWITCH true
 
 #if COLLECTIONS_TEST_SWITCH
 #include "Btree/Test/TestSuite.hpp"

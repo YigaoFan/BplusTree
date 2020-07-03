@@ -22,22 +22,21 @@ namespace FuncLib
 	class BtreeConverter
 	{
 	private:
-		using Entity = Btree<Order, Key, Value, DiskPtr>;
+		using Converted = Btree<Order, Key, Value, DiskPtr>;
 
 	public:
-		static DiskPtr<Entity>
+		static DiskPtr<Converted>
 		ConvertToDisk(Btree<Order, Key, Value, unique_ptr> const& btree, shared_ptr<File> file)
 		{
 			using T = Btree<Order, Key, Value, unique_ptr>;
-			return DiskPtr<Entity>::MakeDiskPtr(make_shared<Entity>(TypeConverter<T>::ConvertFrom(btree, file)), file);
+			return DiskPtr<Converted>::MakeDiskPtr(make_shared<Converted>(TypeConverter<T>::ConvertFrom(btree, file)), file);
 		}
 
-		// need to save allocate info in file
-		static DiskPtr<Entity>
+		static DiskPtr<Converted>
 		ReadTreeFrom(shared_ptr<File> file, shared_ptr<LessThan<Key>> lessThanPtr, size_t startOffset = 0)
 		{
-			auto p = DiskPtr<Entity>({ file, startOffset });
-			p.RegisterSetter([lessThanPtr = move(lessThanPtr)](Entity* treePtr)
+			auto p = DiskPtr<Converted>({ file, startOffset });
+			p.RegisterSetter([lessThanPtr = move(lessThanPtr)](Converted* treePtr)
 			{
 				treePtr->LessThanPredicate(lessThanPtr);
 			});
