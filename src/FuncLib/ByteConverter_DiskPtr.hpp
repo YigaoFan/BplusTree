@@ -13,19 +13,20 @@
 
 namespace FuncLib
 {
-	using ::std::declval;
-	using ::std::copy;
-	using ::std::vector;
-	using ::std::array;
-	using ::std::shared_ptr;
-	using ::std::byte;
-	using ::std::size_t;
-	using ::std::move;
-	using ::Collections::order_int;
 	using ::Collections::Btree;
-	using ::Collections::NodeBase;
 	using ::Collections::LeafNode;
 	using ::Collections::MiddleNode;
+	using ::Collections::NodeBase;
+	using ::Collections::order_int;
+	using ::std::array;
+	using ::std::byte;
+	using ::std::copy;
+	using ::std::declval;
+	using ::std::make_shared;
+	using ::std::move;
+	using ::std::shared_ptr;
+	using ::std::size_t;
+	using ::std::vector;
 
 	template <typename T>
 	struct ByteConverter<DiskPtr<T>, false>
@@ -163,11 +164,11 @@ namespace FuncLib
 
 			if (middle)
 			{
-				return ByteConverter<MidNode>::ConvertFromByte(file, contentStart);
+				return make_shared<MidNode>(ByteConverter<MidNode>::ConvertFromByte(file, contentStart));
 			}
 			else
 			{
-				return ByteConverter<LeafNode>::ConvertFromByte(file, contentStart);
+				return make_shared<LeafNode>(ByteConverter<LeafNode>::ConvertFromByte(file, contentStart));
 			}
 		}
 	};

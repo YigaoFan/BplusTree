@@ -105,7 +105,8 @@ namespace Collections
 		friend class UniversalEnumerator<BtreeOrder, Key, Value>;
 		friend struct FuncLib::ByteConverter<Btree, false>; // Btree here is undefined or incomplete type
 		friend struct FuncLib::TypeConverter<Btree, false>;
-		using Node   = NodeBase<Key, Value, BtreeOrder>;
+		friend struct FuncLib::TypeConverter<Btree<BtreeOrder, Key, Value, unique_ptr>, false>;
+		using Node   = NodeBase<Key, Value, BtreeOrder, Ptr>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder, Ptr>;
 		typename Node::UpNodeAddSubNodeCallback _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
 		typename Node::UpNodeDeleteSubNodeCallback _deleteRootCallback = bind(&Btree::DeleteRootCallback, this, _1);
@@ -251,7 +252,7 @@ namespace Collections
 		}
 
 	private:
-		Btree(Ptr<Node> root, key_int keyCount) : _root(move(root)), _keyCount(keyCount)
+		Btree(key_int keyCount, Ptr<Node> root) : _root(move(root)), _keyCount(keyCount)
 		{
 			this->SetRootCallbacks();
 		}

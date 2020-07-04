@@ -6,18 +6,18 @@
 #include "Enumerator.hpp"
 #include "LeafNode.hpp"
 #include "MiddleNode.hpp"
+#include "../FuncLib/FileResource.hpp"
 #include "../Basic/TypeTrait.hpp"
 
 namespace Collections
 {
+	using ::Basic::IsSpecialization;
+	using ::std::function;
+	using ::std::make_unique;
 	using ::std::move;
+	using ::std::remove_reference_t;
 	using ::std::shared_ptr;
 	using ::std::unique_ptr;
-	using ::std::make_unique;
-	using ::std::unique_ptr;
-	using ::std::remove_reference_t;
-	using ::std::function;
-	using ::Basic::IsSpecialization;
 
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
 	class NodeFactory
@@ -29,27 +29,39 @@ namespace Collections
 		using _LessThan = LessThan<Key>;
 
 	public:
-		template <bool LeafCons=true, typename... Ts>
-		static unique_ptr<Node> MakeNode(Enumerator<Ts...> enumerator, shared_ptr<_LessThan> lessThan)
+		template <typename... Ts>
+		static Ptr<Node> MakeNode(Enumerator<Ts...> enumerator, shared_ptr<_LessThan> lessThan)
 		{
 			// remove_reference_t sometimes not very good
-			if constexpr (IsSpecialization<remove_reference_t<typename Enumerator<Ts...>::ValueType>, unique_ptr>::value)
+			using T = remove_reference_t<typename Enumerator<Ts...>::ValueType>;
+
+			if constexpr (IsSpecialization<Ptr<int>, DiskPtr>::value)
 			{
-				return make_unique<Middle>(enumerator, lessThan);
+				using FuncLib::FileResource;
+				auto f = FileResource::GetCurrentThreadFile();
+				auto node = make_shared<Middle>(enumerator, lessThan);
+				return DiskPtr<Middle>::MakeDiskPtr(node, f);// TODO maybe should handle leaf cons, too
 			}
 			else
 			{
-				return make_unique<Leaf>(enumerator, lessThan);
+				if constexpr (IsSpecialization<T, unique_ptr>::value)
+				{
+					return make_unique<Middle>(enumerator, lessThan);
+				}
+				else
+				{
+					return make_unique<Leaf>(enumerator, lessThan);
+				}
 			}
 		}
 
-		static void TryShallow(unique_ptr<Node>& root, function<void()> rootChangeCallback)
+		static void TryShallow(Ptr<Node>& root, function<void()> rootChangeCallback)
 		{
 #define MID_CAST static_cast<Middle *>
 			if (root->Middle())
 			{
 				auto newRoot = MID_CAST(root.get())->HandleOverOnlySon();
-				*newRoot = move(*root);
+				// *newRoot = move(*root);
 				if (newRoot->Middle())
 				{
 					auto newMidRoot = MID_CAST(newRoot.get());

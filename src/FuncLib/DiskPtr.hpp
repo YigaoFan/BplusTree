@@ -33,12 +33,29 @@ namespace FuncLib
 		DiskPtrBase(DiskPos<T> pos) : _pos(pos)
 		{ }
 
+		DiskPtrBase(DiskPtrBase&& that)
+			: _tPtr(that._tPtr), _pos(that._pos)
+		{
+			that._tPtr = nullptr;
+		}
+
+		DiskPtrBase& operator= (DiskPtrBase const &that)
+		{
+			throw 1;
+		}
+
+		DiskPtrBase& operator= (DiskPtrBase&& that) noexcept
+		{
+			return *this;
+		}
+
 		// TODO test
 		template <typename Derive, typename = enable_if_t<is_base_of_v<T, Derive>>>
 		DiskPtrBase(DiskPtrBase<Derive>&& deriveOne)
 			: _tPtr(deriveOne._tPtr), _pos(deriveOne._pos)
 		{ }
 		
+
 		void RegisterSetter(function<void(T*)> setter)
 		{
 			if (_tPtr == nullptr)
@@ -53,17 +70,17 @@ namespace FuncLib
 
 		T& operator* ()
 		{
-			ReadEntity();
+			ReadEntity();// TODO this function internal has compile problem?
 			return *_tPtr;
 		}
 
-		T* operator-> ()
+		T* operator-> () const
 		{
-			ReadEntity();
+			// ReadEntity(); TODO modify
 			return _tPtr.get();
 		}
 
-		T* get()
+		T* get() const
 		{
 			throw 1;
 			return _tPtr.get();// TODO maybe modify use place
@@ -75,11 +92,11 @@ namespace FuncLib
 			// TODO how to overload
 		// }
 
-		operator T& () const
-		{
-			ReadEntity();
-			return *_tPtr;
-		}
+		// operator T& () const
+		// {
+		// 	ReadEntity();
+		// 	return *_tPtr;
+		// }
 
 		shared_ptr<File> GetFile() const
 		{
@@ -151,6 +168,22 @@ namespace FuncLib
 
 		// this ptr can destory data on disk
 		DiskPtr(DiskPtr const&) = delete;
+
+		DiskPtr& operator= (DiskPtr const &that)
+		{
+			throw 1;
+		}
+
+		DiskPtr& operator= (DiskPtr&& that) noexcept
+		{
+			return *this;
+		}
+
+		DiskPtr(DiskPtr&& that)
+			: Base(move(that))
+		{
+
+		}
 
 		WeakDiskPtr<T> GetWeakPtr()
 		{

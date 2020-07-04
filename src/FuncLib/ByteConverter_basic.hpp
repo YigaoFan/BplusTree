@@ -244,11 +244,9 @@ namespace FuncLib
 		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
 			auto keySize = ByteConverter<Key>::Size;
-			return 
-			{ 
-				ByteConverter<Key>::ConvertFromByte(file, startInFile),
-				ByteConverter<Key>::ConvertFromByte(file, startInFile + keySize) 
-			};
+			auto k = ByteConverter<Key>::ConvertFromByte(file, startInFile);
+			auto v = ByteConverter<Key>::ConvertFromByte(file, startInFile + keySize);
+			return { move(k), move(v) };
 		}
 	};
 

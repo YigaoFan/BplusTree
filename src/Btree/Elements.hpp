@@ -27,7 +27,8 @@ namespace Collections
 	{
 	public:
 		friend struct FuncLib::ByteConverter<Elements, false>;
-		friend struct FuncLib::TypeConverter<Elements, false>;
+		template <typename T, bool>
+		friend struct FuncLib::TypeConverter;
 		using Item = pair<Key, Value>;
 		using Base = LiteVector<Item, order_int, BtreeOrder>;
 		shared_ptr<LessThan> LessThanPtr;
@@ -211,9 +212,8 @@ namespace Collections
 	private:
 		Elements(LiteVector<pair<Key, Value>, order_int, BtreeOrder> base) : Base(move(base))
 		{ }
-		
-		Elements() : Base() // TODO check used?
-		{ }
+
+		Elements() : Base() { }
 
 		void LessThanPredicate(shared_ptr<LessThan> lessThanPtr)
 		{

@@ -34,7 +34,6 @@ namespace Collections
 	private:
 		friend struct FuncLib::ByteConverter<LeafNode, false>;
 		friend struct FuncLib::TypeConverter<LeafNode<Key, Value, BtreeOrder, unique_ptr>, false>;
-		friend struct FuncLib::TypeConverter<LeafNode<Key, Value, BtreeOrder, DiskPtr>, false>;
 		using _LessThan = LessThan<Key>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
 		Elements<Key, Value, BtreeOrder, _LessThan> _elements;// Key, Value type should change

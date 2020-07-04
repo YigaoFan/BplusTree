@@ -15,6 +15,8 @@ TESTCASE("Type converter test")
     auto lessThan = [](int const &a, int const &b) { return a < b; };
     auto predPtr = make_shared<LessThan<int>>(lessThan);
 
+    // c_x means converted_x
+
     SECTION("Basic type Convert")
     {
         auto i = 3;
@@ -95,14 +97,16 @@ TESTCASE("Type converter test")
 
     SECTION("MiddleNode Convert")
     {
-    }
-
-    SECTION("NodeBase Convert")
-    {
+        using Middle = MiddleNode<int, int, 4>;
+        Middle m(predPtr);
+        auto c_l = TypeConverter<decltype(m)>::ConvertFrom(m, file);
     }
 
     SECTION("Btree Convert")
     {
+        using Tree = Btree<4, int, int>;
+        Tree t(lessThan);
+        auto c_t = TypeConverter<decltype(t)>::ConvertFrom(t, file);
     }
 }
 

@@ -1,3 +1,4 @@
+#pragma once
 #include <memory>
 #include "File.hpp"
 #include "../Basic/Exception.hpp"

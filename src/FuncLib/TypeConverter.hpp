@@ -70,8 +70,7 @@ namespace FuncLib
 
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
-			// TODO MiddleNode 中应该加一个参数为 elements 的构造函数
-			using K = Key;// TODO
+			using K = Key;
 			using V = unique_ptr<NodeBase<Key, Value, Count, unique_ptr>>;
 			return { TypeConverter<Elements<K, V, Count>>::ConvertFrom(from._elements, file) };
 		}
@@ -102,12 +101,14 @@ namespace FuncLib
 			if (from->Middle())
 			{
 				using FromMidNode = MiddleNode<Key, Value, Count, unique_ptr>;
-				return make_shared<To>(TypeConverter<FromMidNode>::ConvertFrom(static_cast<FromMidNode const&>(*from), file));
+				using ToMidNode = MiddleNode<Key, Value, Count, DiskPtr>;
+				return make_shared<ToMidNode>(TypeConverter<FromMidNode>::ConvertFrom(static_cast<FromMidNode const &>(*from), file));
 			}
 			else
 			{
 				using FromLeafNode = LeafNode<Key, Value, Count, unique_ptr>;
-				return make_shared<To>(TypeConverter<FromLeafNode>::ConvertFrom(static_cast<FromLeafNode const&>(*from), file));
+				using ToLeafNode = LeafNode<Key, Value, Count, DiskPtr>;
+				return make_shared<ToLeafNode>(TypeConverter<FromLeafNode>::ConvertFrom(static_cast<FromLeafNode const &>(*from), file));
 			}
 		}
 	};
@@ -120,7 +121,8 @@ namespace FuncLib
 
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
-			return To::MakeDiskPtr(TypeConverter<From>::ConvertFrom(from.get(), file), file);
+			auto p = from.get();
+			return To::MakeDiskPtr(TypeConverter<typename From::element_type>::ConvertFrom(p, file), file);
 		}
 	};
 
@@ -132,7 +134,6 @@ namespace FuncLib
 
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
-			// TODO Btree 中应该加一个这样的构造函数
 			return
 			{ 
 				from._keyCount, 

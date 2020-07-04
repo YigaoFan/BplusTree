@@ -36,7 +36,7 @@ namespace Collections
 	{
 	private:
 		friend struct FuncLib::ByteConverter<MiddleNode, false>;
-		friend struct FuncLib::TypeConverter<MiddleNode, false>;
+		friend struct FuncLib::TypeConverter<MiddleNode<Key, Value, BtreeOrder, unique_ptr>, false>;
 		friend class NodeFactory<Key, Value, BtreeOrder, Ptr>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
 		using Leaf = LeafNode<Key, Value, BtreeOrder, Ptr>;
@@ -81,7 +81,7 @@ namespace Collections
 			// If mark copy constructor private, this method cannot compile pass
 			// In make_unique internal will call MiddleNode copy constructor,
 			// but it doesn't have access
-			return make_unique<MiddleNode>(*this);
+			return CopyNode(this);
 		}
 
 		DEF_LESS_THAN_SETTER
@@ -89,7 +89,7 @@ namespace Collections
 		DEF_COPY_NODE
 
 		DEF_NEW_EMPTY_NODE
-		
+
 		void SetShallowCallbackPointer(typename Base::ShallowTreeCallback* shallowTreeCallbackPtr) override
 		{
 			_shallowTreeCallbackPtr = shallowTreeCallbackPtr;
@@ -343,7 +343,7 @@ namespace Collections
 			}
 		}
 
-		void SetSubNodeCallback(bool middle, Ptr<Base> const& node)
+		void SetSubNodeCallback(bool middle, Ptr<Base>& node)
 		{
 			SET_PROPERTY(node, ->SetUpNodeCallback(&_addSubNodeCallback, &_deleteSubNodeCallback, &_minKeyChangeCallback));
 
