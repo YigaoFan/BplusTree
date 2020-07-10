@@ -7,14 +7,15 @@
 
 namespace FuncLib
 {
-	using ::std::move;
-	using ::std::is_same_v;
-	using ::std::vector;
-	using ::std::function;
-	using ::std::shared_ptr;
 	using ::std::enable_if_t;
+	using ::std::function;
 	using ::std::is_base_of_v;
-	using ::std::remove_cvref_t;// decay?
+	using ::std::is_same_v;
+	using ::std::move;
+	using ::std::remove_const_t;
+	using ::std::remove_cvref_t; // decay?
+	using ::std::shared_ptr;
+	using ::std::vector;
 
 	template <typename T>
 	class DiskPtrBase
@@ -22,9 +23,9 @@ namespace FuncLib
 	protected:
 		template <typename Ty>
 		friend class DiskPtrBase;
-		shared_ptr<T> _tPtr = nullptr; // TODO Cache
-		DiskPos<T> _pos;
-		vector<function<void(T*)>> _contentSetters;
+		mutable shared_ptr<T> _tPtr = nullptr; // TODO Cache
+		mutable DiskPos<T> _pos; // TODO mutable maybe has problem
+		mutable vector<function<void(T*)>> _contentSetters;
 
 	public:
 		DiskPtrBase(shared_ptr<T> tPtr, DiskPos<T> pos) : _tPtr(tPtr), _pos(pos)
@@ -41,7 +42,15 @@ namespace FuncLib
 
 		DiskPtrBase& operator= (DiskPtrBase const &that)
 		{
-			throw 1;
+			this->_tPtr = that._tPtr;
+			this->_pos = that._pos;
+			if (!_contentSetters.empty())
+			{
+				// TODO do something
+			}
+
+			this->_contentSetters = that._contentSetters;
+			return *this;
 		}
 
 		DiskPtrBase& operator= (DiskPtrBase&& that) noexcept
@@ -76,13 +85,20 @@ namespace FuncLib
 
 		T* operator-> () const
 		{
-			// ReadEntity(); TODO modify
+			ReadEntity();
+			return _tPtr.get();
+		}
+
+		T* operator-> ()
+		{
+			ReadEntity();
 			return _tPtr.get();
 		}
 
 		T* get() const
 		{
-			throw 1;
+			// throw 1;
+			ReadEntity();
 			return _tPtr.get();// TODO maybe modify use place
 		}
 
@@ -107,11 +123,11 @@ namespace FuncLib
 		{
 			if (_tPtr != nullptr)
 			{
-				_pos.WriteObject(_tPtr);
+				_pos.WriteObject(_tPtr);// TODO judge if already write
 			}
 		}
 	private:
-		void ReadEntity()
+		void ReadEntity() const
 		{
 			if (_tPtr == nullptr)
 			{
@@ -156,7 +172,8 @@ namespace FuncLib
 			// could delay allocate or write here?
 			if constexpr (is_same_v<typename ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type, vector<byte>>)
 			{
-				pos = file->Write<T>(ByteConverter<T>::ConvertToByte(*entityPtr));
+				auto d = ByteConverter<T>::ConvertToByte(*entityPtr);
+				pos = file->Allocate<T>(d.size());
 			}
 			else
 			{
@@ -169,13 +186,15 @@ namespace FuncLib
 		// this ptr can destory data on disk
 		DiskPtr(DiskPtr const&) = delete;
 
-		DiskPtr& operator= (DiskPtr const &that)
+		DiskPtr& operator= (DiskPtr const& that)
 		{
-			throw 1;
+			Base::operator =(that);
+			return *this;
 		}
 
 		DiskPtr& operator= (DiskPtr&& that) noexcept
 		{
+			Base::operator =(that);
 			return *this;
 		}
 
@@ -185,10 +204,10 @@ namespace FuncLib
 
 		}
 
-		WeakDiskPtr<T> GetWeakPtr()
-		{
-			throw 1;
-		}
+		// WeakDiskPtr<T> GetWeakPtr()
+		// {
+		// 	throw 1;
+		// }
 
 		void reset(DiskPtr ptr)
 		{
