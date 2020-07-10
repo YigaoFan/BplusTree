@@ -20,21 +20,22 @@
 
 namespace Collections
 {
-	using ::std::function;
+	using ::Basic::InvalidOperationException;
+	using ::Basic::KeyNotFoundException;
+	using ::std::adjacent_find;
 	using ::std::array;
-	using ::std::pair;
+	using ::std::function;
+	using ::std::index_sequence;
+	using ::std::make_index_sequence;
 	using ::std::make_pair;
-	using ::std::vector;
-	using ::std::sort;
-	using ::std::unique_ptr;
 	using ::std::make_shared;
 	using ::std::make_unique;
-	using ::std::size_t;
 	using ::std::move;
-	using ::std::make_index_sequence;
-	using ::std::index_sequence;
-	using ::Basic::KeyNotFoundException;
-	using ::Basic::InvalidOperationException;
+	using ::std::pair;
+	using ::std::size_t;
+	using ::std::sort;
+	using ::std::unique_ptr;
+	using ::std::vector;
 	using ::std::placeholders::_1;
 	using ::std::placeholders::_2;
 
@@ -128,15 +129,23 @@ namespace Collections
 			// 而且反正 pairArray 是在成功的情况下是要复制的，
 			// 这个构造函数这也要复制，不如构造函数传引用，排序算法确定不重复的情况下，就直接复制到堆上
 			// 可以确定好几个后一起构造
-			sort(keyValueArray.begin(), keyValueArray.end(),
-				 [&](const auto& p1, const auto& p2)
+			// 去重？TODO
+			auto less = [&](auto const& p1, auto const& p2)
 			{
 				return lessThan(p1.first, p2.first);
-			});
+			};
 
-			if (Key* dupKeyPtr; DuplicateIn(keyValueArray, lessThan, dupKeyPtr))
+			sort(keyValueArray.begin(), keyValueArray.end(), less);
+
+			auto equal = [&](auto const& p1, auto const& p2)
 			{
-				throw DuplicateKeyException(move(*dupKeyPtr), "Duplicate key in constructor keyValueArray");
+				return less(p1, p2) == less(p2, p1);
+			};
+
+			auto last = adjacent_find(keyValueArray.begin(), keyValueArray.end(), equal);
+			if (last != keyValueArray.end())
+			{
+				throw DuplicateKeyException(move(last->first), "Duplicate key in constructor keyValueArray");
 			}
 
 			ConstructFromLeafToRoot(move(keyValueArray));
@@ -309,7 +318,7 @@ namespace Collections
 			return ConsNodeInArrayImp(move(src), move(lessThan), make_index_sequence<GetNodeCount<Count, BtreeOrder>()>());
 		}
 
-		template <bool FirstCall=true, typename T, size_t Count>
+		template <typename T, size_t Count>
 		void ConstructFromLeafToRoot(array<T, Count> ItemsToConsNode)
 		{
 			if constexpr (Count <= BtreeOrder)
@@ -319,28 +328,7 @@ namespace Collections
 				return;
 			}
 
-			ConstructFromLeafToRoot<false>(move(ConsNodeInArray(move(ItemsToConsNode), _lessThanPtr)));
-		}
-
-		template <size_t Count>
-		static bool DuplicateIn(array<pair<Key, Value>, Count>& sortedPairArray, 
-								_LessThan const& lessThan, Key* & duplicateKey)
-		{
-			auto& array = sortedPairArray;
-			if constexpr (Count > 1)
-			{
-				for (decltype(Count) i = 1; i < Count; ++i)
-				{
-					if (lessThan(array[i].first, array[i - 1].first) == lessThan(array[i - 1].first, array[i].first))
-					{
-						duplicateKey = &array[i].first;
-						return true;
-					}
-				}
-			}
-
-			duplicateKey = nullptr;
-			return false;
+			ConstructFromLeafToRoot(move(ConsNodeInArray(move(ItemsToConsNode), _lessThanPtr)));
 		}
 
 		void SetRootCallbacks()
@@ -354,8 +342,8 @@ namespace Collections
 		{
 			// TODO Assert the srcNode == _root when debug
 			_root->ResetShallowCallbackPointer();
-			array<Ptr<Node>, 2> nodes { move(_root), move(newNextNode) }; // TODO have average?
-			_root = NodeFactoryType::MakeNode(CreateEnumerator(nodes), _lessThanPtr);
+			array<Ptr<Node>, 2> nodes { move(_root), move(newNextNode) }; // TODO have average node count between nodes?
+			_root = NodeFactoryType::MakeNode(CreateEnumerator(nodes), _lessThanPtr);// TODO remove _lessThanPtr
 			SetRootCallbacks();
 		}
 
