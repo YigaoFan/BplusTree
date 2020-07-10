@@ -61,7 +61,6 @@ namespace Collections
 			if (root->Middle())
 			{
 				auto newRoot = MID_CAST(root.get())->HandleOverOnlySon();
-				// *newRoot = move(*root);
 				if (newRoot->Middle())
 				{
 					auto newMidRoot = MID_CAST(newRoot.get());
@@ -71,7 +70,7 @@ namespace Collections
 				}
 
 				root = move(newRoot);
-				rootChangeCallback();
+				rootChangeCallback(); // set btree call back here
 #undef MID_CAST
 			}
 		}

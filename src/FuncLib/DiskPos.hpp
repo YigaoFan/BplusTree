@@ -7,6 +7,7 @@
 namespace FuncLib
 {
 	using ::std::enable_if_t;
+	using ::std::is_abstract_v;
 	using ::std::is_base_of_v;
 	using ::std::make_shared;
 	using ::std::map;
@@ -20,7 +21,7 @@ namespace FuncLib
 		friend struct ByteConverter<DiskPos, false>;
 		template <typename Ty>
 		friend class DiskPos;
-		static map<size_t, shared_ptr<T>> _cache; // ÓÃ start Ó¦¸ÃÊÇÃ»ÊÂµÄ, if change, should delete
+		static map<size_t, shared_ptr<T>> _cache; // ï¿½ï¿½ start Ó¦ï¿½ï¿½ï¿½ï¿½Ã»ï¿½Âµï¿½, if change, should delete
 
 		shared_ptr<File> _file;
 		size_t _start;
@@ -31,13 +32,20 @@ namespace FuncLib
 		{ }
 
 		template <typename Derive, typename = enable_if_t<is_base_of_v<T, Derive>>>
-		DiskPos(DiskPos<Derive> const& that)
-			: _file(that._file), _start(that._start)
+		DiskPos(DiskPos<Derive> const& that) : _file(that._file), _start(that._start)
 		{ }
 
 		shared_ptr<T> ReadObject()
 		{
-			return make_shared<T>(ByteConverter<T>::ConvertFromByte(_file, _start));// TODO right in all type?
+			if constexpr (is_abstract_v<T>)
+			{
+				return ByteConverter<T>::ConvertFromByte(_file, _start); // ConvertFromByte need to ensure return a shared_ptr
+			}
+			else
+			{
+				return make_shared<T>(ByteConverter<T>::ConvertFromByte(_file, _start));
+			}
+			
 			//if (!this->_cache.contains(_start))
 			//{
 			//	auto p = shared_ptr(CurrentFile::Read(_start, _size));
@@ -50,7 +58,7 @@ namespace FuncLib
 
 		void WriteObject(shared_ptr<T> entity)
 		{
-			// ÕâÀïÐèÒªµÝ¹éÐ´Èë×ÓÄÚÈÝÂð
+			// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ý¹ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			_file->Write<T>(ByteConverter<T>::ConvertToByte(*entity));
 		}
 

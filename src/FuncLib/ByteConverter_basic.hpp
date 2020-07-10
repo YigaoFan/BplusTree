@@ -245,7 +245,7 @@ namespace FuncLib
 		{
 			auto keySize = ByteConverter<Key>::Size;
 			auto k = ByteConverter<Key>::ConvertFromByte(file, startInFile);
-			auto v = ByteConverter<Key>::ConvertFromByte(file, startInFile + keySize);
+			auto v = ByteConverter<Value>::ConvertFromByte(file, startInFile + keySize);
 			return { move(k), move(v) };
 		}
 	};

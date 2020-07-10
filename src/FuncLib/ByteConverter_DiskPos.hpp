@@ -26,7 +26,7 @@ namespace FuncLib
 		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
 			auto i = ByteConverter<Index>::ConvertFromByte(file, startInFile);
-			return ThisType(i);
+			return { file, i };
 		}
 	};
 }
