@@ -15,18 +15,34 @@
 
 namespace Collections
 {
-	using ::std::make_shared;
-	using ::std::decay_t;
-	using ::std::remove_const_t;
-	using ::FuncLib::DiskPtr;
 	using ::Basic::IsSpecialization;
-
-	using ::std::move;
-	using ::std::make_unique;
-	using ::std::unique_ptr;
-	using ::std::remove_pointer_t;
+	using ::FuncLib::DiskPtr;
+	using ::FuncLib::TypeConverter;
 	using ::std::back_inserter;
-	using ::Basic::NotImplementException;
+	using ::std::make_shared;
+	using ::std::make_unique;
+	using ::std::move;
+	using ::std::remove_const_t;
+	using ::std::remove_pointer_t;
+	using ::std::unique_ptr;
+
+	template <template <typename...> class Ptr>
+	constexpr bool IsDisk = IsSpecialization<Ptr<int>, DiskPtr>::value;
+
+	template <bool IsDisk, typename Ty>
+	struct DataType;
+
+	template <typename Ty>
+	struct DataType<true, Ty>
+	{
+		using T = typename TypeConverter<Ty>::To; 
+	};
+
+	template <typename Ty>
+	struct DataType<false, Ty>
+	{
+		using T = Ty;
+	};
 
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
 	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Ptr>
@@ -36,14 +52,13 @@ namespace Collections
 		friend struct FuncLib::TypeConverter<LeafNode<Key, Value, BtreeOrder, unique_ptr>, false>;
 		using _LessThan = LessThan<Key>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
-		Elements<Key, Value, BtreeOrder, _LessThan> _elements;// Key, Value type should change
+		Elements<typename DataType<IsDisk<Ptr>, Key>::T, typename DataType<IsDisk<Ptr>, Value>::T, BtreeOrder, _LessThan> _elements;
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
 	public:
 		bool Middle() const override { return false; }
 
-		LeafNode(shared_ptr<_LessThan> lessThan)
-			: Base(), _elements(lessThan)
+		LeafNode(shared_ptr<_LessThan> lessThan) : Base(), _elements(lessThan)
 		{ }
 
 		template <typename Iterator>
@@ -236,24 +251,5 @@ namespace Collections
 		{
 			return _elements.ExchangeMax(move(item));
 		}
-
-
-
-		// static auto NewEmptyNode(auto thisPtr)
-		// {
-		// 	using NodeType = remove_const_t<remove_pointer_t<decltype(thisPtr)>>;
-
-		// 	if constexpr (IsSpecialization<Ptr<int>, DiskPtr>::value)
-		// 	{
-		// 		using FuncLib::FileResource;
-		// 		auto f = FileResource::GetCurrentThreadFile();
-		// 		auto n = make_shared<NodeType>(thisPtr->_elements.LessThanPtr);
-		// 		return DiskPtr<NodeType>::MakeDiskPtr(n, f); // TODO don't have pre declare, no problem?
-		// 	}
-		// 	else
-		// 	{
-		// 		return make_unique<NodeType>(thisPtr->_elements.LessThanPtr);
-		// 	}
-		// }
 	};
 }

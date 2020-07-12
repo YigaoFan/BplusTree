@@ -8,7 +8,7 @@ namespace FuncLib
 
 	template <typename T, bool>
 	struct ByteConverter;
-	template <typename T, bool>
+	template <typename T, bool = is_standard_layout_v<T> && is_trivial_v<T>>
 	struct TypeConverter;
 	// For PtrSetter
 	template <typename T>

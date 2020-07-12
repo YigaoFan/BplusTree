@@ -26,8 +26,8 @@ namespace FuncLib
 	using ::Collections::MiddleNode;
 	using ::Collections::Btree;
 
-	template <typename T, bool = is_standard_layout_v<T> && is_trivial_v<T>>// condition may change
-	struct TypeConverter// default Converter
+	template <typename T, bool> // default value not declare here don't have problem? No problem, because include LeafNode up.
+	struct TypeConverter
 	{
 		using From = T;
 		using To = T;
@@ -60,7 +60,7 @@ namespace FuncLib
 		}
 	};
 
-	// 然后是 DiskVer 的对象转换成硬盘数据的操作，然后写入硬盘数据，就成了 DiskPtr 了
+	// 然锟斤拷锟斤拷 DiskVer 锟侥讹拷锟斤拷转锟斤拷锟斤拷硬锟斤拷锟斤拷锟捷的诧拷锟斤拷锟斤拷然锟斤拷写锟斤拷硬锟斤拷锟斤拷锟捷ｏ拷锟酵筹拷锟斤拷 DiskPtr 锟斤拷
 
 	template <typename Key, typename Value, order_int Count>
 	struct TypeConverter<MiddleNode<Key, Value, Count, unique_ptr>, false>
@@ -79,13 +79,13 @@ namespace FuncLib
 	template <typename Key, typename Value, order_int Count>
 	struct TypeConverter<LeafNode<Key, Value, Count, unique_ptr>, false>
 	{
-		// "类型是一种约定"，所以数据成员都不一样了，肯定不是同一种类型
+		// "锟斤拷锟斤拷锟斤拷一锟斤拷约锟斤拷"锟斤拷锟斤拷锟斤拷锟斤拷锟捷筹拷员锟斤拷锟斤拷一锟斤拷锟剿ｏ拷锟较讹拷锟斤拷锟斤拷同一锟斤拷锟斤拷锟斤拷
 		using From = LeafNode<Key, Value, Count, unique_ptr>;
 		using To = LeafNode<Key, Value, Count, DiskPtr>;
 
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
-			// TODO LeafNode 中应该加一个参数为 elements 的构造函数
+			// TODO LeafNode 锟斤拷应锟矫硷拷一锟斤拷锟斤拷锟斤拷为 elements 锟侥癸拷锟届函锟斤拷
 			return { TypeConverter<Elements<Key, Value, Count>>::ConvertFrom(from._elements, file) };
 		}
 	};
@@ -148,7 +148,7 @@ namespace FuncLib
 		using From = string;
 		using To = DiskPtr<string>;
 
-		// 这里的操作感觉很神奇，到底我这个程序是怎么实现的
+		// 锟斤拷锟斤拷牟锟斤拷锟斤拷芯锟斤拷锟斤拷锟斤拷妫拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷么实锟街碉拷
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
 			return To::MakeDiskPtr(make_shared<string>(from), file);

@@ -23,7 +23,6 @@ namespace Collections
 	using ::std::bind;
 	using ::std::placeholders::_1;
 	using ::std::placeholders::_2;
-	using ::Basic::NotImplementException;
 	using ::Basic::CompileIf;
 	using ::Basic::IsSpecialization;// PtrSetter use
 	using ::std::is_fundamental_v;
@@ -49,13 +48,12 @@ namespace Collections
 		function<MiddleNode *(MiddleNode const*)> _queryPrevious = [](auto) { return nullptr; };
 		function<MiddleNode *(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
 		using _LessThan = LessThan<Key>;
-		Elements<StoredKey, Ptr<Base>, BtreeOrder, _LessThan> _elements;
+		Elements<typename DataType<IsDisk<Ptr>, StoredKey>::T, typename DataType<IsDisk<Ptr>, Ptr<Base>>::T, BtreeOrder, _LessThan> _elements;
 
 	public:
 		bool Middle() const override { return true; }
 
-		MiddleNode(shared_ptr<_LessThan> lessThanPtr)
-			: Base(), _elements(lessThanPtr)
+		MiddleNode(shared_ptr<_LessThan> lessThanPtr) : Base(), _elements(lessThanPtr)
 		{ }	
 
 		MiddleNode(IEnumerator<Ptr<Base>&>& enumerator, shared_ptr<_LessThan> lessThanPtr)

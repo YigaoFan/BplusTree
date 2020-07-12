@@ -108,11 +108,11 @@ namespace FuncLib
 			// TODO how to overload
 		// }
 
-		// operator T& () const
-		// {
-		// 	ReadEntity();
-		// 	return *_tPtr;
-		// }
+		bool operator< (DiskPtrBase const& that) const
+		{
+			// TODO
+			static_assert(true, "T type must can compare by <");
+		}
 
 		shared_ptr<File> GetFile() const
 		{
