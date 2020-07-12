@@ -250,10 +250,10 @@ namespace FuncLib
 		}
 	};
 
-	template <typename Key, typename Value, order_int Order>
-	struct ByteConverter<Elements<Key, Value, Order>, false>
+	template <typename Key, typename Value, order_int Order, typename LessThan>
+	struct ByteConverter<Elements<Key, Value, Order, LessThan>, false>
 	{
-		using ThisType = Elements<Key, Value, Order>;
+		using ThisType = Elements<Key, Value, Order, LessThan>;
 		static constexpr size_t Size = ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::Size;
 
 		static array<byte, Size> ConvertToByte(ThisType const& t)
@@ -264,7 +264,6 @@ namespace FuncLib
 		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
 			// Each type should have a constructor of all data member to easy set
-			// TODO Check each constructor
 			return ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::ConvertFromByte(file, startInFile);
 		}
 	};

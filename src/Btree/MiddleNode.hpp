@@ -17,15 +17,12 @@ namespace Collections
 {
 	using ::std::move;
 	using ::std::unique_ptr;
-	using ::std::reference_wrapper;
 	using ::std::pair;
 	using ::std::make_pair;
 	using ::std::bind;
 	using ::std::placeholders::_1;
 	using ::std::placeholders::_2;
-	using ::Basic::CompileIf;
 	using ::Basic::IsSpecialization;// PtrSetter use
-	using ::std::is_fundamental_v;
 
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr>
 	class NodeFactory;
@@ -39,7 +36,6 @@ namespace Collections
 		friend class NodeFactory<Key, Value, BtreeOrder, Ptr>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
 		using Leaf = LeafNode<Key, Value, BtreeOrder, Ptr>;
-		using StoredKey = typename CompileIf<is_fundamental_v<Key>, Key, reference_wrapper<Key const>>::Type;
 		// TODO maybe below two item could be pointer, then entity stored in its' parent like Btree do
 		typename Base::UpNodeAddSubNodeCallback _addSubNodeCallback = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
 		typename Base::UpNodeDeleteSubNodeCallback _deleteSubNodeCallback = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
@@ -48,7 +44,8 @@ namespace Collections
 		function<MiddleNode *(MiddleNode const*)> _queryPrevious = [](auto) { return nullptr; };
 		function<MiddleNode *(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
 		using _LessThan = LessThan<Key>;
-		Elements<typename DataType<IsDisk<Ptr>, StoredKey>::T, typename DataType<IsDisk<Ptr>, Ptr<Base>>::T, BtreeOrder, _LessThan> _elements;
+		using StoredKey = typename DataType<IsDisk<Ptr>, true, Key>::T;
+		Elements<StoredKey, typename DataType<IsDisk<Ptr>, false, Ptr<Base>>::T, BtreeOrder, _LessThan> _elements;
 
 	public:
 		bool Middle() const override { return true; }

@@ -107,8 +107,6 @@ namespace FuncLib
 		}
 	};
 
-
-
 	template <typename Key, typename Value, order_int Count>
 	struct ByteConverter<LeafNode<Key, Value, Count, DiskPtr>, false>
 	{

@@ -146,12 +146,12 @@ namespace FuncLib
 	struct TypeConverter<string>
 	{
 		using From = string;
-		using To = DiskPtr<string>;
+		using To = DiskRef<string>;
 
 		// ����Ĳ����о������棬�����������������ôʵ�ֵ�
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
-			return To::MakeDiskPtr(make_shared<string>(from), file);
+			return DiskPtr<From>::MakeDiskPtr(make_shared<From>(from), file);
 		}
 	};
 }

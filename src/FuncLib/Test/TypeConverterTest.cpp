@@ -95,30 +95,30 @@ TESTCASE("Type converter test")
     {
         using Leaf = LeafNode<int, int, 4>;
         Leaf l(intPredPtr);
-        // auto c_l = TypeConverter<decltype(l)>::ConvertFrom(l, file);
+        auto c_l = TypeConverter<decltype(l)>::ConvertFrom(l, file);
     }
 
     SECTION("Int-int MiddleNode Convert")
     {
         using Middle = MiddleNode<int, int, 4>;
         Middle m(intPredPtr);
-        // auto c_l = TypeConverter<decltype(m)>::ConvertFrom(m, file);
+        auto c_l = TypeConverter<decltype(m)>::ConvertFrom(m, file);
     }
 
     SECTION("Int-int Btree Convert")
     {
         using Tree = Btree<4, int, int>;
         Tree t(intLessThan);
-        // auto c_t = TypeConverter<decltype(t)>::ConvertFrom(t, file);
+        auto c_t = TypeConverter<decltype(t)>::ConvertFrom(t, file);
     }
 
     // compare function and elements type need change
-    // SECTION("String-int LeafNode Convert")
-    // {
-    //     using Leaf = LeafNode<string, int, 4>;
-    //     Leaf l(strPredPtr);
-    //     auto c_l = TypeConverter<decltype(l)>::ConvertFrom(l, file);
-    // }
+    SECTION("String-int LeafNode Convert")
+    {
+        using Leaf = LeafNode<string, int, 4>;
+        Leaf l(strPredPtr);
+        auto c_l = TypeConverter<decltype(l)>::ConvertFrom(l, file);
+    }
 
     // SECTION("String-int MiddleNode Convert")
     // {

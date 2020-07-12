@@ -15,13 +15,16 @@
 
 namespace Collections
 {
+	using ::Basic::CompileIf;
 	using ::Basic::IsSpecialization;
 	using ::FuncLib::DiskPtr;
 	using ::FuncLib::TypeConverter;
 	using ::std::back_inserter;
+	using ::std::is_fundamental_v;
 	using ::std::make_shared;
 	using ::std::make_unique;
 	using ::std::move;
+	using ::std::reference_wrapper;
 	using ::std::remove_const_t;
 	using ::std::remove_pointer_t;
 	using ::std::unique_ptr;
@@ -29,19 +32,25 @@ namespace Collections
 	template <template <typename...> class Ptr>
 	constexpr bool IsDisk = IsSpecialization<Ptr<int>, DiskPtr>::value;
 
-	template <bool IsDisk, typename Ty>
+	template <bool IsDisk, bool RefUsable, typename Ty>
 	struct DataType;
 
-	template <typename Ty>
-	struct DataType<true, Ty>
+	template <typename Ty, bool RefUsable>
+	struct DataType<true, RefUsable, Ty>
 	{
 		using T = typename TypeConverter<Ty>::To; 
 	};
 
 	template <typename Ty>
-	struct DataType<false, Ty>
+	struct DataType<false, false, Ty>
 	{
 		using T = Ty;
+	};
+
+	template <typename Ty>
+	struct DataType<false, true, Ty>
+	{
+		using T = typename CompileIf<is_fundamental_v<Ty>, Ty, reference_wrapper<Ty const>>::Type;
 	};
 
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
@@ -52,7 +61,8 @@ namespace Collections
 		friend struct FuncLib::TypeConverter<LeafNode<Key, Value, BtreeOrder, unique_ptr>, false>;
 		using _LessThan = LessThan<Key>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
-		Elements<typename DataType<IsDisk<Ptr>, Key>::T, typename DataType<IsDisk<Ptr>, Value>::T, BtreeOrder, _LessThan> _elements;
+		using StoredKey = typename DataType<IsDisk<Ptr>, false, Key>::T;
+		Elements<StoredKey, typename DataType<IsDisk<Ptr>, false, Value>::T, BtreeOrder, _LessThan> _elements;
 		LeafNode* _next{ nullptr };
 		LeafNode* _previous{ nullptr };
 	public:
@@ -149,7 +159,24 @@ namespace Collections
 
 		vector<Key> SubNodeMinKeys() const override
 		{
-			return _elements.Keys();
+			using ::std::is_same_v;
+			if constexpr (is_same_v<StoredKey, Key>)
+			{
+				return _elements.Keys();
+			}
+			else
+			{
+				auto rawKeys = _elements.Keys();
+				auto c = _elements.Count();
+				vector<Key> ks;
+				ks.reserve(c);
+				for (auto i = 0; i < c; ++i)
+				{
+					ks.push_back(rawKeys[i]);
+				}
+
+				return ks;
+			}
 		}
 
 		vector<Base*> SubNodes() const override

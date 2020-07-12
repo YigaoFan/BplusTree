@@ -77,9 +77,16 @@ namespace FuncLib
 			}
 		}
 
+		// How to deal these operator
 		T& operator* ()
 		{
-			ReadEntity();// TODO this function internal has compile problem?
+			ReadEntity();
+			return *_tPtr;
+		}
+
+		T const& operator* () const
+		{
+			ReadEntity();
 			return *_tPtr;
 		}
 
@@ -97,7 +104,6 @@ namespace FuncLib
 
 		T* get() const
 		{
-			// throw 1;
 			ReadEntity();
 			return _tPtr.get();// TODO maybe modify use place
 		}
@@ -108,11 +114,11 @@ namespace FuncLib
 			// TODO how to overload
 		// }
 
-		bool operator< (DiskPtrBase const& that) const
-		{
-			// TODO
-			static_assert(true, "T type must can compare by <");
-		}
+		// bool operator< (DiskPtrBase const& that) const
+		// {
+		// 	// TODO
+		// 	static_assert(true, "T type must can compare by <");
+		// }
 
 		shared_ptr<File> GetFile() const
 		{
@@ -169,7 +175,6 @@ namespace FuncLib
 		static DiskPtr<T> MakeDiskPtr(shared_ptr<T> entityPtr, shared_ptr<File> file)
 		{
 			size_t pos;
-			// could delay allocate or write here?
 			if constexpr (is_same_v<typename ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type, vector<byte>>)
 			{
 				auto d = ByteConverter<T>::ConvertToByte(*entityPtr);
@@ -204,13 +209,14 @@ namespace FuncLib
 
 		}
 
-		// WeakDiskPtr<T> GetWeakPtr()
-		// {
-		// 	throw 1;
-		// }
+		DiskPtr GetPtr() const
+		{
+			return { this->_tPtr, this->_pos };
+		}
 
 		void reset(DiskPtr ptr)
 		{
+			// if (ptr == nullptr)
 			// release resource
 			this->_tPtr = move(ptr->_tPtr);
 			this->_pos = move(ptr->_pos);
