@@ -23,4 +23,13 @@ namespace Basic
 	{
 		using Type = B;
 	};
+
+	template <typename T>
+	struct ReturnType;
+
+	template <typename R, typename... Args>
+	struct ReturnType<R(Args...)>
+	{
+		using Type = R;
+	};
 }
