@@ -81,7 +81,8 @@
         "stack": "cpp",
         "cerrno": "cpp",
         "filesystem": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "__memory": "cpp"
     },
     "cmake.sourceDirectory": "${workspaceFolder}/src",
     "cmake.configureOnOpen": true
