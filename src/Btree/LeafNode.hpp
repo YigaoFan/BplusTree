@@ -7,51 +7,18 @@
 #include "Elements.hpp"
 #include "NodeBase.hpp"
 #include "NodeAddRemoveCommon.hpp"
-#include "../FuncLib/FriendFuncLibDeclare.hpp"
-
-#include <type_traits>
-#include "../FuncLib/FileResource.hpp"
 #include "../Basic/TypeTrait.hpp"
 
 namespace Collections
 {
-	using ::Basic::CompileIf;
-	using ::Basic::IsSpecialization;
-	using ::FuncLib::DiskPtr;
-	using ::FuncLib::TypeConverter;
+	using ::Basic::ReturnType;
 	using ::std::back_inserter;
-	using ::std::is_fundamental_v;
 	using ::std::make_shared;
 	using ::std::make_unique;
 	using ::std::move;
-	using ::std::reference_wrapper;
 	using ::std::remove_const_t;
 	using ::std::remove_pointer_t;
 	using ::std::unique_ptr;
-
-	template <template <typename...> class Ptr>
-	constexpr bool IsDisk = IsSpecialization<Ptr<int>, DiskPtr>::value;
-
-	template <bool IsDisk, bool RefUsable, typename Ty>
-	struct DataType;
-
-	template <typename Ty, bool RefUsable>
-	struct DataType<true, RefUsable, Ty>
-	{
-		using T = typename TypeConverter<Ty>::To; 
-	};
-
-	template <typename Ty>
-	struct DataType<false, false, Ty>
-	{
-		using T = Ty;
-	};
-
-	template <typename Ty>
-	struct DataType<false, true, Ty>
-	{
-		using T = typename CompileIf<is_fundamental_v<Ty>, Ty, reference_wrapper<Ty const>>::Type;
-	};
 
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
 	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Ptr>
@@ -102,7 +69,7 @@ namespace Collections
 			return CollectKeys();
 		}
 
-		Key const& MinKey() const override
+		typename DataType<IsDisk<Ptr>, true, Key>::T const MinKey() const override
 		{
 			return _elements[0].first;
 		}

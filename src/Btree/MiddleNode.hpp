@@ -45,7 +45,8 @@ namespace Collections
 		function<MiddleNode *(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
 		using _LessThan = LessThan<Key>;
 		using StoredKey = typename DataType<IsDisk<Ptr>, true, Key>::T;
-		Elements<StoredKey, typename DataType<IsDisk<Ptr>, false, Ptr<Base>>::T, BtreeOrder, _LessThan> _elements;
+		using StoredValue = typename DataType<IsDisk<Ptr>, false, Ptr<Base>>::T;
+		Elements<StoredKey, StoredValue, BtreeOrder, _LessThan> _elements;
 
 	public:
 		bool Middle() const override { return true; }
@@ -109,7 +110,7 @@ namespace Collections
 			return _elements.PopOut().second;
 		}
 
-		Key const& MinKey() const override
+		typename DataType<IsDisk<Ptr>, true, Key>::T const MinKey() const override
 		{
 			return _elements[0].first;
 		}
@@ -171,7 +172,7 @@ namespace Collections
 			return subs;
 		}
 	private:
-		MiddleNode(decltype(_elements) elements) : Base(), _elements(move(elements))// TODO less than?
+		MiddleNode(decltype(_elements) elements) : Base(), _elements(move(elements))
 		{
 			SetSubNode();
 		}

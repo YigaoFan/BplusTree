@@ -7,20 +7,54 @@
 #include <memory>
 #include <functional>
 #include <tuple>
+#include <type_traits>
 #include "Basic.hpp"
+#include "../FuncLib/FriendFuncLibDeclare.hpp"
+#include "../FuncLib/FileResource.hpp"
+#include "../Basic/TypeTrait.hpp"
 
 namespace Collections
 {
+	using ::Basic::CompileIf;
+	using ::Basic::IsSpecialization;
+	using ::FuncLib::DiskPtr;
+	using ::FuncLib::TypeConverter;
+	using ::std::function;
+	using ::std::is_fundamental_v;
+	using ::std::make_tuple;
 	using ::std::move;
+	using ::std::reference_wrapper;
 	using ::std::unique_ptr;
 	using ::std::vector;
-	using ::std::function;
-	using ::std::make_tuple;
 
 	enum Position
 	{
 		Previous,
 		Next,
+	};
+
+	template <template <typename...> class Ptr>
+	constexpr bool IsDisk = IsSpecialization<Ptr<int>, DiskPtr>::value;
+
+	template <bool IsDisk, bool RefUsable, typename Ty>
+	struct DataType;
+
+	template <typename Ty, bool RefUsable>
+	struct DataType<true, RefUsable, Ty>
+	{
+		using T = typename TypeConverter<Ty>::To;
+	};
+
+	template <typename Ty>
+	struct DataType<false, false, Ty>
+	{
+		using T = Ty;
+	};
+
+	template <typename Ty>
+	struct DataType<false, true, Ty>
+	{
+		using T = typename CompileIf<is_fundamental_v<Ty>, Ty, reference_wrapper<Ty const>>::Type;
 	};
 
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
@@ -57,7 +91,8 @@ namespace Collections
 		virtual ~NodeBase() = default;
 		virtual bool Middle() const = 0;
 		virtual vector<Key> Keys() const = 0;
-		virtual Key const& MinKey() const = 0;
+		// MiddleNode elements key type is same as below method return type
+		virtual typename DataType<IsDisk<Ptr>, true, Key>::T const MinKey() const = 0;
 		virtual bool ContainsKey(Key const&) const = 0;
 		virtual Value GetValue(Key const&) const = 0;
 		virtual void ModifyValue(Key const&, Value) = 0;

@@ -10,49 +10,42 @@
 #include "../Btree/Elements.hpp"
 #include "../Btree/LiteVector.hpp"
 #include "../Btree/Basic.hpp"
+#include "../Basic/TypeTrait.hpp"
 #include "File.hpp"
 #include "StructToTuple.hpp"
 
 namespace FuncLib
 {
-	using ::std::is_trivial_v;
-	using ::std::declval;
-	using ::std::is_standard_layout_v;
-	using ::std::memcpy;
-	using ::std::copy;
-	using ::std::vector;
-	using ::std::array;
-	using ::std::pair;
-	using ::std::string;
-	using ::std::shared_ptr;
-	using ::std::unique_ptr;
-	using ::std::make_shared;
-	using ::std::byte;
-	using ::std::size_t;
-	using ::std::is_class_v;
-	using ::std::forward;
-	using ::std::index_sequence;
-	using ::std::make_index_sequence;
-	using ::std::tuple;
-	using ::std::tuple_size_v;
-	using ::std::tuple_element;
-	using ::std::size;
-	using ::std::get;
-	using ::std::move;
+	using ::Basic::ReturnType;
 	using ::Collections::Elements;
 	using ::Collections::LiteVector;
 	using ::Collections::order_int;
+	using ::std::array;
+	using ::std::byte;
+	using ::std::copy;
+	using ::std::declval;
+	using ::std::forward;
+	using ::std::get;
+	using ::std::index_sequence;
+	using ::std::is_class_v;
+	using ::std::is_standard_layout_v;
+	using ::std::is_trivial_v;
+	using ::std::make_index_sequence;
+	using ::std::make_shared;
+	using ::std::memcpy;
+	using ::std::move;
+	using ::std::pair;
+	using ::std::shared_ptr;
+	using ::std::size;
+	using ::std::size_t;
+	using ::std::string;
+	using ::std::tuple;
+	using ::std::tuple_element;
+	using ::std::tuple_size_v;
+	using ::std::unique_ptr;
+	using ::std::vector;
 
 	// ����ͳһһ���õ���������
-
-	template <typename T>
-	struct ReturnType;
-
-	template <typename R, typename... Args>
-	struct ReturnType<R(Args...)>
-	{
-		using Type = R;
-	};
 
 	constexpr size_t Min(size_t one, size_t two)
 	{

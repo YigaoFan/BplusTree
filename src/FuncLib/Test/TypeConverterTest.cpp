@@ -11,6 +11,7 @@ using namespace std;
 
 TESTCASE("Type converter test")
 {
+    // Attention: File don't have valid value
     // TODO add TypeConvert::
     auto file = make_shared<File>("data");
     auto intLessThan = [](int const& a, int const& b) { return a < b; };
@@ -120,19 +121,19 @@ TESTCASE("Type converter test")
         auto c_l = TypeConverter<decltype(l)>::ConvertFrom(l, file);
     }
 
-    // SECTION("String-int MiddleNode Convert")
-    // {
-    //     using Middle = MiddleNode<string, int, 4>;
-    //     Middle m(strPredPtr);
-    //     auto c_l = TypeConverter<decltype(m)>::ConvertFrom(m, file);
-    // }
+    SECTION("String-int MiddleNode Convert")
+    {
+        using Middle = MiddleNode<string, int, 4>;
+        Middle m(strPredPtr);
+        auto c_l = TypeConverter<decltype(m)>::ConvertFrom(m, file);
+    }
 
-    // SECTION("String-int Btree Convert")
-    // {
-    //     using Tree = Btree<4, string, int>;
-    //     Tree t(strLessThan);
-    //     auto c_t = TypeConverter<decltype(t)>::ConvertFrom(t, file);
-    // }
+    SECTION("String-int Btree Convert")
+    {
+        using Tree = Btree<4, string, int>;
+        Tree t(strLessThan);
+        auto c_t = TypeConverter<decltype(t)>::ConvertFrom(t, file);
+    }
 }
 
 DEF_TEST_FUNC(typeConverterTest)

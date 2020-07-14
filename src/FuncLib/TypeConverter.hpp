@@ -3,28 +3,34 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <functional>
+#include "../Basic/TypeTrait.hpp"
 #include "../Btree/Elements.hpp"
 #include "../Btree/NodeBase.hpp"
 #include "../Btree/MiddleNode.hpp"
 #include "../Btree/LeafNode.hpp"
 #include "../Btree/Btree.hpp"
+#include "../Btree/EnumeratorPipeline.hpp"
 #include "File.hpp"
 #include "ByteConverter.hpp"
 
 namespace FuncLib
 {
-	using ::std::string;
-	using ::std::is_trivial_v;
-	using ::std::is_standard_layout_v;
-	using ::std::unique_ptr;
-	using ::std::shared_ptr;
-	using ::std::make_shared;
-	using ::Collections::order_int;
+	using ::Basic::ReturnType;
+	using ::Collections::Btree;
 	using ::Collections::Elements;
-	using ::Collections::NodeBase;
+	using ::Collections::EnumeratorPipeline;
 	using ::Collections::LeafNode;
 	using ::Collections::MiddleNode;
-	using ::Collections::Btree;
+	using ::Collections::NodeBase;
+	using ::Collections::order_int;
+	using ::std::declval;
+	using ::std::is_standard_layout_v;
+	using ::std::is_trivial_v;
+	using ::std::make_shared;
+	using ::std::shared_ptr;
+	using ::std::string;
+	using ::std::unique_ptr;
 
 	template <typename T, bool> // default value not declare here don't have problem? No problem, because include LeafNode up.
 	struct TypeConverter
@@ -39,11 +45,11 @@ namespace FuncLib
 		}
 	};
 
-	template <typename Key, typename Value, order_int Count>
-	struct TypeConverter<Elements<Key, Value, Count>, false>
+	template <typename Key, typename Value, order_int Count, typename LessThan>
+	struct TypeConverter<Elements<Key, Value, Count, LessThan>, false>
 	{
 		using From = Elements<Key, Value, Count>;
-		using To = Elements<typename TypeConverter<Key>::To, typename TypeConverter<Value>::To, Count>;
+		using To = Elements<typename TypeConverter<Key>::To, typename TypeConverter<Value>::To, Count, LessThan>;
 
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
@@ -60,19 +66,24 @@ namespace FuncLib
 		}
 	};
 
-	// Ȼ���� DiskVer �Ķ���ת����Ӳ�����ݵĲ�����Ȼ��д��Ӳ�����ݣ��ͳ��� DiskPtr ��
-
 	template <typename Key, typename Value, order_int Count>
 	struct TypeConverter<MiddleNode<Key, Value, Count, unique_ptr>, false>
 	{
 		using From = MiddleNode<Key, Value, Count, unique_ptr>;
 		using To = MiddleNode<Key, Value, Count, DiskPtr>;
 
+		static DiskPtr<NodeBase<Key, Value, Count, DiskPtr>> CloneNodeToDisk(typename decltype(declval<From>()._elements)::Item const& item, shared_ptr<File> file)
+		{
+			return TypeConverter<decltype(item.second)>::ConvertFrom(item.second, file);
+		}
+
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
-			using K = Key;
-			using V = unique_ptr<NodeBase<Key, Value, Count, unique_ptr>>;
-			return { TypeConverter<Elements<K, V, Count>>::ConvertFrom(from._elements, file) };
+			using Node = NodeBase<Key, Value, Count, DiskPtr>;
+			using ::std::placeholders::_1;
+			// using ::std::placeholders::_2;
+			auto nodes = EnumeratorPipeline<typename decltype(from._elements)::Item const&, DiskPtr<Node>>(from._elements.GetEnumerator(), bind(&CloneNodeToDisk, _1, file));
+			return { move(nodes), from._elements.LessThanPtr };
 		}
 	};
 
@@ -85,7 +96,6 @@ namespace FuncLib
 
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
-			// TODO LeafNode ��Ӧ�ü�һ������Ϊ elements �Ĺ��캯��
 			return { TypeConverter<Elements<Key, Value, Count>>::ConvertFrom(from._elements, file) };
 		}
 	};
@@ -94,36 +104,52 @@ namespace FuncLib
 	struct TypeConverter<NodeBase<Key, Value, Count, unique_ptr>, false>
 	{
 		using From = NodeBase<Key, Value, Count, unique_ptr>;
-		using To = NodeBase<Key, Value, Count, DiskPtr>;
+		using To = shared_ptr<NodeBase<Key, Value, Count, DiskPtr>>;
 
-		static shared_ptr<To> ConvertFrom(From const* from, shared_ptr<File> file)
+		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
-			if (from->Middle())
+			if (from.Middle())
 			{
 				using FromMidNode = MiddleNode<Key, Value, Count, unique_ptr>;
 				using ToMidNode = MiddleNode<Key, Value, Count, DiskPtr>;
-				return make_shared<ToMidNode>(TypeConverter<FromMidNode>::ConvertFrom(static_cast<FromMidNode const &>(*from), file));
+				return make_shared<ToMidNode>(TypeConverter<FromMidNode>::ConvertFrom(static_cast<FromMidNode const&>(from), file));
 			}
 			else
 			{
 				using FromLeafNode = LeafNode<Key, Value, Count, unique_ptr>;
 				using ToLeafNode = LeafNode<Key, Value, Count, DiskPtr>;
-				return make_shared<ToLeafNode>(TypeConverter<FromLeafNode>::ConvertFrom(static_cast<FromLeafNode const &>(*from), file));
+				return make_shared<ToLeafNode>(TypeConverter<FromLeafNode>::ConvertFrom(static_cast<FromLeafNode const&>(from), file));
 			}
 		}
 	};
 
-	template <typename Key, typename Value, order_int Count>
-	struct TypeConverter<unique_ptr<NodeBase<Key, Value, Count, unique_ptr>>, false>
+	template <typename T>
+	struct TypeConverter<unique_ptr<T>, false>
 	{
-		using From = unique_ptr<NodeBase<Key, Value, Count, unique_ptr>>;
-		using To = DiskPtr<NodeBase<Key, Value, Count, DiskPtr>>;
+		using From = unique_ptr<T>;
 
-		static To ConvertFrom(From const& from, shared_ptr<File> file)
+		static auto ConvertFrom(From const& from, shared_ptr<File> file)
 		{
 			auto p = from.get();
-			return To::MakeDiskPtr(TypeConverter<typename From::element_type>::ConvertFrom(p, file), file);
+			auto c = TypeConverter<T>::ConvertFrom(*p, file);
+
+			using ConvertedType = decltype(c);
+			using ::Basic::IsSpecialization;
+			if constexpr (IsSpecialization<ConvertedType, shared_ptr>::value)
+			{
+				return DiskPtr<typename ConvertedType::element_type>::MakeDiskPtr(c, file);
+			}
+			else if constexpr (IsSpecialization<ConvertedType, DiskPtr>::value)
+			{
+				return c;
+			}
+			else
+			{
+				return DiskPtr<ConvertedType>::MakeDiskPtr(make_shared<ConvertedType>(move(c)), file);
+			}
 		}
+
+		using To = typename ReturnType<decltype(TypeConverter::ConvertFrom)>::Type;
 	};
 
 	template <typename Key, typename Value, order_int Count>

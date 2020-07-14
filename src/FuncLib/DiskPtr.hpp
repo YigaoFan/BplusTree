@@ -34,11 +34,13 @@ namespace FuncLib
 		DiskPtrBase(DiskPos<T> pos) : _pos(pos)
 		{ }
 
-		DiskPtrBase(DiskPtrBase&& that)
-			: _tPtr(that._tPtr), _pos(that._pos)
+		DiskPtrBase(DiskPtrBase&& that) : _tPtr(that._tPtr), _pos(that._pos)
 		{
 			that._tPtr = nullptr;
 		}
+
+		DiskPtrBase(DiskPtrBase const& that) : _tPtr(that._tPtr), _pos(that._pos)
+		{ }
 
 		DiskPtrBase& operator= (DiskPtrBase const &that)
 		{
@@ -64,7 +66,6 @@ namespace FuncLib
 			: _tPtr(deriveOne._tPtr), _pos(deriveOne._pos)
 		{ }
 		
-
 		void RegisterSetter(function<void(T*)> setter)
 		{
 			if (_tPtr == nullptr)
