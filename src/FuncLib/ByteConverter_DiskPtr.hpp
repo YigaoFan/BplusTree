@@ -78,7 +78,8 @@ namespace FuncLib
 
 		static array<byte, Size> ConvertToByte(ThisType const& t)
 		{
-			return ByteConverter<DiskBtree>::ConvertToByte({ t._keyCount, t._root });
+			DiskBtree tr{ t._keyCount, t._root };
+			return ByteConverter<DiskBtree>::ConvertToByte(tr);
 		}
 
 		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
@@ -103,7 +104,7 @@ namespace FuncLib
 		{
 			using T = decltype(declval<ThisType>()._elements);
 			auto elements = ByteConverter<T>::ConvertFromByte(file, startInFile);
-			return { move(elements) };// provide LeafNode previous, next and callback inner
+			return { move(elements) };// TODO provide LeafNode previous, next and callback inner
 		}
 	};
 

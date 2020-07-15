@@ -115,7 +115,7 @@ namespace FuncLib
 
 		static auto ConvertToByte(T const& t)
 		{
-			auto tup = ToTuple(forward<T>(t));// TODO check forward use right?
+			auto tup = ToTuple(forward<T>(t));
 			return CombineEachConvert(tup, make_index_sequence<tuple_size_v<decltype(tup)>>());
 		}
 
@@ -156,7 +156,6 @@ namespace FuncLib
 		}
 	};
 
-	// string ���ܱ�Ƕ�׵��ã���Ϊ��С���̶�
 	template <>
 	struct ByteConverter<string>
 	{
