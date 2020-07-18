@@ -82,7 +82,10 @@
         "cerrno": "cpp",
         "filesystem": "cpp",
         "random": "cpp",
-        "__memory": "cpp"
+        "__memory": "cpp",
+        "clocale": "cpp",
+        "fstream": "cpp",
+        "numeric": "cpp"
     },
     "cmake.sourceDirectory": "${workspaceFolder}/src",
     "cmake.configureOnOpen": true
