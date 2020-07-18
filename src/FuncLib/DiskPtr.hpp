@@ -132,6 +132,7 @@ namespace FuncLib
 			{
 				_pos.WriteObject(_tPtr);// TODO judge if already write
 			}
+			// TODO handle _contentSetters
 		}
 	private:
 		void ReadEntity() const

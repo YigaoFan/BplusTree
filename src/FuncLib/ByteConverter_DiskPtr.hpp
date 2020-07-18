@@ -68,25 +68,25 @@ namespace FuncLib
 	struct ByteConverter<Btree<Order, Key, Value, DiskPtr>, false>
 	{
 		using ThisType = Btree<Order, Key, Value, DiskPtr>;
-		struct DiskBtree
-		{
-			decltype(declval<ThisType>()._keyCount) KeyCount;
-			decltype(declval<ThisType>()._root) Root;
-		};
 
-		static constexpr size_t Size = ByteConverter<DiskBtree>::Size;
-
-		static array<byte, Size> ConvertToByte(ThisType const& t)
+		static auto ConvertToByte(ThisType const& t)
 		{
-			DiskBtree tr{ t._keyCount, t._root };
-			return ByteConverter<DiskBtree>::ConvertToByte(tr);
+#define CONVERT_UNIT(OBJ) ByteConverter<decltype(OBJ)>::ConvertToByte(OBJ)
+			return CONVERT_UNIT(t._keyCount) + CONVERT_UNIT(t._root);
+#undef CONVERT_UNIT
 		}
 
 		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
-			auto t = ByteConverter<DiskBtree>::ConvertFromByte(file, startInFile);
-			return { t.KeyCount, move(t.Root) };// TODO set callback inner
+#define CONVERT_UNIT(PROPERTY) ByteConverter<decltype(declval<ThisType>().PROPERTY)>::ConvertFromByte(file, startInFile)
+			auto c = CONVERT_UNIT(_keyCount);
+			startInFile += ByteConverter<decltype(declval<ThisType>()._keyCount)>::Size;
+			auto r = CONVERT_UNIT(_root);
+			return { c, move(r) };// TODO set callback inner
+#undef CONVERT_UNIT
 		}
+
+		static constexpr size_t Size = ConvertedByteSize<ThisType>;
 	};
 
 	template <typename Key, typename Value, order_int Count>

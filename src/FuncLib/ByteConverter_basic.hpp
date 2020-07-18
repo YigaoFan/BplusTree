@@ -14,6 +14,31 @@
 #include "File.hpp"
 #include "StructToTuple.hpp"
 
+namespace std
+{
+	using ::std::array;
+	using ::std::index_sequence;
+	using ::std::make_index_sequence;
+
+	template <typename T, auto N1, auto... Is1, auto N2, auto... Is2>
+	array<T, N1 + N2> AddArray(array<T, N1> a1, index_sequence<Is1...>, array<T, N2> a2, index_sequence<Is2...>)
+	{
+		return {
+			move(a1[Is1])...,
+			move(a2[Is2])...,
+		};
+	}
+
+	// operator+ cannot be found if it's in FuncLib namespace, but in std OK
+	// maybe related to Argument Dependent Lookup
+	template <typename T, auto N1, auto N2>
+	array<T, N1 + N2> operator+ (array<T, N1> a1, array<T, N2> a2)
+	{
+		auto is1 = make_index_sequence<N1>();
+		auto is2 = make_index_sequence<N2>();
+		return AddArray(move(a1), is1, move(a2), is2);
+	}
+}
 namespace FuncLib
 {
 	using ::Basic::ReturnType;
@@ -35,6 +60,7 @@ namespace FuncLib
 	using ::std::memcpy;
 	using ::std::move;
 	using ::std::pair;
+	using ::std::remove_cvref_t;
 	using ::std::shared_ptr;
 	using ::std::size;
 	using ::std::size_t;
@@ -46,11 +72,10 @@ namespace FuncLib
 	using ::std::vector;
 
 	// ����ͳһһ���õ���������
-
-	constexpr size_t Min(size_t one, size_t two)
-	{
-		return one > two ? one : two;
-	}
+	// constexpr size_t Min(size_t one, size_t two)
+	// {
+	// 	return one > two ? one : two;
+	// }
 
 	// ������������Ͷ��� Convert ���˵ģ�TypeConverter �� ByteConverter �����ж��п��ܷ���Ӳ�̿ռ�ķ��䣬��������ת���е� string
 	// ��Ҫ��֤���� ByteConverter �����в���������ת��
@@ -59,7 +84,7 @@ namespace FuncLib
 	struct ByteConverter;
 
 	template <typename T>
-	constexpr size_t ConvertedByteSize = sizeof(ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type);
+	constexpr size_t ConvertedByteSize = sizeof(typename ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type);
 
 	template <typename T>
 	struct ByteConverter<T, true>
@@ -79,25 +104,10 @@ namespace FuncLib
 		}
 	};
 
-	template <typename T, auto N1, auto... Is1, auto N2, auto... Is2>
-	array<T, N1 + N2> AddArray(array<T, N1> a1, index_sequence<Is1...>, array<T, N2> a2, index_sequence<Is2...>)
-	{
-		return { move(a1[Is1])..., move(a2[Is2])..., };
-	}
-
-	template <typename T, auto N1, auto N2>
-	array<T, N1 + N2> operator+ (array<T, N1> a1, array<T, N2> a2)
-	{
-		auto is1 = make_index_sequence<N1>();
-		auto is2 = make_index_sequence<N2>();
-		return AddArray(move(a1), is1, move(a2), is2);
-	}
-
 	template <typename T>
 	struct ByteConverter<T, false>
 	{
 		// static_assert(is_class_v<T>, "Only support class type");
-		// ���� T ָ���Ǿۺ�����
 		static constexpr size_t Size = ConvertedByteSize<T>;
 
 		template <typename Ty, auto... Is>
@@ -107,7 +117,7 @@ namespace FuncLib
 			{
 				auto& i = get<Index>(tup);
 				// Should return array type
-				return ByteConverter<decltype(i)>::ConvertToByte(i);
+				return ByteConverter<remove_cvref_t<decltype(i)>>::ConvertToByte(i);
 			};
 
 			return (... + converter.template operator()<Is>());
@@ -115,7 +125,7 @@ namespace FuncLib
 
 		static auto ConvertToByte(T const& t)
 		{
-			auto tup = ToTuple(forward<T>(t));
+			auto tup = ToTuple(forward<decltype(t)>(t));
 			return CombineEachConvert(tup, make_index_sequence<tuple_size_v<decltype(tup)>>());
 		}
 
@@ -144,6 +154,7 @@ namespace FuncLib
 
 		static T ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
 		{
+			// ConvertToByte use T const&, here should use ToTuple<T const&>? either can pass compile
 			using Tuple = typename ReturnType<decltype(ToTuple<T>)>::Type;
 			auto converter = [file = file]<auto Index>()
 			{

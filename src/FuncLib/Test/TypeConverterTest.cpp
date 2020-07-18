@@ -126,7 +126,7 @@ TESTCASE("Type converter test")
         using Tree = Btree<4, int, int>;
         Tree t(intLessThan);
         auto c_t = TypeConverter<decltype(t)>::ConvertFrom(t, file);
-        // BYTE_COV_TEST_UNIT(c_t);
+        BYTE_COV_TEST_UNIT(c_t);
     }
 
     // compare function and elements type need change
@@ -151,7 +151,7 @@ TESTCASE("Type converter test")
         using Tree = Btree<4, string, int>;
         Tree t(strLessThan);
         auto c_t = TypeConverter<decltype(t)>::ConvertFrom(t, file);
-        // BYTE_COV_TEST_UNIT(c_t);
+        BYTE_COV_TEST_UNIT(c_t);
     }
 }
 
