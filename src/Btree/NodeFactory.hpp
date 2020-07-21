@@ -35,12 +35,12 @@ namespace Collections
 			// remove_reference_t sometimes not very good
 			using T = remove_reference_t<typename Enumerator<Ts...>::ValueType>;
 
-			if constexpr (IsSpecialization<Ptr<int>, DiskPtr>::value)
+			if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)
 			{
 				using FuncLib::FileResource;
 				auto f = FileResource::GetCurrentThreadFile();
 				auto node = make_shared<Middle>(enumerator, lessThan);
-				return DiskPtr<Middle>::MakeDiskPtr(node, f);// TODO maybe should handle leaf cons, too
+				return UniqueDiskPtr<Middle>::MakeUnique(node, f);// TODO maybe should handle leaf cons, too
 			}
 			else
 			{

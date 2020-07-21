@@ -17,7 +17,7 @@ namespace Collections
 {
 	using ::Basic::CompileIf;
 	using ::Basic::IsSpecialization;
-	using ::FuncLib::DiskPtr;
+	using ::FuncLib::UniqueDiskPtr;
 	using ::FuncLib::TypeConverter;
 	using ::std::function;
 	using ::std::is_fundamental_v;
@@ -34,7 +34,7 @@ namespace Collections
 	};
 
 	template <template <typename...> class Ptr>
-	constexpr bool IsDisk = IsSpecialization<Ptr<int>, DiskPtr>::value;
+	constexpr bool IsDisk = IsSpecialization<Ptr<int>, UniqueDiskPtr>::value;
 
 	template <bool IsDisk, bool RefUsable, typename Ty>
 	struct DataType;
@@ -133,12 +133,12 @@ void LessThanPredicate(shared_ptr<LessThan<Key>> lessThan) override\
 	{                                                                         \
 		using NodeType = remove_const_t<remove_pointer_t<decltype(thisPtr)>>; \
                                                                               \
-		if constexpr (IsSpecialization<Ptr<int>, DiskPtr>::value)             \
+		if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)             \
 		{                                                                     \
 			using FuncLib::FileResource;                                      \
 			auto f = FileResource::GetCurrentThreadFile();                    \
 			auto node = make_shared<NodeType>(*thisPtr);                      \
-			return DiskPtr<NodeType>::MakeDiskPtr(node, f);                   \
+			return UniqueDiskPtr<NodeType>::MakeUnique(node, f);              \
 		}                                                                     \
 		else                                                                  \
 		{                                                                     \
@@ -151,12 +151,12 @@ void LessThanPredicate(shared_ptr<LessThan<Key>> lessThan) override\
 	{                                                                         \
 		using NodeType = remove_const_t<remove_pointer_t<decltype(thisPtr)>>; \
                                                                               \
-		if constexpr (IsSpecialization<Ptr<int>, DiskPtr>::value)             \
+		if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)       \
 		{                                                                     \
 			using FuncLib::FileResource;                                      \
 			auto f = FileResource::GetCurrentThreadFile();                    \
 			auto n = make_shared<NodeType>(thisPtr->_elements.LessThanPtr);   \
-			return DiskPtr<NodeType>::MakeDiskPtr(n, f);                      \
+			return UniqueDiskPtr<NodeType>::MakeUnique(n, f);                 \
 		}                                                                     \
 		else                                                                  \
 		{                                                                     \

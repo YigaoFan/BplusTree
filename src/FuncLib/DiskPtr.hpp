@@ -111,7 +111,7 @@ namespace FuncLib
 
 		// bool operator!= ()
 		// {
-			// DiskPtr should support nullptr, compare to nullptr
+			// UniqueDiskPtr should support nullptr, compare to nullptr
 			// TODO how to overload
 		// }
 
@@ -166,15 +166,15 @@ namespace FuncLib
 	};
 
 	template <typename T>
-	class DiskPtr : public DiskPtrBase<T>
+	class UniqueDiskPtr : public DiskPtrBase<T>
 	{
 	private:
-		friend struct ByteConverter<DiskPtr, false>;
+		friend struct ByteConverter<UniqueDiskPtr, false>;
 		using Base = DiskPtrBase<T>;
 	public:
 		using Base::Base;
 
-		static DiskPtr<T> MakeDiskPtr(shared_ptr<T> entityPtr, shared_ptr<File> file)
+		static UniqueDiskPtr<T> MakeUnique(shared_ptr<T> entityPtr, shared_ptr<File> file)
 		{
 			size_t pos;
 			if constexpr (is_same_v<typename ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type, vector<byte>>)
@@ -191,32 +191,32 @@ namespace FuncLib
 		}
 
 		// this ptr can destory data on disk
-		DiskPtr(DiskPtr const&) = delete;
+		UniqueDiskPtr(UniqueDiskPtr const&) = delete;
 
-		DiskPtr& operator= (DiskPtr const& that)
+		UniqueDiskPtr& operator= (UniqueDiskPtr const& that)
 		{
 			Base::operator =(that);
 			return *this;
 		}
 
-		DiskPtr& operator= (DiskPtr&& that) noexcept
+		UniqueDiskPtr& operator= (UniqueDiskPtr&& that) noexcept
 		{
 			Base::operator =(that);
 			return *this;
 		}
 
-		DiskPtr(DiskPtr&& that)
+		UniqueDiskPtr(UniqueDiskPtr&& that)
 			: Base(move(that))
 		{
 
 		}
 
-		DiskPtr GetPtr() const
+		UniqueDiskPtr GetPtr() const
 		{
 			return { this->_tPtr, this->_pos };
 		}
 
-		void reset(DiskPtr ptr)
+		void reset(UniqueDiskPtr ptr)
 		{
 			// if (ptr == nullptr)
 			// release resource

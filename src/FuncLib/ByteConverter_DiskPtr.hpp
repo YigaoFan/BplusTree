@@ -29,9 +29,9 @@ namespace FuncLib
 	using ::std::vector;
 
 	template <typename T>
-	struct ByteConverter<DiskPtr<T>, false>
+	struct ByteConverter<UniqueDiskPtr<T>, false>
 	{
-		using ThisType = DiskPtr<T>;
+		using ThisType = UniqueDiskPtr<T>;
 		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._pos)>::Size;
 
 		static array<byte, Size> ConvertToByte(ThisType const& p)
@@ -65,9 +65,9 @@ namespace FuncLib
 
 	// Btree Ҫ�������� friend��ByteConverter �� TypeConverter������������
 	template <typename Key, typename Value, order_int Order>
-	struct ByteConverter<Btree<Order, Key, Value, DiskPtr>, false>
+	struct ByteConverter<Btree<Order, Key, Value, UniqueDiskPtr>, false>
 	{
-		using ThisType = Btree<Order, Key, Value, DiskPtr>;
+		using ThisType = Btree<Order, Key, Value, UniqueDiskPtr>;
 
 		static auto ConvertToByte(ThisType const& t)
 		{
@@ -90,9 +90,9 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct ByteConverter<MiddleNode<Key, Value, Count, DiskPtr>, false>
+	struct ByteConverter<MiddleNode<Key, Value, Count, UniqueDiskPtr>, false>
 	{
-		using ThisType = MiddleNode<Key, Value, Count, DiskPtr>;
+		using ThisType = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
 		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._elements)>::Size;
 
 		static array<byte, Size> ConvertToByte(ThisType const& t)
@@ -109,9 +109,9 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct ByteConverter<LeafNode<Key, Value, Count, DiskPtr>, false>
+	struct ByteConverter<LeafNode<Key, Value, Count, UniqueDiskPtr>, false>
 	{
-		using ThisType = LeafNode<Key, Value, Count, DiskPtr>;
+		using ThisType = LeafNode<Key, Value, Count, UniqueDiskPtr>;
 		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._elements)>::Size;
 
 		static array<byte, Size> ConvertToByte(ThisType const& t)
@@ -128,11 +128,11 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct ByteConverter<NodeBase<Key, Value, Count, DiskPtr>, false>
+	struct ByteConverter<NodeBase<Key, Value, Count, UniqueDiskPtr>, false>
 	{
-		using ThisType = NodeBase<Key, Value, Count, DiskPtr>;
-		using MidNode = MiddleNode<Key, Value, Count, DiskPtr>;
-		using LeafNode = LeafNode<Key, Value, Count, DiskPtr>;
+		using ThisType = NodeBase<Key, Value, Count, UniqueDiskPtr>;
+		using MidNode = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
+		using LeafNode = LeafNode<Key, Value, Count, UniqueDiskPtr>;
 
 		static vector<byte> ConvertToByte(ThisType const& node)
 		{

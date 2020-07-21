@@ -12,5 +12,5 @@ namespace FuncLib
 	struct TypeConverter;
 	// For PtrSetter
 	template <typename T>
-	class DiskPtr;
+	class UniqueDiskPtr;
 }

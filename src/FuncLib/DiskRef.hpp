@@ -10,15 +10,15 @@ namespace FuncLib
 	{
 	private:
 		friend struct ByteConverter<DiskRef, false>;
-		DiskPtr<T> _ptr;// TODO replace with DiskPtrBase
+		UniqueDiskPtr<T> _ptr;// TODO replace with DiskPtrBase
 	public:
 		// For temp conversion, will not write on Disk, is for user want to search some key, will use this
 		DiskRef(T const& t) // TODO rewrite the implementation
-			: _ptr(DiskPtr<T>::MakeDiskPtr(make_shared<T>(move(t)), FileResource::GetCurrentThreadFile()))
+			: _ptr(UniqueDiskPtr<T>::MakeUnique(make_shared<T>(move(t)), FileResource::GetCurrentThreadFile()))
 		{ }
 
 		// want to Write on disk should use like this
-		DiskRef(DiskPtr<T> ptr) : _ptr(move(ptr))
+		DiskRef(UniqueDiskPtr<T> ptr) : _ptr(move(ptr))
 		{ }
 
 		DiskRef(DiskRef&& that) : _ptr(move(that._ptr))

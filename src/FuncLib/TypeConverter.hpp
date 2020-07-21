@@ -70,19 +70,19 @@ namespace FuncLib
 	struct TypeConverter<MiddleNode<Key, Value, Count, unique_ptr>, false>
 	{
 		using From = MiddleNode<Key, Value, Count, unique_ptr>;
-		using To = MiddleNode<Key, Value, Count, DiskPtr>;
+		using To = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
 
-		static DiskPtr<NodeBase<Key, Value, Count, DiskPtr>> CloneNodeToDisk(typename decltype(declval<From>()._elements)::Item const& item, shared_ptr<File> file)
+		static UniqueDiskPtr<NodeBase<Key, Value, Count, UniqueDiskPtr>> CloneNodeToDisk(typename decltype(declval<From>()._elements)::Item const& item, shared_ptr<File> file)
 		{
 			return TypeConverter<decltype(item.second)>::ConvertFrom(item.second, file);
 		}
 
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
-			using Node = NodeBase<Key, Value, Count, DiskPtr>;
+			using Node = NodeBase<Key, Value, Count, UniqueDiskPtr>;
 			using ::std::placeholders::_1;
 			// using ::std::placeholders::_2;
-			auto nodes = EnumeratorPipeline<typename decltype(from._elements)::Item const&, DiskPtr<Node>>(from._elements.GetEnumerator(), bind(&CloneNodeToDisk, _1, file));
+			auto nodes = EnumeratorPipeline<typename decltype(from._elements)::Item const&, UniqueDiskPtr<Node>>(from._elements.GetEnumerator(), bind(&CloneNodeToDisk, _1, file));
 			return { move(nodes), from._elements.LessThanPtr };
 		}
 	};
@@ -92,7 +92,7 @@ namespace FuncLib
 	{
 		// "������һ��Լ��"���������ݳ�Ա����һ���ˣ��϶�����ͬһ������
 		using From = LeafNode<Key, Value, Count, unique_ptr>;
-		using To = LeafNode<Key, Value, Count, DiskPtr>;
+		using To = LeafNode<Key, Value, Count, UniqueDiskPtr>;
 
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
@@ -104,20 +104,20 @@ namespace FuncLib
 	struct TypeConverter<NodeBase<Key, Value, Count, unique_ptr>, false>
 	{
 		using From = NodeBase<Key, Value, Count, unique_ptr>;
-		using To = shared_ptr<NodeBase<Key, Value, Count, DiskPtr>>;
+		using To = shared_ptr<NodeBase<Key, Value, Count, UniqueDiskPtr>>;
 
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
 			if (from.Middle())
 			{
 				using FromMidNode = MiddleNode<Key, Value, Count, unique_ptr>;
-				using ToMidNode = MiddleNode<Key, Value, Count, DiskPtr>;
+				using ToMidNode = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
 				return make_shared<ToMidNode>(TypeConverter<FromMidNode>::ConvertFrom(static_cast<FromMidNode const&>(from), file));
 			}
 			else
 			{
 				using FromLeafNode = LeafNode<Key, Value, Count, unique_ptr>;
-				using ToLeafNode = LeafNode<Key, Value, Count, DiskPtr>;
+				using ToLeafNode = LeafNode<Key, Value, Count, UniqueDiskPtr>;
 				return make_shared<ToLeafNode>(TypeConverter<FromLeafNode>::ConvertFrom(static_cast<FromLeafNode const&>(from), file));
 			}
 		}
@@ -137,15 +137,15 @@ namespace FuncLib
 			using ::Basic::IsSpecialization;
 			if constexpr (IsSpecialization<ConvertedType, shared_ptr>::value)
 			{
-				return DiskPtr<typename ConvertedType::element_type>::MakeDiskPtr(c, file);
+				return UniqueDiskPtr<typename ConvertedType::element_type>::MakeUnique(c, file);
 			}
-			else if constexpr (IsSpecialization<ConvertedType, DiskPtr>::value)
+			else if constexpr (IsSpecialization<ConvertedType, UniqueDiskPtr>::value)
 			{
 				return c;
 			}
 			else
 			{
-				return DiskPtr<ConvertedType>::MakeDiskPtr(make_shared<ConvertedType>(move(c)), file);
+				return UniqueDiskPtr<ConvertedType>::MakeUnique(make_shared<ConvertedType>(move(c)), file);
 			}
 		}
 
@@ -156,7 +156,7 @@ namespace FuncLib
 	struct TypeConverter<Btree<Count, Key, Value, unique_ptr>, false>
 	{
 		using From = Btree<Count, Key, Value, unique_ptr>;
-		using To = Btree<Count, Key, Value, DiskPtr>;
+		using To = Btree<Count, Key, Value, UniqueDiskPtr>;
 
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
@@ -177,7 +177,7 @@ namespace FuncLib
 		// ����Ĳ����о������棬�����������������ôʵ�ֵ�
 		static To ConvertFrom(From const& from, shared_ptr<File> file)
 		{
-			return DiskPtr<From>::MakeDiskPtr(make_shared<From>(from), file);
+			return UniqueDiskPtr<From>::MakeUnique(make_shared<From>(from), file);
 		}
 	};
 }
