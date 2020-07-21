@@ -151,10 +151,10 @@ namespace Collections
 			return {};
 		}
 
-		LeafNode* Next() const { return _next; }
-		LeafNode* Previous() const { return _previous; }
-		void Next(LeafNode* next) { _next = next; }
-		void Previous(LeafNode* previous) { _previous = previous; }
+		decltype(_next)     Next()     const { return _next; }
+		decltype(_previous) Previous() const { return _previous; }
+		void Next(decltype(_next) next)             { _next = move(next); }
+		void Previous(decltype(_previous) previous) { _previous = move(previous); }
 	private:
 		LeafNode(decltype(_elements) elements) : Base(), _elements(move(elements))// TODO less than?
 		{
