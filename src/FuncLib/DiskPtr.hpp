@@ -155,10 +155,10 @@ namespace FuncLib
 	};
 
 	template <typename T>
-	class WeakDiskPtr : public DiskPtrBase<T>
+	class SharedDiskPtr : public DiskPtrBase<T>
 	{
 	private:
-		friend struct ByteConverter<WeakDiskPtr>;
+		friend struct ByteConverter<SharedDiskPtr>;
 		using Base = DiskPtrBase<T>;
 
 	public:

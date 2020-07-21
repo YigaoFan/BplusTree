@@ -46,9 +46,9 @@ namespace FuncLib
 	};
 
 	template <typename T>
-	struct ByteConverter<WeakDiskPtr<T>, false>
+	struct ByteConverter<SharedDiskPtr<T>, false>
 	{
-		using ThisType = WeakDiskPtr<T>;
+		using ThisType = SharedDiskPtr<T>;
 		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._pos)>::Size;
 
 		static array<byte, Size> ConvertToByte(ThisType const& p)
