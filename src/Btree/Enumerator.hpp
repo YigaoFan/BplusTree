@@ -106,41 +106,5 @@ namespace Collections
 
 			return false;
 		}
-
-		/*Enumerator CreateNewEnumeratorByRelativeRange(int32_t end) const
-		{
-			return { _current, _current+end };
-		}*/
-
-		// optional<Enumerator> TryCreateNewEnumeratorByRelativeRange(int32_t end) const
-		// {
-		// 	if (_current+end < _end) { return GetNewEnumeratorByRelativeRange(end); }
-		// 	return {};
-		// }
-		//
-		// Enumerator CreateNewEnumeratorByRelativeRange(int32_t start, int32_t end) const
-		// {
-		// 	return { _current+start, _current+end };
-		// }
-		//
-		// optional<Enumerator> TryCreateNewEnumeratorByRelativeRange(int32_t start, int32_t end) const
-		// {
-		// 	if (_current+start < _start || _current+end > end) { return {}; }
-		// 	return GetNewEnumeratorByRelativeRange(start, end);
-		// }
 	};
-
-	// template <typename Container>
-	// class Enumerator<Container, true>
-	// {
-	// public:
-	// 	// TODO
-	// private:
-	// 	shared_ptr<Container> _containerPtr;
-	// 	Iterator _current;
-	// 	Iterator _start;
-	// 	Iterator _end;
-	// };
-
-	// external method to implement common part method
 }

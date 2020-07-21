@@ -15,6 +15,7 @@ add_executable(RPC
 
         Json/Json.cpp
         Json/Parser.cpp
+        Json/LocationInfo.cpp
         Json/ParseException.cpp
         Json/Test/ParserTest.cpp
 

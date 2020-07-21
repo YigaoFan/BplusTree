@@ -8,7 +8,6 @@ using ::std::string;
 TESTCASE("Byte converter test")
 {
     // The file should be a interface, that just provide bytes and other functions
-    // TODO test ConvertFromByte
     SECTION("Basic type")
     {
         auto i = 10;

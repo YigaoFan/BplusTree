@@ -125,11 +125,6 @@ namespace Collections
 		Btree(_LessThan lessThan, array<pair<Key, Value>, NumOfEle> keyValueArray)
 			: _lessThanPtr(make_shared<_LessThan>(lessThan))
 		{
-			// 可以自己实现一个排序算法，这样找重复的容易些
-			// 而且反正 pairArray 是在成功的情况下是要复制的，
-			// 这个构造函数这也要复制，不如构造函数传引用，排序算法确定不重复的情况下，就直接复制到堆上
-			// 可以确定好几个后一起构造
-			// 去重？TODO
 			auto less = [&](auto const& p1, auto const& p2)
 			{
 				return lessThan(p1.first, p2.first);
@@ -343,7 +338,7 @@ namespace Collections
 			// TODO Assert the srcNode == _root when debug
 			_root->ResetShallowCallbackPointer();
 			array<Ptr<Node>, 2> nodes { move(_root), move(newNextNode) }; // TODO have average node count between nodes?
-			_root = NodeFactoryType::MakeNode(CreateEnumerator(nodes), _lessThanPtr);// TODO remove _lessThanPtr
+			_root = NodeFactoryType::MakeNode(CreateEnumerator(nodes), _lessThanPtr);
 			SetRootCallbacks();
 		}
 
