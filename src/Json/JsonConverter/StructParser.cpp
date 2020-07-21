@@ -5,7 +5,7 @@
 
 namespace Json::JsonConverter
 {
-	using ::Debug::Assert;
+	using ::Basic::Assert;
 	
 	// Below item should be tested
 	vector<string_view> Split(string_view str, char separator)
@@ -115,7 +115,7 @@ namespace Json::JsonConverter
 	// Not support default set value
 	// Not support public keyword inside
 	// Not support ref data member
-	// »»ÐÐ·û´¦Àí¹ýµÄ
+	// ï¿½ï¿½ï¿½Ð·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	StructObject ParseStruct(vector<string_view> structDef)
 	{
 		// Remove the newline in string_view
@@ -137,7 +137,7 @@ namespace Json::JsonConverter
 		}
 		else
 		{
-			// °´ÀíËµ£¬ÕâÐ©Óï·¨·½ÃæÓ¦¸ÃÓÉ±àÒëÆ÷È¥¼ì²é
+			// ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½Ð©ï¿½ï·¨ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½É±ï¿½ï¿½ï¿½ï¿½ï¿½È¥ï¿½ï¿½ï¿½
 			throw InvalidStringException("struct doesn't have {");
 		}
 	}

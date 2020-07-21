@@ -4,6 +4,7 @@
 #include <type_traits>
 #include "../Basic/Exception.hpp"
 #include "../Basic/TypeTrait.hpp"
+#include "../Basic/Debug.hpp"
 #include "Basic.hpp"
 #include "EnumeratorPipeline.hpp"
 #include "Elements.hpp"
@@ -15,14 +16,15 @@
 
 namespace Collections 
 {
-	using ::std::move;
-	using ::std::unique_ptr;
-	using ::std::pair;
-	using ::std::make_pair;
+	using ::Basic::Assert;
+	using ::Basic::IsSpecialization; // PtrSetter use
 	using ::std::bind;
+	using ::std::make_pair;
+	using ::std::move;
+	using ::std::pair;
+	using ::std::unique_ptr;
 	using ::std::placeholders::_1;
 	using ::std::placeholders::_2;
-	using ::Basic::IsSpecialization;// PtrSetter use
 
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr>
 	class NodeFactory;
@@ -104,9 +106,7 @@ namespace Collections
 
 		Ptr<Base> HandleOverOnlySon()
 		{
-#ifdef BTREE_DEBUG 
-			Assert(_elements.Count() == 1); // TODO implement Assert
-#endif
+			Assert(_elements.Count() == 1);
 			return _elements.PopOut().second;
 		}
 
@@ -299,7 +299,6 @@ namespace Collections
 
 		void SetSubNode()
 		{
-			// TODO use SetProperty below
 			Leaf* lastLeaf = nullptr;
 			MiddleNode* lastMidNode = nullptr;
 			bool subIsMiddle = MinSon()->Middle();

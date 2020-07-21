@@ -5,7 +5,7 @@
 #include <string>
 #include "Exception.hpp"
 
-namespace Debug
+namespace Basic
 {
 	using ::std::string;
 	using ::Basic::InvalidAccessException;

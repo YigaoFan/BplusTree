@@ -17,7 +17,7 @@ namespace Json
 	using ::std::make_shared;
 	using ::std::strtod;
 	using ::std::move;
-	using ::Debug::Assert;
+	using ::Basic::Assert;
 
 	JsonObject Parse(string_view jsonStr)
 	{

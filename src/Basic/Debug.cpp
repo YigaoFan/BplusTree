@@ -1,6 +1,6 @@
 #include "Debug.hpp"
 
-namespace Debug
+namespace Basic
 {
 	using ::std::string;
 	using ::Basic::InvalidAccessException;
