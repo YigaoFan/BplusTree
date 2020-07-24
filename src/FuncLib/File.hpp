@@ -6,6 +6,8 @@
 #include <cstddef>
 #include <memory>
 #include <utility>
+#include <map>
+#include <functional>
 
 namespace FuncLib
 {
@@ -21,6 +23,8 @@ namespace FuncLib
 	using ::std::size_t;
 	using ::std::enable_shared_from_this;
 	using ::std::shared_ptr;
+	using ::std::map;
+	using ::std::function;
 
 	// Need to change, if on different PC
 	constexpr uint32_t DiskBlockSize = 4096;
@@ -37,6 +41,9 @@ namespace FuncLib
 	class File : public enable_shared_from_this<File>
 	{
 	private:
+		template <typename T>
+		static vector<pair<shared_ptr<File>, map<size_t, pair<shared_ptr<T>, vector<function<void(T*)>>>>>> Cache;
+
 		path _filename;
 		pos_int _currentPos;
 		vector<pair<pos_int, vector<byte>>> _bufferQueue;
