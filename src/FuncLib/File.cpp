@@ -2,36 +2,29 @@
 
 namespace FuncLib
 {
-	using ::std::filesystem::path;
-	using ::std::move;
-	using ::std::ifstream;
 	using ::std::ofstream;
-	using ::std::vector;
-	using ::std::byte;
-	using ::std::move;
 
-	File::File(path filename, pos_int startPos) : _filename(move(filename)), _currentPos(startPos)
+	set<weak_ptr<File>, owner_less<weak_ptr<File>>> File::Files = {};
+
+	File::File(path filename, pos_int startPos)
+		: _filename(move(filename)), _cache(_filename), _currentPos(startPos)
 	{ }
 
 	void File::Flush()
 	{
-		if (!_bufferQueue.empty())
+		ofstream fs(_filename, ofstream::binary);
+
+		for (auto& cacheItem : _cache)
 		{
-			Filter();
-			ofstream fs(_filename, ofstream::binary);
+			auto dataInfo = cacheItem->RawDataInfo();
+			fs.seekp(dataInfo.first); // seekp and seekg diff?
+			auto &bytes = dataInfo.second;
 
-			for (auto& p : _bufferQueue)
-			{
-				auto offset = p.first;
-				fs.seekp(offset);// seekp and seekg diff?
-				auto& bytes = p.second;
-
-				// char not ensure to equal to byte size
-				fs.write((char*)(&bytes[0]), bytes.size());
-			}
-
-			fs.close();
+			// char not ensure to equal to byte size in standard
+			fs.write((char *)(&bytes[0]), bytes.size());
 		}
+
+		fs.close();
 	}
 
 	vector<byte> File::Read(pos_int start, size_t size)
@@ -52,12 +45,7 @@ namespace FuncLib
 
 	File::~File()
 	{
+		_unloader();
 		Flush();
-	}
-
-	void File::Filter()
-	{
-		// sort
-		// check first position duplicate
 	}
 }
