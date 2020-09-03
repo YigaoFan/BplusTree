@@ -6,8 +6,28 @@ namespace FuncLib
 
 	set<weak_ptr<File>, owner_less<weak_ptr<File>>> File::Files = {};
 
-	File::File(path filename, pos_int startPos)
-		: _filename(move(filename)), _cache(_filename), _currentPos(startPos)
+	static shared_ptr<File> File::GetFile(path const &filename)
+	{
+		for (auto& weakFile : Files)
+		{
+			auto f = weakFile.lock();
+			if (f->_filename == filename)
+			{
+				return f;
+			}
+		}
+
+		auto f = make_shared<File>(filename);
+		Files.insert(f);
+		f->_unloader = [f = weak_ptr<File>(f)]() 
+		{
+			Files.erase(f);
+		};
+		return f;
+	}
+
+	File::File(path const& filename, pos_int startPos)
+		: _filename(make_shared<path>(filename)), _cache(_filename), _currentPos(startPos)
 	{ }
 
 	void File::Flush()
@@ -17,14 +37,12 @@ namespace FuncLib
 		for (auto& cacheItem : _cache)
 		{
 			auto dataInfo = cacheItem->RawDataInfo();
-			fs.seekp(dataInfo.first); // seekp and seekg diff?
+			fs.seekp(dataInfo.first);
 			auto &bytes = dataInfo.second;
 
 			// char not ensure to equal to byte size in standard
 			fs.write((char *)(&bytes[0]), bytes.size());
 		}
-
-		fs.close();
 	}
 
 	vector<byte> File::Read(pos_int start, size_t size)

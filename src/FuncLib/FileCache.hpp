@@ -4,6 +4,7 @@
 #include <map>
 #include <functional>
 #include <filesystem>
+#include <tuple>
 #include "ICacheItemManager.hpp"
 
 namespace FuncLib
@@ -14,24 +15,28 @@ namespace FuncLib
 	using ::std::move;
 	using ::std::pair;
 	using ::std::shared_ptr;
-	using ::std::unique_ptr;
 	using ::std::make_unique;
 	using ::std::vector;
 	using ::std::filesystem::path;
+	using ::std::tuple;
 
 	class FileCache
 	{
 	private:
+		// use a 1to1 container?
 		template <typename T>
 		static map<path, map<size_t, shared_ptr<T>>> Cache;
 
-		path const& _filename;
-		function<void()> _unloader;
-		vector<unique_ptr<ICacheItemManager>> _managers;
-		// remember to delete content when call File::Delete
-		// shared_ptr == nullptr is delete? for convenient
+		shared_ptr<path> _filename;
+		function<void()> _unloader = []() {};
+		// 将所有的 Cache Item 的功能都外显为此类的成员变量，比如
+		// CacheId, store worker, cache remover
+		vector<tuple<CacheId, shared_ptr<function<void()>>, function<void()>>> _cacheKits;
+		// store worker inner use raw pointer directly, not use shared_ptr which will come to circle ref
+		// 是 shared_ptr 是让 object 里面也共用这个
+
 	public:
-		FileCache(path const& filename) : _filename(filename)
+		FileCache(shared_ptr<path> filename) : _filename(filename)
 		{ }
 
 		template <typename T>
@@ -52,8 +57,23 @@ namespace FuncLib
 				};
 			}
 
-			_managers.push_back(make_unique<ICacheItemManager>(object));
+			_storeWorkers.push_back(make_unique<ICacheItemManager>(object));
 			Cache<T>.insert(make_pair<path>(_filename, { offset, object }));
+		}
+
+		template <typename T>
+		void Remove(shared_ptr<T> object)
+		{
+			// remove Cache item
+
+			for (auto it = _storeWorkers.begin(); it < _storeWorkers.end(); ++it)
+			{
+				if ((*it)->Same(ComputeCacheId(object)))
+				{
+					_storeWorkers.erase(it);
+					return;
+				}
+			}
 		}
 
 		template <typename T>
@@ -64,22 +84,22 @@ namespace FuncLib
 
 		auto begin()
 		{
-			return _managers.begin();
+			return _storeWorkers.begin();
 		}
 
 		auto end()
 		{
-			return _managers.end();
+			return _storeWorkers.end();
 		}
 
 		auto begin() const
 		{
-			return _managers.begin();
+			return _storeWorkers.begin();
 		}
 
 		auto end() const
 		{
-			return _managers.end();
+			return _storeWorkers.end();
 		}
 
 		~FileCache()
