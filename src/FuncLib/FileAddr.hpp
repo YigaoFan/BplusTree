@@ -1,6 +1,8 @@
+#include <cstddef>
+
 namespace FuncLib
 {
-	using pos_int = size_t;
+	using pos_int = ::std::size_t;
 
 	class FileAddr
 	{
