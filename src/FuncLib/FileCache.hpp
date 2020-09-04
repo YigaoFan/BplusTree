@@ -11,19 +11,19 @@ namespace FuncLib
 {
 	using ::std::function;
 	using ::std::make_pair;
+	using ::std::make_shared;
+	using ::std::make_unique;
 	using ::std::map;
 	using ::std::move;
 	using ::std::pair;
 	using ::std::shared_ptr;
-	using ::std::make_unique;
+	using ::std::tuple;
 	using ::std::vector;
 	using ::std::filesystem::path;
-	using ::std::tuple;
 
 	class FileCache
 	{
 	private:
-		// use a 1to1 container?
 		template <typename T>
 		static map<path, map<size_t, shared_ptr<T>>> Cache;
 
@@ -31,9 +31,7 @@ namespace FuncLib
 		function<void()> _unloader = []() {};
 		// 将所有的 Cache Item 的功能都外显为此类的成员变量，比如
 		// CacheId, store worker, cache remover
-		vector<tuple<CacheId, shared_ptr<function<void()>>, function<void()>>> _cacheKits;
-		// store worker inner use raw pointer directly, not use shared_ptr which will come to circle ref
-		// 是 shared_ptr 是让 object 里面也共用这个
+		vector<tuple<CacheId, function<void()>, function<void()>>> _cacheKits;
 
 	public:
 		FileCache(shared_ptr<path> filename) : _filename(filename)
@@ -57,20 +55,36 @@ namespace FuncLib
 				};
 			}
 
-			_storeWorkers.push_back(make_unique<ICacheItemManager>(object));
-			Cache<T>.insert(make_pair<path>(_filename, { offset, object }));
+			using ::std::get_deleter;
+			auto id = reinterpret_cast<CacheId>(object.get());
+			auto storeWorker = [funPtr = get_deleter<void(T *)>(object), obj = object.get()]()
+			{
+				(*funPtr)(obj);
+			};
+
+			Cache<T>[*_filename].insert({ offset, object });
+
+			auto remover = [file = _filename, =offset]()
+			{
+				Cache<T>[*file].erase(offset);
+			};
+			_cacheKits.push_back({ id, storeWorker, remover });
 		}
 
 		template <typename T>
 		void Remove(shared_ptr<T> object)
 		{
-			// remove Cache item
+			using ::std::get;
 
-			for (auto it = _storeWorkers.begin(); it < _storeWorkers.end(); ++it)
+			for (auto it = _cacheKits.begin(); it < _cacheKits.end(); ++it)
 			{
-				if ((*it)->Same(ComputeCacheId(object)))
+				auto& kit = *it;
+				if (get<0>(kit) == ComputeCacheId(object))
 				{
-					_storeWorkers.erase(it);
+					// remove cache obj and cache will auto flush to disk
+					get<2>(kit)();
+					// remove cache kit
+					_cacheKits.erase(it);
 					return;
 				}
 			}
@@ -84,24 +98,26 @@ namespace FuncLib
 
 		auto begin()
 		{
-			return _storeWorkers.begin();
+			return _cacheKits.begin();
 		}
 
 		auto end()
 		{
-			return _storeWorkers.end();
+			return _cacheKits.end();
 		}
 
 		auto begin() const
 		{
-			return _storeWorkers.begin();
+			return _cacheKits.begin();
 		}
 
 		auto end() const
 		{
-			return _storeWorkers.end();
+			return _cacheKits.end();
 		}
 
+		/// Include unload. 
+		/// Unload will remove cache item, which will invoke flush operation.
 		~FileCache()
 		{
 			_unloader();

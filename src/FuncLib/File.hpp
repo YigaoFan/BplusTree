@@ -38,9 +38,9 @@ namespace FuncLib
 	private:
 		static set<weak_ptr<File>, owner_less<weak_ptr<File>>> Files;
 
-		shared_ptr<path> _filename;// 变成 shared_ptr
+		shared_ptr<path> _filename;
 		FileCache _cache;
-		function<void()> _unloader;
+		function<void()> _unloader = []() {};
 		pos_int _currentPos; // need to have data in file to save allocated information
 	public:
 		static shared_ptr<File> GetFile(path const& filename);
@@ -57,9 +57,7 @@ namespace FuncLib
 			}
 			else
 			{
-				auto obj = make_shared<T>(Read<T>(start));// TODO use Package
-				_cache.Add<T>(start, obj);
-				return obj;
+				return PackageThenAddToCache(new T(Read<T>(start)));
 			}
 		}
 
@@ -73,16 +71,14 @@ namespace FuncLib
 			}
 			else
 			{
-				auto obj = make_shared<T>(converter(Read(start, size))); // TODO use Package
-				_cache.Add<T>(start, obj);
-				return _cache.Read<T>(start);
+				return PackageThenAddToCache(new T(converter(Read(start, size))));
 			}
 		}
 		
-		template <typename T, typename Bytes>
+		template <typename T>
 		shared_ptr<T> New(T&& t)
 		{
-			auto p = Package(new T(forward(t)));
+			auto p = PackageThenAddToCache(new T(forward(t)));
 			return p;
 		}
 
@@ -100,13 +96,16 @@ namespace FuncLib
 				throw InvalidOperationException
 					("object to delete still has some place using");
 			}
-			
-			// delete cache and other place not ref this
 		}
 
+		/// caller should ensure wake all root element, j
+		/// ust like a btree can wake all inner elements, but not other btree.
 		void ReallocateContent()
 		{
 			// if want to reallocate all disk content, attention the DiskPtr config
+			// 还需要想很多，比如这一步很可能是需要其他步骤一起做才有效的
+			DiskPtrBase_IsReadLazy = false;
+			Flush();// should change flush position, construct 类似内存映射表的东西？加个中间层，这样硬存地址也好改了
 		}
 
 		~File();
@@ -128,38 +127,24 @@ namespace FuncLib
 			return move(*p);
 		}
 
-		vector<byte> Read(pos_int start, size_t size)
-		{
-			ifstream fs(_filename, ifstream::binary);
-			fs.seekg(start);
-
-			vector<byte> mem(size);
-
-			if (fs.is_open())
-			{
-				fs.read(reinterpret_cast<char *>(&mem[0]), size);
-			}
-
-			return mem;
-		}
+		vector<byte> Read(pos_int start, size_t size);
 
 		template <typename T, typename FowardIter>
 		static void Write(path const& filename, pos_int start, ForwardIter begin, ForwardIter end)
 		{
 			ofstream fs(filename, ofstream::binary);
 			fs.seekp(start);
-			fs.write(begin, end - begin);
+			fs.write((char *)begin, end - begin);
 		}
 
+		template <typename T>
 		shared_ptr<T> PackageThenAddToCache(T* ptr)
 		{
-			auto p = shared_ptr<T>(ptr, [filename = _filename](auto p)
+			auto p = shared_ptr<T>(ptr, [file = _filename](auto p)
 			{
 				// convert to bytes
-				// use a class object package these store info and operation
-				// Manager class can do this?
-				auto bytes;
-				Write(*filename, pos, bytes.begin(), bytes.end());
+				vector<byte> bytes;
+				Write(*file, pos, bytes.begin(), bytes.end());
 				delete p;
 			});
 			_cache.Add<T>(pos, p);

@@ -32,22 +32,16 @@ namespace FuncLib
 
 	void File::Flush()
 	{
-		ofstream fs(_filename, ofstream::binary);
+		using ::std::get;
 
-		for (auto& cacheItem : _cache)
+		for (auto& cacheKit : _cache)
 		{
-			auto dataInfo = cacheItem->RawDataInfo();
-			fs.seekp(dataInfo.first);
-			auto &bytes = dataInfo.second;
-
-			// char not ensure to equal to byte size in standard
-			fs.write((char *)(&bytes[0]), bytes.size());
+			get<1>(cacheKit)();
 		}
 	}
 
 	vector<byte> File::Read(pos_int start, size_t size)
 	{
-		Flush();
 		ifstream fs(_filename, ifstream::binary);
 		fs.seekg(start);
 
@@ -64,6 +58,5 @@ namespace FuncLib
 	File::~File()
 	{
 		_unloader();
-		Flush();
 	}
 }
