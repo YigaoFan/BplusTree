@@ -17,6 +17,13 @@ namespace FuncLib::Store
 	using ::std::vector;
 	using ::std::filesystem::path;
 
+	using CacheId = ::std::uintptr_t;
+
+	CacheId ComputeCacheId(shared_ptr<T> obj)
+	{
+		return reinterpret_cast<CacheId>(obj.get());
+	}
+	
 	/// 一个 File 仅有一个 FileCache
 	class FileCache
 	{
