@@ -1,11 +1,8 @@
 #include <cstddef>
+#include "StaticConfig.hpp"
 
 namespace FuncLib::Store
 {
-	using ::std::size_t;
-
-	using pos_int = size_t;
-
 	struct IInsidePositionOwner
 	{
 		virtual void Addr(pos_int newPos)   = 0;
