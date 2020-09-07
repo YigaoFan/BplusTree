@@ -2,6 +2,7 @@
 
 namespace FuncLib
 {
+	using ::std::get;
 	using ::std::ofstream;
 
 	set<weak_ptr<File>, owner_less<weak_ptr<File>>> File::Files = {};
@@ -32,8 +33,6 @@ namespace FuncLib
 
 	void File::Flush()
 	{
-		using ::std::get;
-
 		for (auto& cacheKit : _cache)
 		{
 			get<1>(cacheKit)();
@@ -53,6 +52,18 @@ namespace FuncLib
 		}
 		
 		return mem;
+	}
+
+	void File::ReallocateContent()
+	{
+		// 还需要想很多，比如这一步很可能是需要其他步骤一起做才有效的
+		auto addr = 0; // reallocate from 0
+		for (auto& cacheKit : _cache)
+		{
+			shared_ptr<IInsidePositionOwner>&& posOwner = get<3>(cacheKit);
+			posOwner->Addr(addr);
+			addr += posOwner->RequiredSize();
+		}
 	}
 
 	File::~File()

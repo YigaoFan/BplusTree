@@ -2,19 +2,16 @@
 #include <filesystem>
 #include <fstream>
 #include <vector>
-#include <array>
-#include <cstddef>
 #include <memory>
-#include <utility>
 #include <set>
 #include <functional>
 #include "FileCache.hpp"
+#include "StaticConfig.hpp"
 #include "IInsidePositionOwner.hpp"
 #include "../Basic/Exception.hpp"
 
 namespace FuncLib::Store
 {
-	using ::std::array;
 	using ::std::byte;
 	using ::std::enable_shared_from_this;
 	using ::std::forward;
@@ -23,7 +20,6 @@ namespace FuncLib::Store
 	using ::std::make_shared;
 	using ::std::move;
 	using ::std::owner_less;
-	using ::std::pair;
 	using ::std::set;
 	using ::std::shared_ptr;
 	using ::std::size_t;
@@ -31,9 +27,7 @@ namespace FuncLib::Store
 	using ::std::weak_ptr;
 	using ::std::filesystem::path;
 
-	constexpr uint32_t DiskBlockSize = 4096; // Depend on different OS setting
-	using pos_int = size_t;
-
+	/// 一个路径仅有一个 File 对象
 	class File : public enable_shared_from_this<File>
 	{
 	private:
@@ -62,7 +56,7 @@ namespace FuncLib::Store
 			}
 		}
 
-		// used in string like type
+		/// used in string like type
 		template <typename T>
 		shared_ptr<T> Read(shared_ptr<IInsidePositionOwner> posOwner, size_t size, function<T(vector<byte>)> converter)
 		{
@@ -112,6 +106,7 @@ namespace FuncLib::Store
 			if (object.use_count() == minRefCount)
 			{
 				_cache.Remove(object);
+				// 考虑已经保存的地址的事
 			}
 			else
 			{
@@ -122,13 +117,7 @@ namespace FuncLib::Store
 
 		/// caller should ensure wake all root element, j
 		/// ust like a btree can wake all inner elements, but not other btree.
-		void ReallocateContent()
-		{
-			// if want to reallocate all disk content, attention the DiskPtr config
-			// 还需要想很多，比如这一步很可能是需要其他步骤一起做才有效的
-			DiskPtrBase_IsReadLazy = false;
-			Flush();// should change flush position, construct 类似内存映射表的东西？加个中间层，这样硬存地址也好改了
-		}
+		void ReallocateContent();
 
 		~File();
 	private:
@@ -145,14 +134,14 @@ namespace FuncLib::Store
 		template <typename T>
 		shared_ptr<T> PackageThenAddToCache(T* ptr, shared_ptr<IInsidePositionOwner> posOwner)
 		{
-			auto p = shared_ptr<T>(ptr, [file = _filename, =startAddr](auto p)
+			auto p = shared_ptr<T>(ptr, [file = _filename, =posOwner](auto p)
 			{
 				// convert to bytes
 				vector<byte> bytes;
-				Write(*file, startAddr->Addr(), bytes.begin(), bytes.end());
+				Write(*file, posOwner->Addr(), bytes.begin(), bytes.end());
 				delete p;
 			});
-			_cache.Add<T>(startAddr->Addr(), p);
+			_cache.Add<T>(posOwner, p);
 
 			return p;
 		}

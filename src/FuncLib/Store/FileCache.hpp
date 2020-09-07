@@ -1,26 +1,23 @@
 #include <vector>
 #include <memory>
-#include <utility>
 #include <map>
 #include <functional>
 #include <filesystem>
 #include <tuple>
-#include "ICacheItemManager.hpp"
+#include "IInsidePositionOwner.hpp"
 
 namespace FuncLib::Store
 {
 	using ::std::function;
-	using ::std::make_pair;
-	using ::std::make_shared;
 	using ::std::make_unique;
 	using ::std::map;
 	using ::std::move;
-	using ::std::pair;
 	using ::std::shared_ptr;
 	using ::std::tuple;
 	using ::std::vector;
 	using ::std::filesystem::path;
 
+	/// 一个 File 仅有一个 FileCache
 	class FileCache
 	{
 	private:
@@ -31,7 +28,7 @@ namespace FuncLib::Store
 		function<void()> _unloader = []() {};
 		// 将所有的 Cache Item 的功能都外显为此类的成员变量，比如
 		// CacheId, store worker, cache remover
-		vector<tuple<CacheId, function<void()>, function<void()>>> _cacheKits;
+		vector<tuple<CacheId, function<void()>, function<void()>, shared_ptr<IInsidePositionOwner>>> _cacheKits;
 
 	public:
 		FileCache(shared_ptr<path> filename) : _filename(filename)
@@ -44,7 +41,7 @@ namespace FuncLib::Store
 		}
 
 		template <typename T>
-		void Add(size_t offset, shared_ptr<T> object)
+		void Add(shared_ptr<IInsidePositionOwner> posOwner, shared_ptr<T> object)
 		{
 			if (!Cache<T>.contains(_filename))
 			{
@@ -61,14 +58,15 @@ namespace FuncLib::Store
 			{
 				(*funPtr)(obj);
 			};
+			auto addr = posOwner->Addr();
 
-			Cache<T>[*_filename].insert({ offset, object });
+			Cache<T>[*_filename].insert({ addr, object });
 
-			auto remover = [file = _filename, =offset]()
+			auto remover = [file = _filename, =addr]()
 			{
-				Cache<T>[*file].erase(offset);
+				Cache<T>[*file].erase(addr);
 			};
-			_cacheKits.push_back({ id, storeWorker, remover });
+			_cacheKits.push_back({ id, storeWorker, remover, posOwner });
 		}
 
 		template <typename T>
@@ -116,8 +114,8 @@ namespace FuncLib::Store
 			return _cacheKits.end();
 		}
 
-		/// Include unload. 
-		/// Unload will remove cache item, which will invoke flush operation.
+		/// Invoke unload inner. 
+		/// Unload will remove cache item, which will invoke flush operation in object deleter.
 		~FileCache()
 		{
 			_unloader();
