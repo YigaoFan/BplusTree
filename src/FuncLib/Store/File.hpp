@@ -103,16 +103,16 @@ namespace FuncLib::Store
 		{
 			using ::Basic::InvalidOperationException;
 			constexpr auto minRefCount = 3;
-			if (object.use_count() == minRefCount)
-			{
+			// if (object.use_count() == minRefCount)
+			// {
+				// log object.use_count();
 				_cache.Remove(object);
-				// 考虑已经保存的地址的事
-			}
-			else
-			{
-				throw InvalidOperationException
-					("object to delete still has some place using");
-			}
+			// }
+			// else
+			// {
+			// 	throw InvalidOperationException
+			// 		("object to delete still has some place using");
+			// }
 		}
 
 		/// caller should ensure wake all root element, j
