@@ -7,7 +7,7 @@
 #include <tuple>
 #include "ICacheItemManager.hpp"
 
-namespace FuncLib
+namespace FuncLib::Store
 {
 	using ::std::function;
 	using ::std::make_pair;

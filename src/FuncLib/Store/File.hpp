@@ -9,9 +9,10 @@
 #include <set>
 #include <functional>
 #include "FileCache.hpp"
+#include "IInsidePositionOwner.hpp"
 #include "../Basic/Exception.hpp"
 
-namespace FuncLib
+namespace FuncLib::Store
 {
 	using ::std::array;
 	using ::std::byte;
@@ -47,32 +48,53 @@ namespace FuncLib
 		File(path const& filename, pos_int startPos = 0); // for make_shared use in File class only
 		void Flush();
 
-		// set the deleter of object
 		template <typename T>
-		shared_ptr<T> Read(pos_int start)
+		shared_ptr<T> Read(shared_ptr<IInsidePositionOwner> posOwner)
 		{
-			if (_cache.HasRead<T>(start))
+			auto addr = posOwner->Addr();
+			if (_cache.HasRead<T>(addr))
 			{
-				return _cache.Read<T>(start);
+				return _cache.Read<T>(addr);
 			}
 			else
 			{
-				return PackageThenAddToCache(new T(Read<T>(start)));
+				return PackageThenAddToCache(new T(Read<T>(addr)), startAddr);
 			}
 		}
 
 		// used in string like type
 		template <typename T>
-		shared_ptr<T> Read(pos_int start, size_t size, function<T(vector<byte>)> converter)
+		shared_ptr<T> Read(shared_ptr<IInsidePositionOwner> posOwner, size_t size, function<T(vector<byte>)> converter)
 		{
-			if (_cache.HasRead<T>(start))
+			auto addr = posOwner->Addr();
+			if (_cache.HasRead<T>(addr))
 			{
-				return _cache.Read<T>(start);
+				return _cache.Read<T>(addr);
 			}
 			else
 			{
-				return PackageThenAddToCache(new T(converter(Read(start, size))));
+				return PackageThenAddToCache(new T(converter(Read(addr, size))));
 			}
+		}
+
+		/// 使用下面这个的场景是：MiddleNode 包含 Elements 的时候，就不能返回 shared_ptr 了
+		/// 而是要用这个了，由 MiddleNode 级别来提供缓存的功能
+		/// 这个函数的返回值不提供返回值缓存功能
+		template <typename T>
+		static T Read(path const& filename, shared_ptr<IInsidePositionOwner> posOwner)
+		{
+			ifstream fs(filename, ifstream::binary);
+			auto addr = posOwner->Addr();
+			fs.seekg(addr);
+
+			byte mem[sizeof(T)];
+			if (fs.is_open())
+			{
+				fs.read(reinterpret_cast<char *>(&mem[0]), sizeof(T));
+			}
+
+			T *p = reinterpret_cast<T *>(&mem[0]);
+			return move(*p);
 		}
 		
 		template <typename T>
@@ -110,23 +132,6 @@ namespace FuncLib
 
 		~File();
 	private:
-		// not suggest use
-		template <typename T>
-		static T Read(path const& filename, pos_int start)
-		{
-			ifstream fs(filename, ifstream::binary);
-			fs.seekg(start);
-
-			byte mem[sizeof(T)];
-			if (fs.is_open())
-			{
-				fs.read(reinterpret_cast<char *>(&mem[0]), sizeof(T));
-			}
-
-			T* p = reinterpret_cast<T *>(&mem[0]);
-			return move(*p);
-		}
-
 		vector<byte> Read(pos_int start, size_t size);
 
 		template <typename T, typename FowardIter>
@@ -138,16 +143,16 @@ namespace FuncLib
 		}
 
 		template <typename T>
-		shared_ptr<T> PackageThenAddToCache(T* ptr)
+		shared_ptr<T> PackageThenAddToCache(T* ptr, shared_ptr<IInsidePositionOwner> posOwner)
 		{
-			auto p = shared_ptr<T>(ptr, [file = _filename](auto p)
+			auto p = shared_ptr<T>(ptr, [file = _filename, =startAddr](auto p)
 			{
 				// convert to bytes
 				vector<byte> bytes;
-				Write(*file, pos, bytes.begin(), bytes.end());
+				Write(*file, startAddr->Addr(), bytes.begin(), bytes.end());
 				delete p;
 			});
-			_cache.Add<T>(pos, p);
+			_cache.Add<T>(startAddr->Addr(), p);
 
 			return p;
 		}

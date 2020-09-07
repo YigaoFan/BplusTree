@@ -1,8 +1,6 @@
 #include <cstddef>
 
-// TODO File 这些应该有个单独的子命名空间是不是
-// 那也要建立子文件夹
-namespace FuncLib::File
+namespace FuncLib::Store
 {
 	using ::std::size_t;
 
