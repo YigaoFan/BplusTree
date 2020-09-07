@@ -23,40 +23,43 @@ namespace FuncLib
 	protected:
 		template <typename Ty>
 		friend class DiskPtrBase;
-		mutable shared_ptr<T> _tPtr = nullptr; // TODO Cache
-		mutable DiskPos<T> _pos; // TODO mutable maybe has problem
-		mutable vector<function<void(T*)>> _contentSetters;
+		mutable shared_ptr<T> _tPtr;
+		// mutable vector<function<void(T*)>> _contentSetters;
+		shared_ptr<DiskPos<T>> _pos;
 
 	public:
-		DiskPtrBase(shared_ptr<T> tPtr, DiskPos<T> pos) : _tPtr(tPtr), _pos(pos)
+		DiskPtrBase(shared_ptr<T> tPtr, DiskPos<T> pos) : _tPtr(tPtr), _pos(shared_ptr(pos))
 		{ }
 
-		DiskPtrBase(DiskPos<T> pos) : _pos(pos)
+		DiskPtrBase(DiskPos<T> pos) : _pos(shared_ptr(pos))
 		{ }
 
-		DiskPtrBase(DiskPtrBase&& that) : _tPtr(that._tPtr), _pos(that._pos)
+		DiskPtrBase(DiskPtrBase&& that)
+			: _tPtr(that._tPtr), _contentSetters(move(that._contentSetters)), _pos(move(that._pos))
 		{
 			that._tPtr = nullptr;
 		}
 
 		DiskPtrBase(DiskPtrBase const& that) : _tPtr(that._tPtr), _pos(that._pos)
-		{ }
-
-		DiskPtrBase& operator= (DiskPtrBase const &that)
 		{
-			this->_tPtr = that._tPtr;
-			this->_pos = that._pos;
-			if (!_contentSetters.empty())
-			{
-				// TODO do something
-			}
+			that.DoSet();
+		}
 
-			this->_contentSetters = that._contentSetters;
+		DiskPtrBase& operator= (DiskPtrBase const& that)
+		{
+			// TODO handle the already exist _tPtr value
+			that.DoSet();
+			this->_tPtr = that._tPtr;// how to handle that._tPtr
+			this->_pos = that._pos;
+
 			return *this;
 		}
 
 		DiskPtrBase& operator= (DiskPtrBase&& that) noexcept
 		{
+			that.DoSet();
+			this->_tPtr = that._tPtr;
+			this->_pos = move(that._pos);
 			return *this;
 		}
 
@@ -68,13 +71,15 @@ namespace FuncLib
 		
 		void RegisterSetter(function<void(T*)> setter)
 		{
-			if (_tPtr == nullptr)
+			if (auto ptr = _cache.first; ptr == nullptr)
 			{
-				_contentSetters.push_back(move(setter));
+				// 这里的 setter 这样存下来后，各地的 DiskPtr 从不同内存位置开始读的时候会不会有问题
+				// 是考虑 Btree 的情况，还是考虑之后的所有情况？
+				_cache.second.push_back(move(setter));
 			}
 			else
 			{
-				setter(_tPtr.get());
+				setter(ptr.get());
 			}
 		}
 
@@ -132,7 +137,6 @@ namespace FuncLib
 			{
 				_pos.WriteObject(_tPtr);// TODO judge if already write
 			}
-			// TODO handle _contentSetters
 		}
 	private:
 		void ReadEntity() const
@@ -142,6 +146,11 @@ namespace FuncLib
 				_tPtr = _pos.ReadObject();
 			}
 
+			DoSet();
+		}
+
+		void DoSet() const
+		{
 			if (!_contentSetters.empty())
 			{
 				for (auto& f : _contentSetters)
@@ -190,12 +199,11 @@ namespace FuncLib
 			return { entityPtr, { file, pos } }; // 硬存大小分配只有这里
 		}
 
-		// this ptr can destory data on disk
 		UniqueDiskPtr(UniqueDiskPtr const&) = delete;
 
 		UniqueDiskPtr& operator= (UniqueDiskPtr const& that)
 		{
-			Base::operator =(that);
+			Base::operator= (that);
 			return *this;
 		}
 

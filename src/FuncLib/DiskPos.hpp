@@ -2,9 +2,11 @@
 #include <memory>
 #include <type_traits>
 #include "File.hpp"
+#include "Store/IInsidePositionOwner.hpp"
 
 namespace FuncLib
 {
+	using namespace Store;
 	using ::std::enable_if_t;
 	using ::std::is_abstract_v;
 	using ::std::is_base_of_v;
@@ -13,7 +15,7 @@ namespace FuncLib
 	using ::std::size_t;
 
 	template <typename T>
-	class DiskPos
+	class DiskPos : public IInsidePositionOwner
 	{
 	private:
 		friend struct ByteConverter<DiskPos, false>;
@@ -31,6 +33,21 @@ namespace FuncLib
 		template <typename Derive>
 		DiskPos(DiskPos<Derive> const& that) : _file(that._file), _start(that._start)
 		{ }
+
+		void Addr(pos_int newPos) override
+		{
+			this->_start = newPos;
+		}
+
+		pos_int Addr() const override
+		{
+			return this->_start;
+		}
+
+		size_t RequiredSize() const override
+		{
+			return ByteConverter<T>::ConvertToByte(*entity).size();
+		}
 
 		shared_ptr<T> ReadObject() const
 		{
