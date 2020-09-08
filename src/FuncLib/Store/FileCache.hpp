@@ -23,7 +23,7 @@ namespace FuncLib::Store
 	{
 		return reinterpret_cast<CacheId>(obj.get());
 	}
-	
+
 	/// 一个 File 仅有一个 FileCache
 	class FileCache
 	{

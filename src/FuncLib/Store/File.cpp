@@ -39,9 +39,9 @@ namespace FuncLib
 		}
 	}
 
-	vector<byte> File::Read(pos_int start, size_t size)
+	vector<byte> File::Read(path const& filename, pos_int start, size_t size)
 	{
-		ifstream fs(_filename, ifstream::binary);
+		ifstream fs(filename, ifstream::binary);
 		fs.seekg(start);
 
 		vector<byte> mem(size);

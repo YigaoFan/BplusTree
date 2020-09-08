@@ -8,6 +8,7 @@
 #include "FileCache.hpp"
 #include "StaticConfig.hpp"
 #include "IInsidePositionOwner.hpp"
+#include "../ByteConverter.hpp"
 #include "../Basic/Exception.hpp"
 
 namespace FuncLib::Store
@@ -36,7 +37,7 @@ namespace FuncLib::Store
 		shared_ptr<path> _filename;
 		FileCache _cache;
 		function<void()> _unloader = []() {};
-		pos_int _currentPos; // need to have data in file to save allocated information
+		pos_int _currentPos;
 	public:
 		static shared_ptr<File> GetFile(path const& filename);
 		File(path const& filename, pos_int startPos = 0); // for make_shared use in File class only
@@ -52,13 +53,13 @@ namespace FuncLib::Store
 			}
 			else
 			{
-				return PackageThenAddToCache(new T(Read<T>(addr)), startAddr);
+				return PackageThenAddToCache(new T(Read<T>(*_filename, addr)), posOwner);
 			}
 		}
 
 		/// used in string like type
 		template <typename T>
-		shared_ptr<T> Read(shared_ptr<IInsidePositionOwner> posOwner, size_t size, function<T(vector<byte>)> converter)
+		shared_ptr<T> Read(shared_ptr<IInsidePositionOwner> posOwner, function<T(vector<byte>)> converter)
 		{
 			auto addr = posOwner->Addr();
 			if (_cache.HasRead<T>(addr))
@@ -67,34 +68,16 @@ namespace FuncLib::Store
 			}
 			else
 			{
-				return PackageThenAddToCache(new T(converter(Read(addr, size))));
+				return PackageThenAddToCache(new T(converter(Read(addr, posOwner->RequiredSize()))), posOwner);
 			}
-		}
-
-		/// 使用下面这个的场景是：MiddleNode 包含 Elements 的时候，就不能返回 shared_ptr 了
-		/// 而是要用这个了，由 MiddleNode 级别来提供缓存的功能
-		/// 这个函数的返回值不提供返回值缓存功能
-		template <typename T>
-		static T Read(path const& filename, shared_ptr<IInsidePositionOwner> posOwner)
-		{
-			ifstream fs(filename, ifstream::binary);
-			auto addr = posOwner->Addr();
-			fs.seekg(addr);
-
-			byte mem[sizeof(T)];
-			if (fs.is_open())
-			{
-				fs.read(reinterpret_cast<char *>(&mem[0]), sizeof(T));
-			}
-
-			T *p = reinterpret_cast<T *>(&mem[0]);
-			return move(*p);
 		}
 		
 		template <typename T>
 		shared_ptr<T> New(T&& t)
 		{
-			auto p = PackageThenAddToCache(new T(forward(t)));
+			auto posOwner = make_shared<DiskPos<T>>(shared_from_this(), _currentPos);
+			_currentPos += sizeof(T);
+			auto p = PackageThenAddToCache(new T(forward(t)), posOwner);
 			return p;
 		}
 
@@ -121,7 +104,7 @@ namespace FuncLib::Store
 
 		~File();
 	private:
-		vector<byte> Read(pos_int start, size_t size);
+		static vector<byte> Read(path const& filename, pos_int start, size_t size);
 
 		template <typename T, typename FowardIter>
 		static void Write(path const& filename, pos_int start, ForwardIter begin, ForwardIter end)
@@ -129,6 +112,26 @@ namespace FuncLib::Store
 			ofstream fs(filename, ofstream::binary);
 			fs.seekp(start);
 			fs.write((char *)begin, end - begin);
+		}
+
+		/// 使用下面这个的场景是：MiddleNode 包含 Elements 的时候，就不能返回 shared_ptr 了
+		/// 而是要用这个了，由 MiddleNode 级别来提供缓存的功能，也就是说要读 Elements 只能通过
+		/// MiddleNode 来，这个 Elements 对外是隐形的。如果直接读的话，就错了。
+		/// 这个函数的返回值不提供返回值缓存功能
+		template <typename T>
+		static T Read(path const& filename, pos_int start)
+		{
+			ifstream fs(filename, ifstream::binary);
+			fs.seekg(start);
+
+			byte mem[sizeof(T)];
+			if (fs.is_open())
+			{
+				fs.read(reinterpret_cast<char *>(&mem[0]), sizeof(T));
+			}
+
+			T *p = reinterpret_cast<T *>(&mem[0]);
+			return move(*p);
 		}
 
 		template <typename T>

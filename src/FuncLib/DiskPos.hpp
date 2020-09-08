@@ -1,7 +1,6 @@
 #pragma once
 #include <memory>
 #include <type_traits>
-#include "File.hpp"
 #include "Store/IInsidePositionOwner.hpp"
 
 namespace FuncLib
@@ -9,10 +8,11 @@ namespace FuncLib
 	using namespace Store;
 	using ::std::enable_if_t;
 	using ::std::is_abstract_v;
-	using ::std::is_base_of_v;
 	using ::std::make_shared;
 	using ::std::shared_ptr;
 	using ::std::size_t;
+
+	class File;
 
 	template <typename T>
 	class DiskPos : public IInsidePositionOwner
