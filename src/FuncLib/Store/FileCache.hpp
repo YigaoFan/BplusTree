@@ -19,6 +19,7 @@ namespace FuncLib::Store
 
 	using CacheId = ::std::uintptr_t;
 
+	template <typename T>
 	CacheId ComputeCacheId(shared_ptr<T> obj)
 	{
 		return reinterpret_cast<CacheId>(obj.get());
@@ -69,7 +70,7 @@ namespace FuncLib::Store
 
 			Cache<T>[*_filename].insert({ addr, object });
 
-			auto remover = [file = _filename, =addr]()
+			auto remover = [file = _filename, addr=addr]()
 			{
 				Cache<T>[*file].erase(addr);
 			};
