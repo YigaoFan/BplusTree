@@ -1,7 +1,7 @@
-#include "../Basic/Exception.hpp"
+#include "../../Basic/Exception.hpp"
 #include "FileResource.hpp"
 
-namespace FuncLib
+namespace FuncLib::Store
 {
     using ::Basic::InvalidAccessException;
 

@@ -1,9 +1,8 @@
 #pragma once
 #include <memory>
 #include "File.hpp"
-#include "../Basic/Exception.hpp"
 
-namespace FuncLib
+namespace FuncLib::Store
 {
 	using ::std::shared_ptr;
 
