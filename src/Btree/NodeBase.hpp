@@ -10,7 +10,7 @@
 #include <type_traits>
 #include "Basic.hpp"
 #include "../FuncLib/FriendFuncLibDeclare.hpp"
-#include "../FuncLib/FileResource.hpp"
+#include "../FuncLib/Store/FileResource.hpp"
 #include "../Basic/TypeTrait.hpp"
 
 namespace Collections
@@ -133,9 +133,9 @@ void LessThanPredicate(shared_ptr<LessThan<Key>> lessThan) override\
 	{                                                                         \
 		using NodeType = remove_const_t<remove_pointer_t<decltype(thisPtr)>>; \
                                                                               \
-		if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)             \
+		if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)       \
 		{                                                                     \
-			using FuncLib::FileResource;                                      \
+			using FuncLib::Store::FileResource;                               \
 			auto f = FileResource::GetCurrentThreadFile();                    \
 			auto node = make_shared<NodeType>(*thisPtr);                      \
 			return UniqueDiskPtr<NodeType>::MakeUnique(node, f);              \

@@ -3,22 +3,25 @@
 #include <vector>
 #include <cstddef>
 #include "../../TestFrame/FlyTest.hpp"
-#include "../File.hpp"
+#include "../Store/File.hpp"
 #include <cstdio>
 
 using ::std::shared_ptr;
 using ::std::make_shared;
 using ::std::byte;
+using ::std::array;
 using namespace FuncLib;
+using namespace FuncLib::Store;
 
-// like allocator
+
 TESTCASE("File test")
 {
     auto filename = "dataTest";
     {
         auto f = make_shared<File>(filename);
         byte b{65};
-        array<byte, 3> data{
+        array<byte, 3> data
+        {
             b,
             b,
             b,

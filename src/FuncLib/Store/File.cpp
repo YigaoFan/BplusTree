@@ -1,18 +1,18 @@
 #include "File.hpp"
 
-namespace FuncLib
+namespace FuncLib::Store
 {
 	using ::std::get;
 	using ::std::ofstream;
 
 	set<weak_ptr<File>, owner_less<weak_ptr<File>>> File::Files = {};
 
-	static shared_ptr<File> File::GetFile(path const &filename)
+	shared_ptr<File> File::GetFile(path const &filename)
 	{
 		for (auto& weakFile : Files)
 		{
 			auto f = weakFile.lock();
-			if (f->_filename == filename)
+			if ((*f->_filename) == filename)
 			{
 				return f;
 			}
@@ -24,6 +24,7 @@ namespace FuncLib
 		{
 			Files.erase(f);
 		};
+
 		return f;
 	}
 
@@ -60,7 +61,7 @@ namespace FuncLib
 		auto addr = 0; // reallocate from 0
 		for (auto& cacheKit : _cache)
 		{
-			shared_ptr<IInsidePositionOwner>&& posOwner = get<3>(cacheKit);
+			shared_ptr<IInsidePositionOwner> posOwner = get<3>(cacheKit);
 			posOwner->Addr(addr);
 			addr += posOwner->RequiredSize();
 		}

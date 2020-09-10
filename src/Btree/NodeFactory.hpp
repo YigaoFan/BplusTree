@@ -6,7 +6,7 @@
 #include "Enumerator.hpp"
 #include "LeafNode.hpp"
 #include "MiddleNode.hpp"
-#include "../FuncLib/FileResource.hpp"
+#include "../FuncLib/Store/FileResource.hpp"
 #include "../Basic/TypeTrait.hpp"
 
 namespace Collections
@@ -37,7 +37,7 @@ namespace Collections
 
 			if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)
 			{
-				using FuncLib::FileResource;
+				using FuncLib::Store::FileResource;
 				auto f = FileResource::GetCurrentThreadFile();
 				auto node = make_shared<Middle>(enumerator, lessThan);
 				return UniqueDiskPtr<Middle>::MakeUnique(node, f);// TODO maybe should handle leaf cons, too

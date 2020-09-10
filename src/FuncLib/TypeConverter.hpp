@@ -11,7 +11,7 @@
 #include "../Btree/LeafNode.hpp"
 #include "../Btree/Btree.hpp"
 #include "../Btree/EnumeratorPipeline.hpp"
-#include "File.hpp"
+#include "./Store/File.hpp"
 #include "ByteConverter.hpp"
 
 namespace FuncLib
@@ -81,7 +81,6 @@ namespace FuncLib
 		{
 			using Node = NodeBase<Key, Value, Count, UniqueDiskPtr>;
 			using ::std::placeholders::_1;
-			// using ::std::placeholders::_2;
 			auto nodes = EnumeratorPipeline<typename decltype(from._elements)::Item const&, UniqueDiskPtr<Node>>(from._elements.GetEnumerator(), bind(&CloneNodeToDisk, _1, file));
 			return { move(nodes), from._elements.LessThanPtr };
 		}
