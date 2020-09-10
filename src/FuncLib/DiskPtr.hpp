@@ -3,11 +3,9 @@
 #include <type_traits>
 #include <vector>
 #include <functional>
-#include "File.hpp"
 
 namespace FuncLib
 {
-	using ::std::enable_if_t;
 	using ::std::function;
 	using ::std::is_base_of_v;
 	using ::std::is_same_v;
@@ -17,6 +15,7 @@ namespace FuncLib
 	using ::std::shared_ptr;
 	using ::std::vector;
 
+	// 如何区分删除和析构
 	template <typename T>
 	class DiskPtrBase
 	{
@@ -24,20 +23,18 @@ namespace FuncLib
 		template <typename Ty>
 		friend class DiskPtrBase;
 		mutable shared_ptr<T> _tPtr;
-		// mutable vector<function<void(T*)>> _contentSetters;
+		mutable vector<function<void(T*)>> _setters;
 		shared_ptr<DiskPos<T>> _pos;
 
 	public:
-		DiskPtrBase(shared_ptr<T> tPtr, DiskPos<T> pos) : _tPtr(tPtr), _pos(shared_ptr(pos))
-		{ }
-
 		DiskPtrBase(DiskPos<T> pos) : _pos(shared_ptr(pos))
 		{ }
 
 		DiskPtrBase(DiskPtrBase&& that)
-			: _tPtr(that._tPtr), _contentSetters(move(that._contentSetters)), _pos(move(that._pos))
+			: _tPtr(that._tPtr), _setters(move(that._setters)), _pos(move(that._pos))
 		{
 			that._tPtr = nullptr;
+			that._pos = nullptr;
 		}
 
 		DiskPtrBase(DiskPtrBase const& that) : _tPtr(that._tPtr), _pos(that._pos)
@@ -58,24 +55,24 @@ namespace FuncLib
 		DiskPtrBase& operator= (DiskPtrBase&& that) noexcept
 		{
 			that.DoSet();
-			this->_tPtr = that._tPtr;
+			this->_tPtr = move(that._tPtr);
 			this->_pos = move(that._pos);
 			return *this;
 		}
 
 		// TODO test
-		template <typename Derive, typename = enable_if_t<is_base_of_v<T, Derive>>>
+		template <typename Derive>
 		DiskPtrBase(DiskPtrBase<Derive>&& deriveOne)
 			: _tPtr(deriveOne._tPtr), _pos(deriveOne._pos)
 		{ }
 		
 		void RegisterSetter(function<void(T*)> setter)
 		{
-			if (auto ptr = _cache.first; ptr == nullptr)
+			if (_tPtr == nullptr)
 			{
 				// 这里的 setter 这样存下来后，各地的 DiskPtr 从不同内存位置开始读的时候会不会有问题
 				// 是考虑 Btree 的情况，还是考虑之后的所有情况？
-				_cache.second.push_back(move(setter));
+				_setters.push_back(move(setter));
 			}
 			else
 			{
@@ -114,36 +111,16 @@ namespace FuncLib
 			return _tPtr.get();// TODO maybe modify use place
 		}
 
-		// bool operator!= ()
-		// {
-			// UniqueDiskPtr should support nullptr, compare to nullptr
-			// TODO how to overload
-		// }
-
-		// bool operator< (DiskPtrBase const& that) const
-		// {
-		// 	// TODO
-		// 	static_assert(true, "T type must can compare by <");
-		// }
-
 		shared_ptr<File> GetFile() const
 		{
-			return _pos.GetFile();
-		}
-
-		~DiskPtrBase()
-		{
-			if (_tPtr != nullptr)
-			{
-				_pos.WriteObject(_tPtr);// TODO judge if already write
-			}
+			return _pos->GetFile();
 		}
 	private:
 		void ReadEntity() const
 		{
 			if (_tPtr == nullptr)
 			{
-				_tPtr = _pos.ReadObject();
+				_tPtr = _pos->ReadObject();
 			}
 
 			DoSet();
@@ -151,14 +128,14 @@ namespace FuncLib
 
 		void DoSet() const
 		{
-			if (!_contentSetters.empty())
+			if (!_setters.empty())
 			{
-				for (auto& f : _contentSetters)
+				for (auto& f : _setters)
 				{
 					f(_tPtr.get());
 				}
 
-				_contentSetters.clear();
+				_setters.clear();
 			}
 		}
 	};
@@ -185,27 +162,23 @@ namespace FuncLib
 
 		static UniqueDiskPtr<T> MakeUnique(shared_ptr<T> entityPtr, shared_ptr<File> file)
 		{
-			size_t pos;
-			if constexpr (is_same_v<typename ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type, vector<byte>>)
-			{
-				auto d = ByteConverter<T>::ConvertToByte(*entityPtr);
-				pos = file->Allocate<T>(d.size());
-			}
-			else
-			{
-				pos = file->Allocate<T>(ByteConverter<T>::Size);
-			}
+			// size_t pos;
+			// if constexpr (is_same_v<typename ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type, vector<byte>>)
+			// {
+			// 	auto d = ByteConverter<T>::ConvertToByte(*entityPtr);
+			// 	pos = file->Allocate<T>(d.size());
+			// }
+			// else
+			// {
+			// 	pos = file->Allocate<T>(ByteConverter<T>::Size);
+			// }
 
-			return { entityPtr, { file, pos } }; // 硬存大小分配只有这里
+			// return { entityPtr, { file, pos } }; // 硬存大小分配只有这里
 		}
 
 		UniqueDiskPtr(UniqueDiskPtr const&) = delete;
 
-		UniqueDiskPtr& operator= (UniqueDiskPtr const& that)
-		{
-			Base::operator= (that);
-			return *this;
-		}
+		UniqueDiskPtr& operator= (UniqueDiskPtr const& that) = delete;
 
 		UniqueDiskPtr& operator= (UniqueDiskPtr&& that) noexcept
 		{
@@ -213,24 +186,21 @@ namespace FuncLib
 			return *this;
 		}
 
-		UniqueDiskPtr(UniqueDiskPtr&& that)
-			: Base(move(that))
-		{
-
-		}
+		UniqueDiskPtr(UniqueDiskPtr&& that) : Base(move(that)) { }
 
 		UniqueDiskPtr GetPtr() const
 		{
 			return { this->_tPtr, this->_pos };
 		}
 
+		// 哪里用到了这个？
 		void reset(UniqueDiskPtr ptr)
 		{
 			// if (ptr == nullptr)
 			// release resource
 			this->_tPtr = move(ptr->_tPtr);
 			this->_pos = move(ptr->_pos);
-			this->_contentSetters = move(ptr->_contentSetters);
+			this->_setters = move(ptr->_setters);
 		}
 	};
 }
