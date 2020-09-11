@@ -96,8 +96,11 @@ namespace FuncLib
 		{
 			// 下面这种写法是错的，因为本来将 Bytes 转换成 T 对象的工作是交给 ByteConverter 来做
 			// 下面这样写就把这个工作交给 File，相当于把 File 也搅进来了
+			// 所以 File 里面读取 byte 转换成对象的代码应该放在这里
 			// return file->Read<T>(startInFile, sizeof(T));
-			
+			auto bytes = reader->Read(sizeof(T));
+			T* p = reinterpret_cast<T*>(&bytes[0]);
+			return move(*p);
 		}
 	};
 
