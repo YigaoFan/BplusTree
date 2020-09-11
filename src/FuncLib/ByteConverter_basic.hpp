@@ -11,7 +11,7 @@
 #include "../Btree/LiteVector.hpp"
 #include "../Btree/Basic.hpp"
 #include "../Basic/TypeTrait.hpp"
-#include "./Store/File.hpp"
+#include "./Store/FileReader.hpp"
 #include "StructToTuple.hpp"
 
 namespace std
@@ -23,7 +23,8 @@ namespace std
 	template <typename T, auto N1, auto... Is1, auto N2, auto... Is2>
 	array<T, N1 + N2> AddArray(array<T, N1> a1, index_sequence<Is1...>, array<T, N2> a2, index_sequence<Is2...>)
 	{
-		return {
+		return
+		{
 			move(a1[Is1])...,
 			move(a2[Is2])...,
 		};
@@ -53,8 +54,6 @@ namespace FuncLib
 	using ::std::get;
 	using ::std::index_sequence;
 	using ::std::is_class_v;
-	using ::std::is_standard_layout_v;
-	using ::std::is_trivial_v;
 	using ::std::make_index_sequence;
 	using ::std::make_shared;
 	using ::std::memcpy;
@@ -70,17 +69,12 @@ namespace FuncLib
 	using ::std::tuple_size_v;
 	using ::std::unique_ptr;
 	using ::std::vector;
+	using namespace Store;
 
-	// ����ͳһһ���õ���������
-	// constexpr size_t Min(size_t one, size_t two)
-	// {
-	// 	return one > two ? one : two;
-	// }
+	/// ByteConverter 的工作是将一个类型和 Byte 之间相互转换
+	/// TypeConverter 的工作是将一个转换为适合硬盘读取的类型（可以有类似 DiskPtr 这样的读取隔离，而不是一下子读取完）
 
-	// ������������Ͷ��� Convert ���˵ģ�TypeConverter �� ByteConverter �����ж��п��ܷ���Ӳ�̿ռ�ķ��䣬��������ת���е� string
-	// ��Ҫ��֤���� ByteConverter �����в���������ת��
-
-	template <typename T, bool = is_standard_layout_v<T> && is_trivial_v<T>>
+	template <typename T, bool>
 	struct ByteConverter;
 
 	template <typename T>
@@ -98,9 +92,12 @@ namespace FuncLib
 			return mem;
 		}
 
-		static T ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static T ConvertFromByte(shared_ptr<FileReader> reader, uint32_t startInFile)
 		{
-			return file->Read<T>(startInFile, sizeof(T));
+			// 下面这种写法是错的，因为本来将 Bytes 转换成 T 对象的工作是交给 ByteConverter 来做
+			// 下面这样写就把这个工作交给 File，相当于把 File 也搅进来了
+			// return file->Read<T>(startInFile, sizeof(T));
+			
 		}
 	};
 
