@@ -14,6 +14,6 @@ namespace FuncLib::Store
 		shared_ptr<path> filename_;
 		pos_int pos_;
 	public:
-		FileByteMover(pos_int startPos);
+		FileByteMover(shared_ptr<path> filename, pos_int startPos);
 	};
 }

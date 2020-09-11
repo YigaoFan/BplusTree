@@ -54,6 +54,7 @@ namespace FuncLib::Store
 	public:
 		using Base::Base;
 
+		/// has side effect: move forward size positions
 		vector<byte> Read(size_t size)
 		{
 			auto p = pos_;
@@ -61,6 +62,7 @@ namespace FuncLib::Store
 			return Read(*filename_, _pos, size);
 		}
 
+		/// has side effect: move forward N positions
 		template <size_t N>
 		array<byte, N> Read()
 		{

@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <filesystem>
+#include <fstream>
 #include "StaticConfig.hpp"
 #include "FileByteMover.hpp"
 
@@ -10,6 +11,7 @@ namespace FuncLib::Store
 {
 	using ::std::array;
 	using ::std::byte;
+	using ::std::ofstream;
 	using ::std::vector;
 
 	template <typename ForwardIter>

@@ -2,7 +2,7 @@
 
 namespace FuncLib::Store
 {
-	FileByteMover::FileByteMover(pos_int startPos)
-		: _pos(startPos)
+	FileByteMover::FileByteMover(shared_ptr<path> filename, pos_int startPos)
+		: filename_(filename), pos_(startPos)
 	{ }
 }

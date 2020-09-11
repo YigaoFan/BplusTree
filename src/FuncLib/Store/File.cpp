@@ -40,21 +40,6 @@ namespace FuncLib::Store
 		}
 	}
 
-	vector<byte> File::Read(path const& filename, pos_int start, size_t size)
-	{
-		ifstream fs(filename, ifstream::binary);
-		fs.seekg(start);
-
-		vector<byte> mem(size);
-
-		if (fs.is_open())
-		{
-			fs.read(reinterpret_cast<char*>(&mem[0]), size);
-		}
-		
-		return mem;
-	}
-
 	void File::ReallocateContent()
 	{
 		// 还需要想很多，比如这一步很可能是需要其他步骤一起做才有效的

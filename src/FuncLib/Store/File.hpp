@@ -5,11 +5,13 @@
 #include <memory>
 #include <set>
 #include <functional>
-#include "FileCache.hpp"
 #include "StaticConfig.hpp"
+#include "FileCache.hpp"
+#include "FileReader.hpp"
 #include "IInsidePositionOwner.hpp"
+#include "StorageAllocator.hpp"
+#include "../../Basic/Exception.hpp"
 #include "../ByteConverter.hpp"
-#include "../Basic/Exception.hpp"
 
 namespace FuncLib::Store
 {
@@ -20,6 +22,7 @@ namespace FuncLib::Store
 	using ::std::ifstream;
 	using ::std::make_shared;
 	using ::std::move;
+	using ::std::ofstream;
 	using ::std::owner_less;
 	using ::std::set;
 	using ::std::shared_ptr;
@@ -37,6 +40,7 @@ namespace FuncLib::Store
 		shared_ptr<path> _filename;
 		FileCache _cache;
 		function<void()> _unloader = []() {};
+		shared_ptr<StorageAllocator> _allocator;
 		pos_int _currentPos;
 	public:
 		static shared_ptr<File> GetFile(path const& filename);
@@ -68,16 +72,21 @@ namespace FuncLib::Store
 			}
 			else
 			{
-				return PackageThenAddToCache(new T(converter(Read(addr, posOwner->RequiredSize()))), posOwner);
+				// 这里的有 conveter 的写法是错的，不需要，交给 string 的转换类自己处理
+				// 这里感觉应该将权力反转给 ByteConverter 的地方，这样可以各自有自己定制读法
+				// ByteConverter::ConvertFromByte(file, posOwner->Addr()); use like this
+				// 然后发现 Converter 里面要改，以前不是按照现在的 File 写的
+				return PackageThenAddToCache(new T(converter(Read(*_filename, addr, posOwner->RequiredSize()))), posOwner);
 			}
 		}
 		
+		// 这样的函数是给 DiskPtr 用的吗？
+		// 这里的返回值要把 PositionOwner 也给传出去，因为外面要用这个来调用上面的 Read
 		template <typename T>
 		shared_ptr<T> New(T&& t)
 		{
-			auto posOwner = make_shared<DiskPos<T>>(shared_from_this(), _currentPos);
-			_currentPos += sizeof(T);
-			auto p = PackageThenAddToCache(new T(forward(t)), posOwner);
+			// auto posOwner = MakePositionOwner<T>(shared_from_this(), _currentPos);
+			auto p = AddNewToCache(new T(forward(t)));
 			return p;
 		}
 
@@ -104,44 +113,43 @@ namespace FuncLib::Store
 
 		~File();
 	private:
-		static vector<byte> Read(path const& filename, pos_int start, size_t size);
-
-		template <typename T, typename FowardIter>
-		static void Write(path const& filename, pos_int start, ForwardIter begin, ForwardIter end)
-		{
-			ofstream fs(filename, ofstream::binary);
-			fs.seekp(start);
-			fs.write((char *)begin, end - begin);
-		}
 
 		/// 使用下面这个的场景是：MiddleNode 包含 Elements 的时候，就不能返回 shared_ptr 了
 		/// 而是要用这个了，由 MiddleNode 级别来提供缓存的功能，也就是说要读 Elements 只能通过
 		/// MiddleNode 来，这个 Elements 对外是隐形的。如果直接读的话，就错了。
 		/// 这个函数的返回值不提供返回值缓存功能
 		template <typename T>
-		static T Read(path const& filename, pos_int start)
+		T Read(pos_int start)
 		{
-			ifstream fs(filename, ifstream::binary);
-			fs.seekg(start);
-
-			byte mem[sizeof(T)];
-			if (fs.is_open())
-			{
-				fs.read(reinterpret_cast<char *>(&mem[0]), sizeof(T));
-			}
-
-			T *p = reinterpret_cast<T *>(&mem[0]);
-			return move(*p);
+			auto reader = make_shared<FileReader>(_filename, start);
+			return ByteConverter<T>::ConvertFromByte(reader);
 		}
 
+		// 读取的地方的 posOwner 和 New 里面产生的 posOwner 要到 StorageAllocator 里面注册一下
 		template <typename T>
 		shared_ptr<T> PackageThenAddToCache(T* ptr, shared_ptr<IInsidePositionOwner> posOwner)
 		{
-			auto p = shared_ptr<T>(ptr, [file = _filename, =posOwner](auto p)
+			auto p = shared_ptr<T>(ptr, [file = _filename, posOwner = posOwner](auto p)
 			{
-				// convert to bytes
+				// TODO convert to bytes
 				vector<byte> bytes;
 				Write(*file, posOwner->Addr(), bytes.begin(), bytes.end());
+				delete p;
+			});
+			_cache.Add<T>(posOwner, p);
+
+			return p;
+		}
+
+		// 使用下面这种
+		template <typename T>
+		shared_ptr<T> AddNewToCache(T* ptr)
+		{
+			auto p = shared_ptr<T>(ptr, [file = _filename, alloc = _allocator](auto p)
+			{
+				auto bytes = ByteConverter<T>::ConvertToByte(*p);
+				auto pos = alloc->Allocate(bytes.size());
+				Write(*file, pos, bytes.begin(), bytes.end());
 				delete p;
 			});
 			_cache.Add<T>(posOwner, p);
