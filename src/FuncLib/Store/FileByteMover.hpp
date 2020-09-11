@@ -15,6 +15,5 @@ namespace FuncLib::Store
 		pos_int pos_;
 	public:
 		FileByteMover(pos_int startPos);
-		virtual ~FileByteMover() = 0;
 	};
 }
