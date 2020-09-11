@@ -56,21 +56,17 @@ namespace FuncLib::Store
 
 		vector<byte> Read(size_t size)
 		{
-			auto p = _pos;
-			_pos += size;
-			return Read(*_filename, _pos, size);
+			auto p = pos_;
+			pos_ += size;
+			return Read(*filename_, _pos, size);
 		}
 
 		template <size_t N>
 		array<byte, N> Read()
 		{
-			auto p = _pos;
-			_pos += N;
+			auto p = pos_;
+			pos_ += N;
 			return Read<N>(*_filename, p);
 		}
 	};
-	
-	FileReader::~FileReader()
-	{
-	}
 }

@@ -15,5 +15,6 @@ namespace FuncLib::Store
 		pos_int pos_;
 	public:
 		FileByteMover(pos_int startPos);
+		void MoveForward(pos_int offset);
 	};
 }

@@ -17,7 +17,7 @@ namespace FuncLib::Store
 	{
 		ofstream fs(filename, ofstream::binary);
 		fs.seekp(start);
-		fs.write((char *)begin, end - begin);
+		fs.write((char const *)begin, end - begin);
 	}
 
 	class FileWriter : protected FileByteMover
@@ -27,15 +27,19 @@ namespace FuncLib::Store
 	public:
 		using Base::Base;
 
-		void Write(vector<byte> data)
+		void Write(vector<byte> const& data)
 		{
-			Write(*_filename, data.begin(), data.end());
+			auto p = pos_;
+			pos_ += data.size();
+			Write(*filename_, p, data.begin(), data.end());
 		}
 
 		template <size_t N>
-		void Write(array<byte, N> data)
+		void Write(array<byte, N> const& data)
 		{
-			Write(*_filename, data.begin(), data.end());
+			auto p = pos_;
+			pos_ += data.size();
+			Write(*filename_, p, data.begin(), data.end());
 		}
 	};
 }
