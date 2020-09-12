@@ -5,13 +5,14 @@
 #include <memory>
 #include <set>
 #include <functional>
+#include "../../Basic/Exception.hpp"
 #include "StaticConfig.hpp"
 #include "FileCache.hpp"
 #include "FileReader.hpp"
+#include "FileWriter.hpp"
 #include "IInsidePositionOwner.hpp"
 #include "StorageAllocator.hpp"
-#include "../../Basic/Exception.hpp"
-#include "../ByteConverter.hpp"
+#include "../FriendFuncLibDeclare.hpp"
 
 namespace FuncLib::Store
 {
@@ -57,26 +58,7 @@ namespace FuncLib::Store
 			}
 			else
 			{
-				return PackageThenAddToCache(new T(Read<T>(*_filename, addr)), posOwner);
-			}
-		}
-
-		/// used in string like type
-		template <typename T>
-		shared_ptr<T> Read(shared_ptr<IInsidePositionOwner> posOwner, function<T(vector<byte>)> converter)
-		{
-			auto addr = posOwner->Addr();
-			if (_cache.HasRead<T>(addr))
-			{
-				return _cache.Read<T>(addr);
-			}
-			else
-			{
-				// 这里的有 conveter 的写法是错的，不需要，交给 string 的转换类自己处理
-				// 这里感觉应该将权力反转给 ByteConverter 的地方，这样可以各自有自己定制读法
-				// ByteConverter::ConvertFromByte(file, posOwner->Addr()); use like this
-				// 然后发现 Converter 里面要改，以前不是按照现在的 File 写的
-				return PackageThenAddToCache(new T(converter(Read(*_filename, addr, posOwner->RequiredSize()))), posOwner);
+				return PackageThenAddToCache(new T(Read<T>(addr)), posOwner);
 			}
 		}
 		
@@ -121,6 +103,7 @@ namespace FuncLib::Store
 		template <typename T>
 		T Read(pos_int start)
 		{
+			// 触发 读 的唯一一个地方
 			auto reader = make_shared<FileReader>(_filename, start);
 			return ByteConverter<T>::ConvertFromByte(reader);
 		}
@@ -129,11 +112,15 @@ namespace FuncLib::Store
 		template <typename T>
 		shared_ptr<T> PackageThenAddToCache(T* ptr, shared_ptr<IInsidePositionOwner> posOwner)
 		{
-			auto p = shared_ptr<T>(ptr, [file = _filename, posOwner = posOwner](auto p)
+
+			auto pos = posOwner->Addr(); // IInsidePositionOwner 这个类应该是不需要了
+			auto p = shared_ptr<T>(ptr, [file = _filename, posOwner = posOwner, handle = _allocator->Register(pos)](auto p)
 			{
-				// TODO convert to bytes
-				vector<byte> bytes;
-				Write(*file, posOwner->Addr(), bytes.begin(), bytes.end());
+				// 触发 写 的唯一一个地方
+				auto start = handle.GetConcretePosition();
+				auto writer = make_shared<FileWriter>(_filename, start);
+				// ConvertToByte 名字要改一下，因为这里是直接在里面保存了
+				ByteConverter<T>::ConvertToByte(*p, writer);
 				delete p;
 			});
 			_cache.Add<T>(posOwner, p);
