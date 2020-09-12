@@ -1,12 +1,10 @@
 #pragma once
 #include <memory>
-#include <type_traits>
 #include "Store/IInsidePositionOwner.hpp"
 
 namespace FuncLib
 {
 	using namespace Store;
-	using ::std::enable_if_t;
 	using ::std::is_abstract_v;
 	using ::std::make_shared;
 	using ::std::shared_ptr;
@@ -23,6 +21,7 @@ namespace FuncLib
 		friend class DiskPos;
 
 		shared_ptr<File> _file;
+		shared_ptr<T> _t;
 		size_t _start;
 	public:
 		using Index = decltype(_start);
@@ -44,28 +43,19 @@ namespace FuncLib
 			return this->_start;
 		}
 
-		size_t RequiredSize() const override
-		{
-			return ByteConverter<T>::ConvertToByte(*entity).size();
-		}
-
 		shared_ptr<T> ReadObject() const
 		{
 			if constexpr (is_abstract_v<T>)
 			{
 				// ConvertFromByte need to ensure return a shared_ptr
-				return ByteConverter<T>::ConvertFromByte(_file, _start);
+				_t = ByteConverter<T>::ConvertFromByte(_file, _start);// 这里要处理下，使读取出来的是指针还是对象本身
 			}
 			else
 			{
-				return make_shared<T>(ByteConverter<T>::ConvertFromByte(_file, _start));
+				_t = make_shared<T>(ByteConverter<T>::ConvertFromByte(_file, _start));
 			}
-		}
 
-		void WriteObject(shared_ptr<T> entity)
-		{
-			// ������Ҫ�ݹ�д����������
-			_file->Write<T>(ByteConverter<T>::ConvertToByte(*entity));
+			return _t;
 		}
 
 		shared_ptr<File> GetFile() const
