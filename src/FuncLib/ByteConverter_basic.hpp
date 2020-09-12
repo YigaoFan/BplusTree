@@ -12,6 +12,7 @@
 #include "../Btree/Basic.hpp"
 #include "../Basic/TypeTrait.hpp"
 #include "./Store/FileReader.hpp"
+#include "./Store/FileWriter.hpp"
 #include "StructToTuple.hpp"
 
 namespace std
@@ -85,20 +86,21 @@ namespace FuncLib
 	{
 		static constexpr size_t Size = sizeof(T);
 
-		static array<byte, sizeof(T)> ConvertToByte(T t)
+		static void ConvertToByte(T const& t, shared_ptr<FileWriter> writer)
 		{
+			// 以这个函数作为示范，去修改其他的 ConvertToByte
 			array<byte, sizeof(T)> mem;
 			memcpy(&mem, &t, sizeof(T)); // TODO replace with std::copy?
-			return mem;
+			writer->Write(mem);
 		}
 
-		static T ConvertFromByte(shared_ptr<FileReader> reader, uint32_t startInFile)
+		static T ConvertFromByte(shared_ptr<FileReader> reader)
 		{
 			// 下面这种写法是错的，因为本来将 Bytes 转换成 T 对象的工作是交给 ByteConverter 来做
 			// 下面这样写就把这个工作交给 File，相当于把 File 也搅进来了
 			// 所以 File 里面读取 byte 转换成对象的代码应该放在这里
 			// return file->Read<T>(startInFile, sizeof(T));
-			auto bytes = reader->Read(sizeof(T));
+			auto bytes = reader->Read<sizeof(T)>();
 			T* p = reinterpret_cast<T*>(&bytes[0]);
 			return move(*p);
 		}
@@ -152,15 +154,16 @@ namespace FuncLib
 			static constexpr auto Offset = CurrentTypeSize + NextUnit::Offset;
 		};
 
-		static T ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		// TODO
+		static T ConvertFromByte(shared_ptr<FileReader> reader)
 		{
 			// ConvertToByte use T const&, here should use ToTuple<T const&>? either can pass compile
 			using Tuple = typename ReturnType<decltype(ToTuple<T>)>::Type;
-			auto converter = [file = file]<auto Index>()
+			auto converter = [=reader]<auto Index>()
 			{
-				constexpr auto start = DiskDataInternalOffset<Index, Tuple>::Offset;
+				constexpr auto start = DiskDataInternalOffset<Index, Tuple>::Offset;// TODO maybe this not need
 				using SubType = typename tuple_element<Index, Tuple>::type;
-				return ByteConverter<SubType>::ConvertFromByte(file, start);
+				return ByteConverter<SubType>::ConvertFromByte(reader);
 			};
 
 			return ConsT<T>(converter, make_index_sequence<tuple_size_v<Tuple>>());
@@ -181,13 +184,12 @@ namespace FuncLib
 			return bytes;
 		}
 
-		static string ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static string ConvertFromByte(shared_ptr<FileReader> reader)
 		{
-			auto size = file->Read<size_t>(startInFile, sizeof(size_t));
-			auto contentStart = startInFile + sizeof(size_t);
-			auto bytes = file->Read(contentStart, size);
+			auto charCount = ByteConverter<size_t>::ConvertFromByte(reader);
+			auto bytes = reader->Read(charCount);
 			char* str = reinterpret_cast<char*>(bytes.data());
-			return { str, str + bytes.size() };
+			return { str, str + charCount };
 		}
 	};
 
@@ -218,14 +220,13 @@ namespace FuncLib
 			return mem;
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
 		{
-			constexpr auto unitSize = ByteConverter<T>::Size;
-			auto count = file->Read<decltype(Capacity)>(startInFile, sizeof(Capacity));
+			auto n = ByteConverter<decltype(Capacity)>::ConvertFromByte(reader);
 			ThisType vec;
-			for (size_t i = 0, offset = sizeof(Capacity); i < count; ++i, offset += unitSize)
+			for (size_t i = 0; i < n; ++i)
 			{
-				vec.Add(ByteConverter<T>::ConvertFromByte(file, offset));
+				vec.Add(ByteConverter<T>::ConvertFromByte(reader));
 			}
 
 			return vec;
@@ -244,11 +245,10 @@ namespace FuncLib
 				+ ByteConverter<Value>::ConvertToByte(t.second);
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
 		{
-			auto keySize = ByteConverter<Key>::Size;
-			auto k = ByteConverter<Key>::ConvertFromByte(file, startInFile);
-			auto v = ByteConverter<Value>::ConvertFromByte(file, startInFile + keySize);
+			auto k = ByteConverter<Key>::ConvertFromByte(reader);
+			auto v = ByteConverter<Value>::ConvertFromByte(reader);
 			return { move(k), move(v) };
 		}
 	};
@@ -264,31 +264,11 @@ namespace FuncLib
 			return ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::ConvertToByte(t);
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
 		{
 			// Each type should have a constructor of all data member to easy set
-			return ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::ConvertFromByte(file, startInFile);
+			// Like Elements have a constructor which has LiteVector as arg
+			return ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::ConvertFromByte(reader);
 		}
 	};
-
-	// template <typename Key, typename Value>
-	// // BtreeOrder 3 not effect Item size
-	// constexpr size_t ItemSize = sizeof(typename ByteConverter<Elements<Key, Value, 3>>::Item);
-	// template <typename Key, typename Value>
-	// constexpr size_t MidElementsItemSize = ItemSize<string, unique_ptr<>>; // TODO should read from converted Mid
-	// template <typename Key, typename Value>
-	// constexpr size_t LeafElementsItemSize = ItemSize<string, string>;
-	// template <typename Key, typename Value>
-	// constexpr size_t MidConstPartSize = ByteConverter<MiddleNode<Key, Value, 3>>::ConstPartSize;
-	// template <typename Key, typename Value>
-	// constexpr size_t LeafConstPartSize = ByteConverter<LeafNode<Key, Value, 3>>::ConstPartSize;
-
-	// constexpr size_t constInMidNode = 4;
-	// constexpr size_t constInLeafNode = 4;
-	// template <typename Key, typename Value>
-	// constexpr size_t BtreeOrder_Mid = (DiskBlockSize - MidConstPartSize<Key, Value>) / MidElementsItemSize<Key, Value>;
-	// template <typename Key, typename Value>
-	// constexpr size_t BtreeOrder_Leaf = (DiskBlockSize - LeafConstPartSize<Key, Value>) / LeafElementsItemSize<Key, Value>;
-	// template <typename Key, typename Value>
-	// constexpr size_t BtreeOrder = Min(BtreeOrder_Mid<Key, Value>, BtreeOrder_Leaf<Key, Value>);
 }
