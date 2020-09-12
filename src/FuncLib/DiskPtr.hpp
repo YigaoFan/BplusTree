@@ -22,7 +22,8 @@ namespace FuncLib
 	protected:
 		template <typename Ty>
 		friend class DiskPtrBase;
-		mutable shared_ptr<T> _tPtr;
+		
+		mutable shared_ptr<T> _tPtr = nullptr;
 		mutable vector<function<void(T*)>> _setters;
 		shared_ptr<DiskPos<T>> _pos;
 
