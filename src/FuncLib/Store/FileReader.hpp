@@ -16,20 +16,7 @@ namespace FuncLib::Store
 	using ::std::vector;
 	using ::std::filesystem::path;
 
-	vector<byte> Read(path const& filename, pos_int start, size_t size)
-	{
-		ifstream fs(filename, ifstream::binary);
-		fs.seekg(start);
-
-		vector<byte> mem(size);
-
-		if (fs.is_open())
-		{
-			fs.read(reinterpret_cast<char *>(&mem[0]), size);
-		}
-
-		return mem;
-	}
+	vector<byte> Read(path const& filename, pos_int start, size_t size);
 
 	template <size_t N>
 	array<byte, N> Read(path const& filename, pos_int start)
@@ -55,12 +42,7 @@ namespace FuncLib::Store
 		using Base::Base;
 
 		/// has side effect: move forward size positions
-		vector<byte> Read(size_t size)
-		{
-			auto p = pos_;
-			pos_ += size;
-			return Read(*filename_, _pos, size);
-		}
+		vector<byte> Read(size_t size);
 
 		/// has side effect: move forward N positions
 		template <size_t N>
@@ -68,7 +50,7 @@ namespace FuncLib::Store
 		{
 			auto p = pos_;
 			pos_ += N;
-			return Read<N>(*_filename, p);
+			return Read<N>(*filename_, p);
 		}
 	};
 }

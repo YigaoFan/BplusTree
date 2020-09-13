@@ -29,12 +29,7 @@ namespace FuncLib::Store
 	public:
 		using Base::Base;
 
-		void Write(vector<byte> const& data)
-		{
-			auto p = pos_;
-			pos_ += data.size();
-			Write(*filename_, p, data.begin(), data.end());
-		}
+		void Write(vector<byte> const& data);
 
 		template <size_t N>
 		void Write(array<byte, N> const& data)
