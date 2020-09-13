@@ -16,10 +16,10 @@ namespace FuncLib::Store
 	using ::std::vector;
 	using ::std::filesystem::path;
 
-	vector<byte> Read(path const& filename, pos_int start, size_t size);
+	vector<byte> ReadByte(path const& filename, pos_int start, size_t size);
 
 	template <size_t N>
-	array<byte, N> Read(path const& filename, pos_int start)
+	array<byte, N> ReadByte(path const& filename, pos_int start)
 	{
 		ifstream fs(filename, ifstream::binary);
 		fs.seekg(start);
@@ -48,9 +48,10 @@ namespace FuncLib::Store
 		template <size_t N>
 		array<byte, N> Read()
 		{
-			auto p = pos_;
+			auto pos = pos_;
 			pos_ += N;
-			return Read<N>(*filename_, p);
+			auto path = GetPath();
+			return ReadByte<N>(*path, pos);
 		}
 	};
 }

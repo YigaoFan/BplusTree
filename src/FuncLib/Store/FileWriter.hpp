@@ -1,26 +1,15 @@
 #pragma once
-#include <vector>
-#include <array>
 #include <cstddef>
 #include <filesystem>
-#include <fstream>
 #include "StaticConfig.hpp"
 #include "FileByteMover.hpp"
 
 namespace FuncLib::Store
 {
-	using ::std::array;
 	using ::std::byte;
-	using ::std::ofstream;
-	using ::std::vector;
+	using ::std::filesystem::path;
 
-	template <typename ForwardIter>
-	void Write(path const& filename, pos_int start, ForwardIter begin, ForwardIter end)
-	{
-		ofstream fs(filename, ofstream::binary);
-		fs.seekp(start);
-		fs.write((char const *)begin, end - begin);
-	}
+	void WriteByte(path const& filename, pos_int start, char const* begin, char const* end);
 
 	class FileWriter : protected FileByteMover
 	{
@@ -29,14 +18,6 @@ namespace FuncLib::Store
 	public:
 		using Base::Base;
 
-		void Write(vector<byte> const& data);
-
-		template <size_t N>
-		void Write(array<byte, N> const& data)
-		{
-			auto p = pos_;
-			pos_ += data.size();
-			Write(*filename_, p, data.begin(), data.end());
-		}
+		void Write(char const* begin, char const* end);
 	};
 }

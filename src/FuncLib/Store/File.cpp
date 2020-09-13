@@ -52,6 +52,11 @@ namespace FuncLib::Store
 		}
 	}
 
+	shared_ptr<path> File::Path() const
+	{
+		return _filename;
+	}
+
 	File::~File()
 	{
 		_unloader();

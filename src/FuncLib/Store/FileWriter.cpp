@@ -1,11 +1,23 @@
+#include <fstream>
 #include "FileWriter.hpp"
 
 namespace FuncLib::Store
 {
-	void FileWriter::Write(vector<byte> const &data)
+	using ::std::ofstream;
+
+	void WriteByte(path const& filename, pos_int start, char const* begin, char const* end)
 	{
-		auto p = pos_;
-		pos_ += data.size();
-		Write(*filename_, p, data.begin(), data.end());
+		ofstream fs(filename, ofstream::binary);
+		fs.seekp(start);
+		fs.write(begin, end - begin);
+	}
+
+	void FileWriter::Write(char const* begin, char const* end)
+	{
+		auto pos = pos_;
+		pos_ += (end - begin);
+
+		auto path = GetPath();
+		WriteByte(*path, pos, begin, end);
 	}
 }

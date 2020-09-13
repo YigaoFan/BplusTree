@@ -93,6 +93,8 @@ namespace FuncLib::Store
 		/// ust like a btree can wake all inner elements, but not other btree.
 		void ReallocateContent();
 
+		shared_ptr<path> Path() const;
+
 		~File();
 	private:
 

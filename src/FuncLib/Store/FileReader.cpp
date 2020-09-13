@@ -2,7 +2,7 @@
 
 namespace FuncLib::Store
 {
-	vector<byte> Read(path const& filename, pos_int start, size_t size)
+	vector<byte> ReadByte(path const& filename, pos_int start, size_t size)
 	{
 		ifstream fs(filename, ifstream::binary);
 		fs.seekg(start);
@@ -19,8 +19,9 @@ namespace FuncLib::Store
 
 	vector<byte> FileReader::Read(size_t size)
 	{
-		auto p = pos_;
+		auto pos = pos_;
 		pos_ += size;
-		return Read(*filename_, pos_, size);
+		auto path = GetPath();
+		return ReadByte(*path, pos, size);
 	}
 }
