@@ -15,32 +15,33 @@
 #include "./Store/FileWriter.hpp"
 #include "StructToTuple.hpp"
 
-namespace std
-{
-	using ::std::array;
-	using ::std::index_sequence;
-	using ::std::make_index_sequence;
+// namespace std
+// {
+// 	using ::std::array;
+// 	using ::std::index_sequence;
+// 	using ::std::make_index_sequence;
 
-	template <typename T, auto N1, auto... Is1, auto N2, auto... Is2>
-	array<T, N1 + N2> AddArray(array<T, N1> a1, index_sequence<Is1...>, array<T, N2> a2, index_sequence<Is2...>)
-	{
-		return
-		{
-			move(a1[Is1])...,
-			move(a2[Is2])...,
-		};
-	}
+// 	template <typename T, auto N1, auto... Is1, auto N2, auto... Is2>
+// 	array<T, N1 + N2> AddArray(array<T, N1> a1, index_sequence<Is1...>, array<T, N2> a2, index_sequence<Is2...>)
+// 	{
+// 		return
+// 		{
+// 			move(a1[Is1])...,
+// 			move(a2[Is2])...,
+// 		};
+// 	}
 
-	// operator+ cannot be found if it's in FuncLib namespace, but in std OK
-	// maybe related to Argument Dependent Lookup
-	template <typename T, auto N1, auto N2>
-	array<T, N1 + N2> operator+ (array<T, N1> a1, array<T, N2> a2)
-	{
-		auto is1 = make_index_sequence<N1>();
-		auto is2 = make_index_sequence<N2>();
-		return AddArray(move(a1), is1, move(a2), is2);
-	}
-}
+// 	// operator+ cannot be found if it's in FuncLib namespace, but in std OK
+// 	// maybe related to Argument Dependent Lookup
+// 	template <typename T, auto N1, auto N2>
+// 	array<T, N1 + N2> operator+ (array<T, N1> a1, array<T, N2> a2)
+// 	{
+// 		auto is1 = make_index_sequence<N1>();
+// 		auto is2 = make_index_sequence<N2>();
+// 		return AddArray(move(a1), is1, move(a2), is2);
+// 	}
+// }
+
 namespace FuncLib
 {
 	using ::Basic::ReturnType;
@@ -96,39 +97,31 @@ namespace FuncLib
 
 		static T ConvertFromByte(shared_ptr<FileReader> reader)
 		{
-			// 下面这种写法是错的，因为本来将 Bytes 转换成 T 对象的工作是交给 ByteConverter 来做
-			// 下面这样写就把这个工作交给 File，相当于把 File 也搅进来了
-			// 所以 File 里面读取 byte 转换成对象的代码应该放在这里
-			// return file->Read<T>(startInFile, sizeof(T));
 			auto bytes = reader->Read<sizeof(T)>();
 			T* p = reinterpret_cast<T*>(&bytes[0]);
-			return move(*p);
+			return *p;
 		}
 	};
 
 	template <typename T>
 	struct ByteConverter<T, false>
 	{
-		// static_assert(is_class_v<T>, "Only support class type");
-		static constexpr size_t Size = ConvertedByteSize<T>;
-
 		template <typename Ty, auto... Is>
-		static auto CombineEachConvert(Ty const& tup, index_sequence<Is...>)
+		static void WriteEach(shared_ptr<FileWriter> writer, Ty const& tup, index_sequence<Is...>)
 		{
-			auto converter = [&tup]<auto Index>()
+			auto converter = [&tup, &writer]<auto Index>()
 			{
 				auto& i = get<Index>(tup);
-				// Should return array type
-				return ByteConverter<remove_cvref_t<decltype(i)>>::ConvertToByte(i);
+				ByteConverter<remove_cvref_t<decltype(i)>>::ConvertToByte(i, writer);
 			};
 
-			return (... + converter.template operator()<Is>());
+			(... + converter.template operator()<Is>());
 		}
 
-		static auto ConvertToByte(T const& t)
+		static void ConvertToByte(T const& t, shared_ptr<FileWriter> writer)
 		{
 			auto tup = ToTuple(forward<decltype(t)>(t));
-			return CombineEachConvert(tup, make_index_sequence<tuple_size_v<decltype(tup)>>());
+			WriteEach(writer, tup, make_index_sequence<tuple_size_v<decltype(tup)>>());
 		}
 
 		template <typename Ty, typename UnitConverter, auto... Is>
@@ -137,31 +130,12 @@ namespace FuncLib
 			return { converter.template operator ()<Is>()... };
 		}
 
-		template <auto Index, typename Tuple>
-		struct DiskDataInternalOffset;
-
-		template <typename Head, typename... Tail>
-		struct DiskDataInternalOffset<0, tuple<Head, Tail...>>
-		{
-			static constexpr auto Offset = 0;
-		};
-
-		template <auto Index, typename Head, typename... Tail>
-		struct DiskDataInternalOffset<Index, tuple<Head, Tail...>>
-		{
-			using NextUnit = DiskDataInternalOffset<Index - 1, tuple<Tail...>>;
-			static constexpr auto CurrentTypeSize = ConvertedByteSize<Head>;
-			static constexpr auto Offset = CurrentTypeSize + NextUnit::Offset;
-		};
-
-		// TODO
 		static T ConvertFromByte(shared_ptr<FileReader> reader)
 		{
 			// ConvertToByte use T const&, here should use ToTuple<T const&>? either can pass compile
 			using Tuple = typename ReturnType<decltype(ToTuple<T>)>::Type;
 			auto converter = [=reader]<auto Index>()
 			{
-				constexpr auto start = DiskDataInternalOffset<Index, Tuple>::Offset;// TODO maybe this not need
 				using SubType = typename tuple_element<Index, Tuple>::type;
 				return ByteConverter<SubType>::ConvertFromByte(reader);
 			};
@@ -173,15 +147,11 @@ namespace FuncLib
 	template <>
 	struct ByteConverter<string>
 	{
-		static vector<byte> ConvertToByte(string const& t)
+		static void ConvertToByte(string const& t, shared_ptr<FileWriter> writer)
 		{
-			auto size = t.size();
-			auto arr = ByteConverter<decltype(size)>::ConvertToByte(size);
-			vector<byte> bytes{ arr.begin(), arr.end() };
-			bytes.reserve(size + arr.size());
-			byte const *str = reinterpret_cast<byte const *>(t.c_str());
-			bytes.insert(bytes.end(), str, str + t.size());
-			return bytes;
+			auto n = t.size();
+			ByteConverter<decltype(n)>::ConvertToByte(n, writer);
+			writer->Write(t.begin(), t.end());
 		}
 
 		static string ConvertFromByte(shared_ptr<FileReader> reader)
@@ -197,32 +167,22 @@ namespace FuncLib
 	struct ByteConverter<LiteVector<T, size_int, Capacity>, false>
 	{
 		using ThisType = LiteVector<T, size_int, Capacity>;
-		static constexpr size_t Size = sizeof(Capacity) + ByteConverter<T>::Size * Capacity;
 
-		static array<byte, Size> ConvertToByte(ThisType const& vec)
+		static void ConvertToByte(ThisType const& vec, shared_ptr<FileWriter> writer)
 		{
-			constexpr auto unitSize = ByteConverter<T>::Size;
-			constexpr auto countSize = sizeof(Capacity);
-			array<byte, Size> mem;
-
 			// Count
-			auto c = vec.Count();
-			memcpy(&mem, &c, countSize);
+			auto n = vec.Count();
+			ByteConverter<size_int>::ConvertToByte(n, writer);
 			// Items
-			for (auto i = 0; i < vec.Count(); ++i)
+			for (auto& t : vec)
 			{
-				auto c = ByteConverter<T>::ConvertToByte(vec[i]);
-				auto s = &c;
-				auto d = &mem[i * unitSize + countSize];
-				memcpy(d, s, unitSize);
+				ByteConverter<T>::ConvertToByte(vec[i], writer);
 			}
-
-			return mem;
 		}
 
 		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
 		{
-			auto n = ByteConverter<decltype(Capacity)>::ConvertFromByte(reader);
+			auto n = ByteConverter<size_int>::ConvertFromByte(reader);
 			ThisType vec;
 			for (size_t i = 0; i < n; ++i)
 			{
@@ -239,10 +199,10 @@ namespace FuncLib
 		using ThisType = pair<Key, Value>;
 		static constexpr size_t Size = ByteConverter<Key>::Size + ByteConverter<Value>::Size;
 
-		static array<byte, Size> ConvertToByte(ThisType const& t)
+		static void ConvertToByte(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
-			return ByteConverter<Key>::ConvertToByte(t.first)
-				+ ByteConverter<Value>::ConvertToByte(t.second);
+			ByteConverter<Key>::ConvertToByte(t.first, writer);
+			ByteConverter<Value>::ConvertToByte(t.second, writer);
 		}
 
 		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
@@ -257,11 +217,10 @@ namespace FuncLib
 	struct ByteConverter<Elements<Key, Value, Order, LessThan>, false>
 	{
 		using ThisType = Elements<Key, Value, Order, LessThan>;
-		static constexpr size_t Size = ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::Size;
 
-		static array<byte, Size> ConvertToByte(ThisType const& t)
+		static void ConvertToByte(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
-			return ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::ConvertToByte(t);
+			return ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::ConvertToByte(t, writer);
 		}
 
 		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
