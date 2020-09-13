@@ -153,7 +153,7 @@ void LessThanPredicate(shared_ptr<LessThan<Key>> lessThan) override\
                                                                               \
 		if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)       \
 		{                                                                     \
-			using FuncLib::FileResource;                                      \
+			using FuncLib::Store::FileResource;                               \
 			auto f = FileResource::GetCurrentThreadFile();                    \
 			auto n = make_shared<NodeType>(thisPtr->_elements.LessThanPtr);   \
 			return UniqueDiskPtr<NodeType>::MakeUnique(n, f);                 \
