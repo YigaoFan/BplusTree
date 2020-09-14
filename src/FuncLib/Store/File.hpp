@@ -107,7 +107,7 @@ namespace FuncLib::Store
 		{
 			// 触发 读 的唯一一个地方
 			auto reader = make_shared<FileReader>(_filename, start);
-			return ByteConverter<T>::ConvertFromByte(reader);
+			return ByteConverter<T>::ReadOut(reader);
 		}
 
 		// 读取的地方的 posOwner 和 New 里面产生的 posOwner 要到 StorageAllocator 里面注册一下
@@ -121,8 +121,7 @@ namespace FuncLib::Store
 				// 触发 写 的唯一一个地方
 				auto start = handle.GetConcretePosition();
 				auto writer = make_shared<FileWriter>(_filename, start);
-				// ConvertToByte 名字要改一下，因为这里是直接在里面保存了
-				ByteConverter<T>::ConvertToByte(*p, writer);
+				ByteConverter<T>::WriteDown(*p, writer);
 				delete p;
 			});
 			_cache.Add<T>(posOwner, p);
@@ -136,7 +135,7 @@ namespace FuncLib::Store
 		{
 			auto p = shared_ptr<T>(ptr, [file = _filename, alloc = _allocator](auto p)
 			{
-				auto bytes = ByteConverter<T>::ConvertToByte(*p);
+				auto bytes = ByteConverter<T>::WriteDown(*p);
 				auto pos = alloc->Allocate(bytes.size());
 				Write(*file, pos, bytes.begin(), bytes.end());
 				delete p;

@@ -80,22 +80,17 @@ namespace FuncLib
 	struct ByteConverter;
 
 	template <typename T>
-	constexpr size_t ConvertedByteSize = sizeof(typename ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type);
-
-	template <typename T>
 	struct ByteConverter<T, true>
 	{
 		static constexpr size_t Size = sizeof(T);
 
-		static void ConvertToByte(T const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(T const& t, shared_ptr<FileWriter> writer)
 		{
-			// 以这个函数作为示范，去修改其他的 ConvertToByte
-			array<byte, sizeof(T)> mem;
-			memcpy(&mem, &t, sizeof(T)); // TODO replace with std::copy?
-			writer->Write(mem);
+			char const* start = reinterpret_cast<char const*>(&t);
+			writer->Write(start, sizeof(T));
 		}
 
-		static T ConvertFromByte(shared_ptr<FileReader> reader)
+		static T ReadOut(shared_ptr<FileReader> reader)
 		{
 			auto bytes = reader->Read<sizeof(T)>();
 			T* p = reinterpret_cast<T*>(&bytes[0]);
@@ -112,13 +107,13 @@ namespace FuncLib
 			auto converter = [&tup, &writer]<auto Index>()
 			{
 				auto& i = get<Index>(tup);
-				ByteConverter<remove_cvref_t<decltype(i)>>::ConvertToByte(i, writer);
+				ByteConverter<remove_cvref_t<decltype(i)>>::WriteDown(i, writer);
 			};
 
 			(... + converter.template operator()<Is>());
 		}
 
-		static void ConvertToByte(T const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(T const& t, shared_ptr<FileWriter> writer)
 		{
 			auto tup = ToTuple(forward<decltype(t)>(t));
 			WriteEach(writer, tup, make_index_sequence<tuple_size_v<decltype(tup)>>());
@@ -130,14 +125,14 @@ namespace FuncLib
 			return { converter.template operator ()<Is>()... };
 		}
 
-		static T ConvertFromByte(shared_ptr<FileReader> reader)
+		static T ReadOut(shared_ptr<FileReader> reader)
 		{
-			// ConvertToByte use T const&, here should use ToTuple<T const&>? either can pass compile
+			// WriteDown use T const&, here should use ToTuple<T const&>? either can pass compile
 			using Tuple = typename ReturnType<decltype(ToTuple<T>)>::Type;
 			auto converter = [=reader]<auto Index>()
 			{
 				using SubType = typename tuple_element<Index, Tuple>::type;
-				return ByteConverter<SubType>::ConvertFromByte(reader);
+				return ByteConverter<SubType>::ReadOut(reader);
 			};
 
 			return ConsT<T>(converter, make_index_sequence<tuple_size_v<Tuple>>());
@@ -147,16 +142,16 @@ namespace FuncLib
 	template <>
 	struct ByteConverter<string>
 	{
-		static void ConvertToByte(string const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(string const& t, shared_ptr<FileWriter> writer)
 		{
 			auto n = t.size();
-			ByteConverter<decltype(n)>::ConvertToByte(n, writer);
-			writer->Write(t.begin(), t.end());
+			ByteConverter<decltype(n)>::WriteDown(n, writer);
+			writer->Write(t.begin(), t.size());
 		}
 
-		static string ConvertFromByte(shared_ptr<FileReader> reader)
+		static string ReadOut(shared_ptr<FileReader> reader)
 		{
-			auto charCount = ByteConverter<size_t>::ConvertFromByte(reader);
+			auto charCount = ByteConverter<size_t>::ReadOut(reader);
 			auto bytes = reader->Read(charCount);
 			char* str = reinterpret_cast<char*>(bytes.data());
 			return { str, str + charCount };
@@ -168,25 +163,25 @@ namespace FuncLib
 	{
 		using ThisType = LiteVector<T, size_int, Capacity>;
 
-		static void ConvertToByte(ThisType const& vec, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& vec, shared_ptr<FileWriter> writer)
 		{
 			// Count
 			auto n = vec.Count();
-			ByteConverter<size_int>::ConvertToByte(n, writer);
+			ByteConverter<size_int>::WriteDown(n, writer);
 			// Items
 			for (auto& t : vec)
 			{
-				ByteConverter<T>::ConvertToByte(vec[i], writer);
+				ByteConverter<T>::WriteDown(vec[i], writer);
 			}
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
-			auto n = ByteConverter<size_int>::ConvertFromByte(reader);
+			auto n = ByteConverter<size_int>::ReadOut(reader);
 			ThisType vec;
 			for (size_t i = 0; i < n; ++i)
 			{
-				vec.Add(ByteConverter<T>::ConvertFromByte(reader));
+				vec.Add(ByteConverter<T>::ReadOut(reader));
 			}
 
 			return vec;
@@ -199,16 +194,16 @@ namespace FuncLib
 		using ThisType = pair<Key, Value>;
 		static constexpr size_t Size = ByteConverter<Key>::Size + ByteConverter<Value>::Size;
 
-		static void ConvertToByte(ThisType const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
-			ByteConverter<Key>::ConvertToByte(t.first, writer);
-			ByteConverter<Value>::ConvertToByte(t.second, writer);
+			ByteConverter<Key>::WriteDown(t.first, writer);
+			ByteConverter<Value>::WriteDown(t.second, writer);
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
-			auto k = ByteConverter<Key>::ConvertFromByte(reader);
-			auto v = ByteConverter<Value>::ConvertFromByte(reader);
+			auto k = ByteConverter<Key>::ReadOut(reader);
+			auto v = ByteConverter<Value>::ReadOut(reader);
 			return { move(k), move(v) };
 		}
 	};
@@ -218,16 +213,16 @@ namespace FuncLib
 	{
 		using ThisType = Elements<Key, Value, Order, LessThan>;
 
-		static void ConvertToByte(ThisType const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
-			return ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::ConvertToByte(t, writer);
+			ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::WriteDown(t, writer);
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
 			// Each type should have a constructor of all data member to easy set
 			// Like Elements have a constructor which has LiteVector as arg
-			return ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::ConvertFromByte(reader);
+			return ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::ReadOut(reader);
 		}
 	};
 }

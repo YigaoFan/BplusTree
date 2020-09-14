@@ -23,8 +23,8 @@ TESTCASE("Type converter test")
 #define BYTE_COV_TEST_UNIT(VAR)                                      \
     do                                                               \
     {                                                                \
-        ByteConverter<decltype(VAR)>::ConvertToByte(VAR);            \
-        ByteConverter<decltype(VAR)>::ConvertFromByte(file, offset); \
+        ByteConverter<decltype(VAR)>::WriteDown(VAR);            \
+        ByteConverter<decltype(VAR)>::ReadOut(file, offset); \
     } while (0)
 
     // c_x means converted_x

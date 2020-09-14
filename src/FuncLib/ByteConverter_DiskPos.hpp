@@ -16,14 +16,14 @@ namespace FuncLib
 		using ThisType = DiskPos<T>;
 		using Index = typename ThisType::Index;
 
-		static void ConvertToByte(ThisType const& p, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
-			ByteConverter<Index>::ConvertToByte(p._start, writer);
+			ByteConverter<Index>::WriteDown(p._start, writer);
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
-			auto p = ByteConverter<Index>::ConvertFromByte(reader);
+			auto p = ByteConverter<Index>::ReadOut(reader);
 			auto file = reader->GetFile();
 			return { file, p };
 		}

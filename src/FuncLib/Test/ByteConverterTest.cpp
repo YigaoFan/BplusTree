@@ -11,7 +11,7 @@ TESTCASE("Byte converter test")
     SECTION("Basic type")
     {
         auto i = 10;
-        auto a = ByteConverter<int>::ConvertToByte(i);
+        auto a = ByteConverter<int>::WriteDown(i);
     }
     
     SECTION("POD type")
@@ -23,13 +23,13 @@ TESTCASE("Byte converter test")
         };
 
         Sample s{1, 2};
-        auto data = ByteConverter<Sample>::ConvertToByte(s);
+        auto data = ByteConverter<Sample>::WriteDown(s);
     }
 
     SECTION("String")
     {
         string s = "Hello World";
-        auto chars = ByteConverter<string>::ConvertToByte(s);
+        auto chars = ByteConverter<string>::WriteDown(s);
     }
 }
 

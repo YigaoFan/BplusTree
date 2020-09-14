@@ -7,7 +7,6 @@
 namespace FuncLib
 {
 	using ::std::function;
-	using ::std::is_base_of_v;
 	using ::std::is_same_v;
 	using ::std::move;
 	using ::std::remove_const_t;
@@ -164,9 +163,9 @@ namespace FuncLib
 		static UniqueDiskPtr<T> MakeUnique(shared_ptr<T> entityPtr, shared_ptr<File> file)
 		{
 			// size_t pos;
-			// if constexpr (is_same_v<typename ReturnType<decltype(ByteConverter<T>::ConvertToByte)>::Type, vector<byte>>)
+			// if constexpr (is_same_v<typename ReturnType<decltype(ByteConverter<T>::WriteDown)>::Type, vector<byte>>)
 			// {
-			// 	auto d = ByteConverter<T>::ConvertToByte(*entityPtr);
+			// 	auto d = ByteConverter<T>::WriteDown(*entityPtr);
 			// 	pos = file->Allocate<T>(d.size());
 			// }
 			// else

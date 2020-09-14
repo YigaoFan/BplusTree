@@ -24,14 +24,14 @@ namespace FuncLib
 	{
 		using ThisType = UniqueDiskPtr<T>;
 
-		static void ConvertToByte(ThisType const& p, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
-			ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos, writer);
+			ByteConverter<decltype(p._pos)>::WriteDown(p._pos, writer);
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
-			return ByteConverter<decltype(declval<ThisType>()._pos)>::ConvertFromByte(file, startInFile);
+			return ByteConverter<decltype(declval<ThisType>()._pos)>::ReadOut(file, startInFile);
 		}
 	};
 
@@ -40,14 +40,14 @@ namespace FuncLib
 	{
 		using ThisType = SharedDiskPtr<T>;
 
-		static void ConvertToByte(ThisType const& p, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
-			ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos, writer);
+			ByteConverter<decltype(p._pos)>::WriteDown(p._pos, writer);
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
-			return ByteConverter<decltype(declval<ThisType>()._pos)>::ConvertFromByte(reader);
+			return ByteConverter<decltype(declval<ThisType>()._pos)>::ReadOut(reader);
 		}
 	};
 
@@ -56,16 +56,16 @@ namespace FuncLib
 	{
 		using ThisType = Btree<Order, Key, Value, UniqueDiskPtr>;
 
-		static void ConvertToByte(ThisType const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
-#define CONVERT_UNIT(OBJ) ByteConverter<decltype(OBJ)>::ConvertToByte(OBJ, writer)
+#define CONVERT_UNIT(OBJ) ByteConverter<decltype(OBJ)>::WriteDown(OBJ, writer)
 			CONVERT_UNIT(t._keyCount) + CONVERT_UNIT(t._root);
 #undef CONVERT_UNIT
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
-#define CONVERT_UNIT(PROPERTY) ByteConverter<decltype(declval<ThisType>().PROPERTY)>::ConvertFromByte(reader)
+#define CONVERT_UNIT(PROPERTY) ByteConverter<decltype(declval<ThisType>().PROPERTY)>::ReadOut(reader)
 			auto c = CONVERT_UNIT(_keyCount);
 			auto r = CONVERT_UNIT(_root);
 			return { c, move(r) };// TODO set callback inner
@@ -78,15 +78,15 @@ namespace FuncLib
 	{
 		using ThisType = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
 
-		static void ConvertToByte(ThisType const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
-			ByteConverter<decltype(t._elements)>::ConvertToByte(t._elements, writer);
+			ByteConverter<decltype(t._elements)>::WriteDown(t._elements, writer);
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
 			using T = decltype(declval<ThisType>()._elements);
-			auto elements = ByteConverter<T>::ConvertFromByte(reader);
+			auto elements = ByteConverter<T>::ReadOut(reader);
 			return { move(elements) };// TODO provide LeafNode previous, next and callback inner
 		}
 	};
@@ -96,15 +96,15 @@ namespace FuncLib
 	{
 		using ThisType = LeafNode<Key, Value, Count, UniqueDiskPtr>;
 
-		static void ConvertToByte(ThisType const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
-			ByteConverter<decltype(t._elements)>::ConvertToByte(t._elements, writer);
+			ByteConverter<decltype(t._elements)>::WriteDown(t._elements, writer);
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
 			using T = decltype(declval<ThisType>()._elements);
-			auto elements = ByteConverter<T>::ConvertFromByte(reader);
+			auto elements = ByteConverter<T>::ReadOut(reader);
 			return { move(elements) };
 		}
 	};
@@ -116,32 +116,32 @@ namespace FuncLib
 		using MidNode = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
 		using LeafNode = LeafNode<Key, Value, Count, UniqueDiskPtr>;
 
-		static void ConvertToByte(ThisType const& node, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& node, shared_ptr<FileWriter> writer)
 		{
 			auto middle = node.Middle();
-			ByteConverter<bool>::ConvertToByte(middle, writer);
+			ByteConverter<bool>::WriteDown(middle, writer);
 
 			if (middle)
 			{
-				ByteConverter<MidNode>::ConvertToByte(static_cast<MidNode const&>(node), writer);
+				ByteConverter<MidNode>::WriteDown(static_cast<MidNode const&>(node), writer);
 			}
 			else
 			{
-				ByteConverter<LeafNode>::ConvertToByte(static_cast<LeafNode const&>(node), writer);
+				ByteConverter<LeafNode>::WriteDown(static_cast<LeafNode const&>(node), writer);
 			}
 		}
 
-		static shared_ptr<ThisType> ConvertFromByte(shared_ptr<FileReader> reader)
+		static shared_ptr<ThisType> ReadOut(shared_ptr<FileReader> reader)
 		{
-			auto middle = ByteConverter<bool>::ConvertFromByte(reader);
+			auto middle = ByteConverter<bool>::ReadOut(reader);
 
 			if (middle)
 			{
-				return make_shared<MidNode>(ByteConverter<MidNode>::ConvertFromByte(reader));
+				return make_shared<MidNode>(ByteConverter<MidNode>::ReadOut(reader));
 			}
 			else
 			{
-				return make_shared<LeafNode>(ByteConverter<LeafNode>::ConvertFromByte(reader));
+				return make_shared<LeafNode>(ByteConverter<LeafNode>::ReadOut(reader));
 			}
 		}
 	};
