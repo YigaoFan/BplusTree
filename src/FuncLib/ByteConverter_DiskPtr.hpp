@@ -1,10 +1,6 @@
 #pragma once
 #include <type_traits>
-#include <vector>
-#include <array>
-#include <utility>
 #include <memory>
-#include <cstddef>
 #include "../Btree/Basic.hpp"
 #include "../Btree/Btree.hpp"
 #include "../Btree/NodeBase.hpp"
@@ -18,28 +14,22 @@ namespace FuncLib
 	using ::Collections::MiddleNode;
 	using ::Collections::NodeBase;
 	using ::Collections::order_int;
-	using ::std::array;
-	using ::std::byte;
-	using ::std::copy;
 	using ::std::declval;
 	using ::std::make_shared;
 	using ::std::move;
 	using ::std::shared_ptr;
-	using ::std::size_t;
-	using ::std::vector;
 
 	template <typename T>
 	struct ByteConverter<UniqueDiskPtr<T>, false>
 	{
 		using ThisType = UniqueDiskPtr<T>;
-		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._pos)>::Size;
 
-		static array<byte, Size> ConvertToByte(ThisType const& p)
+		static void ConvertToByte(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
-			return ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos);
+			ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos, writer);
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
 		{
 			return ByteConverter<decltype(declval<ThisType>()._pos)>::ConvertFromByte(file, startInFile);
 		}
@@ -49,61 +39,54 @@ namespace FuncLib
 	struct ByteConverter<SharedDiskPtr<T>, false>
 	{
 		using ThisType = SharedDiskPtr<T>;
-		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._pos)>::Size;
 
-		static array<byte, Size> ConvertToByte(ThisType const& p)
+		static void ConvertToByte(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
-			return ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos);
+			ByteConverter<decltype(p._pos)>::ConvertToByte(p._pos, writer);
 		}
 
-		// TODO �������ֲ����Ľӿڿ��ܻ�ģ���Ϊ������������ Pos �Ĳ�����
-		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
 		{
-			return ByteConverter<decltype(declval<ThisType>()._pos)>::ConvertFromByte(file, startInFile);
+			return ByteConverter<decltype(declval<ThisType>()._pos)>::ConvertFromByte(reader);
 		}
 	};
 
-	// Btree Ҫ�������� friend��ByteConverter �� TypeConverter������������
 	template <typename Key, typename Value, order_int Order>
 	struct ByteConverter<Btree<Order, Key, Value, UniqueDiskPtr>, false>
 	{
 		using ThisType = Btree<Order, Key, Value, UniqueDiskPtr>;
 
-		static auto ConvertToByte(ThisType const& t)
+		static void ConvertToByte(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
-#define CONVERT_UNIT(OBJ) ByteConverter<decltype(OBJ)>::ConvertToByte(OBJ)
-			return CONVERT_UNIT(t._keyCount) + CONVERT_UNIT(t._root);
+#define CONVERT_UNIT(OBJ) ByteConverter<decltype(OBJ)>::ConvertToByte(OBJ, writer)
+			CONVERT_UNIT(t._keyCount) + CONVERT_UNIT(t._root);
 #undef CONVERT_UNIT
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
 		{
-#define CONVERT_UNIT(PROPERTY) ByteConverter<decltype(declval<ThisType>().PROPERTY)>::ConvertFromByte(file, startInFile)
+#define CONVERT_UNIT(PROPERTY) ByteConverter<decltype(declval<ThisType>().PROPERTY)>::ConvertFromByte(reader)
 			auto c = CONVERT_UNIT(_keyCount);
-			startInFile += ByteConverter<decltype(declval<ThisType>()._keyCount)>::Size;
 			auto r = CONVERT_UNIT(_root);
 			return { c, move(r) };// TODO set callback inner
 #undef CONVERT_UNIT
 		}
-
-		static constexpr size_t Size = ConvertedByteSize<ThisType>;
 	};
 
 	template <typename Key, typename Value, order_int Count>
 	struct ByteConverter<MiddleNode<Key, Value, Count, UniqueDiskPtr>, false>
 	{
 		using ThisType = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
-		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._elements)>::Size;
 
-		static array<byte, Size> ConvertToByte(ThisType const& t)
+		static void ConvertToByte(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
-			return ByteConverter<decltype(t._elements)>::ConvertToByte(t._elements);
+			ByteConverter<decltype(t._elements)>::ConvertToByte(t._elements, writer);
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
 		{
 			using T = decltype(declval<ThisType>()._elements);
-			auto elements = ByteConverter<T>::ConvertFromByte(file, startInFile);
+			auto elements = ByteConverter<T>::ConvertFromByte(reader);
 			return { move(elements) };// TODO provide LeafNode previous, next and callback inner
 		}
 	};
@@ -112,17 +95,16 @@ namespace FuncLib
 	struct ByteConverter<LeafNode<Key, Value, Count, UniqueDiskPtr>, false>
 	{
 		using ThisType = LeafNode<Key, Value, Count, UniqueDiskPtr>;
-		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._elements)>::Size;
 
-		static array<byte, Size> ConvertToByte(ThisType const& t)
+		static void ConvertToByte(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
-			return ByteConverter<decltype(t._elements)>::ConvertToByte(t._elements);
+			ByteConverter<decltype(t._elements)>::ConvertToByte(t._elements, writer);
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
 		{
 			using T = decltype(declval<ThisType>()._elements);
-			auto elements = ByteConverter<T>::ConvertFromByte(file, startInFile);
+			auto elements = ByteConverter<T>::ConvertFromByte(reader);
 			return { move(elements) };
 		}
 	};
@@ -134,40 +116,32 @@ namespace FuncLib
 		using MidNode = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
 		using LeafNode = LeafNode<Key, Value, Count, UniqueDiskPtr>;
 
-		static vector<byte> ConvertToByte(ThisType const& node)
+		static void ConvertToByte(ThisType const& node, shared_ptr<FileWriter> writer)
 		{
-			vector<byte> bytes;
 			auto middle = node.Middle();
-			auto arr = ByteConverter<bool>::ConvertToByte(middle);
-			// copy ���Զ����� vector ����� size ��Ӧ�ò���ֱ���㿽��
-			copy(arr.begin(), arr.end(), bytes.end());
+			ByteConverter<bool>::ConvertToByte(middle, writer);
 
 			if (middle)
 			{
-				auto byteArray = ByteConverter<MidNode>::ConvertToByte(static_cast<MidNode const&>(node));
-				copy(byteArray.begin(), byteArray.end(), bytes.end());
-				return bytes;
+				ByteConverter<MidNode>::ConvertToByte(static_cast<MidNode const&>(node), writer);
 			}
 			else
 			{
-				auto byteArray = ByteConverter<LeafNode>::ConvertToByte(static_cast<LeafNode const&>(node));
-				copy(byteArray.begin(), byteArray.end(), bytes.end());
-				return bytes;
+				ByteConverter<LeafNode>::ConvertToByte(static_cast<LeafNode const&>(node), writer);
 			}
 		}
 
-		static shared_ptr<ThisType> ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static shared_ptr<ThisType> ConvertFromByte(shared_ptr<FileReader> reader)
 		{
-			auto middle = file->Read<bool>(startInFile, sizeof(bool));
-			auto contentStart = startInFile + sizeof(middle);
+			auto middle = ByteConverter<bool>::ConvertFromByte(reader);
 
 			if (middle)
 			{
-				return make_shared<MidNode>(ByteConverter<MidNode>::ConvertFromByte(file, contentStart));
+				return make_shared<MidNode>(ByteConverter<MidNode>::ConvertFromByte(reader));
 			}
 			else
 			{
-				return make_shared<LeafNode>(ByteConverter<LeafNode>::ConvertFromByte(file, contentStart));
+				return make_shared<LeafNode>(ByteConverter<LeafNode>::ConvertFromByte(reader));
 			}
 		}
 	};
