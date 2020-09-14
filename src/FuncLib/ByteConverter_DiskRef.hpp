@@ -6,16 +6,15 @@ namespace FuncLib
 	struct ByteConverter<DiskRef<T>, false>
 	{
 		using ThisType = DiskRef<T>;
-		static constexpr size_t Size = ByteConverter<decltype(declval<ThisType>()._ptr)>::Size;
 
-		static array<byte, Size> ConvertToByte(ThisType const& t)
+		static void ConvertToByte(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
-			return ByteConverter<decltype(t._ptr)>::ConvertToByte(t._ptr);
+			ByteConverter<decltype(t._ptr)>::ConvertToByte(t._ptr, writer);
 		}
 
-		static ThisType ConvertFromByte(shared_ptr<File> file, uint32_t startInFile)
+		static ThisType ConvertFromByte(shared_ptr<FileReader> reader)
 		{
-			return ByteConverter<decltype(declval<ThisType>()._ptr)>::ConvertFromByte(file, startInFile);
+			return ByteConverter<decltype(declval<ThisType>()._ptr)>::ConvertFromByte(reader);
 		}
 	};
 }
