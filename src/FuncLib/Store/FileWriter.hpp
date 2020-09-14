@@ -1,23 +1,25 @@
 #pragma once
 #include <cstddef>
 #include <filesystem>
+#include <memory>
 #include "StaticConfig.hpp"
-#include "FileByteMover.hpp"
 
 namespace FuncLib::Store
 {
 	using ::std::byte;
+	using ::std::shared_ptr;
 	using ::std::size_t;
 	using ::std::filesystem::path;
 
 	void WriteByte(path const& filename, pos_int start, char const* begin, size_t size);
 
-	class FileWriter : protected FileByteMover
+	class FileWriter
 	{
 	private:
-		using Base = FileByteMover;
+		pos_int _pos;
+		shared_ptr<path> _filename;
 	public:
-		using Base::Base;
+		FileWriter(shared_ptr<path> filename, pos_int startPos);
 
 		void Write(char const* begin, size_t size);
 	};
