@@ -5,19 +5,19 @@ namespace FuncLib::Store
 {
 	using ::std::ofstream;
 
-	void WriteByte(path const& filename, pos_int start, char const* begin, char const* end)
+	void WriteByte(path const& filename, pos_int start, char const* begin, size_t size)
 	{
 		ofstream fs(filename, ofstream::binary);
 		fs.seekp(start);
-		fs.write(begin, end - begin);
+		fs.write(begin, size);
 	}
 
-	void FileWriter::Write(char const* begin, char const* end)
+	void FileWriter::Write(char const* begin, size_t size)
 	{
 		auto pos = pos_;
-		pos_ += (end - begin);
+		pos_ += size;
 
 		auto path = GetPath();
-		WriteByte(*path, pos, begin, end);
+		WriteByte(*path, pos, begin, size);
 	}
 }

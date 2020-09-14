@@ -7,9 +7,10 @@
 namespace FuncLib::Store
 {
 	using ::std::byte;
+	using ::std::size_t;
 	using ::std::filesystem::path;
 
-	void WriteByte(path const& filename, pos_int start, char const* begin, char const* end);
+	void WriteByte(path const& filename, pos_int start, char const* begin, size_t size);
 
 	class FileWriter : protected FileByteMover
 	{
@@ -18,6 +19,6 @@ namespace FuncLib::Store
 	public:
 		using Base::Base;
 
-		void Write(char const* begin, char const* end);
+		void Write(char const* begin, size_t size);
 	};
 }
