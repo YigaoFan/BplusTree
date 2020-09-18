@@ -5,7 +5,7 @@ namespace FuncLib::Store
 {
     using ::Basic::InvalidAccessException;
 
-    thread_local shared_ptr<File> FileResource::CurrentFile = nullptr;// must init?
+    thread_local shared_ptr<File> FileResource::CurrentFile = nullptr;
 
     shared_ptr<File> FileResource::GetCurrentThreadFile()
     {
