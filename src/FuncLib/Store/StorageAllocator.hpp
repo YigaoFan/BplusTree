@@ -1,6 +1,9 @@
+#pragma once
 #include <memory>
 #include <vector>
+#include <filesystem>
 #include "StaticConfig.hpp"
+#include "IInsidePositionOwner.hpp"
 
 namespace FuncLib::Store
 {
@@ -8,48 +11,28 @@ namespace FuncLib::Store
 	using ::std::vector;
 
 	class File;
-
-	class StoragePartHandle
-	{
-	private:
-		pos_int* _posPtr;
-	public:
-		StoragePartHandle(pos_int* posPtr) : _posPtr(posPtr)
-		{ }
-
-		pos_int GetConcretePosition()
-		{
-			return *_posPtr;
-		}
-
-		~StoragePartHandle()
-		{
-			delete _posPtr;
-		}
-	}
-
 	// 分配信息需要保存到硬盘上
 	class StorageAllocator
 	{
 	private:
-		// 这里拿一个字段来存储从硬盘读取的分配信息
+		File* _file;
 		pos_int _currentPos;
-		vector<StoragePartHandle> _usedInfoTable;
+		vector<shared_ptr<IInsidePositionOwner>> _ownerTable;
 	public:
-		StorageAllocator(/* args */);
+		StorageAllocator(File* file);
+		void SignIn(shared_ptr<IInsidePositionOwner> positionOwner);
 
-		// pos_int Allocate(size_t size)
-		// {
-		// 	auto pos = _currentPos;
-		// 	_currentPos += size;
-		// 	return MakePositionOwner<T>(_file, pos);
-		// }
-
-		StoragePartHandle Register(pos_int pos)
+		template <typename T>
+		shared_ptr<IInsidePositionOwner> Allocate()
 		{
-			auto handle = StoragePartHandle(new pos_int(pos));
-			_usedInfoTable.push_back(handle);
-			return handle;
+			auto pos = _currentPos;
+			_currentPos += sizeof(T);
+			auto owner = MakePositionOwner<T>(_file, pos);
+			_ownerTable.emplace_back(owner);
+			return owner;
 		}
+
+	private:
+		static vector<shared_ptr<IInsidePositionOwner>> ReadAllocatedInfoFrom(File const* file);
 	};
 }
