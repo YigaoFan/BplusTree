@@ -11,16 +11,16 @@ namespace FuncLib
 	struct ByteConverter<DiskPos<T>, false>
 	{
 		using ThisType = DiskPos<T>;
-		using Index = typename ThisType::Index;
+		using DataMemberType = typename ThisType::Index;
 
 		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
-			ByteConverter<Index>::WriteDown(p._start, writer);
+			ByteConverter<DataMemberType>::WriteDown(p._start, writer);
 		}
 
 		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
-			auto p = ByteConverter<Index>::ReadOut(reader);
+			auto p = ByteConverter<DataMemberType>::ReadOut(reader);
 			auto file = reader->GetLessOwnershipFile();
 			return { file, p };
 		}
