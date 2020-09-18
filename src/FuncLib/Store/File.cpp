@@ -5,22 +5,21 @@ namespace FuncLib::Store
 	using ::std::get;
 	using ::std::ofstream;
 
-	set<weak_ptr<File>, owner_less<weak_ptr<File>>> File::Files = {};
+	set<File*> File::Files = {};
 
 	shared_ptr<File> File::GetFile(path const &filename)
 	{
-		for (auto& weakFile : Files)
+		for (auto f : Files)
 		{
-			auto f = weakFile.lock();
-			if ((*f->_filename) == filename)
+			if (*(f->_filename) == filename)
 			{
-				return f;
+				return f->shared_from_this();
 			}
 		}
 
-		auto f = make_shared<File>(filename);
-		Files.insert(f);
-		f->_unloader = [f = weak_ptr<File>(f)]() 
+		auto f = make_shared<File>(filename, 0);
+		Files.insert(f.get());
+		f->_unloader = [f=f.get()]() 
 		{
 			Files.erase(f);
 		};
@@ -29,11 +28,12 @@ namespace FuncLib::Store
 	}
 
 	File::File(path const& filename, pos_int startPos)
-		: _filename(make_shared<path>(filename)), _cache(_filename), _currentPos(startPos)
+		: _filename(make_shared<path>(filename)), _cache(_filename), _currentPos(startPos), _allocator(this)
 	{ }
 
 	void File::Flush()
 	{
+		// Flush 有点类似这整个析构一次的效果
 		for (auto& cacheKit : _cache)
 		{
 			get<1>(cacheKit)();
@@ -48,7 +48,7 @@ namespace FuncLib::Store
 		{
 			shared_ptr<IInsidePositionOwner> posOwner = get<3>(cacheKit);
 			posOwner->Addr(addr);
-			addr += posOwner->RequiredSize();
+			// addr += posOwner->RequiredSize();
 		}
 	}
 

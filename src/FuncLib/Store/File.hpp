@@ -1,11 +1,10 @@
 #pragma once
 #include <filesystem>
-#include <fstream>
 #include <vector>
 #include <memory>
 #include <set>
 #include <functional>
-#include "../../Basic/Exception.hpp"
+#include <utility>
 #include "StaticConfig.hpp"
 #include "FileCache.hpp"
 #include "FileReader.hpp"
@@ -16,36 +15,35 @@
 
 namespace FuncLib::Store
 {
-	using ::std::byte;
 	using ::std::enable_shared_from_this;
 	using ::std::forward;
 	using ::std::function;
-	using ::std::ifstream;
 	using ::std::make_shared;
 	using ::std::move;
-	using ::std::ofstream;
-	using ::std::owner_less;
+	using ::std::pair;
 	using ::std::set;
 	using ::std::shared_ptr;
 	using ::std::size_t;
 	using ::std::vector;
-	using ::std::weak_ptr;
 	using ::std::filesystem::path;
 
-	/// 一个路径仅有一个 File 对象
+	/// 一个路径仅有一个 File 对象，这里的功能大部分是提供给模块外部使用的
+	/// 那这里就有点问题了，Btree 内部用这个是什么功能
+	/// 这样使用场景是不是就不干净了？
+	/// 不一定，因为使用方那里还不完善，给那边先保留着这么大的能力吧
 	class File : public enable_shared_from_this<File>
 	{
 	private:
-		static set<weak_ptr<File>, owner_less<weak_ptr<File>>> Files;
+		static set<File*> Files;
 
 		shared_ptr<path> _filename;
 		FileCache _cache;
-		function<void()> _unloader = []() {};
-		shared_ptr<StorageAllocator> _allocator;
+		function<void()> _unloader;
+		StorageAllocator _allocator;
 		pos_int _currentPos;
 	public:
 		static shared_ptr<File> GetFile(path const& filename);
-		File(path const& filename, pos_int startPos = 0); // for make_shared use in File class only
+		File(path const& filename, pos_int startPos); // for make_shared use in File class only
 		void Flush();
 
 		template <typename T>
@@ -64,29 +62,20 @@ namespace FuncLib::Store
 		
 		// 这样的函数是给 DiskPtr 用的吗？
 		// 这里的返回值要把 PositionOwner 也给传出去，因为外面要用这个来调用上面的 Read
+		// 这里如何应对 string 这种类型？
 		template <typename T>
-		shared_ptr<T> New(T&& t)
+		pair<shared_ptr<T>, shared_ptr<IInsidePositionOwner>> New(T&& t)
 		{
-			// auto posOwner = MakePositionOwner<T>(shared_from_this(), _currentPos);
-			auto p = AddNewToCache(new T(forward(t)));
-			return p;
+			auto owner = _allocator.Allocate<T>();
+			auto p = PackageThenAddToCache(new T(forward(t)), owner);
+			return { p, owner };
 		}
 
 		template <typename T>
 		void Delete(shared_ptr<T> object)
 		{
-			using ::Basic::InvalidOperationException;
-			constexpr auto minRefCount = 3;
-			// if (object.use_count() == minRefCount)
-			// {
-				// log object.use_count();
-				_cache.Remove(object);
-			// }
-			// else
-			// {
-			// 	throw InvalidOperationException
-			// 		("object to delete still has some place using");
-			// }
+			_cache.Remove(object);
+			// TODO 这里需要控制不让 shared_ptr 的析构写入
 		}
 
 		/// caller should ensure wake all root element, j
@@ -106,38 +95,23 @@ namespace FuncLib::Store
 		T Read(pos_int start)
 		{
 			// 触发 读 的唯一一个地方
-			auto reader = make_shared<FileReader>(_filename, start);
+			auto reader = make_shared<FileReader>(this, start);
 			return ByteConverter<T>::ReadOut(reader);
 		}
 
 		// 读取的地方的 posOwner 和 New 里面产生的 posOwner 要到 StorageAllocator 里面注册一下
+		// 还有这里还要这么写吗，外面不是不通过 t 来获取持久性，而是通过 shared_ptr<File> 来保证这个 t 的持久性
+		// 还要再思考。
+		// 还有 DiskPos 依赖也不是 File 的所有功能，所以可以考虑剥离一部分功能出来形成一个类，来让 DiskPos 依赖
 		template <typename T>
 		shared_ptr<T> PackageThenAddToCache(T* ptr, shared_ptr<IInsidePositionOwner> posOwner)
 		{
-
-			auto pos = posOwner->Addr(); // IInsidePositionOwner 这个类应该是不需要了
-			auto p = shared_ptr<T>(ptr, [file = _filename, posOwner = posOwner, handle = _allocator->Register(pos)](auto p)
+			auto p = shared_ptr<T>(ptr, [filename = this->_filename, posOwner = posOwner](auto p)
 			{
 				// 触发 写 的唯一一个地方
-				auto start = handle.GetConcretePosition();
-				auto writer = make_shared<FileWriter>(_filename, start);
+				auto start = posOwner->Addr();
+				auto writer = make_shared<FileWriter>(filename, start);
 				ByteConverter<T>::WriteDown(*p, writer);
-				delete p;
-			});
-			_cache.Add<T>(posOwner, p);
-
-			return p;
-		}
-
-		// 使用下面这种
-		template <typename T>
-		shared_ptr<T> AddNewToCache(T* ptr)
-		{
-			auto p = shared_ptr<T>(ptr, [file = _filename, alloc = _allocator](auto p)
-			{
-				auto bytes = ByteConverter<T>::WriteDown(*p);
-				auto pos = alloc->Allocate(bytes.size());
-				Write(*file, pos, bytes.begin(), bytes.end());
 				delete p;
 			});
 			_cache.Add<T>(posOwner, p);
