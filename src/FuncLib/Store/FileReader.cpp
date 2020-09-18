@@ -18,8 +18,7 @@ namespace FuncLib::Store
 		return mem;
 	}
 
-	FileReader::FileReader(shared_ptr<File> file, pos_int startPos)
-		: _file(file), _pos(startPos)
+	FileReader::FileReader(File* file, pos_int startPos) : _file(file), _pos(startPos)
 	{ }
 
 	vector<byte> FileReader::Read(size_t size)
@@ -30,7 +29,7 @@ namespace FuncLib::Store
 		return ReadByte(*path, pos, size);
 	}
 
-	shared_ptr<File> FileReader::GetFile() const
+	File* FileReader::GetLessOwnershipFile() const
 	{
 		return _file;
 	}

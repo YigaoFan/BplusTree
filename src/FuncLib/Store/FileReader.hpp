@@ -40,13 +40,13 @@ namespace FuncLib::Store
 	class FileReader
 	{
 	private:
-		shared_ptr<File> _file;
+		File* _file;
 		pos_int _pos;
 	public:
-		FileReader(shared_ptr<File> file, pos_int startPos);
+		FileReader(File* file, pos_int startPos);
 		/// has side effect: move forward size positions
 		vector<byte> Read(size_t size);
-		shared_ptr<File> GetFile() const;
+		File* GetLessOwnershipFile() const;
 
 		/// has side effect: move forward N positions
 		template <size_t N>
