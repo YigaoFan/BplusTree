@@ -11,19 +11,19 @@ namespace FuncLib
 	using ::std::shared_ptr;
 
 	template <typename T>
-	class DiskPos : public IInsidePositionOwner, public enable_shared_from_this<DiskPos<T>>
+	class DiskPos : public IInsidePositionOwner
 	{
 	private:
 		friend struct ByteConverter<DiskPos, false>;
-		template <typename Ty>
+		template <typename>
 		friend class DiskPos;
 
-		shared_ptr<File> _file;
+		File* _file;
 		pos_int _start;
 	public:
 		using Index = decltype(_start);
 
-		DiskPos(shared_ptr<File> file, pos_int start) : _start(start), _file(file)
+		DiskPos(File* file, pos_int start) : _start(start), _file(file)
 		{ }
 
 		template <typename Derive>
