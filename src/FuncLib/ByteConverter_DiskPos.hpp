@@ -5,8 +5,6 @@ namespace FuncLib
 {
 	using ::std::shared_ptr;
 
-	// 这里统一一下用的整数类型
-
 	template <typename T>
 	struct ByteConverter<DiskPos<T>, false>
 	{
