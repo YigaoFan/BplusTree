@@ -1,7 +1,6 @@
 #pragma once
 #include <type_traits>
 #include <memory>
-#include "../Btree/Basic.hpp"
 #include "../Btree/Btree.hpp"
 #include "../Btree/NodeBase.hpp"
 #include "../Btree/MiddleNode.hpp"
@@ -23,15 +22,16 @@ namespace FuncLib
 	struct ByteConverter<UniqueDiskPtr<T>, false>
 	{
 		using ThisType = UniqueDiskPtr<T>;
+		using DataMemberType = decltype(declval<ThisType>()._pos);
 
 		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
-			ByteConverter<decltype(p._pos)>::WriteDown(p._pos, writer);
+			ByteConverter<DataMemberType>::WriteDown(p._pos, writer);
 		}
 
 		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
-			return ByteConverter<decltype(declval<ThisType>()._pos)>::ReadOut(file, startInFile);
+			return ByteConverter<DataMemberType>::ReadOut(reader);
 		}
 	};
 
@@ -39,15 +39,16 @@ namespace FuncLib
 	struct ByteConverter<SharedDiskPtr<T>, false>
 	{
 		using ThisType = SharedDiskPtr<T>;
+		using DataMemberType = decltype(declval<ThisType>()._pos);
 
 		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
-			ByteConverter<decltype(p._pos)>::WriteDown(p._pos, writer);
+			ByteConverter<DataMemberType>::WriteDown(p._pos, writer);
 		}
 
 		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
-			return ByteConverter<decltype(declval<ThisType>()._pos)>::ReadOut(reader);
+			return ByteConverter<DataMemberType>::ReadOut(reader);
 		}
 	};
 
@@ -55,21 +56,20 @@ namespace FuncLib
 	struct ByteConverter<Btree<Order, Key, Value, UniqueDiskPtr>, false>
 	{
 		using ThisType = Btree<Order, Key, Value, UniqueDiskPtr>;
+		using DataMemberType0 = decltype(declval<ThisType>()._keyCount);
+		using DataMemberType1 = decltype(declval<ThisType>()._root);
 
 		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
-#define CONVERT_UNIT(OBJ) ByteConverter<decltype(OBJ)>::WriteDown(OBJ, writer)
-			CONVERT_UNIT(t._keyCount) + CONVERT_UNIT(t._root);
-#undef CONVERT_UNIT
+			ByteConverter<DataMemberType0>::WriteDown(t._keyCount, writer);
+			ByteConverter<DataMemberType1>::WriteDown(t._root, writer);
 		}
 
 		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
-#define CONVERT_UNIT(PROPERTY) ByteConverter<decltype(declval<ThisType>().PROPERTY)>::ReadOut(reader)
-			auto c = CONVERT_UNIT(_keyCount);
-			auto r = CONVERT_UNIT(_root);
-			return { c, move(r) };// TODO set callback inner
-#undef CONVERT_UNIT
+			auto member0 = ByteConverter<DataMemberType0>::ReadOut(reader);
+			auto member1 = ByteConverter<DataMemberType1>::ReadOut(reader);
+			return { member0, move(member1) };
 		}
 	};
 
@@ -77,16 +77,16 @@ namespace FuncLib
 	struct ByteConverter<MiddleNode<Key, Value, Count, UniqueDiskPtr>, false>
 	{
 		using ThisType = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
+		using DataMemberType = decltype(declval<ThisType>()._elements);
 
 		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
-			ByteConverter<decltype(t._elements)>::WriteDown(t._elements, writer);
+			ByteConverter<DataMemberType>::WriteDown(t._elements, writer);
 		}
 
 		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
-			using T = decltype(declval<ThisType>()._elements);
-			auto elements = ByteConverter<T>::ReadOut(reader);
+			auto elements = ByteConverter<DataMemberType>::ReadOut(reader);
 			return { move(elements) };// TODO provide LeafNode previous, next and callback inner
 		}
 	};
@@ -95,16 +95,16 @@ namespace FuncLib
 	struct ByteConverter<LeafNode<Key, Value, Count, UniqueDiskPtr>, false>
 	{
 		using ThisType = LeafNode<Key, Value, Count, UniqueDiskPtr>;
+		using DataMemberType = decltype(declval<ThisType>()._elements);
 
 		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
-			ByteConverter<decltype(t._elements)>::WriteDown(t._elements, writer);
+			ByteConverter<DataMemberType>::WriteDown(t._elements, writer);
 		}
 
 		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
-			using T = decltype(declval<ThisType>()._elements);
-			auto elements = ByteConverter<T>::ReadOut(reader);
+			auto elements = ByteConverter<DataMemberType>::ReadOut(reader);
 			return { move(elements) };
 		}
 	};
