@@ -1,11 +1,8 @@
 #pragma once
 #include <memory>
-#include <cstddef>
-#include <memory>
 
 namespace FuncLib
 {
-	using ::std::byte;
 	using ::std::shared_ptr;
 
 	// 这里统一一下用的整数类型
@@ -24,7 +21,7 @@ namespace FuncLib
 		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
 			auto p = ByteConverter<Index>::ReadOut(reader);
-			auto file = reader->GetFile();
+			auto file = reader->GetLessOwnershipFile();
 			return { file, p };
 		}
 	};
