@@ -7,6 +7,7 @@ namespace FuncLib
 	{
 		using ThisType = DiskRef<T>;
 		using DataMemberType = decltype(declval<ThisType>()._ptr);
+		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
 		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
 		{

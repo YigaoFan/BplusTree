@@ -23,6 +23,7 @@ namespace FuncLib
 	{
 		using ThisType = UniqueDiskPtr<T>;
 		using DataMemberType = decltype(declval<ThisType>()._pos);
+		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
 		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
@@ -40,6 +41,7 @@ namespace FuncLib
 	{
 		using ThisType = SharedDiskPtr<T>;
 		using DataMemberType = decltype(declval<ThisType>()._pos);
+		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
 		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
@@ -58,6 +60,7 @@ namespace FuncLib
 		using ThisType = Btree<Order, Key, Value, UniqueDiskPtr>;
 		using DataMemberType0 = decltype(declval<ThisType>()._keyCount);
 		using DataMemberType1 = decltype(declval<ThisType>()._root);
+		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType0, DataMemberType1>::Result;
 
 		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
@@ -78,6 +81,7 @@ namespace FuncLib
 	{
 		using ThisType = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
 		using DataMemberType = decltype(declval<ThisType>()._elements);
+		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
 		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
@@ -96,6 +100,7 @@ namespace FuncLib
 	{
 		using ThisType = LeafNode<Key, Value, Count, UniqueDiskPtr>;
 		using DataMemberType = decltype(declval<ThisType>()._elements);
+		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
 		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
@@ -115,6 +120,7 @@ namespace FuncLib
 		using ThisType = NodeBase<Key, Value, Count, UniqueDiskPtr>;
 		using MidNode = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
 		using LeafNode = LeafNode<Key, Value, Count, UniqueDiskPtr>;
+		static constexpr bool SizeStable = All<GetSizeStable, LeafNode, MidNode>::Result;
 
 		static void WriteDown(ThisType const& node, shared_ptr<FileWriter> writer)
 		{

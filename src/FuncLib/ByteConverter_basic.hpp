@@ -42,6 +42,7 @@
 
 namespace FuncLib
 {
+	using ::Basic::All;
 	using ::Basic::ReturnType;
 	using ::Collections::Elements;
 	using ::Collections::LiteVector;
@@ -75,9 +76,15 @@ namespace FuncLib
 	struct ByteConverter;
 
 	template <typename T>
+	struct GetSizeStable
+	{
+		static constexpr bool Result = ByteConverter<T>::SizeStable;
+	};
+	
+	template <typename T>
 	struct ByteConverter<T, true>
 	{
-		static constexpr size_t Size = sizeof(T);
+		static constexpr bool SizeStable = true;
 
 		static void WriteDown(T const& t, shared_ptr<FileWriter> writer)
 		{
@@ -96,6 +103,9 @@ namespace FuncLib
 	template <typename T>
 	struct ByteConverter<T, false>
 	{
+		using Tuple = typename ReturnType<decltype(ToTuple<T>)>::Type;
+		static constexpr bool SizeStable = All<GetSizeStable, Tuple>::Result;
+
 		template <typename Ty, auto... Is>
 		static void WriteEach(shared_ptr<FileWriter> writer, Ty const& tup, index_sequence<Is...>)
 		{
@@ -122,8 +132,6 @@ namespace FuncLib
 
 		static T ReadOut(shared_ptr<FileReader> reader)
 		{
-			// WriteDown use T const&, here should use ToTuple<T const&>? either can pass compile
-			using Tuple = typename ReturnType<decltype(ToTuple<T>)>::Type;
 			auto converter = [=reader]<auto Index>()
 			{
 				using SubType = typename tuple_element<Index, Tuple>::type;
@@ -137,6 +145,8 @@ namespace FuncLib
 	template <>
 	struct ByteConverter<string>
 	{
+		static constexpr bool SizeStable = false;
+
 		static void WriteDown(string const& t, shared_ptr<FileWriter> writer)
 		{
 			auto n = t.size();
@@ -156,6 +166,8 @@ namespace FuncLib
 	template <typename T, typename size_int, size_int Capacity>
 	struct ByteConverter<LiteVector<T, size_int, Capacity>, false>
 	{
+		static constexpr bool SizeStable = false;
+
 		using ThisType = LiteVector<T, size_int, Capacity>;
 
 		static void WriteDown(ThisType const& vec, shared_ptr<FileWriter> writer)
@@ -187,6 +199,8 @@ namespace FuncLib
 	struct ByteConverter<pair<Key, Value>, false>
 	{
 		using ThisType = pair<Key, Value>;
+		static constexpr bool SizeStable = All<GetSizeStable, Key, Value>::Result;
+
 		static constexpr size_t Size = ByteConverter<Key>::Size + ByteConverter<Value>::Size;
 
 		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
@@ -207,17 +221,19 @@ namespace FuncLib
 	struct ByteConverter<Elements<Key, Value, Order, LessThan>, false>
 	{
 		using ThisType = Elements<Key, Value, Order, LessThan>;
+		using BaseType = LiteVector<pair<Key, Value>, order_int, Order>;
+		static constexpr bool SizeStable = All<GetSizeStable, BaseType>::Result;
 
 		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
-			ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::WriteDown(t, writer);
+			ByteConverter<BaseType>::WriteDown(t, writer);
 		}
 
 		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
 			// Each type should have a constructor of all data member to easy set
 			// Like Elements have a constructor which has LiteVector as arg
-			return ByteConverter<LiteVector<pair<Key, Value>, order_int, Order>>::ReadOut(reader);
+			return ByteConverter<BaseType>::ReadOut(reader);
 		}
 	};
 }

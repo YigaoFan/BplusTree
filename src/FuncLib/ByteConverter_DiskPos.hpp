@@ -10,6 +10,7 @@ namespace FuncLib
 	{
 		using ThisType = DiskPos<T>;
 		using DataMemberType = typename ThisType::Index;
+		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
 		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
