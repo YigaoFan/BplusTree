@@ -62,8 +62,7 @@ namespace FuncLib
 
 		// TODO test
 		template <typename Derive>
-		DiskPtrBase(DiskPtrBase<Derive>&& deriveOne)
-			: _tPtr(deriveOne._tPtr), _pos(deriveOne._pos)
+		DiskPtrBase(DiskPtrBase<Derive>&& deriveOne) : _tPtr(deriveOne._tPtr), _pos(deriveOne._pos)
 		{ }
 		
 		void RegisterSetter(function<void(T*)> setter)
@@ -111,10 +110,12 @@ namespace FuncLib
 			return _tPtr.get();// TODO maybe modify use place
 		}
 
-		shared_ptr<File> GetFile() const
-		{
-			return _pos->GetFile();
-		}
+		// 这个函数的用途是什么？
+		// shared_ptr<File> GetFile() const
+		// {
+			// return _pos->GetFile();
+			// 等到找到这个函数的用途后再恢复
+		// }
 	private:
 		void ReadEntity() const
 		{

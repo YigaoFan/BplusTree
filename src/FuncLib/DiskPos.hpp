@@ -14,30 +14,28 @@ namespace FuncLib
 	class DiskPos : public InsidePositionOwner
 	{
 	private:
+		using Base = InsidePositionOwner;
 		friend struct ByteConverter<DiskPos, false>;
 		template <typename>
 		friend class DiskPos;
 
 		File* _file;
-		pos_int _start;
 	public:
-		using Index = decltype(_start);
-
-		DiskPos(File* file, pos_int start) : _start(start), _file(file)
+		DiskPos(File* file, pos_int start) : Base(start), _file(file)
 		{ }
 
 		template <typename Derive>
-		DiskPos(DiskPos<Derive> const& that) : _file(that._file), _start(that._start)
+		DiskPos(DiskPos<Derive> const& that) : Base(that), _file(that._file)
 		{ }
 
 		shared_ptr<T> ReadObject() const
 		{
-			return _file->Read<T>(shared_from_this());
+			return _file->Read<T>(shared_from_this());// 这里还要 shared_from_this 吗？
 		}
 
-		shared_ptr<File> GetFile() const
-		{
-			return _file;
-		}
+		// shared_ptr<File> GetFile() const
+		// {
+		// 	return _file;
+		// }
 	};
 }
