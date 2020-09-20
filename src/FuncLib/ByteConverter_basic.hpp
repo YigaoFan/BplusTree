@@ -13,33 +13,6 @@
 #include "./Store/FileWriter.hpp"
 #include "StructToTuple.hpp"
 
-// namespace std
-// {
-// 	using ::std::array;
-// 	using ::std::index_sequence;
-// 	using ::std::make_index_sequence;
-
-// 	template <typename T, auto N1, auto... Is1, auto N2, auto... Is2>
-// 	array<T, N1 + N2> AddArray(array<T, N1> a1, index_sequence<Is1...>, array<T, N2> a2, index_sequence<Is2...>)
-// 	{
-// 		return
-// 		{
-// 			move(a1[Is1])...,
-// 			move(a2[Is2])...,
-// 		};
-// 	}
-
-// 	// operator+ cannot be found if it's in FuncLib namespace, but in std OK
-// 	// maybe related to Argument Dependent Lookup
-// 	template <typename T, auto N1, auto N2>
-// 	array<T, N1 + N2> operator+ (array<T, N1> a1, array<T, N2> a2)
-// 	{
-// 		auto is1 = make_index_sequence<N1>();
-// 		auto is2 = make_index_sequence<N2>();
-// 		return AddArray(move(a1), is1, move(a2), is2);
-// 	}
-// }
-
 namespace FuncLib
 {
 	using ::Basic::All;
