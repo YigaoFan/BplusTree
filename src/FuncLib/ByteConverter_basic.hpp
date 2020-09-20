@@ -139,8 +139,7 @@ namespace FuncLib
 	template <typename T, typename size_int, size_int Capacity>
 	struct ByteConverter<LiteVector<T, size_int, Capacity>, false>
 	{
-		static constexpr bool SizeStable = false;
-
+		static constexpr bool SizeStable = GetSizeStable<T>::Result;
 		using ThisType = LiteVector<T, size_int, Capacity>;
 
 		static void WriteDown(ThisType const& vec, shared_ptr<FileWriter> writer)
@@ -152,6 +151,13 @@ namespace FuncLib
 			for (auto& t : vec)
 			{
 				ByteConverter<T>::WriteDown(vec[i], writer);
+			}
+
+			if constexpr (SizeStable)
+			{
+				// TODO
+				auto unitSize = sizeof(T);
+				writer->Empty(unitSize);
 			}
 		}
 

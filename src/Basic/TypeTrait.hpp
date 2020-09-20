@@ -1,5 +1,6 @@
 #pragma once
 #include <type_traits>
+#include <tuple>
 
 namespace Basic
 {
@@ -31,5 +32,29 @@ namespace Basic
 	struct ReturnType<R(Args...)>
 	{
 		using Type = R;
+	};
+
+	/// support unpack types in tuple
+	template <template <typename> class Predicate, typename... Ts>
+	struct All;
+
+	using ::std::tuple;
+	
+	template <template <typename> class Predicate, typename... Ts>
+	struct All<Predicate, tuple<Ts...>>
+	{
+		static constexpr bool Result = All<Predicate, Ts...>::Result;
+	};
+
+	template <template <typename> class Predicate, typename T, typename... Ts>
+	struct All<Predicate, T, Ts...>
+	{
+		static constexpr bool Result = Predicate<T>::Result && All<Predicate, Ts...>::Result;
+	};
+
+	template <template <typename> class Predicate>
+	struct All<Predicate>
+	{
+		static constexpr bool Result = true;
 	};
 }
