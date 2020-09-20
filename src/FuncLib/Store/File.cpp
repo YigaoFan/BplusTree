@@ -28,7 +28,7 @@ namespace FuncLib::Store
 	}
 
 	File::File(path const& filename, pos_int startPos)
-		: _filename(make_shared<path>(filename)), _cache(_filename), _currentPos(startPos), _allocator(this)
+		: _filename(make_shared<path>(filename)), _cache(_filename), _currentPos(startPos), _allocator(make_shared<StorageAllocator>(this))
 	{ }
 
 	void File::Flush()

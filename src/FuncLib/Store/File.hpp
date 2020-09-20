@@ -9,7 +9,7 @@
 #include "FileCache.hpp"
 #include "FileReader.hpp"
 #include "FileWriter.hpp"
-#include "IInsidePositionOwner.hpp"
+#include "InsidePositionOwner.hpp"
 #include "StorageAllocator.hpp"
 #include "../FriendFuncLibDeclare.hpp"
 
@@ -39,7 +39,7 @@ namespace FuncLib::Store
 		shared_ptr<path> _filename;
 		FileCache _cache;
 		function<void()> _unloader;
-		StorageAllocator _allocator;
+		shared_ptr<StorageAllocator> _allocator;
 		pos_int _currentPos;
 	public:
 		static shared_ptr<File> GetFile(path const& filename);
@@ -47,7 +47,7 @@ namespace FuncLib::Store
 		void Flush();
 
 		template <typename T>
-		shared_ptr<T> Read(shared_ptr<IInsidePositionOwner> posOwner)
+		shared_ptr<T> Read(shared_ptr<InsidePositionOwner> posOwner)
 		{
 			auto addr = posOwner->Addr();
 			if (_cache.HasRead<T>(addr))
@@ -64,10 +64,10 @@ namespace FuncLib::Store
 		// 这里的返回值要把 PositionOwner 也给传出去，因为外面要用这个来调用上面的 Read
 		// 这里如何应对 string 这种类型？
 		template <typename T>
-		pair<shared_ptr<T>, shared_ptr<IInsidePositionOwner>> New(T&& t)
+		pair<shared_ptr<T>, shared_ptr<InsidePositionOwner>> New(T&& t)
 		{
-			auto owner = _allocator.Allocate<T>();
-			auto p = PackageThenAddToCache(new T(forward(t)), owner);
+			auto owner = MakePositionOwner<T>(this);
+			auto p = PackageThenNewAddToCache(new T(forward(t)), owner);
 			return { p, owner };
 		}
 
@@ -104,14 +104,46 @@ namespace FuncLib::Store
 		// 还要再思考。
 		// 还有 DiskPos 依赖也不是 File 的所有功能，所以可以考虑剥离一部分功能出来形成一个类，来让 DiskPos 依赖
 		template <typename T>
-		shared_ptr<T> PackageThenAddToCache(T* ptr, shared_ptr<IInsidePositionOwner> posOwner)
+		shared_ptr<T> PackageThenAddToCache(T* ptr, shared_ptr<InsidePositionOwner> posOwner)
 		{
-			auto p = shared_ptr<T>(ptr, [filename = this->_filename, posOwner = posOwner](auto p)
+			auto start = posOwner->Addr();
+			auto size = posOwner->Size();
+
+			auto p = shared_ptr<T>(ptr, [filename = _filename, start = start, previousSize = size, posOwner = posOwner, alloc = _allocator](auto p)
 			{
 				// 触发 写 的唯一一个地方
-				auto start = posOwner->Addr();
 				auto writer = make_shared<FileWriter>(filename, start);
 				ByteConverter<T>::WriteDown(*p, writer);
+				if constexpr (!ByteConverter<T>::SizeStable)
+				{
+					if (auto newSize = writer->BufferSize(); !(previousSize == newSize))
+					{
+						auto newPos = alloc->Reallocate(start, newSize);
+						writer->Pos(newPos);
+					}
+				}
+
+				posOwner->Addr(writer->Pos());
+				// posOwner->Size();// Size 需要保存到 posOwner 里面吗？
+
+				delete p;
+			});
+			_cache.Add<T>(posOwner, p);
+
+			return p;
+		}
+
+		template <typename T>
+		shared_ptr<T> PackageThenNewAddToCache(T *ptr, shared_ptr<InsidePositionOwner> posOwner)
+		{
+			auto p = shared_ptr<T>(ptr, [filename = _filename, alloc = _allocator, posOwner = posOwner](auto p)
+			{
+				auto writer = make_shared<FileWriter>(filename);
+				ByteConverter<T>::WriteDown(*p, writer);
+				auto pos = alloc->Allocate(writer->BufferSize());// 这里的这个 capture 对吗？
+				writer->Pos(pos);
+				posOwner->Addr(writer->Pos());
+
 				delete p;
 			});
 			_cache.Add<T>(posOwner, p);
