@@ -25,6 +25,6 @@ namespace FuncLib::Store
 	};
 
 	class File;
-	template <typename T>
-	shared_ptr<InsidePositionOwner> MakePositionOwner(File* filename, pos_int pos);
+	template <typename T, typename... Ts>
+	shared_ptr<InsidePositionOwner> MakePositionOwner(Ts... ts);
 }
