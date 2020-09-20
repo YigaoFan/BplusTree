@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 #include "Store/File.hpp"
-#include "Store/IInsidePositionOwner.hpp"
+#include "Store/InsidePositionOwner.hpp"
 
 namespace FuncLib
 {
@@ -11,7 +11,7 @@ namespace FuncLib
 	using ::std::shared_ptr;
 
 	template <typename T>
-	class DiskPos : public IInsidePositionOwner
+	class DiskPos : public InsidePositionOwner
 	{
 	private:
 		friend struct ByteConverter<DiskPos, false>;
@@ -29,16 +29,6 @@ namespace FuncLib
 		template <typename Derive>
 		DiskPos(DiskPos<Derive> const& that) : _file(that._file), _start(that._start)
 		{ }
-
-		void Addr(pos_int newPos) override
-		{
-			this->_start = newPos;
-		}
-
-		pos_int Addr() const override
-		{
-			return this->_start;
-		}
 
 		shared_ptr<T> ReadObject() const
 		{

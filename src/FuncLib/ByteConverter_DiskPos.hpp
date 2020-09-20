@@ -28,7 +28,7 @@ namespace FuncLib
 	namespace Store
 	{
 		template <typename T>
-		shared_ptr<IInsidePositionOwner> MakePositionOwner(shared_ptr<File> file, pos_int pos)
+		shared_ptr<InsidePositionOwner> MakePositionOwner(shared_ptr<File> file, pos_int pos)
 		{
 			using ::std::make_shared;
 			return make_shared<DiskPos<T>>(file, pos);

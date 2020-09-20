@@ -1,15 +1,13 @@
 #pragma once
-#include "IInsidePositionOwner.hpp"
+#include "InsidePositionOwner.hpp"
 
 namespace FuncLib::Store
 {
-	class NonTypeInsidePositionOwner : public IInsidePositionOwner
+	class NonTypeInsidePositionOwner : public InsidePositionOwner
 	{
 	private:
-		pos_int _pos;
+		using Base = InsidePositionOwner;
 	public:
-		NonTypeInsidePositionOwner(pos_int pos);
-		void Addr(pos_int newPos) override;
-		pos_int Addr() const override;
+		using Base::Base;
 	};
 }

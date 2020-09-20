@@ -4,7 +4,7 @@
 #include <functional>
 #include <filesystem>
 #include <tuple>
-#include "IInsidePositionOwner.hpp"
+#include "InsidePositionOwner.hpp"
 
 namespace FuncLib::Store
 {
@@ -36,7 +36,7 @@ namespace FuncLib::Store
 		function<void()> _unloader = []() {};
 		// 将所有的 Cache Item 的功能都外显为此类的成员变量，比如
 		// CacheId, store worker, cache remover
-		vector<tuple<CacheId, function<void()>, function<void()>, shared_ptr<IInsidePositionOwner>>> _cacheKits;
+		vector<tuple<CacheId, function<void()>, function<void()>, shared_ptr<InsidePositionOwner>>> _cacheKits;
 
 	public:
 		FileCache(shared_ptr<path> filename) : _filename(filename)
@@ -48,8 +48,9 @@ namespace FuncLib::Store
 			return Cache<T>.contains(_filename) && Cache<T>[_filename].contains(offset);
 		}
 
+		// 这里的 IInsidePositionOwner 还有用吗？ TODO
 		template <typename T>
-		void Add(shared_ptr<IInsidePositionOwner> posOwner, shared_ptr<T> object)
+		void Add(shared_ptr<InsidePositionOwner> posOwner, shared_ptr<T> object)
 		{
 			if (!Cache<T>.contains(_filename))
 			{
@@ -122,7 +123,7 @@ namespace FuncLib::Store
 			return _cacheKits.end();
 		}
 
-		/// Invoke unload inner. 
+		/// Invoke unload inner.
 		/// Unload will remove cache item, which will invoke flush operation in object deleter.
 		~FileCache()
 		{

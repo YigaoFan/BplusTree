@@ -46,7 +46,7 @@ namespace FuncLib::Store
 		auto addr = 0; // reallocate from 0
 		for (auto& cacheKit : _cache)
 		{
-			shared_ptr<IInsidePositionOwner> posOwner = get<3>(cacheKit);
+			shared_ptr<InsidePositionOwner> posOwner = get<3>(cacheKit);
 			posOwner->Addr(addr);
 			// addr += posOwner->RequiredSize();
 		}
