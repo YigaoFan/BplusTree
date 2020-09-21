@@ -40,6 +40,7 @@ namespace FuncLib
 	using ::std::tuple_element;
 	using ::std::tuple_size_v;
 	using ::std::unique_ptr;
+	using ::std::is_convertible;
 	using namespace Store;
 
 	/// ByteConverter 的工作是将一个类型和 Byte 之间相互转换
@@ -82,13 +83,13 @@ namespace FuncLib
 		template <typename Ty, auto... Is>
 		static void WriteEach(shared_ptr<FileWriter> writer, Ty const& tup, index_sequence<Is...>)
 		{
-			auto converter = [&tup, &writer]<auto Index>()
+			auto converter = [&]<auto Index>()
 			{
 				auto& i = get<Index>(tup);
 				ByteConverter<remove_cvref_t<decltype(i)>>::WriteDown(i, writer);
 			};
 
-			(... + converter.template operator()<Is>());
+			(converter.template operator()<Is>(), ...);
 		}
 
 		static void WriteDown(T const& t, shared_ptr<FileWriter> writer)
@@ -105,7 +106,7 @@ namespace FuncLib
 
 		static T ReadOut(shared_ptr<FileReader> reader)
 		{
-			auto converter = [=reader]<auto Index>()
+			auto converter = [&]<auto Index>()
 			{
 				using SubType = typename tuple_element<Index, Tuple>::type;
 				return ByteConverter<SubType>::ReadOut(reader);
@@ -115,8 +116,12 @@ namespace FuncLib
 		}
 	};
 
-	template <>
-	struct ByteConverter<string>
+	template <typename T>
+	concept StrConvertible = is_convertible<T, string>::value;
+
+	template <typename T>
+	requires StrConvertible<T>
+	struct ByteConverter<T, false>
 	{
 		static constexpr bool SizeStable = false;
 
@@ -124,7 +129,7 @@ namespace FuncLib
 		{
 			auto n = t.size();
 			ByteConverter<decltype(n)>::WriteDown(n, writer);
-			writer->Write(t.begin(), t.size());
+			writer->Write(t.c_str(), t.size());
 		}
 
 		static string ReadOut(shared_ptr<FileReader> reader)
@@ -148,16 +153,16 @@ namespace FuncLib
 			auto n = vec.Count();
 			ByteConverter<size_int>::WriteDown(n, writer);
 			// Items
+			auto start = writer->CurrentPos();
 			for (auto& t : vec)
 			{
-				ByteConverter<T>::WriteDown(vec[i], writer);
+				ByteConverter<T>::WriteDown(t, writer);
 			}
 
 			if constexpr (SizeStable)
 			{
-				// TODO
-				auto unitSize = sizeof(T);
-				writer->Empty(unitSize);
+				auto unitSize = (writer->CurrentPos() - start) / n;
+				writer->WriteBlank(unitSize * (Capacity - n));
 			}
 		}
 
