@@ -30,7 +30,7 @@ namespace FuncLib
 
 		shared_ptr<T> ReadObject() const
 		{
-			return _file->Read<T>(shared_from_this());// 这里还要 shared_from_this 吗？
+			return _file->Read<T>(this);// 这里还要 shared_from_this 吗？
 		}
 
 		// shared_ptr<File> GetFile() const
