@@ -30,7 +30,7 @@ namespace FuncLib::Store
 	{
 	private:
 		template <typename T>
-		static map<path, map<size_t, shared_ptr<T>>> Cache;
+		static map<shared_ptr<path>, map<size_t, shared_ptr<T>>> Cache;
 
 		shared_ptr<path> _filename;
 		function<void()> _unloader = []() {};
@@ -63,17 +63,17 @@ namespace FuncLib::Store
 
 			using ::std::get_deleter;
 			auto id = reinterpret_cast<CacheId>(object.get());
-			auto storeWorker = [funPtr = get_deleter<void(T *)>(object), obj = object.get()]()
+			auto storeWorker = [funPtr = get_deleter<void(*)(T *)>(object), obj = object.get()]()
 			{
 				(*funPtr)(obj);
 			};
 			auto addr = posOwner->Addr();
 
-			Cache<T>[*_filename].insert({ addr, object });
+			Cache<T>[_filename].insert({ addr, object });
 
 			auto remover = [file = _filename, addr=addr]()
 			{
-				Cache<T>[*file].erase(addr);
+				Cache<T>[file].erase(addr);
 			};
 			_cacheKits.push_back({ id, storeWorker, remover, posOwner });
 		}
@@ -132,5 +132,5 @@ namespace FuncLib::Store
 	};
 
 	template <typename T>
-	map<path, map<size_t, shared_ptr<T>>> FileCache::Cache = {};
+	map<shared_ptr<path>, map<size_t, shared_ptr<T>>> FileCache::Cache = {};
 }
