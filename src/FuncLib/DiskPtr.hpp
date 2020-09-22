@@ -75,7 +75,7 @@ namespace FuncLib
 			}
 			else
 			{
-				setter(ptr.get());
+				setter(_tPtr.get());
 			}
 		}
 
