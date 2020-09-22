@@ -34,12 +34,18 @@ namespace Basic
 		using Type = R;
 	};
 
+	template <typename R, typename... Args>
+	struct ReturnType<R(Args...) noexcept>// 原来 noexcept 也算类型的一部分，那之前引用这个的编译怎么通过了呢
+	{
+		using Type = R;
+	};
+
 	/// support unpack types in tuple
 	template <template <typename> class Predicate, typename... Ts>
 	struct All;
 
 	using ::std::tuple;
-	
+
 	template <template <typename> class Predicate, typename... Ts>
 	struct All<Predicate, tuple<Ts...>>
 	{
