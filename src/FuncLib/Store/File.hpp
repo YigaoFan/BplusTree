@@ -38,7 +38,7 @@ namespace FuncLib::Store
 
 		shared_ptr<path> _filename;
 		FileCache _cache;
-		shared_ptr<StorageAllocator> _allocator;
+		StorageAllocator _allocator;
 		pos_int _currentPos;
 	public:
 		static shared_ptr<File> GetFile(path const& filename);
@@ -65,8 +65,8 @@ namespace FuncLib::Store
 		template <typename T>
 		pair<shared_ptr<T>, shared_ptr<InsidePositionOwner>> New(T&& t)
 		{
-			auto owner = MakePositionOwner<T>(this);
-			auto p = PackageThenNewAddToCache(new T(forward(t)), owner);
+			auto owner = MakePositionOwner<T>(this, _allocator.Allocate(0));// 这里的 size 怎么办呢？怎么延迟呢？
+			auto p = PackageThenNewAddToCache(new T(forward<T>(t)), owner);
 			return { p, owner };
 		}
 

@@ -3,8 +3,8 @@
 
 namespace FuncLib::Store
 {
-	StorageAllocator::StorageAllocator(File* file)
-		: _file(file), _currentPos(0), _ownerTable(ReadAllocatedInfoFrom(file))
+	StorageAllocator::StorageAllocator(pos_int currentPos, vector<shared_ptr<InsidePositionOwner>> ownerTable)
+		: _currentPos(currentPos), _ownerTable(ownerTable)
 	{ }
 
 	void StorageAllocator::SignIn(shared_ptr<InsidePositionOwner> positionOwner)
@@ -24,11 +24,11 @@ namespace FuncLib::Store
 		// remove previous position in allocated table
 		return Allocate(newSize);
 	}
-	vector<shared_ptr<InsidePositionOwner>> StorageAllocator::ReadAllocatedInfoFrom(File const* file)
+
+	StorageAllocator StorageAllocator::ReadAllocatedInfoFrom(path const& filename)
 	{
 		// TODO
 		// SignIn 里的都在这个读到的列表里
-		auto path = file->Path();
-		return {};
+		return { 0, {} };
 	}
 }

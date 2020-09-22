@@ -24,7 +24,7 @@ namespace FuncLib::Store
 	}
 
 	File::File(path const& filename, pos_int startPos)
-		: _filename(make_shared<path>(filename)), _cache(_filename), _currentPos(startPos), _allocator(make_shared<StorageAllocator>(this))
+		: _filename(make_shared<path>(filename)), _cache(_filename), _currentPos(startPos), _allocator(StorageAllocator::ReadAllocatedInfoFrom(filename))
 	{ }
 
 	// 这个功能可能不要了，可能放在 OuterPointer 那里实现了
