@@ -1,5 +1,4 @@
 #include "FileReader.hpp"
-#include "File.hpp"
 
 namespace FuncLib::Store
 {
@@ -18,24 +17,23 @@ namespace FuncLib::Store
 		return mem;
 	}
 
-	FileReader::FileReader(File* file, pos_int startPos) : _file(file), _pos(startPos)
+	FileReader::FileReader(shared_ptr<path> filename, pos_int startPos)
+		: FileReader(nullptr, move(filename), startPos)
+	{ }
+
+	FileReader::FileReader(File* file, shared_ptr<path> filename, pos_int startPos)
+		: _file(file), _filename(filename), _pos(startPos)
 	{ }
 
 	vector<byte> FileReader::Read(size_t size)
 	{
 		auto pos = _pos;
 		_pos += size;
-		auto path = GetPath();
-		return ReadByte(*path, pos, size);
+		return ReadByte(*_filename, pos, size);
 	}
 
 	File* FileReader::GetLessOwnershipFile() const
 	{
 		return _file;
-	}
-
-	shared_ptr<path> FileReader::GetPath() const
-	{
-		return _file->Path();
 	}
 }

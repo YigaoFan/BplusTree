@@ -41,9 +41,12 @@ namespace FuncLib::Store
 	{
 	private:
 		File* _file;
+		shared_ptr<path> _filename;
 		pos_int _pos;
 	public:
-		FileReader(File* file, pos_int startPos);
+		FileReader(shared_ptr<path> filename, pos_int startPos);
+		/// if you want to use File pointer in the read process, you should chose this constructor
+		FileReader(File* file, shared_ptr<path> filename, pos_int startPos);
 		/// has side effect: move forward size positions
 		vector<byte> Read(size_t size);
 		File* GetLessOwnershipFile() const;
@@ -54,11 +57,7 @@ namespace FuncLib::Store
 		{
 			auto pos = _pos;
 			_pos += N;
-			auto path = GetPath();
-			return ReadByte<N>(*path, pos);
+			return ReadByte<N>(*_filename, pos);
 		}
-		
-	private:
-		shared_ptr<path> GetPath() const;
 	};
 }

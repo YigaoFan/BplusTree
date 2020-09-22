@@ -19,12 +19,12 @@ namespace FuncLib::Store
 	FileWriter::FileWriter(shared_ptr<path> filename) : FileWriter(filename, 0)
 	{ }
 
-	void FileWriter::Pos(pos_int pos)
-	{
-		_pos = pos;
-	}
+	// void FileWriter::CurrentPos(pos_int pos)
+	// {
+	// 	_pos = pos;
+	// }
 
-	pos_int FileWriter::Pos() const
+	pos_int FileWriter::CurrentPos() const
 	{
 		return _pos;
 	}
@@ -37,17 +37,18 @@ namespace FuncLib::Store
 		WriteByte(*_filename, pos, begin, size);
 	}
 
-	size_t FileWriter::BufferSize() const
-	{
-		return 0;
-	}
+	// TODO
+	// size_t FileWriter::BufferSize() const
+	// {
+	// 	return 0;
+	// }
 
 	void FileWriter::Flush()
 	{
 
 	}
 
-	void FileWriter::AppendBlank(size_t count)
+	void FileWriter::WriteBlank(size_t count)
 	{
 
 	}
