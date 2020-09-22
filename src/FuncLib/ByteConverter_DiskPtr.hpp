@@ -23,17 +23,18 @@ namespace FuncLib
 	{
 		using ThisType = UniqueDiskPtr<T>;
 		using DataMemberType = decltype(declval<ThisType>()._pos);
-		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
+		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType, T>::Result;
 
 		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
-			// 这里也要考虑位置是否变化的问题，来优化
-			ByteConverter<DataMemberType>::WriteDown(p._pos, writer);
 			if (p._tPtr != nullptr)
 			{
 				using ContentType = decltype(*(p._tPtr));
 				ByteConverter<ContentType>::WriteDown(*(p._tPtr), writer);
+				// 根据这里保存到的位置来决定下面 _pos 的内容
 			}
+			ByteConverter<DataMemberType>::WriteDown(p._pos, writer);
+			// 这里也要考虑位置是否变化的问题，来优化
 		}
 
 		static ThisType ReadOut(shared_ptr<FileReader> reader)
@@ -47,10 +48,15 @@ namespace FuncLib
 	{
 		using ThisType = SharedDiskPtr<T>;
 		using DataMemberType = decltype(declval<ThisType>()._pos);
-		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
+		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType, T>::Result;
 
 		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
+			if (p._tPtr != nullptr)
+			{
+				using ContentType = decltype(*(p._tPtr));
+				ByteConverter<ContentType>::WriteDown(*(p._tPtr), writer);
+			}
 			ByteConverter<DataMemberType>::WriteDown(p._pos, writer);
 		}
 
@@ -126,7 +132,7 @@ namespace FuncLib
 		using ThisType = NodeBase<Key, Value, Count, UniqueDiskPtr>;
 		using MidNode = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
 		using LeafNode = LeafNode<Key, Value, Count, UniqueDiskPtr>;
-		static constexpr bool SizeStable = All<GetSizeStable, LeafNode, MidNode>::Result;
+		static constexpr bool SizeStable = false;
 
 		static void WriteDown(ThisType const& node, shared_ptr<FileWriter> writer)
 		{
