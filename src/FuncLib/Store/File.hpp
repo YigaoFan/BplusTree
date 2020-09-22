@@ -38,7 +38,6 @@ namespace FuncLib::Store
 
 		shared_ptr<path> _filename;
 		FileCache _cache;
-		function<void()> _unloader;
 		shared_ptr<StorageAllocator> _allocator;
 		pos_int _currentPos;
 	public:
@@ -95,11 +94,10 @@ namespace FuncLib::Store
 		T Read(pos_int start)
 		{
 			// 触发 读 的唯一一个地方
-			auto reader = make_shared<FileReader>(this, start);
+			auto reader = make_shared<FileReader>(this, _filename, start);
 			return ByteConverter<T>::ReadOut(reader);
 		}
 
-		// 读取的地方的 posOwner 和 New 里面产生的 posOwner 要到 StorageAllocator 里面注册一下
 		// 还有这里还要这么写吗，外面不是不通过 t 来获取持久性，而是通过 shared_ptr<File> 来保证这个 t 的持久性
 		// 还要再思考。
 		// 还有 DiskPos 依赖也不是 File 的所有功能，所以可以考虑剥离一部分功能出来形成一个类，来让 DiskPos 依赖
@@ -112,18 +110,18 @@ namespace FuncLib::Store
 			auto p = shared_ptr<T>(ptr, [filename = _filename, start = start, previousSize = size, posOwner = posOwner, alloc = _allocator](auto p)
 			{
 				// 触发 写 的唯一一个地方
-				auto writer = make_shared<FileWriter>(filename, start);
-				ByteConverter<T>::WriteDown(*p, writer);
-				if constexpr (!ByteConverter<T>::SizeStable)
-				{
-					if (auto newSize = writer->BufferSize(); !(previousSize == newSize))
-					{
-						auto newPos = alloc->Reallocate(start, newSize);
-						writer->Pos(newPos);
-					}
-				}
+				// auto writer = make_shared<FileWriter>(filename, start);
+				// ByteConverter<T>::WriteDown(*p, writer);
+				// if constexpr (!ByteConverter<T>::SizeStable)
+				// {
+				// 	if (auto newSize = writer->BufferSize(); !(previousSize == newSize))
+				// 	{
+				// 		auto newPos = alloc->Reallocate(start, newSize);
+				// 		writer->CurrentPos(newPos);
+				// 	}
+				// }
 
-				posOwner->Addr(writer->Pos());
+				// posOwner->Addr(writer->CurrentPos());
 				// posOwner->Size();// Size 需要保存到 posOwner 里面吗？
 
 				delete p;
@@ -138,11 +136,11 @@ namespace FuncLib::Store
 		{
 			auto p = shared_ptr<T>(ptr, [filename = _filename, alloc = _allocator, posOwner = posOwner](auto p)
 			{
-				auto writer = make_shared<FileWriter>(filename);
-				ByteConverter<T>::WriteDown(*p, writer);
-				auto pos = alloc->Allocate(writer->BufferSize());// 这里的这个 capture 对吗？
-				writer->Pos(pos);
-				posOwner->Addr(writer->Pos());
+				// auto writer = make_shared<FileWriter>(filename);
+				// ByteConverter<T>::WriteDown(*p, writer);
+				// auto pos = alloc->Allocate(writer->BufferSize());
+				// writer->CurrentPos(pos);
+				// posOwner->Addr(writer->CurrentPos());
 
 				delete p;
 			});
