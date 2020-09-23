@@ -22,6 +22,11 @@ namespace FuncLib::Store
 	template <size_t N>
 	array<byte, N> ReadByte(path const& filename, pos_int start)
 	{
+		if constexpr (N == 0)
+		{
+			return {};
+		}
+
 		ifstream fs(filename, ifstream::binary);
 		fs.seekg(start);
 
@@ -29,7 +34,7 @@ namespace FuncLib::Store
 
 		if (fs.is_open())
 		{
-			fs.read(reinterpret_cast<char *>(&mem[0]), N);
+			fs.read(reinterpret_cast<char *>(mem.data()), N);
 		}
 
 		return mem;
