@@ -1,15 +1,12 @@
 #include <string>
+#include "Util.hpp"
 #include "../../TestFrame/FlyTest.hpp"
 #include "../Store/FileReader.hpp"
 #include "../Store/FileWriter.hpp"
 
 using namespace FuncLib::Store;
 using namespace std;
-
-shared_ptr<path> MakeFilePath(string filename)
-{
-	return make_shared<path>(filename);
-}
+using namespace FuncLib::Test;
 
 TESTCASE("FileReader&FileWriter test")
 {
