@@ -44,9 +44,9 @@ namespace FuncLib
 	};
 
 	template <typename T>
-	struct ByteConverter<SharedDiskPtr<T>, false>
+	struct ByteConverter<OwnerLessDiskPtr<T>, false>
 	{
-		using ThisType = SharedDiskPtr<T>;
+		using ThisType = OwnerLessDiskPtr<T>;
 		using DataMemberType = decltype(declval<ThisType>()._pos);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType, T>::Result;
 

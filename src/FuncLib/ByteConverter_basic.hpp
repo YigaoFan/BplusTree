@@ -26,12 +26,13 @@ namespace FuncLib
 	using ::std::forward;
 	using ::std::get;
 	using ::std::index_sequence;
+	using ::std::is_convertible;
 	using ::std::make_index_sequence;
 	using ::std::make_shared;
 	using ::std::memcpy;
 	using ::std::move;
 	using ::std::pair;
-	using ::std::remove_cvref_t;
+	using ::std::remove_reference_t;
 	using ::std::shared_ptr;
 	using ::std::size;
 	using ::std::size_t;
@@ -40,7 +41,6 @@ namespace FuncLib
 	using ::std::tuple_element;
 	using ::std::tuple_size_v;
 	using ::std::unique_ptr;
-	using ::std::is_convertible;
 	using namespace Store;
 
 	/// ByteConverter 的工作是将一个类型和 Byte 之间相互转换
@@ -86,7 +86,7 @@ namespace FuncLib
 			auto converter = [&]<auto Index>()
 			{
 				auto& i = get<Index>(tup);
-				ByteConverter<remove_cvref_t<decltype(i)>>::WriteDown(i, writer);
+				ByteConverter<remove_reference_t<decltype(i)>>::WriteDown(i, writer);
 			};
 
 			(converter.template operator()<Is>(), ...);
@@ -109,7 +109,7 @@ namespace FuncLib
 			auto converter = [&]<auto Index>()
 			{
 				using SubType = typename tuple_element<Index, Tuple>::type;
-				return ByteConverter<SubType>::ReadOut(reader);
+				return ByteConverter<remove_reference_t<SubType>>::ReadOut(reader);
 			};
 
 			return ConsT<T>(converter, make_index_sequence<tuple_size_v<Tuple>>());
@@ -124,17 +124,18 @@ namespace FuncLib
 	struct ByteConverter<T, false>
 	{
 		static constexpr bool SizeStable = false;
+		using ThisType = T;
 
-		static void WriteDown(string const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(T const& t, shared_ptr<FileWriter> writer)
 		{
-			auto n = t.size();
+			size_t n = t.size();
 			ByteConverter<decltype(n)>::WriteDown(n, writer);
-			writer->Write(t.c_str(), t.size());
+			writer->Write(t.c_str(), n);
 		}
 
-		static string ReadOut(shared_ptr<FileReader> reader)
+		static T ReadOut(shared_ptr<FileReader> reader)
 		{
-			auto charCount = ByteConverter<size_t>::ReadOut(reader);
+			size_t charCount = ByteConverter<size_t>::ReadOut(reader);
 			auto bytes = reader->Read(charCount);
 			char* str = reinterpret_cast<char*>(bytes.data());
 			return { str, str + charCount };

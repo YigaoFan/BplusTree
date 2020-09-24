@@ -3,73 +3,96 @@
 #include "../../TestFrame/FlyTest.hpp"
 #include "../ByteConverter.hpp"
 #include "../Store/FileWriter.hpp"
+#include "../Store/FileReader.hpp"
+#include "Util.hpp"
 
 using namespace FuncLib;
 using namespace FuncLib::Store;
-using ::std::string;
-using ::std::filesystem::path;
+using namespace FuncLib::Test;
+using namespace std;
 
+// DiskPtr 还没有定
 TESTCASE("Byte converter test")
 {
-    auto filename = make_shared<path>("ByteConverterTest");
-    auto writer = make_shared<FileWriter>(filename);
+	auto filename = "byteConverterTest";
+	// 生成这些测试代码 TODO 这些测试代码很适合生成
+	auto path = MakeFilePath(filename);
+	{
+		auto writer = make_shared<FileWriter>(path, 0);
+		auto reader = make_shared<FileReader>(path, 0);
 
-    SECTION("Basic type")
-    {
-        auto i = 10;
-        ByteConverter<int>::WriteDown(i, writer);
-        static_assert(ByteConverter<int>::SizeStable);
+		SECTION("Basic type")
+		{
+			auto i = 10;
+			ByteConverter<int>::WriteDown(i, writer);
+			static_assert(ByteConverter<int>::SizeStable);
+			ASSERT(i == ByteConverter<int>::ReadOut(reader));
 
-        auto f = 1.23F;
-        ByteConverter<float>::WriteDown(f, writer);
-        static_assert(ByteConverter<float>::SizeStable);
+			auto f = 1.23F;
+			ByteConverter<float>::WriteDown(f, writer);
+			static_assert(ByteConverter<float>::SizeStable);
+			ASSERT(f == ByteConverter<float>::ReadOut(reader));
 
-        auto d = 1.23;
-        ByteConverter<double>::WriteDown(d, writer);
-        static_assert(ByteConverter<double>::SizeStable);
+			auto d = 1.23;
+			ByteConverter<double>::WriteDown(d, writer);
+			static_assert(ByteConverter<double>::SizeStable);
+			ASSERT(d == ByteConverter<double>::ReadOut(reader));
 
-        auto b = false;
-        ByteConverter<bool>::WriteDown(b, writer);
-        static_assert(ByteConverter<bool>::SizeStable);
-    }
-    
-    SECTION("POD type")
-    {
-        struct Sample
-        {
-            int a;
-            int b;
-        };
+			auto b = false;
+			ByteConverter<bool>::WriteDown(b, writer);
+			static_assert(ByteConverter<bool>::SizeStable);
+			ASSERT(b == ByteConverter<bool>::ReadOut(reader));
+		}
 
-        Sample s{1, 2};
-        ByteConverter<Sample>::WriteDown(s, writer);
-        static_assert(ByteConverter<Sample>::SizeStable);
-    }
+		SECTION("POD type")
+		{
+			struct Sample
+			{
+				int a;
+				int b;
+			};
 
-    SECTION("NON-POD type")
-    {
-        struct Sample
-        {
-            int a;
-            string b;
-        };
+			Sample s{1, 2};
+			ByteConverter<Sample>::WriteDown(s, writer);
+			static_assert(ByteConverter<Sample>::SizeStable);
+			auto c_s = ByteConverter<Sample>::ReadOut(reader);
+			ASSERT(s.a == c_s.a);
+			ASSERT(s.b == c_s.b);
+		}
 
-        Sample s{ 1, "Hello World" };
-        ByteConverter<Sample>::WriteDown(s, writer);
-        static_assert(!ByteConverter<Sample>::SizeStable);
-    }
+		SECTION("NON-POD type")
+		{
+			struct Sample
+			{
+				int a;
+				string b;
+			};
 
-    SECTION("String")
-    {
-        string s = "Hello World";
-        ByteConverter<string>::WriteDown(s, writer);
-        static_assert(!ByteConverter<string>::SizeStable);
-    }
+			Sample s{1, "Hello World"};
+			ByteConverter<Sample>::WriteDown(s, writer);
+			static_assert(!ByteConverter<Sample>::SizeStable);
+			auto c_s = ByteConverter<Sample>::ReadOut(reader);
+			ASSERT(s.a == c_s.a);
+			ASSERT(s.b == c_s.b);
+		}
 
-    SECTION("Btree")
-    {
-        // TODO
-    }
+		// 为什么同样是多次写入，其他 SECTION 就没有出问题？
+		SECTION("String")
+		{
+			string s = "Hello World";
+			ByteConverter<string>::WriteDown(s, writer);
+			static_assert(!ByteConverter<string>::SizeStable);
+			auto c_s = ByteConverter<string>::ReadOut(reader);
+			ASSERT(s == c_s);
+		}
+
+		SECTION("Btree")
+		{
+			// TODO
+		}
+	}
+
+	// remove(filename);
 }
 
 DEF_TEST_FUNC(byteConverterTest)

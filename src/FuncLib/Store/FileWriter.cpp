@@ -1,22 +1,27 @@
 #include <fstream>
+#include <filesystem>
 #include "FileWriter.hpp"
 
 namespace FuncLib::Store
 {
 	using ::std::ofstream;
+	using ::std::filesystem::exists;
 
 	void WriteByte(path const& filename, pos_int start, char const* begin, size_t size)
 	{
-		ofstream fs(filename, ofstream::binary);
+		if (!exists(filename))
+		{
+			// create file
+			ofstream f(filename);
+		}
+
+		ofstream fs(filename, ofstream::binary | ofstream::in | ofstream::out);
 		fs.seekp(start);
 		fs.write(begin, size);
 	}
 
 	FileWriter::FileWriter(shared_ptr<path> filename, pos_int startPos)
 		: _filename(move(filename)), _pos(startPos)
-	{ }
-
-	FileWriter::FileWriter(shared_ptr<path> filename) : FileWriter(filename, 0)
 	{ }
 
 	// void FileWriter::CurrentPos(pos_int pos)

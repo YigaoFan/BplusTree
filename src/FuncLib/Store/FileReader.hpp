@@ -34,7 +34,7 @@ namespace FuncLib::Store
 
 		if (fs.is_open())
 		{
-			fs.read(reinterpret_cast<char *>(mem.data()), N);
+			fs.read(reinterpret_cast<char *>(&mem[0]), N);
 		}
 
 		return mem;

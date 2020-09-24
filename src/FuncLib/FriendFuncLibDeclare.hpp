@@ -16,5 +16,5 @@ namespace FuncLib
 	template <typename T>
 	class UniqueDiskPtr;
 	template <typename T>
-	class SharedDiskPtr;
+	class OwnerLessDiskPtr;
 }

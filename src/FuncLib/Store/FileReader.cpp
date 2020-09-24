@@ -4,7 +4,13 @@ namespace FuncLib::Store
 {
 	vector<byte> ReadByte(path const& filename, pos_int start, size_t size)
 	{
-		ifstream fs(filename, ifstream::binary);
+		if (size == 0)
+		{
+			return { };
+		}
+
+		ifstream fs(filename, ifstream::in | ifstream::binary);
+		fs.unsetf(ifstream::skipws);
 		fs.seekg(start);
 
 		vector<byte> mem(size);

@@ -23,7 +23,6 @@ namespace FuncLib::Store
 		shared_ptr<path> _filename;
 		vector<char> _buffer;
 	public:
-		FileWriter(shared_ptr<path> filename);
 		FileWriter(shared_ptr<path> filename, pos_int startPos);
 		// void CurrentPos(pos_int pos);
 		/// get the next char position
