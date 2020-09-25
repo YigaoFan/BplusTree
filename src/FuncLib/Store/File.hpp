@@ -81,7 +81,7 @@ namespace FuncLib::Store
 		void Store(pos_lable posLable, shared_ptr<T> object, shared_ptr<FileWriter> writer)
 		{
 			// 触发 写 的唯一一个地方
-			auto start = _allocator.GetConcretePos(posLable);
+			auto start = _allocator.GetConcretePos(posLable); // 有一种情况，这新对象第一次获取地址，那要如何把这个大小传给 allocator
 			auto internalWriter = make_shared<FileWriter>(filename, start);
 			// 可能需要 assert 这里的 start 和 writer 的当前地址要一样，有的情况下可能不一样也是对的
 			// 要基于位置都是偏移的抽象的基础去工作，感觉有点复杂了可能，之后再想
