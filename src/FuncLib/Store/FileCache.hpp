@@ -1,100 +1,54 @@
-#include <vector>
 #include <memory>
 #include <map>
 #include <functional>
-#include <filesystem>
-#include <tuple>
-#include "InsidePositionOwner.hpp"
+#include "StaticConfig.hpp"
 
 namespace FuncLib::Store
 {
 	using ::std::function;
-	using ::std::make_unique;
 	using ::std::map;
 	using ::std::move;
 	using ::std::shared_ptr;
-	using ::std::tuple;
-	using ::std::vector;
-	using ::std::filesystem::path;
-
-	using CacheId = ::std::uintptr_t;
-
-	template <typename T>
-	CacheId ComputeCacheId(shared_ptr<T> obj)
-	{
-		return reinterpret_cast<CacheId>(obj.get());
-	}
 
 	/// 一个 File 仅有一个 FileCache
 	class FileCache
 	{
 	private:
 		template <typename T>
-		static map<shared_ptr<path>, map<size_t, shared_ptr<T>>> Cache;
+		/// file id, pos lable, object
+		static map<unsigned int, map<pos_lable, shared_ptr<T>>> Cache;
 
-		shared_ptr<path> _filename;
+		unsigned int _fileId;
 		function<void()> _unloader = []() {};
-		// 将所有的 Cache Item 的功能都外显为此类的成员变量，比如
-		// CacheId, store worker, cache remover
-		vector<tuple<CacheId, function<void()>, function<void()>, shared_ptr<InsidePositionOwner>>> _cacheKits;
-
 	public:
-		FileCache(shared_ptr<path> filename) : _filename(filename)
-		{ }
+		FileCache(unsigned int fileId);
+		~FileCache();
 
 		template <typename T>
-		bool HasRead(size_t offset)
+		bool HasRead(pos_lable posLable)
 		{
-			return Cache<T>.contains(_filename) && Cache<T>[_filename].contains(offset);
+			return Cache<T>.contains(_fileId) && Cache<T>[_fileId].contains(posLable);
 		}
 
-		// 这里的 IInsidePositionOwner 还有用吗？ TODO
 		template <typename T>
-		void Add(shared_ptr<InsidePositionOwner> posOwner, shared_ptr<T> object)
+		void Add(pos_lable posLable, shared_ptr<T> object)
 		{
-			if (!Cache<T>.contains(_filename))
+			if (!Cache<T>.contains(_fileId))
 			{
-				_unloader = [&file = _filename, &fileCache = Cache<T>, previousUnloader = move(_unloader)]()
+				_unloader = [fileId = _fileId, previousUnloader = move(_unloader)]()
 				{
 					previousUnloader();
-					fileCache.erase(file);
+					Cache<T>.erase(fileId);
 				};
 			}
 
-			using ::std::get_deleter;
-			auto id = reinterpret_cast<CacheId>(object.get());
-			auto storeWorker = [funPtr = get_deleter<void(*)(T *)>(object), obj = object.get()]()
-			{
-				(*funPtr)(obj);
-			};
-			auto addr = posOwner->Addr();
-
-			Cache<T>[_filename].insert({ addr, object });
-
-			auto remover = [file = _filename, addr=addr]()
-			{
-				Cache<T>[file].erase(addr);
-			};
-			_cacheKits.push_back({ id, storeWorker, remover, posOwner });
+			Cache<T>.insert({ _fileId, { posLable, object }});
 		}
 
 		template <typename T>
-		void Remove(shared_ptr<T> object)
+		void Remove(pos_lable posLable)
 		{
-			using ::std::get;
-
-			for (auto it = _cacheKits.begin(); it < _cacheKits.end(); ++it)
-			{
-				auto& kit = *it;
-				if (get<0>(kit) == ComputeCacheId(object))
-				{
-					// remove cache obj and cache will auto flush to disk
-					get<2>(kit)();
-					// remove cache kit
-					_cacheKits.erase(it);
-					return;
-				}
-			}
+			Cache<T>[_fileId].erase(posLable);
 		}
 
 		template <typename T>
@@ -102,35 +56,8 @@ namespace FuncLib::Store
 		{
 			return Cache<T>[_filename][offset];
 		}
-
-		auto begin()
-		{
-			return _cacheKits.begin();
-		}
-
-		auto end()
-		{
-			return _cacheKits.end();
-		}
-
-		auto begin() const
-		{
-			return _cacheKits.begin();
-		}
-
-		auto end() const
-		{
-			return _cacheKits.end();
-		}
-
-		/// Invoke unload inner.
-		/// Unload will remove cache item, which will invoke flush operation in object deleter.
-		~FileCache()
-		{
-			_unloader();
-		}
 	};
 
 	template <typename T>
-	map<shared_ptr<path>, map<size_t, shared_ptr<T>>> FileCache::Cache = {};
+	map<unsigned int, map<pos_lable, shared_ptr<T>>> FileCache::Cache = {};
 }
