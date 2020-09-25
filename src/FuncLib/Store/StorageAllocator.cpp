@@ -1,34 +1,25 @@
 #include "StorageAllocator.hpp"
-#include "File.hpp"
 
 namespace FuncLib::Store
 {
-	StorageAllocator::StorageAllocator(pos_int currentPos, vector<shared_ptr<InsidePositionOwner>> ownerTable)
-		: _currentPos(currentPos), _ownerTable(ownerTable)
+	StorageAllocator::StorageAllocator(pos_int currentPos, map<pos_lable, pair<pos_int, size_t>> posLableTable)
+		: _currentPos(currentPos), _posLableTable(move(posLableTable))
 	{ }
 
-	void StorageAllocator::SignIn(shared_ptr<InsidePositionOwner> positionOwner)
+	pos_lable StorageAllocator::AllocatePosLable()
 	{
-		_ownerTable.push_back(positionOwner);
+		return 0;
 	}
 
-	pos_int StorageAllocator::Allocate(size_t size)
-	{
-		auto pos = _currentPos;
-		_currentPos += size;
-		return pos;
-	}
-
-	pos_int StorageAllocator::Reallocate(pos_int previousPosition, size_t newSize)
+	void StorageAllocator::Resize(pos_lable posLable, size_t biggerSize)
 	{
 		// remove previous position in allocated table
-		return Allocate(newSize);
+		// return Allocate(newSize);
 	}
 
 	StorageAllocator StorageAllocator::ReadAllocatedInfoFrom(path const& filename)
 	{
 		// TODO
-		// SignIn 里的都在这个读到的列表里
 		return { 0, {} };
 	}
 }

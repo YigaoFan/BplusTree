@@ -1,41 +1,38 @@
 #pragma once
 #include <memory>
 #include "Store/File.hpp"
-#include "Store/InsidePositionOwner.hpp"
 
 namespace FuncLib
 {
 	using namespace Store;
-	using ::std::enable_shared_from_this;
-	using ::std::make_shared;
 	using ::std::shared_ptr;
 
 	template <typename T>
-	class DiskPos : public InsidePositionOwner
+	class DiskPos
 	{
 	private:
-		using Base = InsidePositionOwner;
 		friend struct ByteConverter<DiskPos, false>;
 		template <typename>
 		friend class DiskPos;
 
 		File* _file;
+		pos_lable _lable;
 	public:
-		DiskPos(File* file, pos_int start) : Base(start), _file(file)
+		DiskPos(File* file, pos_lable lable) : _file(file), _lable(lable)
 		{ }
 
 		template <typename Derive>
-		DiskPos(DiskPos<Derive> const& that) : Base(that), _file(that._file)
+		DiskPos(DiskPos<Derive> const& that) : _file(that._file), _lable(that._lable)
 		{ }
 
 		shared_ptr<T> ReadObject() const
 		{
-			return _file->Read<T>(this);// 这里还要 shared_from_this 吗？
+			return _file->Read<T>(_lable);
 		}
 
-		// shared_ptr<File> GetFile() const
-		// {
-		// 	return _file;
-		// }
+		void WriteObject(shared_ptr<T> obj, shared_ptr<FileWriter> writer)
+		{
+			_file->Store(_lable, obj, writer);
+		}
 	};
 }

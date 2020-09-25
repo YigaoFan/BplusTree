@@ -1,15 +1,11 @@
 #pragma once
 #include <filesystem>
-#include <vector>
 #include <memory>
 #include <set>
-#include <functional>
 #include <utility>
 #include "StaticConfig.hpp"
 #include "FileCache.hpp"
 #include "FileReader.hpp"
-#include "FileWriter.hpp"
-#include "InsidePositionOwner.hpp"
 #include "StorageAllocator.hpp"
 #include "../FriendFuncLibDeclare.hpp"
 
@@ -17,19 +13,16 @@ namespace FuncLib::Store
 {
 	using ::std::enable_shared_from_this;
 	using ::std::forward;
-	using ::std::function;
 	using ::std::make_shared;
 	using ::std::move;
 	using ::std::pair;
 	using ::std::set;
 	using ::std::shared_ptr;
-	using ::std::size_t;
-	using ::std::vector;
 	using ::std::filesystem::path;
 
 	/// 一个路径仅有一个 File 对象，这里的功能大部分是提供给模块外部使用的
 	/// 那这里就有点问题了，Btree 内部用这个是什么功能
-	/// 这样使用场景是不是就不干净了？
+	/// 这样使用场景是不是就不干净了？指的是内外都用。
 	/// 不一定，因为使用方那里还不完善，给那边先保留着这么大的能力吧
 	class File : public enable_shared_from_this<File>
 	{
@@ -39,114 +32,103 @@ namespace FuncLib::Store
 		shared_ptr<path> _filename;
 		FileCache _cache;
 		StorageAllocator _allocator;
-		pos_int _currentPos;
 	public:
 		static shared_ptr<File> GetFile(path const& filename);
-		File(path const& filename, pos_int startPos); // for make_shared use in File class only
-		void Flush();
+		File(unsigned int fileId, path filename); // for make_shared use in File class only
+		shared_ptr<path> Path() const;
+		~File();
 
 		template <typename T>
-		shared_ptr<T> Read(shared_ptr<InsidePositionOwner> posOwner)
+		shared_ptr<T> Read(pos_lable posLable)
 		{
-			auto addr = posOwner->Addr();
-			if (_cache.HasRead<T>(addr))
+			if (_cache.HasRead<T>(posLable))
 			{
-				return _cache.Read<T>(addr);
+				return _cache.Read<T>(posLable);
 			}
 			else
 			{
-				return PackageThenAddToCache(new T(Read<T>(addr)), posOwner);
+				return PackageThenAddToCache(new T(Read<T>(posLable)), posLable);
 			}
 		}
 		
 		// 这样的函数是给 DiskPtr 用的吗？
-		// 这里的返回值要把 PositionOwner 也给传出去，因为外面要用这个来调用上面的 Read
-		// 这里如何应对 string 这种类型？
 		template <typename T>
-		pair<shared_ptr<T>, shared_ptr<InsidePositionOwner>> New(T&& t)
+		pair<pos_lable, shared_ptr<T>> New(T&& t)
 		{
-			auto owner = MakePositionOwner<T>(this, _allocator.Allocate(0));// 这里的 size 怎么办呢？怎么延迟呢？
-			auto p = PackageThenNewAddToCache(new T(forward<T>(t)), owner);
-			return { p, owner };
+			auto lable = _allocator.AllocatePosLable();
+			auto obj = PackageThenAddToCache(new T(forward<T>(t)), lable);
+			return { lable, obj };
+		}
+
+		// 暂时还用不到这个，之后有了 OuterDiskPtr 应该会用到这个来保存对象
+		// template <typename T>
+		// void Store(pos_lable posLable, shared_ptr<T> object)
+		// {
+		// 	// 触发 写 的唯一一个地方
+		// 	auto writer = make_shared<FileWriter>(filename, start);
+		// 	ByteConverter<T>::WriteDown(*object, writer);
+		// 	if constexpr (!ByteConverter<T>::SizeStable)
+		// 	{
+		// 		if (auto newSize = writer->BufferSize(); !(previousSize == newSize))
+		// 		{
+		// 			auto newPos = alloc->Reallocate(start, newSize);
+		// 			writer->CurrentPos(newPos);
+		// 		}
+		// 	}
+		// }
+
+		template <typename T>
+		void Store(pos_lable posLable, shared_ptr<T> object, shared_ptr<FileWriter> writer)
+		{
+			// 触发 写 的唯一一个地方
+			auto start = _allocator.GetConcretePos(posLable);
+			auto internalWriter = make_shared<FileWriter>(filename, start);
+			// 可能需要 assert 这里的 start 和 writer 的当前地址要一样，有的情况下可能不一样也是对的
+			// 要基于位置都是偏移的抽象的基础去工作，感觉有点复杂了可能，之后再想
+			ByteConverter<T>::WriteDown(*object, internalWriter);
+
+			if constexpr (!ByteConverter<T>::SizeStable)
+			{
+				auto previousSize = _allocator.GetAllocatedSize();
+				auto newSize = internalWriter->BufferSize();
+				if ( previousSize < newSize))
+				{
+					alloc->Reallocate(posLable, newSize);
+					auto newPos = _allocator.GetConcretePos(posLable);
+					internalWriter->SetStartPos(newPos);
+					// 然后这里需要把这个 internal writer 给 append 到 writer 上
+					// 那么这样的话，就要有 buffer 了，而且 buffer 里的每一块要存具体地址，以隔离别的存储地址的影响
+					// writer->Obtain(move(internalWriter));
+					// 大概代码类似上面这样
+				}
+			}
 		}
 
 		template <typename T>
-		void Delete(shared_ptr<T> object)
+		void Delete(pos_lable posLable, shared_ptr<T> object) // 这个模仿 delete 这个接口，但暂不处理 object
 		{
-			_cache.Remove(object);
-			// TODO 这里需要控制不让 shared_ptr 的析构写入
+			_cache.Remove<T>(posLable);
+			_allocator.DeallocatePosLable(posLable);
 		}
 
-		/// caller should ensure wake all root element, j
-		/// ust like a btree can wake all inner elements, but not other btree.
-		void ReallocateContent();
-
-		shared_ptr<path> Path() const;
-
-		~File();
 	private:
-
-		/// 使用下面这个的场景是：MiddleNode 包含 Elements 的时候，就不能返回 shared_ptr 了
-		/// 而是要用这个了，由 MiddleNode 级别来提供缓存的功能，也就是说要读 Elements 只能通过
-		/// MiddleNode 来，这个 Elements 对外是隐形的。如果直接读的话，就错了。
-		/// 这个函数的返回值不提供返回值缓存功能
 		template <typename T>
-		T Read(pos_int start)
+		T Read(pos_lable posLable)
 		{
 			// 触发 读 的唯一一个地方
+			auto start = _allocator.GetConcretePos(posLable);
 			auto reader = make_shared<FileReader>(this, _filename, start);
 			return ByteConverter<T>::ReadOut(reader);
 		}
 
 		// 还有这里还要这么写吗，外面不是不通过 t 来获取持久性，而是通过 shared_ptr<File> 来保证这个 t 的持久性
-		// 还要再思考。
 		// 还有 DiskPos 依赖也不是 File 的所有功能，所以可以考虑剥离一部分功能出来形成一个类，来让 DiskPos 依赖
 		template <typename T>
-		shared_ptr<T> PackageThenAddToCache(T* ptr, shared_ptr<InsidePositionOwner> posOwner)
+		shared_ptr<T> PackageThenAddToCache(T* ptr, pos_lable posLable)
 		{
-			auto start = posOwner->Addr();
-			auto size = posOwner->Size();
-
-			auto p = shared_ptr<T>(ptr, [filename = _filename, start = start, previousSize = size, posOwner = posOwner, alloc = _allocator](auto p)
-			{
-				// 触发 写 的唯一一个地方
-				// auto writer = make_shared<FileWriter>(filename, start);
-				// ByteConverter<T>::WriteDown(*p, writer);
-				// if constexpr (!ByteConverter<T>::SizeStable)
-				// {
-				// 	if (auto newSize = writer->BufferSize(); !(previousSize == newSize))
-				// 	{
-				// 		auto newPos = alloc->Reallocate(start, newSize);
-				// 		writer->CurrentPos(newPos);
-				// 	}
-				// }
-
-				// posOwner->Addr(writer->CurrentPos());
-				// posOwner->Size();// Size 需要保存到 posOwner 里面吗？
-
-				delete p;
-			});
-			_cache.Add<T>(posOwner, p);
-
-			return p;
-		}
-
-		template <typename T>
-		shared_ptr<T> PackageThenNewAddToCache(T *ptr, shared_ptr<InsidePositionOwner> posOwner)
-		{
-			auto p = shared_ptr<T>(ptr, [filename = _filename, alloc = _allocator, posOwner = posOwner](auto p)
-			{
-				// auto writer = make_shared<FileWriter>(filename);
-				// ByteConverter<T>::WriteDown(*p, writer);
-				// auto pos = alloc->Allocate(writer->BufferSize());
-				// writer->CurrentPos(pos);
-				// posOwner->Addr(writer->CurrentPos());
-
-				delete p;
-			});
-			_cache.Add<T>(posOwner, p);
-
-			return p;
+			auto obj = shared_ptr<T>(ptr);
+			_cache.Add<T>(posLable, obj);
+			return obj;
 		}
 	};
 }

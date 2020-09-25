@@ -9,13 +9,14 @@ namespace FuncLib
 	struct ByteConverter<DiskPos<T>, false>
 	{
 		using ThisType = DiskPos<T>;
-		using DataMemberType = decltype(declval<ThisType>().Addr());
+		using DataMemberType = decltype(declval<ThisType>()._lable);
 
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
+		/// only write down DiskPos self, not write the object corresponding to the position
 		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
-			ByteConverter<DataMemberType>::WriteDown(p._start, writer);
+			ByteConverter<DataMemberType>::WriteDown(p._lable, writer);
 		}
 
 		static ThisType ReadOut(shared_ptr<FileReader> reader)
@@ -25,14 +26,4 @@ namespace FuncLib
 			return { file, p };
 		}
 	};
-
-	namespace Store
-	{
-		template <typename T, typename... Ts>
-		shared_ptr<InsidePositionOwner> MakePositionOwner(Ts... ts)
-		{
-			using ::std::make_shared;
-			return make_shared<DiskPos<T>>(ts...);
-		}
-	}
 }

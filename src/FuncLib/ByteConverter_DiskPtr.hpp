@@ -27,14 +27,11 @@ namespace FuncLib
 
 		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
-			if (p._tPtr != nullptr)
+			ByteConverter<DataMemberType>::WriteDown(p._pos, p._tPtr, writer);
+			if (auto obj = p._tPtr; obj != nullptr)
 			{
-				using ContentType = decltype(*(p._tPtr));
-				ByteConverter<ContentType>::WriteDown(*(p._tPtr), writer);
-				// 根据这里保存到的位置来决定下面 _pos 的内容
+				p.WriteObject(obj, writer);
 			}
-			ByteConverter<DataMemberType>::WriteDown(p._pos, writer);
-			// 这里也要考虑位置是否变化的问题，来优化
 		}
 
 		static ThisType ReadOut(shared_ptr<FileReader> reader)
@@ -52,11 +49,6 @@ namespace FuncLib
 
 		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
-			if (p._tPtr != nullptr)
-			{
-				using ContentType = decltype(*(p._tPtr));
-				ByteConverter<ContentType>::WriteDown(*(p._tPtr), writer);
-			}
 			ByteConverter<DataMemberType>::WriteDown(p._pos, writer);
 		}
 

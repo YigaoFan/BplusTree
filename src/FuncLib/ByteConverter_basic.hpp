@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include <cstddef>
+#include <map>
 #include "../Btree/Elements.hpp"
 #include "../Btree/LiteVector.hpp"
 #include "../Btree/Basic.hpp"
@@ -21,15 +22,13 @@ namespace FuncLib
 	using ::Collections::LiteVector;
 	using ::Collections::order_int;
 	using ::std::byte;
-	using ::std::copy;
 	using ::std::declval;
 	using ::std::forward;
 	using ::std::get;
 	using ::std::index_sequence;
 	using ::std::is_convertible;
 	using ::std::make_index_sequence;
-	using ::std::make_shared;
-	using ::std::memcpy;
+	using ::std::map;
 	using ::std::move;
 	using ::std::pair;
 	using ::std::remove_reference_t;
@@ -37,10 +36,8 @@ namespace FuncLib
 	using ::std::size;
 	using ::std::size_t;
 	using ::std::string;
-	using ::std::tuple;
 	using ::std::tuple_element;
 	using ::std::tuple_size_v;
-	using ::std::unique_ptr;
 	using namespace Store;
 
 	/// ByteConverter 的工作是将一个类型和 Byte 之间相互转换
@@ -186,8 +183,6 @@ namespace FuncLib
 		using ThisType = pair<Key, Value>;
 		static constexpr bool SizeStable = All<GetSizeStable, Key, Value>::Result;
 
-		static constexpr size_t Size = ByteConverter<Key>::Size + ByteConverter<Value>::Size;
-
 		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
 		{
 			ByteConverter<Key>::WriteDown(t.first, writer);
@@ -219,6 +214,37 @@ namespace FuncLib
 			// Each type should have a constructor of all data member to easy set
 			// Like Elements have a constructor which has LiteVector as arg
 			return ByteConverter<BaseType>::ReadOut(reader);
+		}
+	};
+
+	template <typename Key, typename Value>
+	struct ByteConverter<map<Key, Value>, false>
+	{
+		using ThisType = vector<T>;
+		static constexpr bool SizeStable = false;
+
+		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
+		{
+			size_t size = t.size();
+			ByteConverter<size_t>::WriteDown(size, writer);
+
+			for (auto& item : t)
+			{
+				ByteConverter<T>::WriteDown(item, writer);
+			}
+		}
+
+		static ThisType ReadOut(shared_ptr<FileReader> reader)
+		{
+			size_t size = ByteConverter<size_t>::ReadOut(reader);
+			ThisType t;
+			for (auto i = 0; i < size; ++i)
+			{
+				auto item = ByteConverter<T>::ReadOut(reader);
+				t.insert(move(item));
+			}
+			
+			return t;
 		}
 	};
 }
