@@ -99,7 +99,7 @@ namespace FuncLib::Store
 				writer.StartPos(start);
 			}
 			
-			auto internalWriter = make_shared<FileWriter>(filename, start);
+			// auto internalWriter = make_shared<FileWriter>(filename, start);
 			// 可能需要 assert 这里的 start 和 writer 的当前地址要一样，有的情况下可能不一样也是对的
 			// 要基于位置都是偏移的抽象的基础去工作，感觉有点复杂了可能，之后再想
 
@@ -133,8 +133,8 @@ namespace FuncLib::Store
 		{
 			// 触发 读 的唯一一个地方
 			auto start = _allocator.GetConcretePos(posLable);
-			auto reader = make_shared<FileReader>(this, _filename, start);
-			return ByteConverter<T>::ReadOut(reader);
+			auto reader = FileReader(this, _filename, start);
+			return ByteConverter<T>::ReadOut(&reader);
 		}
 
 		// 还有这里还要这么写吗，外面不是不通过 t 来获取持久性，而是通过 shared_ptr<File> 来保证这个 t 的持久性

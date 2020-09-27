@@ -25,12 +25,12 @@ namespace FuncLib
 		using DataMemberType = decltype(declval<ThisType>()._pos);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType, T>::Result;
 
-		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& p, FileWriter* writer)
 		{
 			ByteConverter<DataMemberType>::WriteDown(p._pos, writer, p._tPtr);
 		}
 
-		static ThisType ReadOut(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(FileReader* reader)
 		{
 			return ByteConverter<DataMemberType>::ReadOut(reader);
 		}
@@ -43,12 +43,12 @@ namespace FuncLib
 		using DataMemberType = decltype(declval<ThisType>()._pos);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType, T>::Result;
 
-		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& p, FileWriter* writer)
 		{
 			ByteConverter<DataMemberType>::WriteDown(p._pos, writer);
 		}
 
-		static ThisType ReadOut(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(FileReader* reader)
 		{
 			return ByteConverter<DataMemberType>::ReadOut(reader);
 		}
@@ -62,13 +62,13 @@ namespace FuncLib
 		using DataMemberType1 = decltype(declval<ThisType>()._root);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType0, DataMemberType1>::Result;
 
-		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& t, FileWriter* writer)
 		{
 			ByteConverter<DataMemberType0>::WriteDown(t._keyCount, writer);
 			ByteConverter<DataMemberType1>::WriteDown(t._root, writer);
 		}
 
-		static ThisType ReadOut(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(FileReader* reader)
 		{
 			auto member0 = ByteConverter<DataMemberType0>::ReadOut(reader);
 			auto member1 = ByteConverter<DataMemberType1>::ReadOut(reader);
@@ -83,12 +83,12 @@ namespace FuncLib
 		using DataMemberType = decltype(declval<ThisType>()._elements);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
-		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& t, FileWriter* writer)
 		{
 			ByteConverter<DataMemberType>::WriteDown(t._elements, writer);
 		}
 
-		static ThisType ReadOut(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(FileReader* reader)
 		{
 			auto elements = ByteConverter<DataMemberType>::ReadOut(reader);
 			return { move(elements) };// TODO provide LeafNode previous, next and callback inner
@@ -102,12 +102,12 @@ namespace FuncLib
 		using DataMemberType = decltype(declval<ThisType>()._elements);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
-		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& t, FileWriter* writer)
 		{
 			ByteConverter<DataMemberType>::WriteDown(t._elements, writer);
 		}
 
-		static ThisType ReadOut(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(FileReader* reader)
 		{
 			auto elements = ByteConverter<DataMemberType>::ReadOut(reader);
 			return { move(elements) };
@@ -122,7 +122,7 @@ namespace FuncLib
 		using LeafNode = LeafNode<Key, Value, Count, UniqueDiskPtr>;
 		static constexpr bool SizeStable = false;
 
-		static void WriteDown(ThisType const& node, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& node, FileWriter* writer)
 		{
 			auto middle = node.Middle();
 			ByteConverter<bool>::WriteDown(middle, writer);
@@ -137,7 +137,7 @@ namespace FuncLib
 			}
 		}
 
-		static shared_ptr<ThisType> ReadOut(shared_ptr<FileReader> reader)
+		static shared_ptr<ThisType> ReadOut(FileReader* reader)
 		{
 			auto middle = ByteConverter<bool>::ReadOut(reader);
 

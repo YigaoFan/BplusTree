@@ -57,13 +57,13 @@ namespace FuncLib
 	{
 		static constexpr bool SizeStable = true;
 
-		static void WriteDown(T const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(T const& t, FileWriter* writer)
 		{
 			char const* start = reinterpret_cast<char const*>(&t);
 			writer->Write(start, sizeof(T));
 		}
 
-		static T ReadOut(shared_ptr<FileReader> reader)
+		static T ReadOut(FileReader* reader)
 		{
 			auto bytes = reader->Read<sizeof(T)>();
 			T* p = reinterpret_cast<T*>(&bytes[0]);
@@ -78,7 +78,7 @@ namespace FuncLib
 		static constexpr bool SizeStable = All<GetSizeStable, Tuple>::Result;
 
 		template <typename Ty, auto... Is>
-		static void WriteEach(shared_ptr<FileWriter> writer, Ty const& tup, index_sequence<Is...>)
+		static void WriteEach(FileWriter* writer, Ty const& tup, index_sequence<Is...>)
 		{
 			auto converter = [&]<auto Index>()
 			{
@@ -89,7 +89,7 @@ namespace FuncLib
 			(converter.template operator()<Is>(), ...);
 		}
 
-		static void WriteDown(T const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(T const& t, FileWriter* writer)
 		{
 			auto tup = ToTuple(forward<decltype(t)>(t));
 			WriteEach(writer, tup, make_index_sequence<tuple_size_v<decltype(tup)>>());
@@ -101,7 +101,7 @@ namespace FuncLib
 			return { converter.template operator ()<Is>()... };
 		}
 
-		static T ReadOut(shared_ptr<FileReader> reader)
+		static T ReadOut(FileReader* reader)
 		{
 			auto converter = [&]<auto Index>()
 			{
@@ -123,14 +123,14 @@ namespace FuncLib
 		static constexpr bool SizeStable = false;
 		using ThisType = T;
 
-		static void WriteDown(T const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(T const& t, FileWriter* writer)
 		{
 			size_t n = t.size();
 			ByteConverter<decltype(n)>::WriteDown(n, writer);
 			writer->Write(t.c_str(), n);
 		}
 
-		static T ReadOut(shared_ptr<FileReader> reader)
+		static T ReadOut(FileReader* reader)
 		{
 			size_t charCount = ByteConverter<size_t>::ReadOut(reader);
 			auto bytes = reader->Read(charCount);
@@ -145,7 +145,7 @@ namespace FuncLib
 		static constexpr bool SizeStable = GetSizeStable<T>::Result;
 		using ThisType = LiteVector<T, size_int, Capacity>;
 
-		static void WriteDown(ThisType const& vec, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& vec, FileWriter* writer)
 		{
 			// Count
 			auto n = vec.Count();
@@ -164,7 +164,7 @@ namespace FuncLib
 			}
 		}
 
-		static ThisType ReadOut(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(FileReader* reader)
 		{
 			auto n = ByteConverter<size_int>::ReadOut(reader);
 			ThisType vec;
@@ -183,13 +183,13 @@ namespace FuncLib
 		using ThisType = pair<Key, Value>;
 		static constexpr bool SizeStable = All<GetSizeStable, Key, Value>::Result;
 
-		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& t, FileWriter* writer)
 		{
 			ByteConverter<Key>::WriteDown(t.first, writer);
 			ByteConverter<Value>::WriteDown(t.second, writer);
 		}
 
-		static ThisType ReadOut(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(FileReader* reader)
 		{
 			auto k = ByteConverter<Key>::ReadOut(reader);
 			auto v = ByteConverter<Value>::ReadOut(reader);
@@ -204,12 +204,12 @@ namespace FuncLib
 		using BaseType = LiteVector<pair<Key, Value>, order_int, Order>;
 		static constexpr bool SizeStable = All<GetSizeStable, BaseType>::Result;
 
-		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& t, FileWriter* writer)
 		{
 			ByteConverter<BaseType>::WriteDown(t, writer);
 		}
 
-		static ThisType ReadOut(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(FileReader* reader)
 		{
 			// Each type should have a constructor of all data member to easy set
 			// Like Elements have a constructor which has LiteVector as arg
@@ -223,7 +223,7 @@ namespace FuncLib
 		using ThisType = vector<T>;
 		static constexpr bool SizeStable = false;
 
-		static void WriteDown(ThisType const& t, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& t, FileWriter* writer)
 		{
 			size_t size = t.size();
 			ByteConverter<size_t>::WriteDown(size, writer);
@@ -234,7 +234,7 @@ namespace FuncLib
 			}
 		}
 
-		static ThisType ReadOut(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(FileReader* reader)
 		{
 			size_t size = ByteConverter<size_t>::ReadOut(reader);
 			ThisType t;

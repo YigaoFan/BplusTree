@@ -14,12 +14,12 @@ namespace FuncLib
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
 		/// only write down DiskPos self, not write the object corresponding to the position
-		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
+		static void WriteDown(ThisType const& p, FileWriter* writer)
 		{
 			ByteConverter<DataMemberType>::WriteDown(p._lable, writer);
 		}
 
-		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer, shared_ptr<T> const& object)
+		static void WriteDown(ThisType const& p, FileWriter* writer, shared_ptr<T> const& object)
 		{
 			WriteDown(p, writer);
 			if (object != nullptr)
@@ -28,7 +28,7 @@ namespace FuncLib
 			}
 		}
 
-		static ThisType ReadOut(shared_ptr<FileReader> reader)
+		static ThisType ReadOut(FileReader* reader)
 		{
 			auto p = ByteConverter<DataMemberType>::ReadOut(reader);
 			auto file = reader->GetLessOwnershipFile();
