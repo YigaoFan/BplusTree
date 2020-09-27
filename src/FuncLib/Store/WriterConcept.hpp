@@ -11,12 +11,22 @@ namespace FuncLib::Store
 	};
 
 	template <typename T>
-	concept Writer_CurrentPos = requires(T t)
+	concept Writer_WriteBlank = requires(T t, size_t size)
 	{
-		t.CurrentPos();
+		t.WriteBlank(size);
 	};
 
+	template <typename T>
+	concept SameToSize_t = std::is_same_v<T, size_t>;
 
 	template <typename T>
-	concept IWriter = Writer_Write<T> && Writer_CurrentPos<T>;
+	concept Writer_OffsetCounter = requires(T t)
+	{
+		t.StartCounter();
+		t.EndCounter();
+		{ t.CounterNum() } -> SameToSize_t;
+	};
+
+	template <typename T>
+	concept IWriter = Writer_Write<T> &&Writer_OffsetCounter<T> &&Writer_WriteBlank<T>;
 }

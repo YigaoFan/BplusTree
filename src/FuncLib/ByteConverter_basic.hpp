@@ -151,15 +151,26 @@ namespace FuncLib
 			auto n = vec.Count();
 			ByteConverter<size_int>::WriteDown(n, writer);
 			// Items
-			auto start = writer->CurrentPos();
+			auto counted = false;
 			for (auto& t : vec)
 			{
+				if (SizeStable && !counted)
+				{
+					writer->StartCounter();
+				}
+
 				ByteConverter<T>::WriteDown(t, writer);
+
+				if (SizeStable && !counted)
+				{
+					writer->EndCounter();
+					counted = true;
+				}
 			}
 
 			if constexpr (SizeStable)
 			{
-				auto unitSize = (writer->CurrentPos() - start) / n;
+				auto unitSize = writer->CounterNum();
 				writer->WriteBlank(unitSize * (Capacity - n));
 			}
 		}

@@ -26,9 +26,10 @@ namespace FuncLib::Store
 		FileWriter(shared_ptr<path> filename, pos_int startPos);
 		// void CurrentPos(pos_int pos);
 		/// get the next char position
-		pos_int CurrentPos() const;
+		void StartCounter();
+		void EndCounter() const;
+		size_t CounterNum() const;
 		void Write(char const* begin, size_t size);
-		// size_t BufferSize() const;
 		void Flush();
 		void WriteBlank(size_t count);
 		~FileWriter();
