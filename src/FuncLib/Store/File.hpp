@@ -6,6 +6,7 @@
 #include "StaticConfig.hpp"
 #include "FileCache.hpp"
 #include "FileReader.hpp"
+#include "PreWriter.hpp"
 #include "StorageAllocator.hpp"
 #include "../FriendFuncLibDeclare.hpp"
 
@@ -60,34 +61,49 @@ namespace FuncLib::Store
 			return { lable, obj };
 		}
 
-		// 暂时还用不到这个，之后有了 OuterDiskPtr 应该会用到这个来保存对象
-		// template <typename T>
-		// void Store(pos_lable posLable, shared_ptr<T> object)
-		// {
-		// 	// 触发 写 的唯一一个地方
-		// 	auto writer = make_shared<FileWriter>(filename, start);
-		// 	ByteConverter<T>::WriteDown(*object, writer);
-		// 	if constexpr (!ByteConverter<T>::SizeStable)
-		// 	{
-		// 		if (auto newSize = writer->BufferSize(); !(previousSize == newSize))
-		// 		{
-		// 			auto newPos = alloc->Reallocate(start, newSize);
-		// 			writer->CurrentPos(newPos);
-		// 		}
-		// 	}
-		// }
-
 		template <typename T>
-		void Store(pos_lable posLable, shared_ptr<T> object, shared_ptr<FileWriter> writer)
+		void Store(pos_lable posLable, shared_ptr<T> const& object)
 		{
 			// 触发 写 的唯一一个地方
-			auto start = _allocator.GetConcretePos(posLable); // 有一种情况，这新对象第一次获取地址，那要如何把这个大小传给 allocator
+			if (_allocator.Ready(posLable))
+			{
+				auto oldStart = _allocator.GetConcretePos(posLable);
+				if constexpr (ByteConverter<T>::SizeStable)
+				{
+					auto writer = FileWriter(_filename, oldStart);// 如果这里是子调用 Store，可以合并上层的 writer，只形成一次写入吗？
+					ByteConverter<T>::WriteDown(*object, &writer);
+				}
+				else
+				{
+					auto writer = PreWriter();// 这个应该只用一次，析构时自动写入，或并入上层 writer
+					ByteConverter<T>::WriteDown(*object, &writer);
+					auto previousSize = _allocator.GetAllocatedSize(posLable);
+					auto newSize = writer.Size();
+					if (previousSize < newSize))
+					{
+						auto newStart = _allocator.ResizeSpaceTo(posLable, newSize);
+						writer.StartPos(newStart);
+					}
+					else
+					{
+						writer.StartPos(oldStart);
+					}
+				}
+			}
+			else
+			{
+				auto writer = PreWriter(); // 这个应该只用一次（减少复杂性），析构时自动写入，或并入上层 writer
+				ByteConverter<T>::WriteDown(*object, &writer);
+				auto size = writer.Size();
+				auto start = _allocator.GiveSpaceTo(posLable);
+				writer.StartPos(start);
+			}
+			
 			auto internalWriter = make_shared<FileWriter>(filename, start);
 			// 可能需要 assert 这里的 start 和 writer 的当前地址要一样，有的情况下可能不一样也是对的
 			// 要基于位置都是偏移的抽象的基础去工作，感觉有点复杂了可能，之后再想
-			ByteConverter<T>::WriteDown(*object, internalWriter);
 
-			if constexpr (!ByteConverter<T>::SizeStable)
+			if constexpr (!ByteConverter<T>::SizeStable)// string 的 ByteConverter 那里可能要改成 SizeStable，map 也是，加一个指针进去，那不 SizeStable 的部分在哪里？
 			{
 				auto previousSize = _allocator.GetAllocatedSize();
 				auto newSize = internalWriter->BufferSize();

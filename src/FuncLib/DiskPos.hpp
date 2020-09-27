@@ -30,9 +30,9 @@ namespace FuncLib
 			return _file->Read<T>(_lable);
 		}
 
-		void WriteObject(shared_ptr<T> obj, shared_ptr<FileWriter> writer)
+		void WriteObject(shared_ptr<T> const& obj) const
 		{
-			_file->Store(_lable, obj, writer);
+			_file->Store(_lable, obj);
 		}
 	};
 }

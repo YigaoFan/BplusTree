@@ -9,12 +9,9 @@ namespace FuncLib
 	using ::std::function;
 	using ::std::is_same_v;
 	using ::std::move;
-	using ::std::remove_const_t;
-	using ::std::remove_cvref_t; // decay?
 	using ::std::shared_ptr;
 	using ::std::vector;
 
-	// 如何区分删除和析构
 	template <typename T>
 	class DiskPtrBase
 	{

@@ -19,6 +19,15 @@ namespace FuncLib
 			ByteConverter<DataMemberType>::WriteDown(p._lable, writer);
 		}
 
+		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer, shared_ptr<T> const& object)
+		{
+			WriteDown(p, writer);
+			if (object != nullptr)
+			{
+				p.WriteObject(object);
+			}
+		}
+
 		static ThisType ReadOut(shared_ptr<FileReader> reader)
 		{
 			auto p = ByteConverter<DataMemberType>::ReadOut(reader);

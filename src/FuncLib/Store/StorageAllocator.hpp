@@ -25,12 +25,17 @@ namespace FuncLib::Store
 		// vector<shared_ptr<InsidePositionOwner>> _ownerTable; // InsidePositionOwner 这个类应该是要让存储的位置信息的时候要用
 		map<pos_lable, pair<pos_int, size_t>> _posLableTable;
 		StorageAllocator(pos_int currentPos, map<pos_lable, pair<pos_int, size_t>> ownerTable);
-
+		// 这里加一成员放已删除的 pos_lable 的集合，用于 GetConcretePos 的防御编程
 	public:
 		static StorageAllocator ReadAllocatedInfoFrom(path const& filename);
 		static void WriteAllocatedInfoTo(path const& filename)
 		{
 			// 使用 ByteConverter<vector<T>, false> 来持久化这里的信息
+		}
+
+		bool Ready(pos_lable posLable) const
+		{
+			return _posLableTable.contains(posLable);
 		}
 
 		pos_int GetConcretePos(pos_lable posLable) const
@@ -75,6 +80,13 @@ namespace FuncLib::Store
 			_posLableTable.erase(posLable);// 那是什么时候调整分配大小，那时候调用上面具体位置的地方就会受影响
 		}
 
-		void Resize(pos_lable posLable, size_t biggerSize);
+
+		/// for first use
+		pos_int GiveSpaceTo(pos_lable posLable)
+		{
+
+		}
+		
+		pos_int ResizeSpaceTo(pos_lable posLable, size_t biggerSize);
 	};
 }

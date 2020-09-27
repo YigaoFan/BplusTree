@@ -11,7 +11,7 @@ namespace FuncLib::Store
 		return 0;
 	}
 
-	void StorageAllocator::Resize(pos_lable posLable, size_t biggerSize)
+	pos_int StorageAllocator::ResizeSpaceTo(pos_lable posLable, size_t biggerSize)
 	{
 		// remove previous position in allocated table
 		// return Allocate(newSize);

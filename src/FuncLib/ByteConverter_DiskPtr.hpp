@@ -27,11 +27,7 @@ namespace FuncLib
 
 		static void WriteDown(ThisType const& p, shared_ptr<FileWriter> writer)
 		{
-			ByteConverter<DataMemberType>::WriteDown(p._pos, p._tPtr, writer);
-			if (auto obj = p._tPtr; obj != nullptr)
-			{
-				p.WriteObject(obj, writer);
-			}
+			ByteConverter<DataMemberType>::WriteDown(p._pos, writer, p._tPtr);
 		}
 
 		static ThisType ReadOut(shared_ptr<FileReader> reader)
