@@ -35,7 +35,7 @@ namespace Basic
 	};
 
 	template <typename R, typename... Args>
-	struct ReturnType<R(Args...) noexcept>// 原来 noexcept 也算类型的一部分，那之前引用这个的编译怎么通过了呢
+	struct ReturnType<R(Args...) noexcept>// 原来 noexcept，const 也算类型的一部分，那之前引用这个的编译怎么通过了呢
 	{
 		using Type = R;
 	};
