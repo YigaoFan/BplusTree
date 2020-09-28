@@ -1,4 +1,5 @@
 #include <cstddef>
+#include "StaticConfig.hpp"
 
 namespace FuncLib::Store
 {
@@ -17,14 +18,14 @@ namespace FuncLib::Store
 	};
 
 	template <typename T>
-	concept SameToSize_t = std::is_same_v<T, size_t>;
+	concept SameToPos_int = std::is_same_v<T, pos_int>;
 
 	template <typename T>
 	concept Writer_OffsetCounter = requires(T t)
 	{
 		t.StartCounter();
 		t.EndCounter();
-		{ t.CounterNum() } -> SameToSize_t;
+		{ t.CounterNum() } -> SameToPos_int;
 	};
 
 	template <typename T>

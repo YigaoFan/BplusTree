@@ -1,4 +1,4 @@
-#include "FileCahe.hpp"
+#include "FileCache.hpp"
 
 namespace FuncLib::Store
 {

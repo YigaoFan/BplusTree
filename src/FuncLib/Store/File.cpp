@@ -14,7 +14,7 @@ namespace FuncLib::Store
 			}
 		}
 
-		auto f = make_shared<File>(Files.size(), filename, 0);
+		auto f = make_shared<File>(Files.size(), filename);
 		Files.insert(f.get());
 
 		return f;
@@ -59,5 +59,6 @@ namespace FuncLib::Store
 	File::~File()
 	{
 		Files.erase(this);
+		StorageAllocator::WriteAllocatedInfoTo(*_filename, _allocator);
 	}
 }

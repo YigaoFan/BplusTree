@@ -6,6 +6,7 @@
 #include "StaticConfig.hpp"
 #include "FileCache.hpp"
 #include "FileReader.hpp"
+#include "FileWriter.hpp"
 #include "PreWriter.hpp"
 #include "StorageAllocator.hpp"
 #include "../FriendFuncLibDeclare.hpp"
@@ -79,7 +80,7 @@ namespace FuncLib::Store
 					ByteConverter<T>::WriteDown(*object, &writer);
 					auto previousSize = _allocator.GetAllocatedSize(posLable);
 					auto newSize = writer.Size();
-					if (previousSize < newSize))
+					if (previousSize < newSize)
 					{
 						auto newStart = _allocator.ResizeSpaceTo(posLable, newSize);
 						writer.StartPos(newStart);
@@ -95,7 +96,7 @@ namespace FuncLib::Store
 				auto writer = PreWriter(); // 这个应该只用一次（减少复杂性），析构时自动写入，或并入上层 writer
 				ByteConverter<T>::WriteDown(*object, &writer);
 				auto size = writer.Size();
-				auto start = _allocator.GiveSpaceTo(posLable);
+				auto start = _allocator.GiveSpaceTo(posLable, size);
 				writer.StartPos(start);
 			}
 			
@@ -103,21 +104,21 @@ namespace FuncLib::Store
 			// 可能需要 assert 这里的 start 和 writer 的当前地址要一样，有的情况下可能不一样也是对的
 			// 要基于位置都是偏移的抽象的基础去工作，感觉有点复杂了可能，之后再想
 
-			if constexpr (!ByteConverter<T>::SizeStable)// string 的 ByteConverter 那里可能要改成 SizeStable，map 也是，加一个指针进去，那不 SizeStable 的部分在哪里？
-			{
-				auto previousSize = _allocator.GetAllocatedSize();
-				auto newSize = internalWriter->BufferSize();
-				if ( previousSize < newSize))
-				{
-					alloc->Reallocate(posLable, newSize);
-					auto newPos = _allocator.GetConcretePos(posLable);
-					internalWriter->SetStartPos(newPos);
-					// 然后这里需要把这个 internal writer 给 append 到 writer 上
-					// 那么这样的话，就要有 buffer 了，而且 buffer 里的每一块要存具体地址，以隔离别的存储地址的影响
-					// writer->Obtain(move(internalWriter));
-					// 大概代码类似上面这样
-				}
-			}
+			// if constexpr (!ByteConverter<T>::SizeStable)// string 的 ByteConverter 那里可能要改成 SizeStable，map 也是，加一个指针进去，那不 SizeStable 的部分在哪里？
+			// {
+			// 	auto previousSize = _allocator.GetAllocatedSize();
+			// 	auto newSize = internalWriter->BufferSize();
+			// 	if ( previousSize < newSize))
+			// 	{
+			// 		alloc->Reallocate(posLable, newSize);
+			// 		auto newPos = _allocator.GetConcretePos(posLable);
+			// 		internalWriter->SetStartPos(newPos);
+			// 		// 然后这里需要把这个 internal writer 给 append 到 writer 上
+			// 		// 那么这样的话，就要有 buffer 了，而且 buffer 里的每一块要存具体地址，以隔离别的存储地址的影响
+			// 		// writer->Obtain(move(internalWriter));
+			// 		// 大概代码类似上面这样
+			// 	}
+			// }
 		}
 
 		template <typename T>

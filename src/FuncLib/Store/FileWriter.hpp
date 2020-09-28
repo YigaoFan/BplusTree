@@ -2,36 +2,34 @@
 #include <cstddef>
 #include <filesystem>
 #include <memory>
-#include <vector>
 #include "StaticConfig.hpp"
 
 namespace FuncLib::Store
 {
-	using ::std::byte;
 	using ::std::shared_ptr;
 	using ::std::size_t;
-	using ::std::vector;
 	using ::std::filesystem::path;
 
 	void WriteByte(path const& filename, pos_int start, char const* begin, size_t size);
+	void DuplicateWriteByte(path const& filename, pos_int start, size_t count, char ch);
 
-	// writer 上内存要不要分区？
 	class FileWriter
 	{
 	private:
 		pos_int _pos;
 		shared_ptr<path> _filename;
-		vector<char> _buffer;
+		bool _counterRunning = false;
+		size_t _counter = 0;
+
 	public:
 		FileWriter(shared_ptr<path> filename, pos_int startPos);
-		// void CurrentPos(pos_int pos);
-		/// get the next char position
 		void StartCounter();
-		void EndCounter() const;
+		void EndCounter();
 		size_t CounterNum() const;
 		void Write(char const* begin, size_t size);
-		void Flush();
 		void WriteBlank(size_t count);
 		~FileWriter();
+	private:
+		void Flush();
 	};
 }

@@ -54,7 +54,7 @@ namespace FuncLib::Store
 		template <typename T>
 		shared_ptr<T> Read(size_t offset)
 		{
-			return Cache<T>[_filename][offset];
+			return Cache<T>[_fileId][offset];
 		}
 	};
 
