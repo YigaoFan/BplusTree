@@ -5,7 +5,6 @@
 #include <filesystem>
 #include <map>
 #include "StaticConfig.hpp"
-#include "InsidePositionOwner.hpp"
 
 namespace FuncLib::Store
 {
