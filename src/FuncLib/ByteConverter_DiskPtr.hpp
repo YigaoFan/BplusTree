@@ -25,7 +25,7 @@ namespace FuncLib
 		using DataMemberType = decltype(declval<ThisType>()._pos);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType, T>::Result;
 
-		static void WriteDown(ThisType const& p, FileWriter* writer)
+		static void WriteDown(ThisType const& p, IWriter auto* writer)
 		{
 			ByteConverter<DataMemberType>::WriteDown(p._pos, writer, p._tPtr);
 		}
@@ -43,7 +43,7 @@ namespace FuncLib
 		using DataMemberType = decltype(declval<ThisType>()._pos);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType, T>::Result;
 
-		static void WriteDown(ThisType const& p, FileWriter* writer)
+		static void WriteDown(ThisType const& p, IWriter auto* writer)
 		{
 			ByteConverter<DataMemberType>::WriteDown(p._pos, writer);
 		}
@@ -62,7 +62,7 @@ namespace FuncLib
 		using DataMemberType1 = decltype(declval<ThisType>()._root);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType0, DataMemberType1>::Result;
 
-		static void WriteDown(ThisType const& t, FileWriter* writer)
+		static void WriteDown(ThisType const& t, IWriter auto* writer)
 		{
 			ByteConverter<DataMemberType0>::WriteDown(t._keyCount, writer);
 			ByteConverter<DataMemberType1>::WriteDown(t._root, writer);
@@ -83,7 +83,7 @@ namespace FuncLib
 		using DataMemberType = decltype(declval<ThisType>()._elements);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
-		static void WriteDown(ThisType const& t, FileWriter* writer)
+		static void WriteDown(ThisType const& t, IWriter auto* writer)
 		{
 			ByteConverter<DataMemberType>::WriteDown(t._elements, writer);
 		}
@@ -102,7 +102,7 @@ namespace FuncLib
 		using DataMemberType = decltype(declval<ThisType>()._elements);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
-		static void WriteDown(ThisType const& t, FileWriter* writer)
+		static void WriteDown(ThisType const& t, IWriter auto* writer)
 		{
 			ByteConverter<DataMemberType>::WriteDown(t._elements, writer);
 		}
@@ -122,7 +122,7 @@ namespace FuncLib
 		using LeafNode = LeafNode<Key, Value, Count, UniqueDiskPtr>;
 		static constexpr bool SizeStable = false;
 
-		static void WriteDown(ThisType const& node, FileWriter* writer)
+		static void WriteDown(ThisType const& node, IWriter auto* writer)
 		{
 			auto middle = node.Middle();
 			ByteConverter<bool>::WriteDown(middle, writer);

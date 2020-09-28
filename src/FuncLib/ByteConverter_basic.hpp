@@ -11,7 +11,7 @@
 #include "../Btree/Basic.hpp"
 #include "../Basic/TypeTrait.hpp"
 #include "./Store/FileReader.hpp"
-#include "./Store/FileWriter.hpp"
+#include "./Store/IWriterConcept.hpp"
 #include "StructToTuple.hpp"
 
 namespace FuncLib
@@ -57,7 +57,7 @@ namespace FuncLib
 	{
 		static constexpr bool SizeStable = true;
 
-		static void WriteDown(T const& t, FileWriter* writer)
+		static void WriteDown(T const& t, IWriter auto* writer) 
 		{
 			char const* start = reinterpret_cast<char const*>(&t);
 			writer->Write(start, sizeof(T));
@@ -78,7 +78,7 @@ namespace FuncLib
 		static constexpr bool SizeStable = All<GetSizeStable, Tuple>::Result;
 
 		template <typename Ty, auto... Is>
-		static void WriteEach(FileWriter* writer, Ty const& tup, index_sequence<Is...>)
+		static void WriteEach(IWriter auto* writer, Ty const& tup, index_sequence<Is...>)
 		{
 			auto converter = [&]<auto Index>()
 			{
@@ -89,7 +89,7 @@ namespace FuncLib
 			(converter.template operator()<Is>(), ...);
 		}
 
-		static void WriteDown(T const& t, FileWriter* writer)
+		static void WriteDown(T const& t, IWriter auto* writer)
 		{
 			auto tup = ToTuple(forward<decltype(t)>(t));
 			WriteEach(writer, tup, make_index_sequence<tuple_size_v<decltype(tup)>>());
@@ -123,7 +123,7 @@ namespace FuncLib
 		static constexpr bool SizeStable = false;
 		using ThisType = T;
 
-		static void WriteDown(T const& t, FileWriter* writer)
+		static void WriteDown(T const& t, IWriter auto* writer)
 		{
 			size_t n = t.size();
 			ByteConverter<decltype(n)>::WriteDown(n, writer);
@@ -145,7 +145,7 @@ namespace FuncLib
 		static constexpr bool SizeStable = GetSizeStable<T>::Result;
 		using ThisType = LiteVector<T, size_int, Capacity>;
 
-		static void WriteDown(ThisType const& vec, FileWriter* writer)
+		static void WriteDown(ThisType const& vec, IWriter auto* writer)
 		{
 			// Count
 			auto n = vec.Count();
@@ -194,7 +194,7 @@ namespace FuncLib
 		using ThisType = pair<Key, Value>;
 		static constexpr bool SizeStable = All<GetSizeStable, Key, Value>::Result;
 
-		static void WriteDown(ThisType const& t, FileWriter* writer)
+		static void WriteDown(ThisType const& t, IWriter auto* writer)
 		{
 			ByteConverter<Key>::WriteDown(t.first, writer);
 			ByteConverter<Value>::WriteDown(t.second, writer);
@@ -215,7 +215,7 @@ namespace FuncLib
 		using BaseType = LiteVector<pair<Key, Value>, order_int, Order>;
 		static constexpr bool SizeStable = All<GetSizeStable, BaseType>::Result;
 
-		static void WriteDown(ThisType const& t, FileWriter* writer)
+		static void WriteDown(ThisType const& t, IWriter auto* writer)
 		{
 			ByteConverter<BaseType>::WriteDown(t, writer);
 		}
@@ -231,17 +231,17 @@ namespace FuncLib
 	template <typename Key, typename Value>
 	struct ByteConverter<map<Key, Value>, false>
 	{
-		using ThisType = vector<T>;
+		using ThisType = map<Key, Value>;
 		static constexpr bool SizeStable = false;
 
-		static void WriteDown(ThisType const& t, FileWriter* writer)
+		static void WriteDown(ThisType const& t, IWriter auto* writer)
 		{
 			size_t size = t.size();
 			ByteConverter<size_t>::WriteDown(size, writer);
 
 			for (auto& item : t)
 			{
-				ByteConverter<T>::WriteDown(item, writer);
+				ByteConverter<pair<Key, Value>>::WriteDown(item, writer);
 			}
 		}
 
@@ -251,7 +251,7 @@ namespace FuncLib
 			ThisType t;
 			for (auto i = 0; i < size; ++i)
 			{
-				auto item = ByteConverter<T>::ReadOut(reader);
+				auto item = ByteConverter<pair<Key, Value>>::ReadOut(reader);
 				t.insert(move(item));
 			}
 			

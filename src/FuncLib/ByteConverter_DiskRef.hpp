@@ -9,7 +9,7 @@ namespace FuncLib
 		using DataMemberType = decltype(declval<ThisType>()._ptr);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
-		static void WriteDown(ThisType const& t, FileWriter* writer)
+		static void WriteDown(ThisType const& t, IWriter auto* writer)
 		{
 			ByteConverter<DataMemberType>::WriteDown(t._ptr, writer);
 		}

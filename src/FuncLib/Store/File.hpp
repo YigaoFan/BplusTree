@@ -9,7 +9,7 @@
 #include "FileWriter.hpp"
 #include "PreWriter.hpp"
 #include "StorageAllocator.hpp"
-#include "../FriendFuncLibDeclare.hpp"
+#include "../FriendFuncLibDeclare.hpp"// 因为 DiskPos 里面有功能依赖 File，所以这里只能 ByteConverter 的声明
 
 namespace FuncLib::Store
 {
