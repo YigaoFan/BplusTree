@@ -14,9 +14,11 @@ TESTCASE("FileReader&FileWriter test")
 	{
 		auto writer = FileWriter(MakeFilePath(filename), 0);
 		string s = "Hello World";
+		writer.StartCounter();
 		writer.Write(s.c_str(), s.size());
-		// writer.Flush();
-		// ASSERT(writer.CurrentPos() == s.size());
+		writer.EndCounter();
+		auto c = writer.CounterNum();
+		ASSERT(c == s.size());
 
 		auto reader = FileReader(MakeFilePath("reader&writer"), 0);
 		ASSERT(reader.GetLessOwnershipFile() == nullptr);

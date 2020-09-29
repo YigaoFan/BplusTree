@@ -17,10 +17,10 @@ namespace FuncLib::Store
 		_startPos = pos;
 	}
 
-#define RUN_COUNTER      \
-	if (_counterRunning) \
-	{                    \
-		++_counter;      \
+#define RUN_COUNTER       \
+	if (_counterRunning)  \
+	{                     \
+		_counter += size; \
 	}
 
 	void PreWriter::Write(char const* begin, size_t size)

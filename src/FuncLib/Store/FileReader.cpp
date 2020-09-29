@@ -10,7 +10,6 @@ namespace FuncLib::Store
 		}
 
 		ifstream fs(filename, ifstream::in | ifstream::binary);
-		fs.unsetf(ifstream::skipws);
 		fs.seekg(start);
 
 		vector<byte> mem(size);

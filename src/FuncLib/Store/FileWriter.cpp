@@ -40,10 +40,10 @@ namespace FuncLib::Store
 		: _filename(move(filename)), _pos(startPos)
 	{ }
 
-#define RUN_COUNTER      \
-	if (_counterRunning) \
-	{                    \
-		++_counter;      \
+#define RUN_COUNTER       \
+	if (_counterRunning)  \
+	{                     \
+		_counter += size; \
 	}
 
 	void FileWriter::Write(char const* begin, size_t size)
@@ -55,14 +55,15 @@ namespace FuncLib::Store
 		WriteByte(*_filename, pos, begin, size);
 	}
 
-	void FileWriter::WriteBlank(size_t count)
+	void FileWriter::WriteBlank(size_t size)
 	{
 		RUN_COUNTER;
 		auto pos = _pos;
-		_pos += count;
+		_pos += size;
 
-		DuplicateWriteByte(*_filename, pos, count, ' ');
+		DuplicateWriteByte(*_filename, pos, size, ' ');
 	}
+#undef RUN_COUNTER
 
 	void FileWriter::StartCounter()
 	{
