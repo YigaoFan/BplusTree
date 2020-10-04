@@ -10,21 +10,29 @@ namespace TestCodeGen
     {
         public static void Main(string[] args)
         {
-            //var testFile =
-            //    new TestFile("../../TestFrame/FlyTest.hpp", "byteConverterTest",
-            //        new TestCase("Byte converter test",
-            //            new Section("int"),
-            //            new Section("float")));
+            var testCase = new TestCase("Byte converter test");
+            var testFile =
+                new TestFile("../../TestFrame/FlyTest.hpp", "byteConverterTest",
+                    testCase);
 
-            //Console.Write(testFile.ToString());
 
             var types = TypeFactory.GenBasicType().ConvertAll(basic => (IType)basic);
             var specialization = types.GenSpecializationType();
-            specialization.ForEach(e => Console.WriteLine(e.Name));
-            foreach (var t in types.GenCompoundType(2))
+            //specialization.ForEach(e => Console.WriteLine(e.Name));
+            types.AddRange(specialization);
+            var compoundTypes = types.GenCompoundType(2).ToArray();
+            types.AddRange(compoundTypes);
+
+            var i = 0;
+            types.ForEach(x => testCase.Add(
+                new Section("section" + (i++),
+                    new CodeSnippet_ByteConverter(x))));
+
+            using (var writer = new StreamWriter("ByteConvereterTest.cpp"))
             {
-                Console.WriteLine(t.Name);
+                writer.Write(testFile.ToString());
             }
+            //Console.Write();
         }
     }
 }

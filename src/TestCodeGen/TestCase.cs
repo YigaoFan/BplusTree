@@ -6,19 +6,20 @@ namespace TestCodeGen
     public class TestCase
     {
         private string name;
-        private Section[] sections;
+        private List<Section> sections;
 
         public TestCase(string name, params Section[] sections)
         {
             this.name = name;
-            this.sections = sections;
+            this.sections = new List<Section>();
+            this.sections.AddRange(sections);
         }
 
-        //public Section Add(Section section)
-        //{
-        //    sections.Add(section);
-        //    return section;
-        //}
+        public Section Add(Section section)
+        {
+            sections.Add(section);
+            return section;
+        }
 
         public override string ToString()
         {
@@ -29,6 +30,7 @@ namespace TestCodeGen
             foreach (var s in sections)
             {
                 builder.Append(s.ToString());
+                builder.AppendLine();
             }
 
             builder.AppendLine("}");

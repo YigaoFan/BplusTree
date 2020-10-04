@@ -45,6 +45,7 @@
     <Compile Include="TemplateSpecificationType.cs" />
     <Compile Include="BasicType.cs" />
     <Compile Include="NonType.cs" />
+    <Compile Include="CodeSnippet.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

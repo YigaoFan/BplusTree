@@ -16,10 +16,10 @@ namespace TestCodeGen
                 builder.Append('<');
                 foreach (var arg in templateArgs)
                 {
-                    builder.Append(arg.Name + ',');
+                    builder.Append(arg.Name + ", ");
                 }
 
-                builder.Length -= 1;
+                builder.Length -= 2;
                 builder.Append('>');
 
                 return builder.ToString();
@@ -33,7 +33,5 @@ namespace TestCodeGen
             this.templateName = templateName;
             this.templateArgs = templateArgs;
         }
-
-
     }
 }

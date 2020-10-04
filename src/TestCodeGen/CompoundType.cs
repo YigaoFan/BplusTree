@@ -18,20 +18,18 @@ namespace TestCodeGen
             memberTypes = types;
         }
 
-        public string Definition()
+        public IEnumerable<string> Definition()
         {
-            var builder = new StringBuilder();
-            builder.AppendLine($"struct {Name}");
-            builder.AppendLine("{");
+            yield return $"struct {Name}";
+            yield return "{";
 
             var i = 0;
             foreach (var t in memberTypes)
             {
-                builder.AppendLine($"{t.Name} Member{i++};");
+                yield return $"{t.Name} Member{i++};";
             }
 
-            builder.AppendLine("}");
-            return builder.ToString();
+            yield return "}";
         }
     }
 }

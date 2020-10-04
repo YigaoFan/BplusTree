@@ -28,6 +28,7 @@ namespace TestCodeGen
         {
             var builder = new StringBuilder();
             builder.AppendLine($"#include \"{testFramePath}\"");
+            builder.AppendLine();
 
             foreach (var tc in testCases)
             {

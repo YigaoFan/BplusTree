@@ -1,15 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-
-namespace TestCodeGen
+﻿namespace TestCodeGen
 {
-    //enum TypeKind
-    //{
-    //    NormalType,
-    //    NonType,
-    //}
-
     public class Template
     {
         private string name;
