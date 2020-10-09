@@ -34,7 +34,7 @@ namespace Collections
 			Init(move(t), move(ts)...);
 		}
 
-		// TODO Ïë°ì·¨ÖØ¹¹ÏÂ IEnumerator£¬¼ò»¯ÏÂ T Õâ¸öÀàĞÍ£¬Ïàµ±ÓÚÖ§³ÖÔÚ Enumerator Ö§³Ö´æÖµ£¬ÓĞµã move iterator µÄÎ¶µÀ
+		// TODO ï¿½ï¿½ì·¨ï¿½Ø¹ï¿½ï¿½ï¿½ IEnumeratorï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ T ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í£ï¿½ï¿½àµ±ï¿½ï¿½Ö§ï¿½ï¿½ï¿½ï¿½ Enumerator Ö§ï¿½Ö´ï¿½Öµï¿½ï¿½ï¿½Ğµï¿½ move iterator ï¿½ï¿½Î¶ï¿½ï¿½
 		LiteVector(IEnumerator<T>& enumerator)
 		{
 			while (enumerator.MoveNext())
