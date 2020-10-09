@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <vector>
 #include <functional>
+#include <cstddef>
 
 namespace FuncLib
 {
@@ -19,31 +20,55 @@ namespace FuncLib
 		template <typename Ty>
 		friend class DiskPtrBase;
 		
-		mutable shared_ptr<T> _tPtr = nullptr;
-		mutable vector<function<void(T*)>> _setters;
-		shared_ptr<DiskPos<T>> _pos;
+		mutable shared_ptr<T> _tPtr;
+		mutable shared_ptr<vector<function<void(T*)>>> _setters;
+		DiskPos<T> _pos;
 
 	public:
-		DiskPtrBase(DiskPos<T> pos) : _pos(shared_ptr(pos))
+		DiskPtrBase(::std::nullptr_t ptr)
 		{ }
 
-		DiskPtrBase(DiskPtrBase&& that)
+		DiskPtrBase(DiskPos<T> pos) : _pos(pos)
+		{ }
+
+		DiskPtrBase(DiskPtrBase&& that) noexcept
 			: _tPtr(that._tPtr), _setters(move(that._setters)), _pos(move(that._pos))
 		{
 			that._tPtr = nullptr;
-			that._pos = nullptr;
 		}
 
-		DiskPtrBase(DiskPtrBase const& that) : _tPtr(that._tPtr), _pos(that._pos)
+		DiskPtrBase(DiskPtrBase const& that) : _tPtr(that._tPtr), _setters(that._setters), _pos(that._pos)
+		{ }
+
+		template <typename Derived>
+		DiskPtrBase(DiskPtrBase<Derived>&& derivedOne) : _tPtr(derivedOne._tPtr), _pos(derivedOne._pos)
+		{ 
+			
+		}
+
+// setter 为空说明 object 处于最新状态，clear setter 保证这个
+#define CLEAR_SETTER                    \
+	if (!this->_setters->empty())       \
+	{                                   \
+		if (this->_tPtr == nullptr)     \
+		{                               \
+			this->ReadObjectFromDisk(); \
+		}                               \
+                                        \
+		this->SetDone();                \
+	}
+
+		~DiskPtrBase()
 		{
-			that.DoSet();
+			CLEAR_SETTER;
 		}
 
 		DiskPtrBase& operator= (DiskPtrBase const& that)
 		{
-			// TODO handle the already exist _tPtr value
-			that.DoSet();
-			this->_tPtr = that._tPtr;// how to handle that._tPtr
+			CLEAR_SETTER;
+
+			this->_tPtr = that._tPtr;
+			this->_setters = that._setters;
 			this->_pos = that._pos;
 
 			return *this;
@@ -51,24 +76,23 @@ namespace FuncLib
 
 		DiskPtrBase& operator= (DiskPtrBase&& that) noexcept
 		{
-			that.DoSet();
+			CLEAR_SETTER;
+
 			this->_tPtr = move(that._tPtr);
+			this->_setters = move(that._setters);
 			this->_pos = move(that._pos);
 			return *this;
 		}
+#undef CLEAR_SETTER
 
-		// TODO test
-		template <typename Derive>
-		DiskPtrBase(DiskPtrBase<Derive>&& deriveOne) : _tPtr(deriveOne._tPtr), _pos(deriveOne._pos)
-		{ }
-		
 		void RegisterSetter(function<void(T*)> setter)
 		{
 			if (_tPtr == nullptr)
 			{
 				// 这里的 setter 这样存下来后，各地的 DiskPtr 从不同内存位置开始读的时候会不会有问题
+				// 好像没有这个问题。obj 本身是缓存在 Cache 里的，且是共享的，那么有最新的状态，别人一定可以及时获知
 				// 是考虑 Btree 的情况，还是考虑之后的所有情况？
-				_setters.push_back(move(setter));
+				_setters->push_back(move(setter));
 			}
 			else
 			{
@@ -76,65 +100,56 @@ namespace FuncLib
 			}
 		}
 
-		// How to deal these operator
+// prepare obj 保证对象读出来，且处于最新状态
+#define PREPARE_OBJ                     \
+	do                                  \
+	{                                   \
+		if (this->_tPtr == nullptr)     \
+		{                               \
+			this->ReadObjectFromDisk(); \
+		}                               \
+                                        \
+		this->SetDone();                \
+	} while (0)
+		// 下面这些符号如果在实际的上层代码中能尽量不用就不用，因为涉及到读取
 		T& operator* ()
 		{
-			ReadEntity();
+			PREPARE_OBJ;
 			return *_tPtr;
 		}
 
 		T const& operator* () const
 		{
-			ReadEntity();
+			PREPARE_OBJ;
 			return *_tPtr;
 		}
 
 		T* operator-> () const
 		{
-			ReadEntity();
+			PREPARE_OBJ;
 			return _tPtr.get();
 		}
 
 		T* operator-> ()
 		{
-			ReadEntity();
+			PREPARE_OBJ;
 			return _tPtr.get();
 		}
-
-		T* get() const
-		{
-			ReadEntity();
-			return _tPtr.get();// TODO maybe modify use place
-		}
-
-		// 这个函数的用途是什么？
-		// shared_ptr<File> GetFile() const
-		// {
-			// return _pos->GetFile();
-			// 等到找到这个函数的用途后再恢复
-		// }
+#undef PREPARE_OBJ
 	private:
-		void ReadEntity() const
+		void ReadObjectFromDisk() const
 		{
-			if (_tPtr == nullptr)
-			{
-				_tPtr = _pos->ReadObject();
-			}
-
-			DoSet();
+			_tPtr = _pos->ReadObject();
 		}
 
-		void DoSet() const
+		void SetDone() const
 		{
-			if (!_setters.empty())
+			for (auto& f : *_setters)
 			{
-				for (auto& f : _setters)
-				{
-					f(_tPtr.get());
-				}
-
-				_setters.clear();
+				f(_tPtr.get());
 			}
+
+			_setters->clear();
 		}
 	};
 
@@ -192,13 +207,14 @@ namespace FuncLib
 		}
 
 		// 哪里用到了这个？
-		void reset(UniqueDiskPtr ptr)
-		{
-			// if (ptr == nullptr)
-			// release resource
-			this->_tPtr = move(ptr->_tPtr);
-			this->_pos = move(ptr->_pos);
-			this->_setters = move(ptr->_setters);
-		}
+		// void reset(UniqueDiskPtr ptr)
+		// {
+		// }
+
+		// T* get() const Unique 中提供这个功能，返回 OwnerLessDiskPtr
+		// {
+		// 	PREPARE_OBJ;
+		// 	return _tPtr.get(); // TODO maybe modify use place
+		// }
 	};
 }

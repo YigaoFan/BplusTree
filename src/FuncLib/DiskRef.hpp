@@ -10,7 +10,7 @@ namespace FuncLib
 	{
 	private:
 		friend struct ByteConverter<DiskRef, false>;
-		UniqueDiskPtr<T> _ptr;// TODO replace with DiskPtrBase
+		UniqueDiskPtr<T> _ptr;// TODO replace with OwnerLessPtr
 	public:
 		// For temp conversion, will not write on Disk, is for user want to search some key, will use this
 		DiskRef(T const& t) // TODO rewrite the implementation
@@ -21,7 +21,7 @@ namespace FuncLib
 		DiskRef(UniqueDiskPtr<T> ptr) : _ptr(move(ptr))
 		{ }
 
-		DiskRef(DiskRef&& that) : _ptr(move(that._ptr))
+		DiskRef(DiskRef&& that) noexcept : _ptr(move(that._ptr))
 		{ }
 
 		DiskRef(DiskRef const& that) : _ptr(that._ptr.GetPtr())

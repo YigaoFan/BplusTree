@@ -41,8 +41,9 @@ namespace FuncLib::Store
 
 	void StorageAllocator::DeallocatePosLable(pos_lable posLable)
 	{
+		auto allocateInfoIter = _posLableTable.find(posLable);
+		_deletedLables.insert(*allocateInfoIter);
 		_posLableTable.erase(posLable); // 那是什么时候调整分配大小，那时候调用上面具体位置的地方就会受影响，所以要尽量少的依赖具体位置
-		_deletedLables.insert(posLable);
 	}
 
 #define VALID_CHECK                                                                                     \
@@ -67,7 +68,10 @@ namespace FuncLib::Store
 		VALID_CHECK;
 
 		using ::std::make_pair;
-		_posLableTable.find(posLable)->second = make_pair(_currentPos, biggerSize);
+		auto allocateInfoIter = _posLableTable.find(posLable);
+		// 也可以加入到 _deletedLables，用一个特殊的 pos_lable 标记
+		_deletedLables.insert({ -1, allocateInfoIter->second });
+		allocateInfoIter->second = make_pair(_currentPos, biggerSize);
 		_currentPos += biggerSize;
 		return _currentPos - biggerSize;
 	}
