@@ -34,7 +34,7 @@ namespace Collections
 			Init(move(t), move(ts)...);
 		}
 
-		// TODO ��취�ع��� IEnumerator������ T ������ͣ��൱��֧���� Enumerator ֧�ִ�ֵ���е� move iterator ��ζ��
+		// TODO 想办法重构下 IEnumerator，简化下 T 这个类型，相当于支持在 Enumerator 支持存值，有点 move iterator 的味道
 		LiteVector(IEnumerator<T>& enumerator)
 		{
 			while (enumerator.MoveNext())
