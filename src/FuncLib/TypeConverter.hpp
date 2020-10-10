@@ -45,6 +45,19 @@ namespace FuncLib
 		}
 	};
 
+	template <typename T, bool Predicate>
+	struct TypeConverter<T*, Predicate>
+	{
+		using From = T*;
+		using To = OwnerLessDiskPtr<T>;
+
+		// file is not must use, only for string like
+		static To ConvertFrom(From const &t, shared_ptr<File> file)
+		{
+			return t;
+		}
+	};
+
 	template <typename Key, typename Value, order_int Count, typename LessThan>
 	struct TypeConverter<Elements<Key, Value, Count, LessThan>, false>
 	{
@@ -81,7 +94,8 @@ namespace FuncLib
 		{
 			using Node = NodeBase<Key, Value, Count, UniqueDiskPtr>;
 			using ::std::placeholders::_1;
-			auto nodes = EnumeratorPipeline<typename decltype(from._elements)::Item const&, UniqueDiskPtr<Node>>(from._elements.GetEnumerator(), bind(&CloneNodeToDisk, _1, file));
+			auto nodes = 
+				EnumeratorPipeline<typename decltype(from._elements)::Item const&, UniqueDiskPtr<Node>>(from._elements.GetEnumerator(), bind(&CloneNodeToDisk, _1, file));
 			return { move(nodes), from._elements.LessThanPtr };
 		}
 	};
@@ -134,14 +148,15 @@ namespace FuncLib
 
 			using ConvertedType = decltype(c);
 			using ::Basic::IsSpecialization;
+			// 这里的 MakeUnique 的参数类型会有问题
 			if constexpr (IsSpecialization<ConvertedType, shared_ptr>::value)
 			{
 				return UniqueDiskPtr<typename ConvertedType::element_type>::MakeUnique(c, file);
 			}
-			else if constexpr (IsSpecialization<ConvertedType, UniqueDiskPtr>::value)
-			{
-				return c;
-			}
+			// else if constexpr (IsSpecialization<ConvertedType, UniqueDiskPtr>::value)
+			// {
+			// 	return c;
+			// }
 			else
 			{
 				return UniqueDiskPtr<ConvertedType>::MakeUnique(make_shared<ConvertedType>(move(c)), file);
@@ -167,16 +182,17 @@ namespace FuncLib
 		}
 	};
 
-	template <>
-	struct TypeConverter<string>
-	{
-		using From = string;
-		using To = DiskRef<string>;
+	// 这个或许没用了
+	// template <>
+	// struct TypeConverter<string>
+	// {
+	// 	using From = string;
+	// 	using To = DiskRef<string>;
 
-		// ����Ĳ����о������棬�����������������ôʵ�ֵ�
-		static To ConvertFrom(From const& from, shared_ptr<File> file)
-		{
-			return UniqueDiskPtr<From>::MakeUnique(make_shared<From>(from), file);
-		}
-	};
+	// 	// ����Ĳ����о������棬�����������������ôʵ�ֵ�
+	// 	static To ConvertFrom(From const& from, shared_ptr<File> file)
+	// 	{
+	// 		return UniqueDiskPtr<From>::MakeUnique(make_shared<From>(from), file);
+	// 	}
+	// };
 }
