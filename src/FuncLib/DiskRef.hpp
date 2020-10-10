@@ -1,24 +1,25 @@
-#include <memory>
-#include "./Store/FileResource.hpp"
+// #include "./Store/FileResource.hpp"
 
 namespace FuncLib
 {
-	using ::std::make_shared;
-
 	template <typename T>
 	class DiskRef
 	{
 	private:
 		friend struct ByteConverter<DiskRef, false>;
-		UniqueDiskPtr<T> _ptr;// TODO replace with OwnerLessPtr
+		OwnerLessDiskPtr<T> _ptr;
 	public:
 		// For temp conversion, will not write on Disk, is for user want to search some key, will use this
-		DiskRef(T const& t) // TODO rewrite the implementation
-			: _ptr(UniqueDiskPtr<T>::MakeUnique(make_shared<T>(move(t)), FileResource::GetCurrentThreadFile()))
-		{ }
+		// 类似下面这种类型转换应该显式的用 File 来构造
+		DiskRef MakeRef(File* file)
+		{
+			
+		}
+		// DiskRef(T const& t) // TODO rewrite the implementation
+		// 	: _ptr(UniqueDiskPtr<T>::MakeUnique(t, FileResource::GetCurrentThreadFile()))
+		// { }
 
-		// want to Write on disk should use like this
-		DiskRef(UniqueDiskPtr<T> ptr) : _ptr(move(ptr))
+		DiskRef(OwnerLessDiskPtr<T> ptr) : _ptr(move(ptr))
 		{ }
 
 		DiskRef(DiskRef&& that) noexcept : _ptr(move(that._ptr))

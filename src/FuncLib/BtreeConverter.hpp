@@ -29,7 +29,7 @@ namespace FuncLib
 		ConvertToDisk(Btree<Order, Key, Value, unique_ptr> const& btree, shared_ptr<File> file)
 		{
 			using T = Btree<Order, Key, Value, unique_ptr>;
-			return UniqueDiskPtr<Converted>::MakeUnique(make_shared<Converted>(TypeConverter<T>::ConvertFrom(btree, file)), file);
+			return UniqueDiskPtr<Converted>::MakeUnique(TypeConverter<T>::ConvertFrom(btree, file), file);
 		}
 
 		static UniqueDiskPtr<Converted>

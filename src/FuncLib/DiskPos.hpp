@@ -21,8 +21,8 @@ namespace FuncLib
 		DiskPos(File* file, pos_lable lable) : _file(file), _lable(lable)
 		{ }
 
-		template <typename Derive>
-		DiskPos(DiskPos<Derive> const& that) : _file(that._file), _lable(that._lable)
+		template <typename Derived>
+		DiskPos(DiskPos<Derived> const& that) : _file(that._file), _lable(that._lable)
 		{ }
 
 		shared_ptr<T> ReadObject() const

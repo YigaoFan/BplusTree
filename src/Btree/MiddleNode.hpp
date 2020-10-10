@@ -72,8 +72,6 @@ namespace Collections
 			_shallowTreeCallbackPtr(that._shallowTreeCallbackPtr)
 		{ }
 
-		~MiddleNode() override = default;
-
 		Ptr<Base> Clone() const override
 		{
 			// If mark copy constructor private, this method cannot compile pass

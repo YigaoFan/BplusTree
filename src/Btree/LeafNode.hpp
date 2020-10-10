@@ -20,6 +20,13 @@ namespace Collections
 	using ::std::remove_pointer_t;
 	using ::std::unique_ptr;
 
+	enum class StorePosition
+	{
+		Memory,
+		Disk,
+	};
+
+	// 这里用指针参数不太好，可以用个枚举类型。因为这个指针参数不是所有指针都用，有的要用 OwnerLess 的指针
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
 	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Ptr>
 	{
@@ -28,10 +35,14 @@ namespace Collections
 		friend struct FuncLib::TypeConverter<LeafNode<Key, Value, BtreeOrder, unique_ptr>, false>;
 		using _LessThan = LessThan<Key>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
-		using StoredKey = typename DataType<IsDisk<Ptr>, false, Key>::T;
-		Elements<StoredKey, typename DataType<IsDisk<Ptr>, false, Value>::T, BtreeOrder, _LessThan> _elements;
-		LeafNode* _next{ nullptr };
-		LeafNode* _previous{ nullptr };
+		using StoredKey = typename DataType<IsDisk<Ptr>, false, Key>::T;// 这里的类型应和 MinKey 的返回值类型一样
+		using StoredValue = typename DataType<IsDisk<Ptr>, false, Value>::T;
+		Elements<StoredKey, StoredValue, BtreeOrder, _LessThan> _elements;
+		template <typename T>
+		using OwnerLessPtr = typename DataType<IsDisk<Ptr>, false, T*>::T;
+		OwnerLessPtr<LeafNode> _next{nullptr};
+		OwnerLessPtr<LeafNode> _previous{nullptr};
+
 	public:
 		bool Middle() const override { return false; }
 
@@ -50,8 +61,6 @@ namespace Collections
 			: Base(move(that)), _elements(move(that._elements)),
 			 _next(that._next), _previous(that._previous)
 		{ }
-
-		~LeafNode() override = default;
 
 		Ptr<Base> Clone() const override 
 		{

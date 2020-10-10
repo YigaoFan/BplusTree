@@ -36,7 +36,7 @@ namespace Collections
 	template <template <typename...> class Ptr>
 	constexpr bool IsDisk = IsSpecialization<Ptr<int>, UniqueDiskPtr>::value;
 
-	template <bool IsDisk, bool RefUsable, typename Ty>
+	template <bool IsDisk, bool RefUsable, typename T>
 	struct DataType;
 
 	template <typename Ty, bool RefUsable>
@@ -137,8 +137,7 @@ void LessThanPredicate(shared_ptr<LessThan<Key>> lessThan) override\
 		{                                                                     \
 			using FuncLib::Store::FileResource;                               \
 			auto f = FileResource::GetCurrentThreadFile();                    \
-			auto node = make_shared<NodeType>(*thisPtr);                      \
-			return UniqueDiskPtr<NodeType>::MakeUnique(node, f);              \
+			return UniqueDiskPtr<NodeType>::MakeUnique(*thisPtr, f);          \
 		}                                                                     \
 		else                                                                  \
 		{                                                                     \
@@ -155,8 +154,8 @@ void LessThanPredicate(shared_ptr<LessThan<Key>> lessThan) override\
 		{                                                                     \
 			using FuncLib::Store::FileResource;                               \
 			auto f = FileResource::GetCurrentThreadFile();                    \
-			auto n = make_shared<NodeType>(thisPtr->_elements.LessThanPtr);   \
-			return UniqueDiskPtr<NodeType>::MakeUnique(n, f);                 \
+			auto n = NodeType(thisPtr->_elements.LessThanPtr);                \
+			return UniqueDiskPtr<NodeType>::MakeUnique(move(n), f);           \
 		}                                                                     \
 		else                                                                  \
 		{                                                                     \

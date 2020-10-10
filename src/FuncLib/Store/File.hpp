@@ -49,7 +49,7 @@ namespace FuncLib::Store
 			}
 			else
 			{
-				return PackageThenAddToCache(new T(Read<T>(posLable)), posLable);
+				return PackageThenAddToCache(Read<T>(posLable), posLable);
 			}
 		}
 		
@@ -58,7 +58,7 @@ namespace FuncLib::Store
 		pair<pos_lable, shared_ptr<T>> New(T&& t)
 		{
 			auto lable = _allocator.AllocatePosLable();
-			auto obj = PackageThenAddToCache(new T(forward<T>(t)), lable);
+			auto obj = PackageThenAddToCache(forward<T>(t), lable);
 			return { lable, obj };
 		}
 
@@ -106,18 +106,6 @@ namespace FuncLib::Store
 
 			// if constexpr (!ByteConverter<T>::SizeStable)// string 的 ByteConverter 那里可能要改成 SizeStable，map 也是，加一个指针进去，那不 SizeStable 的部分在哪里？
 			// {
-			// 	auto previousSize = _allocator.GetAllocatedSize();
-			// 	auto newSize = internalWriter->BufferSize();
-			// 	if ( previousSize < newSize))
-			// 	{
-			// 		alloc->Reallocate(posLable, newSize);
-			// 		auto newPos = _allocator.GetConcretePos(posLable);
-			// 		internalWriter->SetStartPos(newPos);
-			// 		// 然后这里需要把这个 internal writer 给 append 到 writer 上
-			// 		// 那么这样的话，就要有 buffer 了，而且 buffer 里的每一块要存具体地址，以隔离别的存储地址的影响
-			// 		// writer->Obtain(move(internalWriter));
-			// 		// 大概代码类似上面这样
-			// 	}
 			// }
 		}
 
@@ -138,12 +126,11 @@ namespace FuncLib::Store
 			return ByteConverter<T>::ReadOut(&reader);
 		}
 
-		// 还有这里还要这么写吗，外面不是不通过 t 来获取持久性，而是通过 shared_ptr<File> 来保证这个 t 的持久性
 		// 还有 DiskPos 依赖也不是 File 的所有功能，所以可以考虑剥离一部分功能出来形成一个类，来让 DiskPos 依赖
 		template <typename T>
-		shared_ptr<T> PackageThenAddToCache(T* ptr, pos_lable posLable)
+		shared_ptr<T> PackageThenAddToCache(T&& t, pos_lable posLable)
 		{
-			auto obj = shared_ptr<T>(ptr);
+			auto obj = make_shared<T>(forward<T>(t));
 			_cache.Add<T>(posLable, obj);
 			return obj;
 		}

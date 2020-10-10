@@ -39,8 +39,8 @@ namespace Collections
 			{
 				using FuncLib::Store::FileResource;
 				auto f = FileResource::GetCurrentThreadFile();
-				auto node = make_shared<Middle>(enumerator, lessThan);
-				return UniqueDiskPtr<Middle>::MakeUnique(node, f);// TODO maybe should handle leaf cons, too
+				auto node = Middle(enumerator, lessThan);
+				return UniqueDiskPtr<Middle>::MakeUnique(move(node), f);// TODO maybe should handle leaf cons, too
 			}
 			else
 			{

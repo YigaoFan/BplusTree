@@ -20,15 +20,15 @@ namespace FuncLib
 		template <typename Ty>
 		friend class DiskPtrBase;
 		
-		mutable shared_ptr<T> _tPtr;
 		mutable shared_ptr<vector<function<void(T*)>>> _setters;
 		DiskPos<T> _pos;
+		mutable shared_ptr<T> _tPtr;
 
 	public:
 		DiskPtrBase(::std::nullptr_t ptr)
 		{ }
 
-		DiskPtrBase(DiskPos<T> pos) : _pos(pos)
+		DiskPtrBase(DiskPos<T> pos, shared_ptr<T> object) : _pos(pos), _tPtr(object)
 		{ }
 
 		DiskPtrBase(DiskPtrBase&& that) noexcept
@@ -173,20 +173,12 @@ namespace FuncLib
 	public:
 		using Base::Base;
 
-		static UniqueDiskPtr<T> MakeUnique(shared_ptr<T> entityPtr, shared_ptr<File> file)
+		template <typename T1>
+		UniqueDiskPtr<T> MakeUnique(T1&& t, File* file)
 		{
-			// size_t pos;
-			// if constexpr (is_same_v<typename ReturnType<decltype(ByteConverter<T>::WriteDown)>::Type, vector<byte>>)
-			// {
-			// 	auto d = ByteConverter<T>::WriteDown(*entityPtr);
-			// 	pos = file->Allocate<T>(d.size());
-			// }
-			// else
-			// {
-			// 	pos = file->Allocate<T>(ByteConverter<T>::Size);
-			// }
-
-			// return { entityPtr, { file, pos } }; // 硬存大小分配只有这里
+			// 硬存使用的出发点只有这里
+			auto [lable, obj] = file->New(forward<T1>(t));
+			return { obj, {file, lable } };
 		}
 
 		UniqueDiskPtr(UniqueDiskPtr const&) = delete;
