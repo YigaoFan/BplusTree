@@ -25,9 +25,6 @@ namespace FuncLib
 		mutable shared_ptr<T> _tPtr;
 
 	public:
-		DiskPtrBase(::std::nullptr_t ptr)
-		{ }
-
 		DiskPtrBase(DiskPos<T> pos, shared_ptr<T> object) : _pos(pos), _tPtr(object)
 		{ }
 
@@ -136,10 +133,15 @@ namespace FuncLib
 			return _tPtr.get();
 		}
 #undef PREPARE_OBJ
+	protected:
+		DiskPtrBase(DiskPos<T> pos) : DiskPtrBase(move(pos), nullptr)
+		{ }
+		
 	private:
+
 		void ReadObjectFromDisk() const
 		{
-			_tPtr = _pos->ReadObject();
+			_tPtr = _pos.ReadObject();
 		}
 
 		void SetDone() const
@@ -157,7 +159,7 @@ namespace FuncLib
 	class OwnerLessDiskPtr : public DiskPtrBase<T>
 	{
 	private:
-		friend struct ByteConverter<OwnerLessDiskPtr>;
+		friend struct ByteConverter<OwnerLessDiskPtr, false>;
 		using Base = DiskPtrBase<T>;
 
 	public:

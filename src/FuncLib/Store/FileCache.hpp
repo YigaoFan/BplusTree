@@ -42,7 +42,10 @@ namespace FuncLib::Store
 				};
 			}
 
-			Cache<T>.insert({ _fileId, { posLable, object }});
+			Cache<T>.insert({ _fileId,
+			{ 
+				{ posLable, object },
+			}});
 		}
 
 		template <typename T>

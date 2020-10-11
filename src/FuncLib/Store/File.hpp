@@ -49,7 +49,7 @@ namespace FuncLib::Store
 			}
 			else
 			{
-				return PackageThenAddToCache(Read<T>(posLable), posLable);
+				return PackageThenAddToCache(ReadOn<T>(posLable), posLable);
 			}
 		}
 		
@@ -118,7 +118,7 @@ namespace FuncLib::Store
 
 	private:
 		template <typename T>
-		T Read(pos_lable posLable)
+		T ReadOn(pos_lable posLable)
 		{
 			// 触发 读 的唯一一个地方
 			auto start = _allocator.GetConcretePos(posLable);

@@ -31,6 +31,7 @@ namespace FuncLib
 	using ::std::map;
 	using ::std::move;
 	using ::std::pair;
+	using ::std::remove_const_t;
 	using ::std::remove_reference_t;
 	using ::std::shared_ptr;
 	using ::std::size;
@@ -83,7 +84,7 @@ namespace FuncLib
 			auto converter = [&]<auto Index>()
 			{
 				auto& i = get<Index>(tup);
-				ByteConverter<remove_reference_t<decltype(i)>>::WriteDown(i, writer);
+				ByteConverter<remove_const_t<remove_reference_t<decltype(i)>>>::WriteDown(i, writer);
 			};
 
 			(converter.template operator()<Is>(), ...);
