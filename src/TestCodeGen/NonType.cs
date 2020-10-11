@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+
 namespace TestCodeGen
 {
     public class NonType<T> : IType
@@ -6,7 +8,7 @@ namespace TestCodeGen
         private T t;
 
         public string Name { get => t.ToString(); }
-        public string Init { get => throw new InvalidOperationException("cannot init non-type"); }
+        public IEnumerable<string> InitCode { get => throw new InvalidOperationException("cannot init non-type"); }
 
         public NonType(T t)
         {

@@ -2,19 +2,25 @@
 {
     public class Template
     {
-        private string name;
+        public string Name { get; }
+        private string initPattern;
         //private Type[] argsInfo;
 
-        public Template(string name)
+        public Template(string name, string initPattern)
         {
-            this.name = name;
-            //this.argsInfo = argsInfo;
+            this.Name = name;
+            this.initPattern = initPattern;
         }
 
         public TemplateSpecificationType GenerateTypeWith(IType[] types)
         {
             //CheckType(types);
-            return new TemplateSpecificationType(name, types);
+            return new TemplateSpecificationType(this, types);
+        }
+
+        public string ComposeInitCode(IType[] types)
+        {
+            return initPattern;
         }
 
         //private void CheckType(IType[] types)

@@ -11,8 +11,16 @@ namespace TestCodeGen
         public static void Main(string[] args)
         {
             var testCase = new TestCase("Byte converter test");
+            var initCodes = new List<string>
+            {
+                "auto filename = \"byteConverterTest\";",
+                "auto path = MakeFilePath(filename);",
+                "auto writer = FileWriter(path, 0);",
+                "auto reader = FileReader(path, 0);",
+            };
+            testCase.AddCode(initCodes);
             var testFile =
-                new TestFile("../../TestFrame/FlyTest.hpp", "byteConverterTest",
+                new TestFile("../../TestFrame/FlyTest.hpp", "byteConverterTest_gen",
                     testCase);
 
 
@@ -28,7 +36,7 @@ namespace TestCodeGen
                 new Section("section" + (i++),
                     new CodeSnippet_ByteConverter(x))));
 
-            using (var writer = new StreamWriter("ByteConvereterTest.cpp"))
+            using (var writer = new StreamWriter("ByteConvereterTest_Gen.cpp"))
             {
                 writer.Write(testFile.ToString());
             }

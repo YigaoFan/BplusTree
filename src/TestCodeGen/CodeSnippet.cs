@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 namespace TestCodeGen
 {
@@ -9,10 +10,11 @@ namespace TestCodeGen
         private IType type;
         private static List<string> codes = new List<string>
         {
-            "T t;",
             "ByteConverter<T>::WriteDown(t, &writer);",
-            "static_assert(ByteConverter<T>::SizeStable);",
-            "ASSERT(t == ByteConverter<T>::ReadOut(&reader));",
+            //"static_assert(ByteConverter<T>::SizeStable);",
+            "ByteConverter<T>::ReadOut(&reader);",// 这里不对，有的类型没有支持 == 符号
+            //"ASSERT(t == ByteConverter<T>::ReadOut(&reader));",// 这里不对，有的类型没有支持 == 符号
+            // 这个更多作为一个编译测试吧？
         };
 
         public CodeSnippet_ByteConverter(IType type)
@@ -37,9 +39,20 @@ namespace TestCodeGen
                 {
                     builder.AppendLine(innerIndent + line);
                 }
+                --builder.Length;// remove newline char
+                builder.AppendLine(";");
             }
 
             builder.AppendLine(indent + "using T = " + type.Name + ';');
+            builder.AppendLine(indent + "T t = ");
+            foreach (var code in type.InitCode)
+            {
+                var innerIndent = indent;
+                builder.AppendLine(innerIndent + code);
+            }
+            --builder.Length;// remove newline char
+            builder.AppendLine(";");
+            
 
             foreach (var code in codes)
             {

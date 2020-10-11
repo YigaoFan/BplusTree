@@ -1,18 +1,19 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace TestCodeGen
 {
     public class TemplateSpecificationType : IType
     {
-        private string templateName;
         private IType[] templateArgs;
+        private Template template;
 
         public string Name
         {
             get
             {
-                var builder = new StringBuilder(templateName);
+                var builder = new StringBuilder(template.Name);
                 builder.Append('<');
                 foreach (var arg in templateArgs)
                 {
@@ -26,11 +27,19 @@ namespace TestCodeGen
             }
         }
 
-        public string Init => throw new NotImplementedException();// 这个依赖哪个template
-
-        public TemplateSpecificationType(string templateName, IType[] templateArgs)
+        public IEnumerable<string> InitCode
         {
-            this.templateName = templateName;
+            get
+            {
+                yield return "{";
+                yield return template.ComposeInitCode(templateArgs);
+                yield return "}";
+            }
+        }
+
+        public TemplateSpecificationType(Template template, IType[] templateArgs)
+        {
+            this.template = template;
             this.templateArgs = templateArgs;
         }
     }

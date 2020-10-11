@@ -1,16 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace TestCodeGen
 {
     public class CompoundType : IType
     {
-        public string Name { get; }
-
-        public string Init => throw new NotImplementedException();
-
         private List<IType> memberTypes;
+        public string Name { get; }
 
         public CompoundType(string name, List<IType> types)
         {
@@ -30,6 +25,26 @@ namespace TestCodeGen
             }
 
             yield return "}";
+        }
+
+        public IEnumerable<string> InitCode
+        {
+            get
+            {
+                yield return "{";
+
+                foreach (var t in memberTypes)
+                {
+                    foreach (var code in t.InitCode)
+                    {
+                        yield return code;
+                    }
+
+                    yield return ",";
+                }
+
+                yield return "}";
+            }
         }
     }
 }

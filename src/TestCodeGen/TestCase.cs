@@ -6,6 +6,7 @@ namespace TestCodeGen
     public class TestCase
     {
         private string name;
+        private IEnumerable<string> codes;
         private List<Section> sections;
 
         public TestCase(string name, params Section[] sections)
@@ -21,11 +22,25 @@ namespace TestCodeGen
             return section;
         }
 
+        public void AddCode(IEnumerable<string> codes)
+        {
+            this.codes = codes;
+        }
+
         public override string ToString()
         {
             var builder = new StringBuilder();
             builder.AppendLine($"TESTCASE(\"{name}\")");
             builder.AppendLine("{");
+
+            if (codes != null)
+            {
+                var tab = "\t";
+                foreach (var c in codes)
+                {
+                    builder.AppendLine(tab + c);
+                }
+            }
 
             foreach (var s in sections)
             {
