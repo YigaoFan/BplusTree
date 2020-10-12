@@ -2,7 +2,7 @@
 
 namespace FuncLib::Store
 {
-    FileCache::FileCache(unsigned int fileId) : _fileId(fileId) { }
+    FileCache::FileCache(id_int fileId) : _fileId(fileId) { }
 
     FileCache::~FileCache()
     {

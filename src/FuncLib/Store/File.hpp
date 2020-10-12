@@ -43,7 +43,7 @@ namespace FuncLib::Store
 		template <typename T>
 		shared_ptr<T> Read(pos_lable posLable)
 		{
-			if (_cache.HasRead<T>(posLable))
+			if (_cache.Cached<T>(posLable))
 			{
 				return _cache.Read<T>(posLable);
 			}

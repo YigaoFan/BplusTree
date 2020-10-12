@@ -26,14 +26,14 @@ namespace FuncLib::Store
 		static StorageAllocator ReadAllocatedInfoFrom(path const& filename);
 		static void WriteAllocatedInfoTo(path const& filename, StorageAllocator const& allocator);
 
+		pos_lable AllocatePosLable();
 		bool Ready(pos_lable posLable) const;
+		/// below for first use
+		pos_int GiveSpaceTo(pos_lable posLable, size_t size);
 		/// 下面两个函数都是在 GiveSpaceTo 做好预备后调用，否则无效
 		pos_int GetConcretePos(pos_lable posLable) const;
 		size_t GetAllocatedSize(pos_lable posLable) const;
-		pos_lable AllocatePosLable();
-		void DeallocatePosLable(pos_lable posLable);
-		/// below for first use
-		pos_int GiveSpaceTo(pos_lable posLable, size_t size);
 		pos_int ResizeSpaceTo(pos_lable posLable, size_t biggerSize);
+		void DeallocatePosLable(pos_lable posLable);
 	};
 }

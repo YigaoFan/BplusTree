@@ -10,22 +10,25 @@ namespace FuncLib::Store
 	using ::std::move;
 	using ::std::shared_ptr;
 
+
 	/// 一个 File 仅有一个 FileCache
 	class FileCache
 	{
+	public:
+		using id_int = unsigned int;
 	private:
 		template <typename T>
 		/// file id, pos lable, object
-		static map<unsigned int, map<pos_lable, shared_ptr<T>>> Cache;
+		static map<id_int, map<pos_lable, shared_ptr<T>>> Cache;
 
-		unsigned int _fileId;
+		id_int _fileId;
 		function<void()> _unloader = []() {};
 	public:
-		FileCache(unsigned int fileId);
+		FileCache(id_int fileId);
 		~FileCache();
 
 		template <typename T>
-		bool HasRead(pos_lable posLable)
+		bool Cached(pos_lable posLable)
 		{
 			return Cache<T>.contains(_fileId) && Cache<T>[_fileId].contains(posLable);
 		}
@@ -55,12 +58,12 @@ namespace FuncLib::Store
 		}
 
 		template <typename T>
-		shared_ptr<T> Read(size_t offset)
+		shared_ptr<T> Read(pos_lable posLable)
 		{
-			return Cache<T>[_fileId][offset];
+			return Cache<T>[_fileId][posLable];
 		}
 	};
 
 	template <typename T>
-	map<unsigned int, map<pos_lable, shared_ptr<T>>> FileCache::Cache = {};
+	map<FileCache::id_int, map<pos_lable, shared_ptr<T>>> FileCache::Cache = {};
 }
