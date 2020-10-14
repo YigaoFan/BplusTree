@@ -1,5 +1,3 @@
-// #include "./Store/FileResource.hpp"
-
 namespace FuncLib
 {
 	template <typename T>
@@ -39,7 +37,7 @@ namespace FuncLib
 		UniqueDiskPtr<T> _ptr;
 
 	public:
-		UniqueDiskRef(OwnerLessDiskPtr<T> ptr) : _ptr(move(ptr)) { }
+		UniqueDiskRef(UniqueDiskPtr<T> ptr) : _ptr(move(ptr)) { }
 
 		UniqueDiskRef(UniqueDiskRef&& that) noexcept : _ptr(move(that._ptr)) { }
 
