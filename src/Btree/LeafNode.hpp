@@ -20,12 +20,6 @@ namespace Collections
 	using ::std::remove_pointer_t;
 	using ::std::unique_ptr;
 
-	enum class StorePosition
-	{
-		Memory,
-		Disk,
-	};
-
 	// 这里用指针参数不太好，可以用个枚举类型。因为这个指针参数不是所有指针都用，有的要用 OwnerLess 的指针
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
 	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Ptr>
@@ -35,11 +29,11 @@ namespace Collections
 		friend struct FuncLib::TypeConverter<LeafNode<Key, Value, BtreeOrder, unique_ptr>, false>;
 		using _LessThan = LessThan<Key>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
-		using StoredKey = typename DataType<IsDisk<Ptr>, false, Key>::T;// 这里的类型应和 MinKey 的返回值类型一样
-		using StoredValue = typename DataType<IsDisk<Ptr>, false, Value>::T;
+		using StoredKey = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Key>::Result; // 这里的类型应和 MinKey 的返回值类型一样
+		using StoredValue = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Value>::Result;
 		Elements<StoredKey, StoredValue, BtreeOrder, _LessThan> _elements;
 		template <typename T>
-		using OwnerLessPtr = typename DataType<IsDisk<Ptr>, false, T*>::T;
+		using OwnerLessPtr = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, T *>::Result;
 		OwnerLessPtr<LeafNode> _next{nullptr};
 		OwnerLessPtr<LeafNode> _previous{nullptr};
 
@@ -78,9 +72,19 @@ namespace Collections
 			return CollectKeys();
 		}
 
-		typename DataType<IsDisk<Ptr>, true, Key>::T const MinKey() const override
+		typename TypeSelector<GetStorePlace<Ptr>, Refable::Yes, Key>::Result const MinKey() const override
 		{
-			return _elements[0].first;
+			// using ::std::is_same_v;
+			// if constexpr (is_same_v<DiskRef<Key>, StoredKey>)// 要按照之前的把 string 和一些大对象 TypeConverter 成 DiskPtr<T>
+			// 对于特别大的对象，要手动在 TypeConverter 里加 diskptr 转换
+			// {
+			// 	return 返回同样的类型
+			// }
+			// else
+			// {
+			return _elements[0].first; // 所以重要的是控制这里的返回值类型和知道这里存储的 StoredKey 类型
+			// }
+			
 		}
 
 		bool ContainsKey(Key const& key) const override

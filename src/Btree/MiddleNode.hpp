@@ -46,8 +46,8 @@ namespace Collections
 		function<MiddleNode *(MiddleNode const*)> _queryPrevious = [](auto) { return nullptr; };
 		function<MiddleNode *(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
 		using _LessThan = LessThan<Key>;
-		using StoredKey = typename DataType<IsDisk<Ptr>, true, Key>::T;
-		using StoredValue = typename DataType<IsDisk<Ptr>, false, Ptr<Base>>::T;
+		using StoredKey = typename TypeSelector<GetStorePlace<Ptr>, Refable::Yes, Key>::Result;
+		using StoredValue = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Ptr<Base>>::Result;
 		Elements<StoredKey, StoredValue, BtreeOrder, _LessThan> _elements;
 
 	public:
@@ -108,7 +108,7 @@ namespace Collections
 			return _elements.PopOut().second;
 		}
 
-		typename DataType<IsDisk<Ptr>, true, Key>::T const MinKey() const override
+		typename TypeSelector<GetStorePlace<Ptr>, Refable::Yes, Key>::Result const MinKey() const override
 		{
 			return _elements[0].first;
 		}
@@ -198,6 +198,7 @@ namespace Collections
 			}
 		}
 
+		// TODO 这里的返回类型要改
 		Leaf* MaxLeafInMyRange() const
 		{
 			if (auto node = MaxSon(); node->Middle())
@@ -313,7 +314,7 @@ namespace Collections
 					if (lastMidNode != nullptr)
 					{
 						auto nowMin = midNode->MinLeafInMyRange();
-						auto lastMax = lastMidNode->MaxLeafInMyRange();
+						auto lastMax = lastMidNode->MaxLeafInMyRange();// 这里 nowMin, lastMax 在 disk 情况下返回的类型不对
 						SET_PROPERTY(lastMax, ->Next(nowMin));// TODO newNextNode should also set in MiddleNode? not in itself
 						SET_PROPERTY(nowMin, ->Previous(lastMax));
 					}
