@@ -3,51 +3,56 @@
 namespace FuncLib
 {
 	template <typename T>
-	class DiskRef
+	class OwnerLessDiskRef
 	{
 	private:
-		friend struct ByteConverter<DiskRef, false>;
+		friend struct ByteConverter<OwnerLessDiskRef, false>;
 		OwnerLessDiskPtr<T> _ptr;
 	public:
-		// For temp conversion, will not write on Disk, is for user want to search some key, will use this
-		// 类似下面这种类型转换应该显式的用 File 来构造
-		DiskRef MakeRef(File* file)
-		{
-			
-		}
-		// DiskRef(T const& t) // TODO rewrite the implementation
-		// 	: _ptr(UniqueDiskPtr<T>::MakeUnique(t, FileResource::GetCurrentThreadFile()))
-		// { }
+		OwnerLessDiskRef(OwnerLessDiskPtr<T> ptr) : _ptr(move(ptr)) { }
 
-		DiskRef(OwnerLessDiskPtr<T> ptr) : _ptr(move(ptr))
-		{ }
+		OwnerLessDiskRef(OwnerLessDiskRef&& that) noexcept : _ptr(move(that._ptr)) { }
 
-		DiskRef(DiskRef&& that) noexcept : _ptr(move(that._ptr))
-		{ }
+		OwnerLessDiskRef(OwnerLessDiskRef const& that) : _ptr(that._ptr) { }
 
-		DiskRef(DiskRef const& that) : _ptr(that._ptr.GetPtr())
-		{ }
-
-		DiskRef& operator= (DiskRef const& that)
+		OwnerLessDiskRef& operator= (OwnerLessDiskRef const& that)
 		{
 			this->_ptr = that._ptr;
 			return *this;
 		}
 
-		DiskRef& operator= (DiskRef&& that) noexcept
+		OwnerLessDiskRef& operator= (OwnerLessDiskRef&& that) noexcept
 		{
 			this->_ptr = move(that._ptr);
 			return *this;
 		}
 
-		operator T& ()
+		operator T& () { return *_ptr; }
+		operator T const& () const { return *_ptr; }
+	};
+
+	template <typename T>
+	class UniqueDiskRef
+	{
+	private:
+		friend struct ByteConverter<UniqueDiskRef, false>;
+		UniqueDiskPtr<T> _ptr;
+
+	public:
+		UniqueDiskRef(OwnerLessDiskPtr<T> ptr) : _ptr(move(ptr)) { }
+
+		UniqueDiskRef(UniqueDiskRef&& that) noexcept : _ptr(move(that._ptr)) { }
+
+		UniqueDiskRef(UniqueDiskRef const &that) = delete;
+		UniqueDiskRef& operator= (UniqueDiskRef const& that) = delete;
+
+		UniqueDiskRef& operator= (UniqueDiskRef&& that) noexcept
 		{
-			return *_ptr;
+			this->_ptr = move(that._ptr);
+			return *this;
 		}
 
-		operator T const& () const
-		{
-			return *_ptr;
-		}
+		operator T& () { return *_ptr; }
+		operator T const& () const { return *_ptr; }
 	};
 }

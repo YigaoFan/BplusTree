@@ -176,7 +176,7 @@ namespace FuncLib
 		using Base::Base;
 
 		template <typename T1>
-		UniqueDiskPtr<T> MakeUnique(T1&& t, File* file)
+		static UniqueDiskPtr<T> MakeUnique(T1&& t, File* file)
 		{
 			// 硬存使用的出发点只有这里
 			auto [lable, obj] = file->New(forward<T1>(t));

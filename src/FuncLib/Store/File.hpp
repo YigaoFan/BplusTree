@@ -49,17 +49,24 @@ namespace FuncLib::Store
 			}
 			else
 			{
-				return PackageThenAddToCache(ReadOn<T>(posLable), posLable);
+				return CookAndAddToCache(ReadOn<T>(posLable), posLable);
 			}
 		}
 		
-		// 这样的函数是给 DiskPtr 用的吗？
 		template <typename T>
 		pair<pos_lable, shared_ptr<T>> New(T&& t)
 		{
 			auto lable = _allocator.AllocatePosLable();
-			auto obj = PackageThenAddToCache(forward<T>(t), lable);
+			auto obj = CookAndAddToCache(forward<T>(t), lable);
 			return { lable, obj };
+		}
+
+		template <typename T>
+		pair<pos_lable, shared_ptr<T>> New(shared_ptr<T> t)
+		{
+			auto lable = _allocator.AllocatePosLable();
+			auto obj = AddToCache(move(t), lable);
+			return {lable, obj};
 		}
 
 		template <typename T>
@@ -128,9 +135,16 @@ namespace FuncLib::Store
 
 		// 还有 DiskPos 依赖也不是 File 的所有功能，所以可以考虑剥离一部分功能出来形成一个类，来让 DiskPos 依赖
 		template <typename T>
-		shared_ptr<T> PackageThenAddToCache(T&& t, pos_lable posLable)
+		shared_ptr<T> CookAndAddToCache(T&& t, pos_lable posLable)
 		{
 			auto obj = make_shared<T>(forward<T>(t));
+			_cache.Add<T>(posLable, obj);
+			return obj;
+		}
+
+		template <typename T>
+		shared_ptr<T> AddToCache(shared_ptr<T> obj, pos_lable posLable)
+		{
 			_cache.Add<T>(posLable, obj);
 			return obj;
 		}

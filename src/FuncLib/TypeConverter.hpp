@@ -25,8 +25,6 @@ namespace FuncLib
 	using ::Collections::NodeBase;
 	using ::Collections::order_int;
 	using ::std::declval;
-	using ::std::is_standard_layout_v;
-	using ::std::is_trivial_v;
 	using ::std::make_shared;
 	using ::std::shared_ptr;
 	using ::std::string;
@@ -39,7 +37,7 @@ namespace FuncLib
 		using To = T;
 
 		// file is not must use, only for string like
-		static To ConvertFrom(From const& t, shared_ptr<File> file)
+		static To ConvertFrom(From const& t, File* file)
 		{
 			return t;
 		}
@@ -52,7 +50,7 @@ namespace FuncLib
 		using To = OwnerLessDiskPtr<T>;
 
 		// file is not must use, only for string like
-		static To ConvertFrom(From const &t, shared_ptr<File> file)
+		static To ConvertFrom(From const &t, File* file)
 		{
 			return t;
 		}
@@ -64,7 +62,7 @@ namespace FuncLib
 		using From = Elements<Key, Value, Count>;
 		using To = Elements<typename TypeConverter<Key>::To, typename TypeConverter<Value>::To, Count, LessThan>;
 
-		static To ConvertFrom(From const& from, shared_ptr<File> file)
+		static To ConvertFrom(From const& from, File* file)
 		{
 			To to;
 			for (auto& e : from)
@@ -85,12 +83,12 @@ namespace FuncLib
 		using From = MiddleNode<Key, Value, Count, unique_ptr>;
 		using To = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
 
-		static UniqueDiskPtr<NodeBase<Key, Value, Count, UniqueDiskPtr>> CloneNodeToDisk(typename decltype(declval<From>()._elements)::Item const& item, shared_ptr<File> file)
+		static UniqueDiskPtr<NodeBase<Key, Value, Count, UniqueDiskPtr>> CloneNodeToDisk(typename decltype(declval<From>()._elements)::Item const& item, File* file)
 		{
 			return TypeConverter<decltype(item.second)>::ConvertFrom(item.second, file);
 		}
 
-		static To ConvertFrom(From const& from, shared_ptr<File> file)
+		static To ConvertFrom(From const& from, File* file)
 		{
 			using Node = NodeBase<Key, Value, Count, UniqueDiskPtr>;
 			using ::std::placeholders::_1;
@@ -107,7 +105,7 @@ namespace FuncLib
 		using From = LeafNode<Key, Value, Count, unique_ptr>;
 		using To = LeafNode<Key, Value, Count, UniqueDiskPtr>;
 
-		static To ConvertFrom(From const& from, shared_ptr<File> file)
+		static To ConvertFrom(From const& from, File* file)
 		{
 			return { TypeConverter<Elements<Key, Value, Count>>::ConvertFrom(from._elements, file) };
 		}
@@ -119,7 +117,7 @@ namespace FuncLib
 		using From = NodeBase<Key, Value, Count, unique_ptr>;
 		using To = shared_ptr<NodeBase<Key, Value, Count, UniqueDiskPtr>>;
 
-		static To ConvertFrom(From const& from, shared_ptr<File> file)
+		static To ConvertFrom(From const& from, File* file)
 		{
 			if (from.Middle())
 			{
@@ -141,7 +139,7 @@ namespace FuncLib
 	{
 		using From = unique_ptr<T>;
 
-		static auto ConvertFrom(From const& from, shared_ptr<File> file)
+		static auto ConvertFrom(From const& from, File* file)
 		{
 			auto p = from.get();
 			auto c = TypeConverter<T>::ConvertFrom(*p, file);
@@ -172,7 +170,7 @@ namespace FuncLib
 		using From = Btree<Count, Key, Value, unique_ptr>;
 		using To = Btree<Count, Key, Value, UniqueDiskPtr>;
 
-		static To ConvertFrom(From const& from, shared_ptr<File> file)
+		static To ConvertFrom(From const& from, File* file)
 		{
 			return
 			{ 
@@ -182,17 +180,15 @@ namespace FuncLib
 		}
 	};
 
-	// 这个或许没用了
-	// template <>
-	// struct TypeConverter<string>
-	// {
-	// 	using From = string;
-	// 	using To = DiskRef<string>;
+	template <>
+	struct TypeConverter<string>
+	{
+		using From = string;
+		using To = UniqueDiskRef<string>;
 
-	// 	// ����Ĳ����о������棬�����������������ôʵ�ֵ�
-	// 	static To ConvertFrom(From const& from, shared_ptr<File> file)
-	// 	{
-	// 		return UniqueDiskPtr<From>::MakeUnique(make_shared<From>(from), file);
-	// 	}
-	// };
+		static To ConvertFrom(From const& from, File* file)
+		{
+			return { UniqueDiskPtr<string>::MakeUnique(from, file) };
+		}
+	};
 }
