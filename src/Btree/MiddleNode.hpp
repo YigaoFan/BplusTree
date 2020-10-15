@@ -22,6 +22,7 @@ namespace Collections
 	using ::std::make_pair;
 	using ::std::move;
 	using ::std::pair;
+	using ::std::result_of_t;
 	using ::std::unique_ptr;
 	using ::std::placeholders::_1;
 	using ::std::placeholders::_2;
@@ -37,14 +38,15 @@ namespace Collections
 		friend struct FuncLib::TypeConverter<MiddleNode<Key, Value, BtreeOrder, unique_ptr>, false>;
 		friend class NodeFactory<Key, Value, BtreeOrder, Ptr>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
+#define RAW_PTR(TYPE) typename Base::template OwnerLessPtr<TYPE>
 		using Leaf = LeafNode<Key, Value, BtreeOrder, Ptr>;
 		// TODO maybe below two item could be pointer, then entity stored in its' parent like Btree do
 		typename Base::UpNodeAddSubNodeCallback _addSubNodeCallback = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
 		typename Base::UpNodeDeleteSubNodeCallback _deleteSubNodeCallback = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
 		typename Base::MinKeyChangeCallback _minKeyChangeCallback = bind(&MiddleNode::SubNodeMinKeyChangeCallback, this, _1, _2);
 		typename Base::ShallowTreeCallback* _shallowTreeCallbackPtr = nullptr;
-		function<MiddleNode *(MiddleNode const*)> _queryPrevious = [](auto) { return nullptr; };
-		function<MiddleNode *(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
+		function<RAW_PTR(MiddleNode)(MiddleNode const*)> _queryPrevious = [](auto) { return nullptr; };
+		function<RAW_PTR(MiddleNode)(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
 		using _LessThan = LessThan<Key>;
 		using StoredKey = typename TypeSelector<GetStorePlace<Ptr>, Refable::Yes, Key>::Result;
 		using StoredValue = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Ptr<Base>>::Result;
@@ -108,7 +110,7 @@ namespace Collections
 			return _elements.PopOut().second;
 		}
 
-		typename TypeSelector<GetStorePlace<Ptr>, Refable::Yes, Key>::Result const MinKey() const override
+		result_of_t<decltype (&Base::MinKey)(Base)> const MinKey() const override
 		{
 			return _elements[0].first;
 		}
@@ -158,9 +160,9 @@ namespace Collections
 			return ks;
 		}
 
-		vector<Base*> SubNodes() const override
+		result_of_t<decltype (&Base::SubNodes)(Base)> SubNodes() const override
 		{
-			vector<Base*> subs;
+			vector<RAW_PTR(Base)> subs;
 			subs.reserve(_elements.Count());
 			for (auto& e : _elements)
 			{
@@ -181,12 +183,12 @@ namespace Collections
 			SetSubNode();
 		}
 
-		Base* MinSon() const { return _elements[0].second.get(); }
-		Base* MaxSon() const { return _elements[_elements.Count() - 1].second.get(); }
-		
-#define MID_CAST(NODE) static_cast<MiddleNode *>(NODE)
-#define LEF_CAST(NODE) static_cast<Leaf *>(NODE)
-		Leaf* MinLeafInMyRange() const
+		RAW_PTR(Base) MinSon() const { return _elements[0].second.get(); }
+		RAW_PTR(Base) MaxSon() const { return _elements[_elements.Count() - 1].second.get(); }
+
+#define MID_CAST(NODE) static_cast<RAW_PTR(MiddleNode)> (NODE)
+#define LEF_CAST(NODE) static_cast<RAW_PTR(Leaf)>(NODE)
+		RAW_PTR(Leaf) MinLeafInMyRange() const
 		{
 			if (auto node = MinSon(); node->Middle())
 			{
@@ -198,8 +200,7 @@ namespace Collections
 			}
 		}
 
-		// TODO 这里的返回类型要改
-		Leaf* MaxLeafInMyRange() const
+		RAW_PTR(Leaf) MaxLeafInMyRange() const
 		{
 			if (auto node = MaxSon(); node->Middle())
 			{
@@ -262,11 +263,11 @@ namespace Collections
 			}
 		}
 
-		MiddleNode* QuerySubNodePreviousCallback(MiddleNode const* subNode) const
+		RAW_PTR(MiddleNode) QuerySubNodePreviousCallback(MiddleNode const* subNode) const
 		{
 			if (auto i = _elements.IndexKeyOf(subNode->MinKey()); i == 0)
 			{
-				if (MiddleNode* pre = _queryPrevious(this); pre != nullptr)
+				if (RAW_PTR(MiddleNode) pre = _queryPrevious(this); pre != nullptr)
 				{
 					return MID_CAST(pre->MaxSon());
 				}
@@ -279,11 +280,11 @@ namespace Collections
 			}
 		}
 
-		MiddleNode* QuerySubNodeNextCallback(MiddleNode const* subNode) const
+		RAW_PTR(MiddleNode) QuerySubNodeNextCallback(MiddleNode const* subNode) const
 		{
 			if (auto i = _elements.IndexKeyOf(subNode->MinKey()); i == _elements.Count() - 1)
 			{
-				if (MiddleNode* next = _queryNext(this); next != nullptr)
+				if (RAW_PTR(MiddleNode) next = _queryNext(this); next != nullptr)
 				{
 					return MID_CAST(next->MinSon());
 				}
@@ -298,7 +299,7 @@ namespace Collections
 
 		void SetSubNode()
 		{
-			Leaf* lastLeaf = nullptr;
+			RAW_PTR(Leaf) lastLeaf = nullptr;
 			MiddleNode* lastMidNode = nullptr;
 			bool subIsMiddle = MinSon()->Middle();
 			for (auto& e : _elements)
@@ -308,13 +309,12 @@ namespace Collections
 
 				if (subIsMiddle)
 				{
-					// TODO type cast
 					auto midNode = MID_CAST(node.get());
 					// set previous and next between MiddleNode
 					if (lastMidNode != nullptr)
 					{
 						auto nowMin = midNode->MinLeafInMyRange();
-						auto lastMax = lastMidNode->MaxLeafInMyRange();// 这里 nowMin, lastMax 在 disk 情况下返回的类型不对
+						auto lastMax = lastMidNode->MaxLeafInMyRange();
 						SET_PROPERTY(lastMax, ->Next(nowMin));// TODO newNextNode should also set in MiddleNode? not in itself
 						SET_PROPERTY(nowMin, ->Previous(lastMax));
 					}
@@ -343,8 +343,7 @@ namespace Collections
 
 			if (middle)
 			{
-				// TODO type cast
-				auto midNode = MID_CAST(node.get());
+				auto midNode = MID_CAST(node.get());// 这个 get 可以去掉，直接 cast 吗？
 				SET_PROPERTY(midNode, ->_queryPrevious = bind(&MiddleNode::QuerySubNodePreviousCallback, this, _1));
 				SET_PROPERTY(midNode, ->_queryNext = bind(&MiddleNode::QuerySubNodeNextCallback, this, _1));
 			}

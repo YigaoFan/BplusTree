@@ -42,5 +42,5 @@ add_executable(RPC
         FuncLib/Test/FileReader&FileWriterTest.cpp
         FuncLib/Test/StorageAllocatorTest.cpp
         FuncLib/Test/FileCacheTest.cpp
-        #FuncLib/Test/TypeConverterTest.cpp
+        FuncLib/Test/TypeConverterTest.cpp
         )

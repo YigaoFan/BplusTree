@@ -3,6 +3,7 @@
 #include <memory>
 #include <set>
 #include <utility>
+#include "../../Basic/TypeTrait.hpp"
 #include "StaticConfig.hpp"
 #include "FileCache.hpp"
 #include "FileReader.hpp"
@@ -49,15 +50,15 @@ namespace FuncLib::Store
 			}
 			else
 			{
-				return CookAndAddToCache(ReadOn<T>(posLable), posLable);
+				return AddToCache(ReadOn<T>(posLable), posLable);
 			}
 		}
-		
+
 		template <typename T>
-		pair<pos_lable, shared_ptr<T>> New(T&& t)
+		pair<pos_lable, shared_ptr<T>> New(T t)
 		{
 			auto lable = _allocator.AllocatePosLable();
-			auto obj = CookAndAddToCache(forward<T>(t), lable);
+			auto obj = AddToCache(move(t), lable);
 			return { lable, obj };
 		}
 
@@ -125,7 +126,7 @@ namespace FuncLib::Store
 
 	private:
 		template <typename T>
-		T ReadOn(pos_lable posLable)
+		auto ReadOn(pos_lable posLable)
 		{
 			// 触发 读 的唯一一个地方
 			auto start = _allocator.GetConcretePos(posLable);
@@ -135,9 +136,10 @@ namespace FuncLib::Store
 
 		// 还有 DiskPos 依赖也不是 File 的所有功能，所以可以考虑剥离一部分功能出来形成一个类，来让 DiskPos 依赖
 		template <typename T>
-		shared_ptr<T> CookAndAddToCache(T&& t, pos_lable posLable)
+		shared_ptr<T> AddToCache(T t, pos_lable posLable)
 		{
-			auto obj = make_shared<T>(forward<T>(t));
+			using Basic::IsSpecialization;
+			shared_ptr<T> obj = make_shared<T>(move(t));
 			_cache.Add<T>(posLable, obj);
 			return obj;
 		}

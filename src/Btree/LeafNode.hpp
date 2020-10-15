@@ -1,23 +1,23 @@
 #pragma once
 #include <utility>
 #include <iterator>
+#include <type_traits>
 #include "../Basic/Exception.hpp"
 #include "Basic.hpp"
 #include "Enumerator.hpp"
 #include "Elements.hpp"
 #include "NodeBase.hpp"
 #include "NodeAddRemoveCommon.hpp"
-#include "../Basic/TypeTrait.hpp"
 
 namespace Collections
 {
-	using ::Basic::ReturnType;
 	using ::std::back_inserter;
 	using ::std::make_shared;
 	using ::std::make_unique;
 	using ::std::move;
 	using ::std::remove_const_t;
 	using ::std::remove_pointer_t;
+	using ::std::result_of_t;
 	using ::std::unique_ptr;
 
 	// 这里用指针参数不太好，可以用个枚举类型。因为这个指针参数不是所有指针都用，有的要用 OwnerLess 的指针
@@ -29,13 +29,11 @@ namespace Collections
 		friend struct FuncLib::TypeConverter<LeafNode<Key, Value, BtreeOrder, unique_ptr>, false>;
 		using _LessThan = LessThan<Key>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
-		using StoredKey = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Key>::Result; // 这里的类型应和 MinKey 的返回值类型一样
+		using StoredKey = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Key>::Result; // 在硬存情况下，这里的类型应和 MinKey 的返回值类型一样
 		using StoredValue = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Value>::Result;
 		Elements<StoredKey, StoredValue, BtreeOrder, _LessThan> _elements;
-		template <typename T>
-		using OwnerLessPtr = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, T *>::Result;
-		OwnerLessPtr<LeafNode> _next{nullptr};
-		OwnerLessPtr<LeafNode> _previous{nullptr};
+		typename Base::template OwnerLessPtr<LeafNode> _next{nullptr};
+		typename Base::template OwnerLessPtr<LeafNode> _previous{nullptr};
 
 	public:
 		bool Middle() const override { return false; }
@@ -72,19 +70,9 @@ namespace Collections
 			return CollectKeys();
 		}
 
-		typename TypeSelector<GetStorePlace<Ptr>, Refable::Yes, Key>::Result const MinKey() const override
+		result_of_t<decltype(&Base::MinKey)(Base)> const MinKey() const override
 		{
-			// using ::std::is_same_v;
-			// if constexpr (is_same_v<DiskRef<Key>, StoredKey>)// 要按照之前的把 string 和一些大对象 TypeConverter 成 DiskPtr<T>
-			// 对于特别大的对象，要手动在 TypeConverter 里加 diskptr 转换
-			// {
-			// 	return 返回同样的类型
-			// }
-			// else
-			// {
 			return _elements[0].first; // 所以重要的是控制这里的返回值类型和知道这里存储的 StoredKey 类型
-			// }
-			
 		}
 
 		bool ContainsKey(Key const& key) const override
@@ -146,20 +134,19 @@ namespace Collections
 			}
 			else
 			{
-				auto rawKeys = _elements.Keys();
-				auto c = _elements.Count();
+				auto storedKeys = _elements.Keys();
 				vector<Key> ks;
-				ks.reserve(c);
-				for (auto i = 0; i < c; ++i)
+				ks.reserve(_elements.Count());
+				for (auto& x : storedKeys)
 				{
-					ks.push_back(rawKeys[i]);
+					ks.push_back(x);
 				}
 
 				return ks;
 			}
 		}
 
-		vector<Base*> SubNodes() const override
+		result_of_t<decltype (&Base::SubNodes)(Base)> SubNodes() const override
 		{
 			return {};
 		}

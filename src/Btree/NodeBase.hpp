@@ -42,6 +42,8 @@ namespace Collections
 		using UpNodeDeleteSubNodeCallback = function<void(NodeBase*)>;
 		using MinKeyChangeCallback = function<void(Key const&, NodeBase*)>;
 		using ShallowTreeCallback = function<void()>;
+		template <typename T>
+		using OwnerLessPtr = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, T*>::Result;
 
 	protected:
 		static constexpr order_int LowBound = 1 + ((BtreeOrder - 1) / 2);
@@ -76,8 +78,8 @@ namespace Collections
 		virtual void Add(pair<Key, Value>) = 0;
 		virtual void Remove(Key const&) = 0;
 		virtual vector<Key> SubNodeMinKeys() const = 0;
-		virtual vector<NodeBase*> SubNodes() const = 0;
-		
+		virtual vector<OwnerLessPtr<NodeBase>> SubNodes() const = 0;
+
 	protected:
 		static Position ChooseAddPosition(order_int preCount, order_int thisCount, order_int nxtCount)
 		{

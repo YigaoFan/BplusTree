@@ -99,17 +99,24 @@ namespace FuncLib
 	struct ByteConverter<LeafNode<Key, Value, Count, UniqueDiskPtr>, false>
 	{
 		using ThisType = LeafNode<Key, Value, Count, UniqueDiskPtr>;
-		using DataMemberType = decltype(declval<ThisType>()._elements);
-		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
+		using DataMemberType0 = decltype(declval<ThisType>()._elements);
+		using DataMemberType1 = decltype(declval<ThisType>()._previous);
+		using DataMemberType2 = decltype(declval<ThisType>()._next);
+		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType0, DataMemberType1, DataMemberType2>::Result;
 
 		static void WriteDown(ThisType const& t, IWriter auto* writer)
 		{
-			ByteConverter<DataMemberType>::WriteDown(t._elements, writer);
+			ByteConverter<DataMemberType0>::WriteDown(t._elements, writer);
+			ByteConverter<DataMemberType1>::WriteDown(t._previous, writer);
+			ByteConverter<DataMemberType2>::WriteDown(t._next, writer);
 		}
 
 		static ThisType ReadOut(FileReader* reader)
 		{
-			auto elements = ByteConverter<DataMemberType>::ReadOut(reader);
+			auto elements = ByteConverter<DataMemberType0>::ReadOut(reader);
+			auto preivous = ByteConverter<DataMemberType1>::ReadOut(reader);
+			auto next = ByteConverter<DataMemberType2>::ReadOut(reader);
+			// TODO 缺少一个三者合一的构造函数
 			return { move(elements) };
 		}
 	};

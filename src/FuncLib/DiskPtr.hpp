@@ -10,7 +10,9 @@ namespace FuncLib
 	using ::std::function;
 	using ::std::is_same_v;
 	using ::std::move;
+	using ::std::nullptr_t;
 	using ::std::shared_ptr;
+	using ::std::static_pointer_cast;
 	using ::std::vector;
 
 	template <typename T>
@@ -19,8 +21,11 @@ namespace FuncLib
 	protected:
 		template <typename Ty>
 		friend class DiskPtrBase;
-		
-		mutable shared_ptr<vector<function<void(T*)>>> _setters;
+		template <typename T2>
+		friend bool operator== (DiskPtrBase const& lhs, DiskPtrBase<T2> const& rhs);
+		friend bool operator== (DiskPtrBase const &lhs, nullptr_t rhs);
+
+		mutable shared_ptr<vector<function<void(T *)>>> _setters;
 		DiskPos<T> _pos;
 		mutable shared_ptr<T> _tPtr;
 
@@ -38,10 +43,14 @@ namespace FuncLib
 		{ }
 
 		template <typename Derived>
-		DiskPtrBase(DiskPtrBase<Derived>&& derivedOne) : _tPtr(derivedOne._tPtr), _pos(derivedOne._pos)
-		{ 
-			
-		}
+		DiskPtrBase(DiskPtrBase<Derived>&& derivedOne)
+			: _tPtr(static_pointer_cast<T>(derivedOne._tPtr)), _pos(derivedOne._pos)
+		{ }
+
+		template <typename Derived>
+		DiskPtrBase(DiskPtrBase<Derived> const& derivedOne)
+			: _tPtr(static_pointer_cast<T>(derivedOne._tPtr)), _pos(derivedOne._pos)
+		{ }
 
 // setter 为空说明 object 处于最新状态，clear setter 保证这个
 #define CLEAR_SETTER                    \
@@ -80,6 +89,7 @@ namespace FuncLib
 			this->_pos = move(that._pos);
 			return *this;
 		}
+
 #undef CLEAR_SETTER
 
 		void RegisterSetter(function<void(T*)> setter)
@@ -121,6 +131,12 @@ namespace FuncLib
 			return *_tPtr;
 		}
 
+		operator T* ()
+		{
+			PREPARE_OBJ;
+			return _tPtr.get();
+		}
+
 		T* operator-> () const
 		{
 			PREPARE_OBJ;
@@ -155,6 +171,18 @@ namespace FuncLib
 		}
 	};
 
+	template <typename T1, typename T2>
+	bool operator== (DiskPtrBase<T1> const& lhs, DiskPtrBase<T2> const& rhs)
+	{
+		return lhs._pos == rhs._pos;
+	}
+
+	template <typename T>
+	bool operator== (DiskPtrBase<T> const& lhs, nullptr_t rhs)
+	{
+		return lhs._tPtr == rhs;
+	}
+
 	template <typename T>
 	class OwnerLessDiskPtr : public DiskPtrBase<T>
 	{
@@ -164,6 +192,8 @@ namespace FuncLib
 
 	public:
 		using Base::Base;
+		OwnerLessDiskPtr(nullptr_t ptr) : Base(DiskPos<T>(), nullptr)
+		{ }
 	};
 
 	template <typename T>
@@ -180,7 +210,7 @@ namespace FuncLib
 		{
 			// 硬存使用的出发点只有这里
 			auto [lable, obj] = file->New(forward<T1>(t));
-			return { obj, {file, lable } };
+			return { { file, lable }, obj };
 		}
 
 		UniqueDiskPtr(UniqueDiskPtr const&) = delete;
@@ -200,15 +230,10 @@ namespace FuncLib
 			return { this->_tPtr, this->_pos };
 		}
 
-		// 哪里用到了这个？
-		// void reset(UniqueDiskPtr ptr)
-		// {
-		// }
-
-		// T* get() const Unique 中提供这个功能，返回 OwnerLessDiskPtr
-		// {
-		// 	PREPARE_OBJ;
-		// 	return _tPtr.get(); // TODO maybe modify use place
-		// }
+		// 在 MiddleNode 中多处调用，至少可以消除部分
+		OwnerLessDiskPtr<T> get() const
+		{
+			return OwnerLessDiskPtr<T>(this->_pos, this->_tPtr);
+		}
 	};
 }
