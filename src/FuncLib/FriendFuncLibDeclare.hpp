@@ -1,5 +1,6 @@
 #pragma once
 #include <type_traits>
+#include "Switch.hpp"
 
 namespace FuncLib
 {
@@ -17,4 +18,11 @@ namespace FuncLib
 	class UniqueDiskPtr;
 	template <typename T>
 	class OwnerLessDiskPtr;
+
+	template <typename T, Switch SwitchState>
+	class TakeWithDiskPos;
+
+	template <typename T>
+	class TakeWithDiskPos<T, Switch::Disable>
+	{ };
 }

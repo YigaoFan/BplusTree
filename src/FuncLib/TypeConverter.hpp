@@ -101,13 +101,13 @@ namespace FuncLib
 	template <typename Key, typename Value, order_int Count>
 	struct TypeConverter<LeafNode<Key, Value, Count, unique_ptr>, false>
 	{
-		// "������һ��Լ��"���������ݳ�Ա����һ���ˣ��϶�����ͬһ������
 		using From = LeafNode<Key, Value, Count, unique_ptr>;
 		using To = LeafNode<Key, Value, Count, UniqueDiskPtr>;
 
 		static To ConvertFrom(From const& from, File* file)
 		{
-			return { TypeConverter<Elements<Key, Value, Count>>::ConvertFrom(from._elements, file) };
+			// 这下面这里的 Elements 类型应该是有问题
+			return { TypeConverter<decltype(from._elements)>::ConvertFrom(from._elements, file) };
 		}
 	};
 
@@ -180,6 +180,8 @@ namespace FuncLib
 		}
 	};
 
+	// 思考 Btree 中类型转换过程
+	// 下面这个可不可以不用
 	template <>
 	struct TypeConverter<string>
 	{

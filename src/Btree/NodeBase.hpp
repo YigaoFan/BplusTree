@@ -32,7 +32,10 @@ namespace Collections
 	};
 
 	template <template <typename...> class Ptr>
-	constexpr StorePlace GetStorePlace = IsSpecialization<Ptr<int>, UniqueDiskPtr>::value ? StorePlace::Disk : StorePlace::Memory;
+	constexpr bool IsDisk = IsSpecialization<Ptr<int>, UniqueDiskPtr>::value;
+
+	template <template <typename...> class Ptr>
+	constexpr StorePlace GetStorePlace = IsDisk<Ptr> ? StorePlace::Disk : StorePlace::Memory;
 
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
 	class NodeBase

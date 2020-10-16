@@ -11,7 +11,10 @@
 
 namespace Collections
 {
+	using ::FuncLib::Switch;
+	using ::FuncLib::TakeWithDiskPos;
 	using ::std::back_inserter;
+	using ::std::is_same_v;
 	using ::std::make_shared;
 	using ::std::make_unique;
 	using ::std::move;
@@ -22,13 +25,15 @@ namespace Collections
 
 	// 这里用指针参数不太好，可以用个枚举类型。因为这个指针参数不是所有指针都用，有的要用 OwnerLess 的指针
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
-	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Ptr>
+	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Ptr>, 
+					 public TakeWithDiskPos<LeafNode<Key, Value, BtreeOrder, Ptr>, IsDisk<Ptr> ? Switch::Enable : Switch::Disable> 
 	{
 	private:
 		friend struct FuncLib::ByteConverter<LeafNode, false>;
 		friend struct FuncLib::TypeConverter<LeafNode<Key, Value, BtreeOrder, unique_ptr>, false>;
 		using _LessThan = LessThan<Key>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
+#define RAW_PTR(TYPE) typename Base::template OwnerLessPtr<TYPE>
 		using StoredKey = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Key>::Result; // 在硬存情况下，这里的类型应和 MinKey 的返回值类型一样
 		using StoredValue = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Value>::Result;
 		Elements<StoredKey, StoredValue, BtreeOrder, _LessThan> _elements;
@@ -72,7 +77,7 @@ namespace Collections
 
 		result_of_t<decltype(&Base::MinKey)(Base)> const MinKey() const override
 		{
-			return _elements[0].first; // 所以重要的是控制这里的返回值类型和知道这里存储的 StoredKey 类型
+			return _elements[0].first;
 		}
 
 		bool ContainsKey(Key const& key) const override
@@ -127,7 +132,6 @@ namespace Collections
 
 		vector<Key> SubNodeMinKeys() const override
 		{
-			using ::std::is_same_v;
 			if constexpr (is_same_v<StoredKey, Key>)
 			{
 				return _elements.Keys();
@@ -171,7 +175,7 @@ namespace Collections
 		}
 
 		/// previous is not null
-		void SetRelationWhileCombineToPrevious(LeafNode* previous)
+		void SetRelationWhileCombineToPrevious(RAW_PTR(LeafNode) previous)
 		{
 			previous->_next = this->_next;
 
@@ -182,26 +186,45 @@ namespace Collections
 		}
 
 		/// next is not null
-		void SetRelationWhileCombineNext(LeafNode* next)
+		void SetRelationWhileCombineNext(RAW_PTR(LeafNode) next)
 		{
 			this->_next = next->_next;
 
 			if (next->_next != nullptr)
 			{
-				next->_next->_previous = this;
+				next->_next->_previous = GetRawPtr(this);
 			}
 		}
 
-		void SetRelationWhileSplitNewNext(LeafNode* newNext)
+		void SetRelationWhileSplitNewNext(RAW_PTR(LeafNode) newNext)
 		{
 			newNext->_next = this->_next;
-			newNext->_previous = this;
+			newNext->_previous = GetRawPtr(this);
 			if (this->_next != nullptr)
 			{
 				this->_next->_previous = newNext;
 			}
 
 			this->_next = newNext;
+		}
+
+		// TODO 再想一想引用这里，和上面几个函数引用的地方类型对不对
+		template <typename T>
+		static RAW_PTR(LeafNode) GetRawPtr(T ptr)// 需要 T 至少和 LeafNode 有关，这里传进来的都是 pointer 类型
+		{
+			using Ret = RAW_PTR(LeafNode);
+			if constexpr (is_same_v<T, Ret>)
+			{
+				return ptr;
+			}
+			else if (std::is_pointer_v<T>)
+			{
+				return ptr->GetOwnerLessDiskPtr();
+			}
+			else
+			{
+				// not support
+			}
 		}
 
 		// Below methods for same node internal use

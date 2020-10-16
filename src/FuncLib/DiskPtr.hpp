@@ -14,6 +14,7 @@ namespace FuncLib
 	using ::std::shared_ptr;
 	using ::std::static_pointer_cast;
 	using ::std::vector;
+	using ::std::is_base_of_v;
 
 	template <typename T>
 	class DiskPtrBase
@@ -23,7 +24,8 @@ namespace FuncLib
 		friend class DiskPtrBase;
 		template <typename T2>
 		friend bool operator== (DiskPtrBase const& lhs, DiskPtrBase<T2> const& rhs);
-		friend bool operator== (DiskPtrBase const &lhs, nullptr_t rhs);
+		template <typename T1>
+		friend bool operator== (DiskPtrBase<T1> const &lhs, nullptr_t rhs);
 
 		mutable shared_ptr<vector<function<void(T *)>>> _setters;
 		DiskPos<T> _pos;
@@ -42,6 +44,7 @@ namespace FuncLib
 		DiskPtrBase(DiskPtrBase const& that) : _tPtr(that._tPtr), _setters(that._setters), _pos(that._pos)
 		{ }
 
+		// below two constructor is for static_cast convert
 		template <typename Derived>
 		DiskPtrBase(DiskPtrBase<Derived>&& derivedOne)
 			: _tPtr(static_pointer_cast<T>(derivedOne._tPtr)), _pos(derivedOne._pos)
@@ -154,7 +157,6 @@ namespace FuncLib
 		{ }
 		
 	private:
-
 		void ReadObjectFromDisk() const
 		{
 			_tPtr = _pos.ReadObject();
@@ -188,6 +190,7 @@ namespace FuncLib
 	{
 	private:
 		friend struct ByteConverter<OwnerLessDiskPtr, false>;
+		friend class TakeWithDiskPos<T, Switch::Enable>;
 		using Base = DiskPtrBase<T>;
 
 	public:
@@ -210,6 +213,11 @@ namespace FuncLib
 		{
 			// 硬存使用的出发点只有这里
 			auto [lable, obj] = file->New(forward<T1>(t));
+			if constexpr (is_base_of_v<TakeWithDiskPos<T, Switch::Enable>, T>)
+			{
+				TakeWithDiskPos<T, Switch::Enable>::SetDiskPos(obj, DiskPos<T>(file, lable));
+			}
+
 			return { { file, lable }, obj };
 		}
 

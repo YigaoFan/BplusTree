@@ -38,7 +38,6 @@ namespace Collections
 		friend struct FuncLib::TypeConverter<MiddleNode<Key, Value, BtreeOrder, unique_ptr>, false>;
 		friend class NodeFactory<Key, Value, BtreeOrder, Ptr>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
-#define RAW_PTR(TYPE) typename Base::template OwnerLessPtr<TYPE>
 		using Leaf = LeafNode<Key, Value, BtreeOrder, Ptr>;
 		// TODO maybe below two item could be pointer, then entity stored in its' parent like Btree do
 		typename Base::UpNodeAddSubNodeCallback _addSubNodeCallback = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);

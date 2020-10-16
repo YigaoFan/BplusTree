@@ -4,7 +4,7 @@ extern void fileReader_FileWriterTest(bool executed);
 extern void byteConverterTest(bool executed);
 extern void storageAllocatorTest(bool executed);
 extern void fileCacheTest(bool executed);
-// extern void typeConverterTest(bool executed);
+extern void typeConverterTest(bool executed);
 
 namespace FuncLibTest
 {
@@ -14,7 +14,7 @@ namespace FuncLibTest
 		fileTest(executed);
 		fileCacheTest(executed);
 		storageAllocatorTest(executed);
-		// typeConverterTest(executed);
+		typeConverterTest(executed);
 		fileReader_FileWriterTest(executed);
 		byteConverterTest(executed);
 	}
