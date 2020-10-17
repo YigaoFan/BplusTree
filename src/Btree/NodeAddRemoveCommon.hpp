@@ -85,75 +85,75 @@
 	}                                                                                                                    \
 	NoWhereToProcess:
 
-#define ADD_COMMON(IS_LEAF) \
-bool addToPre = false, addToNxt = false;\
-if (previous == nullptr)\
-{\
-	if (next != nullptr)\
-	{\
-		goto AddToNext;\
-	}\
-	else\
-	{\
-		goto ConsNewNode;\
-	}\
-}\
-else\
-{\
-	if (next == nullptr)\
-	{\
-		goto AddToPre;\
-	}\
-	else\
-	{\
-		switch (Base::ChooseAddPosition(previous->_elements.Count(),\
-			this->_elements.Count(),\
-			next->_elements.Count()))\
-		{\
-		case Position::Previous:\
-			goto AddToPre;\
-		case Position::Next:\
-			goto AddToNext;\
-		}\
-	}\
-}\
-\
-AddToPre:\
-if (!previous->_elements.Full())\
-{\
-	/* M5 */previous->Append(this->ExchangeMin(move(p)));/*Append*/\
-	return;\
-}\
-goto ConsNewNode;\
-\
-AddToNext:\
-if (!next->_elements.Full())\
-{\
-	/* M6 */next->EmplaceHead(this->ExchangeMax(move(p)));/*Front insert*/\
-	return;\
-}\
-goto ConsNewNode;\
-\
-ConsNewNode:\
-auto newNxtNode = NewEmptyNode(this);\
-if constexpr (IS_LEAF)\
-{\
-	this->SetRelationWhileSplitNewNext(newNxtNode.get());\
-}\
-\
-auto i = _elements.SelectBranch(p.first);\
-constexpr auto middle = BtreeOrder / 2;\
-if (i <= (middle - 1))\
-{\
-	auto items = this->_elements.PopOutItems(BtreeOrder - middle);\
-	/* M7 */this->ProcessedAdd(move(p));/* Add (Does it duplicate to SelectBranch before)*/\
-	/* M8 */newNxtNode->AppendItems(move(items));/* Appends */\
-}\
-else\
-{\
-	auto items = this->_elements.PopOutItems(middle);\
-	/* M9 */newNxtNode->AppendItems(move(items));/*Appends*/\
-	/* M10 */newNxtNode->ProcessedAdd(move(p));/* Add */\
-}\
-\
-(*this->_upNodeAddSubNodeCallbackPtr)(this, move(newNxtNode));
+#define ADD_COMMON(IS_LEAF)                                                                                \
+	bool addToPre = false, addToNxt = false;                                                               \
+	if (previous == nullptr)                                                                               \
+	{                                                                                                      \
+		if (next != nullptr)                                                                               \
+		{                                                                                                  \
+			goto AddToNext;                                                                                \
+		}                                                                                                  \
+		else                                                                                               \
+		{                                                                                                  \
+			goto ConsNewNode;                                                                              \
+		}                                                                                                  \
+	}                                                                                                      \
+	else                                                                                                   \
+	{                                                                                                      \
+		if (next == nullptr)                                                                               \
+		{                                                                                                  \
+			goto AddToPre;                                                                                 \
+		}                                                                                                  \
+		else                                                                                               \
+		{                                                                                                  \
+			switch (Base::ChooseAddPosition(previous->_elements.Count(),                                   \
+											this->_elements.Count(),                                       \
+											next->_elements.Count()))                                      \
+			{                                                                                              \
+			case Position::Previous:                                                                       \
+				goto AddToPre;                                                                             \
+			case Position::Next:                                                                           \
+				goto AddToNext;                                                                            \
+			}                                                                                              \
+		}                                                                                                  \
+	}                                                                                                      \
+                                                                                                           \
+	AddToPre:                                                                                              \
+	if (!previous->_elements.Full())                                                                       \
+	{                                                                                                      \
+		/* M5 */ previous->Append(this->ExchangeMin(move(p))); /*Append*/                                  \
+		return;                                                                                            \
+	}                                                                                                      \
+	goto ConsNewNode;                                                                                      \
+                                                                                                           \
+	AddToNext:                                                                                             \
+	if (!next->_elements.Full())                                                                           \
+	{                                                                                                      \
+		/* M6 */ next->EmplaceHead(this->ExchangeMax(move(p))); /*Front insert*/                           \
+		return;                                                                                            \
+	}                                                                                                      \
+	goto ConsNewNode;                                                                                      \
+                                                                                                           \
+	ConsNewNode:                                                                                           \
+	auto newNxtNode = NewEmptyNode(this);                                                                  \
+	if constexpr (IS_LEAF)                                                                                 \
+	{                                                                                                      \
+		this->SetRelationWhileSplitNewNext(newNxtNode.get());                                              \
+	}                                                                                                      \
+                                                                                                           \
+	auto i = _elements.SelectBranch(p.first);                                                              \
+	constexpr auto middle = BtreeOrder / 2;                                                                \
+	if (i <= (middle - 1))                                                                                 \
+	{                                                                                                      \
+		auto items = this->_elements.PopOutItems(BtreeOrder - middle);                                     \
+		/* M7 */ this->ProcessedAdd(move(p));		   /* Add (Does it duplicate to SelectBranch before)*/ \
+		/* M8 */ newNxtNode->AppendItems(move(items)); /* Appends */                                       \
+	}                                                                                                      \
+	else                                                                                                   \
+	{                                                                                                      \
+		auto items = this->_elements.PopOutItems(middle);                                                  \
+		/* M9 */ newNxtNode->AppendItems(move(items)); /*Appends*/                                         \
+		/* M10 */ newNxtNode->ProcessedAdd(move(p));   /* Add */                                           \
+	}                                                                                                      \
+                                                                                                           \
+	(*this->_upNodeAddSubNodeCallbackPtr)(this, move(newNxtNode));

@@ -17,11 +17,12 @@
 namespace Collections
 {
 	using ::Basic::IsSpecialization;
-	using ::FuncLib::UniqueDiskPtr;
 	using ::FuncLib::TypeConverter;
+	using ::FuncLib::UniqueDiskPtr;
 	using ::std::function;
 	using ::std::make_tuple;
 	using ::std::move;
+	using ::std::result_of_t;
 	using ::std::unique_ptr;
 	using ::std::vector;
 
@@ -41,9 +42,12 @@ namespace Collections
 	class NodeBase
 	{
 	public:
+		virtual typename TypeSelector<GetStorePlace<Ptr>, Refable::Yes, Key>::Result const MinKey() const = 0;
+	public:
+		// 下面这些 NodeBase 指针应该不需要成为特殊的硬盘指针
 		using UpNodeAddSubNodeCallback = function<void(NodeBase*, Ptr<NodeBase>)>;
 		using UpNodeDeleteSubNodeCallback = function<void(NodeBase*)>;
-		using MinKeyChangeCallback = function<void(Key const&, NodeBase*)>;
+		using MinKeyChangeCallback = function<void(result_of_t<decltype(&NodeBase::MinKey)(NodeBase)>, NodeBase*)>;
 		using ShallowTreeCallback = function<void()>;
 		template <typename T>
 		using OwnerLessPtr = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, T*>::Result;
@@ -74,7 +78,6 @@ namespace Collections
 		virtual bool Middle() const = 0;
 		virtual vector<Key> Keys() const = 0;
 		// MiddleNode elements key type is same as below method return type
-		virtual typename TypeSelector<GetStorePlace<Ptr>, Refable::Yes, Key>::Result const MinKey() const = 0;
 		virtual bool ContainsKey(Key const&) const = 0;
 		virtual Value GetValue(Key const&) const = 0;
 		virtual void ModifyValue(Key const&, Value) = 0;

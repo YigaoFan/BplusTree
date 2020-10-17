@@ -35,7 +35,7 @@ namespace Collections
 	{
 	private:
 		friend struct FuncLib::ByteConverter<MiddleNode, false>;
-		friend struct FuncLib::TypeConverter<MiddleNode<Key, Value, BtreeOrder, unique_ptr>, false>;
+		friend struct FuncLib::TypeConverter<MiddleNode<Key, Value, BtreeOrder, unique_ptr>>;
 		friend class NodeFactory<Key, Value, BtreeOrder, Ptr>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
 		using Leaf = LeafNode<Key, Value, BtreeOrder, Ptr>;
@@ -109,7 +109,7 @@ namespace Collections
 			return _elements.PopOut().second;
 		}
 
-		result_of_t<decltype (&Base::MinKey)(Base)> const MinKey() const override
+		result_of_t<decltype(&Base::MinKey)(Base)> const MinKey() const override
 		{
 			return _elements[0].first;
 		}
@@ -251,7 +251,7 @@ namespace Collections
 			}
 		}
 
-		void SubNodeMinKeyChangeCallback(Key const& newMinKeyOfSubNode, Base* subNode)
+		void SubNodeMinKeyChangeCallback(result_of_t<decltype(&Base::MinKey)(Base)> newMinKeyOfSubNode, Base* subNode)
 		{
 			auto i = IndexOfSubNode(subNode);
 			_elements[i].first = StoredKey(newMinKeyOfSubNode);

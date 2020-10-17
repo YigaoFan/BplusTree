@@ -38,7 +38,7 @@ namespace Collections
 			if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)
 			{
 				using FuncLib::Store::FileResource;
-				auto f = FileResource::GetCurrentThreadFile();
+				auto f = FileResource::GetCurrentThreadFile().get();
 				auto node = Middle(enumerator, lessThan);
 				return UniqueDiskPtr<Middle>::MakeUnique(move(node), f);// TODO maybe should handle leaf cons, too
 			}
@@ -57,7 +57,7 @@ namespace Collections
 
 		static void TryShallow(Ptr<Node>& root, function<void()> rootChangeCallback)
 		{
-#define MID_CAST static_cast<Middle *>
+#define MID_CAST(NODE) static_cast<typename Node::template OwnerLessPtr<Middle>>(NODE)
 			if (root->Middle())
 			{
 				auto newRoot = MID_CAST(root.get())->HandleOverOnlySon();

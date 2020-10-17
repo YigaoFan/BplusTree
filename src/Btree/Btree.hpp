@@ -96,6 +96,7 @@ namespace Collections
 	template <order_int BtreeOrder, typename Key, typename Value>
 	class UniversalEnumerator;
 
+	// 这三个类型参数的顺序要不要调整下啊
 	template <order_int BtreeOrder, typename Key, typename Value, template <typename...> class Ptr = unique_ptr>
 	class Btree 
 	{
@@ -105,8 +106,8 @@ namespace Collections
 		// 待验证：因为它是某个模板的特化，所以模板需要前置声明，特化不需要
 		friend class UniversalEnumerator<BtreeOrder, Key, Value>;
 		friend struct FuncLib::ByteConverter<Btree, false>; // Btree here is undefined or incomplete type
-		friend struct FuncLib::TypeConverter<Btree, false>;
-		friend struct FuncLib::TypeConverter<Btree<BtreeOrder, Key, Value, unique_ptr>, false>;
+		friend struct FuncLib::TypeConverter<Btree>;
+		friend struct FuncLib::TypeConverter<Btree<BtreeOrder, Key, Value, unique_ptr>>;
 		using Node   = NodeBase<Key, Value, BtreeOrder, Ptr>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder, Ptr>;
 		typename Node::UpNodeAddSubNodeCallback _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
@@ -342,7 +343,7 @@ namespace Collections
 			SetRootCallbacks();
 		}
 
-		void RootMinKeyChangeCallback(Key const&, Node*)
+		void RootMinKeyChangeCallback(result_of_t<decltype(&Node::MinKey)(Node)>, Node*)
 		{ }
 
 		void DeleteRootCallback(Node* root)

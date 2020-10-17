@@ -27,7 +27,7 @@ namespace Collections
 	{
 	public:
 		friend struct FuncLib::ByteConverter<Elements, false>;
-		template <typename T, bool>
+		template <typename, FuncLib::OwnerState>
 		friend struct FuncLib::TypeConverter;
 		using Item = pair<Key, Value>;
 		using Base = LiteVector<Item, order_int, BtreeOrder>;

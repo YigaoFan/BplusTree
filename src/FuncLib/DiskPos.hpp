@@ -1,10 +1,12 @@
 #pragma once
 #include <memory>
+#include <utility>
 #include "Store/File.hpp"
 
 namespace FuncLib
 {
 	using namespace Store;
+	using ::std::pair;
 	using ::std::shared_ptr;
 
 	template <typename T>
@@ -38,6 +40,12 @@ namespace FuncLib
 		void WriteObject(shared_ptr<T> const& obj) const
 		{
 			_file->Store(_lable, obj);
+		}
+
+		pair<DiskPos, shared_ptr<T>> Clone(shared_ptr<T> const& obj) const
+		{
+			auto [lable, clonedObj] = _file->New(*obj);
+			return { DiskPos(_file, lable), clonedObj };
 		}
 	};
 

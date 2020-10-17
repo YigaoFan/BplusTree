@@ -13,6 +13,7 @@
 #include "../Btree/EnumeratorPipeline.hpp"
 #include "./Store/File.hpp"
 #include "ByteConverter.hpp"
+#include "OwnerState.hpp"
 
 namespace FuncLib
 {
@@ -30,7 +31,7 @@ namespace FuncLib
 	using ::std::string;
 	using ::std::unique_ptr;
 
-	template <typename T, bool> // default value not declare here don't have problem? No problem, because include LeafNode up.
+	template <typename T, OwnerState Owner>
 	struct TypeConverter
 	{
 		using From = T;
@@ -43,8 +44,8 @@ namespace FuncLib
 		}
 	};
 
-	template <typename T, bool Predicate>
-	struct TypeConverter<T*, Predicate>
+	template <typename T>
+	struct TypeConverter<T*>
 	{
 		using From = T*;
 		using To = OwnerLessDiskPtr<T>;
@@ -57,7 +58,7 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count, typename LessThan>
-	struct TypeConverter<Elements<Key, Value, Count, LessThan>, false>
+	struct TypeConverter<Elements<Key, Value, Count, LessThan>>
 	{
 		using From = Elements<Key, Value, Count>;
 		using To = Elements<typename TypeConverter<Key>::To, typename TypeConverter<Value>::To, Count, LessThan>;
@@ -78,7 +79,7 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct TypeConverter<MiddleNode<Key, Value, Count, unique_ptr>, false>
+	struct TypeConverter<MiddleNode<Key, Value, Count, unique_ptr>>
 	{
 		using From = MiddleNode<Key, Value, Count, unique_ptr>;
 		using To = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
@@ -99,7 +100,7 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct TypeConverter<LeafNode<Key, Value, Count, unique_ptr>, false>
+	struct TypeConverter<LeafNode<Key, Value, Count, unique_ptr>>
 	{
 		using From = LeafNode<Key, Value, Count, unique_ptr>;
 		using To = LeafNode<Key, Value, Count, UniqueDiskPtr>;
@@ -112,7 +113,7 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct TypeConverter<NodeBase<Key, Value, Count, unique_ptr>, false>
+	struct TypeConverter<NodeBase<Key, Value, Count, unique_ptr>>
 	{
 		using From = NodeBase<Key, Value, Count, unique_ptr>;
 		using To = shared_ptr<NodeBase<Key, Value, Count, UniqueDiskPtr>>;
@@ -135,7 +136,7 @@ namespace FuncLib
 	};
 
 	template <typename T>
-	struct TypeConverter<unique_ptr<T>, false>
+	struct TypeConverter<unique_ptr<T>>
 	{
 		using From = unique_ptr<T>;
 
@@ -165,7 +166,7 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct TypeConverter<Btree<Count, Key, Value, unique_ptr>, false>
+	struct TypeConverter<Btree<Count, Key, Value, unique_ptr>>
 	{
 		using From = Btree<Count, Key, Value, unique_ptr>;
 		using To = Btree<Count, Key, Value, UniqueDiskPtr>;
@@ -181,9 +182,8 @@ namespace FuncLib
 	};
 
 	// 思考 Btree 中类型转换过程
-	// 下面这个可不可以不用
 	template <>
-	struct TypeConverter<string>
+	struct TypeConverter<string, OwnerState::FullOwner>
 	{
 		using From = string;
 		using To = UniqueDiskRef<string>;
@@ -192,5 +192,17 @@ namespace FuncLib
 		{
 			return { UniqueDiskPtr<string>::MakeUnique(from, file) };
 		}
+	};
+
+	template <>
+	struct TypeConverter<string, OwnerState::OwnerLess>
+	{
+		using From = string;
+		using To = OwnerLessDiskRef<string>;
+
+		// static To ConvertFrom(From const& from, File* file)
+		// {
+		// 	return { UniqueDiskPtr<string>::MakeUnique(from, file) };
+		// }
 	};
 }

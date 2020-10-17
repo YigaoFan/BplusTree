@@ -233,13 +233,20 @@ namespace FuncLib
 
 		UniqueDiskPtr(UniqueDiskPtr&& that) : Base(move(that)) { }
 
-		UniqueDiskPtr GetPtr() const
+		UniqueDiskPtr Clone() const
 		{
-			return { this->_tPtr, this->_pos };
+			auto [pos, obj] = this->_pos.Clone(this->_tPtr);
+			return UniqueDiskPtr(pos, obj);
 		}
 
 		// 在 MiddleNode 中多处调用，至少可以消除部分
 		OwnerLessDiskPtr<T> get() const
+		{
+			return OwnerLessDiskPtr<T>(this->_pos, this->_tPtr);
+		}
+
+		// 这个不用消除，是为了 DiskRef 里调用
+		OwnerLessDiskPtr<T> Get() const
 		{
 			return OwnerLessDiskPtr<T>(this->_pos, this->_tPtr);
 		}

@@ -30,11 +30,11 @@ namespace Collections
 	{
 	private:
 		friend struct FuncLib::ByteConverter<LeafNode, false>;
-		friend struct FuncLib::TypeConverter<LeafNode<Key, Value, BtreeOrder, unique_ptr>, false>;
+		friend struct FuncLib::TypeConverter<LeafNode<Key, Value, BtreeOrder, unique_ptr>>;
 		using _LessThan = LessThan<Key>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
 #define RAW_PTR(TYPE) typename Base::template OwnerLessPtr<TYPE>
-		using StoredKey = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Key>::Result; // 在硬存情况下，这里的类型应和 MinKey 的返回值类型一样
+		using StoredKey = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Key>::Result;
 		using StoredValue = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Value>::Result;
 		Elements<StoredKey, StoredValue, BtreeOrder, _LessThan> _elements;
 		typename Base::template OwnerLessPtr<LeafNode> _next{nullptr};
