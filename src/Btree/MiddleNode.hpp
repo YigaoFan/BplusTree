@@ -21,7 +21,6 @@ namespace Collections
 	using ::std::bind;
 	using ::std::make_pair;
 	using ::std::move;
-	using ::std::pair;
 	using ::std::result_of_t;
 	using ::std::unique_ptr;
 	using ::std::placeholders::_1;

@@ -17,11 +17,8 @@ namespace Collections
 	using ::FuncLib::TakeWithDiskPos;
 	using ::std::back_inserter;
 	using ::std::is_same_v;
-	using ::std::make_shared;
 	using ::std::make_unique;
 	using ::std::move;
-	using ::std::remove_const_t;
-	using ::std::remove_pointer_t;
 	using ::std::result_of_t;
 	using ::std::unique_ptr;
 

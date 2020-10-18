@@ -6,7 +6,6 @@
 #include <vector>
 #include <memory>
 #include <functional>
-#include <tuple>
 #include <type_traits>
 #include "Basic.hpp"
 #include "../FuncLib/FriendFuncLibDeclare.hpp"
@@ -17,11 +16,11 @@
 namespace Collections
 {
 	using ::Basic::IsSpecialization;
-	using ::FuncLib::TypeConverter;
 	using ::FuncLib::UniqueDiskPtr;
 	using ::std::function;
-	using ::std::make_tuple;
 	using ::std::move;
+	using ::std::remove_const_t;
+	using ::std::remove_pointer_t;
 	using ::std::result_of_t;
 	using ::std::unique_ptr;
 	using ::std::vector;
