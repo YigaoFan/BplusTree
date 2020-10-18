@@ -21,6 +21,8 @@ namespace FuncLib
 	class OwnerLessDiskPtr;
 
 	template <typename T>
+	class UniqueDiskRef;
+	template <typename T>
 	class OwnerLessDiskRef;
 
 	template <typename T, Switch SwitchState>

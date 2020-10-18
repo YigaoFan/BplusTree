@@ -42,9 +42,9 @@ namespace Collections
 	class NodeBase
 	{
 	public:
-		virtual typename TypeSelector<GetStorePlace<Ptr>, Refable::Yes, Key>::Result const MinKey() const = 0;
+		virtual typename TypeSelector<GetStorePlace<Ptr>, Refable::Yes, Key>::Result MinKey() const = 0;
 	public:
-		// 下面这些 NodeBase 指针应该不需要成为特殊的硬盘指针
+		// 下面这些 NodeBase 指针应该不需要成为特殊的硬盘指针 TODO
 		using UpNodeAddSubNodeCallback = function<void(NodeBase*, Ptr<NodeBase>)>;
 		using UpNodeDeleteSubNodeCallback = function<void(NodeBase*)>;
 		using MinKeyChangeCallback = function<void(result_of_t<decltype(&NodeBase::MinKey)(NodeBase)>, NodeBase*)>;
@@ -77,12 +77,18 @@ namespace Collections
 		virtual ~NodeBase() = default;
 		virtual bool Middle() const = 0;
 		virtual vector<Key> Keys() const = 0;
-		// MiddleNode elements key type is same as below method return type
-		virtual bool ContainsKey(Key const&) const = 0;
-		virtual Value GetValue(Key const&) const = 0;
-		virtual void ModifyValue(Key const&, Value) = 0;
-		virtual void Add(pair<Key, Value>) = 0;
-		virtual void Remove(Key const&) = 0;
+		/// same as in LeafNode
+		using StoredKey = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Key>::Result;
+
+#define CONST_KEY_REF_T StoredKey const&
+#define KEY_T StoredKey
+		virtual bool ContainsKey(CONST_KEY_REF_T) const = 0;
+		virtual Value GetValue(CONST_KEY_REF_T) const = 0;
+		virtual void ModifyValue(CONST_KEY_REF_T, Value) = 0;
+		virtual void Add(pair<KEY_T, Value>) = 0;
+		virtual void Remove(CONST_KEY_REF_T) = 0;
+#undef KEY_T
+#undef CONST_KEY_REF_T
 		virtual vector<Key> SubNodeMinKeys() const = 0;
 		virtual vector<OwnerLessPtr<NodeBase>> SubNodes() const = 0;
 

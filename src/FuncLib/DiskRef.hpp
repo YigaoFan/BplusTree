@@ -9,9 +9,6 @@ namespace FuncLib
 		UniqueDiskPtr<T> _ptr;
 
 	public:
-		UniqueDiskRef(T const& t) : _ptr(DiskPos<T>(), nullptr)
-		{ }// for compile only
-
 		UniqueDiskRef(UniqueDiskPtr<T> ptr) : _ptr(move(ptr)) { }
 
 		UniqueDiskRef(UniqueDiskRef&& that) noexcept : _ptr(move(that._ptr)) { }
@@ -21,7 +18,6 @@ namespace FuncLib
 
 		UniqueDiskRef& operator= (UniqueDiskRef const& that) = delete;
 
-		// 这个函数到底可不可以删
 		UniqueDiskRef& operator= (UniqueDiskRef&& that) noexcept
 		{
 			// 这里支持右值赋值，但是原来 this 保存的对象还没有处理 TODO
@@ -40,9 +36,6 @@ namespace FuncLib
 		friend struct ByteConverter<OwnerLessDiskRef, false>;
 		OwnerLessDiskPtr<T> _ptr;
 	public:
-		OwnerLessDiskRef(T const& t)
-		{ }// for compile only
-
 		OwnerLessDiskRef(UniqueDiskRef<T> const &uniqueRef) : _ptr(uniqueRef._ptr.Get())
 		{ }
 

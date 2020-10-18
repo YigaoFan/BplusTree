@@ -47,7 +47,7 @@ namespace Collections
 		function<RAW_PTR(MiddleNode)(MiddleNode const*)> _queryPrevious = [](auto) { return nullptr; };
 		function<RAW_PTR(MiddleNode)(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
 		using _LessThan = LessThan<Key>;
-		using StoredKey = typename TypeSelector<GetStorePlace<Ptr>, Refable::Yes, Key>::Result;
+		using StoredKey = result_of_t<decltype(&Base::MinKey)(Base)>;
 		using StoredValue = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Ptr<Base>>::Result;
 		Elements<StoredKey, StoredValue, BtreeOrder, _LessThan> _elements;
 
@@ -109,43 +109,45 @@ namespace Collections
 			return _elements.PopOut().second;
 		}
 
-		result_of_t<decltype(&Base::MinKey)(Base)> const MinKey() const override
+		result_of_t<decltype(&Base::MinKey)(Base)> MinKey() const override
 		{
 			return _elements[0].first;
 		}
 
+#define ARG_TYPE_IN_BASE(METHOD, IDX) typename FuncTraits<typename GetMemberFuncType<decltype(&Base::METHOD)>::Result>::template Arg<IDX>::Type
 #define SELECT_BRANCH(KEY) auto i = _elements.SelectBranch(KEY)
-		bool ContainsKey(Key const& key) const override
+		bool ContainsKey(ARG_TYPE_IN_BASE(ContainsKey, 0) key) const override
 		{
 			SELECT_BRANCH(key);
 			return _elements[i].second->ContainsKey(key);
 		}
 
-		Value GetValue(Key const& key) const override
+		Value GetValue(ARG_TYPE_IN_BASE(GetValue, 0) key) const override
 		{
 			SELECT_BRANCH(key);
 			return _elements[i].second->GetValue(key);
 		}
 
-		void ModifyValue(Key const& key, Value value) override
+		void ModifyValue(ARG_TYPE_IN_BASE(ModifyValue, 0) key, ARG_TYPE_IN_BASE(ModifyValue, 1) value) override
 		{
 			SELECT_BRANCH(key);
 			_elements[i].second->ModifyValue(key, move(value));
 		}
 
-		void Add(pair<Key, Value> p) override
+		void Add(ARG_TYPE_IN_BASE(Add, 0) p) override
 		{
 			SELECT_BRANCH(p.first);
 			_elements[i].second->Add(move(p));
 			// TODO why up code prefer global []
 		}
 
-		void Remove(Key const& key) override
+		void Remove(ARG_TYPE_IN_BASE(Remove, 0) key) override
 		{
 			SELECT_BRANCH(key);
 			_elements[i].second->Remove(key);
 		}
 #undef SELECT_BRANCH
+#undef ARG_TYPE_IN_BASE
 
 		vector<Key> SubNodeMinKeys() const override
 		{

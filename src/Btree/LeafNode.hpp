@@ -11,6 +11,8 @@
 
 namespace Collections
 {
+	using Basic::FuncTraits;
+	using Basic::GetMemberFuncType;
 	using ::FuncLib::Switch;
 	using ::FuncLib::TakeWithDiskPos;
 	using ::std::back_inserter;
@@ -25,8 +27,8 @@ namespace Collections
 
 	// 这里用指针参数不太好，可以用个枚举类型。因为这个指针参数不是所有指针都用，有的要用 OwnerLess 的指针
 	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
-	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Ptr>, 
-					 public TakeWithDiskPos<LeafNode<Key, Value, BtreeOrder, Ptr>, IsDisk<Ptr> ? Switch::Enable : Switch::Disable> 
+	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Ptr>,
+					 public TakeWithDiskPos<LeafNode<Key, Value, BtreeOrder, Ptr>, IsDisk<Ptr> ? Switch::Enable : Switch::Disable>
 	{
 	private:
 		friend struct FuncLib::ByteConverter<LeafNode, false>;
@@ -75,27 +77,28 @@ namespace Collections
 			return CollectKeys();
 		}
 
-		result_of_t<decltype(&Base::MinKey)(Base)> const MinKey() const override
+		result_of_t<decltype(&Base::MinKey)(Base)> MinKey() const override
 		{
 			return _elements[0].first;
 		}
 
-		bool ContainsKey(Key const& key) const override
+#define ARG_TYPE_IN_BASE(METHOD, IDX) typename FuncTraits<typename GetMemberFuncType<decltype(&Base::METHOD)>::Result>::template Arg<IDX>::Type
+		bool ContainsKey(ARG_TYPE_IN_BASE(ContainsKey, 0) key) const override
 		{
-			return _elements.ContainsKey(key);
+			return _elements.ContainsKey(move(key));
 		}
 
-		Value GetValue(Key const& key) const override
+		Value GetValue(ARG_TYPE_IN_BASE(GetValue, 0) key) const override
 		{
-			return _elements.GetValue(key);
+			return _elements.GetValue(move(key));
 		}
 
-		void ModifyValue(Key const& key, Value value) override
+		void ModifyValue(ARG_TYPE_IN_BASE(ModifyValue, 0) key, ARG_TYPE_IN_BASE(ModifyValue, 1) value) override
 		{
-			_elements.GetValue(key) = move(value);
+			_elements.GetValue(move(key)) = move(value);
 		}
 
-		void Add(pair<Key, Value> p) override
+		void Add(ARG_TYPE_IN_BASE(Add, 0) p) override
 		{
 			if (!_elements.Full())
 			{
@@ -110,9 +113,9 @@ namespace Collections
 			ADD_COMMON(true);
 		}
 
-		void Remove(Key const& key) override
+		void Remove(ARG_TYPE_IN_BASE(Remove, 0) key) override
 		{
-			auto i = _elements.IndexKeyOf(key);
+			auto i = _elements.IndexKeyOf(move(key));
 			_elements.RemoveAt(i);
 			if (i == 0)
 			{
@@ -129,6 +132,7 @@ namespace Collections
 				// Cannot put code here
 			}
 		}
+#undef ARG_TYPE_IN_BASE
 
 		vector<Key> SubNodeMinKeys() const override
 		{

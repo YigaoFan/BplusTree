@@ -63,4 +63,42 @@ namespace Basic
 	{
 		static constexpr bool Result = true;
 	};
+
+	// Below code ref from:
+	// https://stackoverflow.com/questions/9065081/how-do-i-get-the-argument-types-of-a-function-pointer-in-a-variadic-template-cla
+	template <typename T>
+	struct FuncTraits;
+
+	using ::std::size_t;
+
+	template <typename R, typename... Args>
+	struct FuncTraits<R(Args...)>
+	{
+		// static const size_t nargs = sizeof...(Args);
+		// typedef R result_type;
+		template <size_t i>
+		struct Arg
+		{
+			using Type = typename std::tuple_element<i, std::tuple<Args...>>::type;
+		};
+	};
+
+	template <typename R, typename... Args>
+	struct FuncTraits<R(Args...) const>
+	{
+		template <size_t i>
+		struct Arg
+		{
+			using Type = typename std::tuple_element<i, std::tuple<Args...>>::type;
+		};
+	};
+
+	template <typename T>
+	struct GetMemberFuncType;
+
+	template <typename R, typename T>
+	struct GetMemberFuncType<R T::*>// 这里的 R 为什么是 method 的类型呢？
+	{
+		using Result = R;
+	};
 }
