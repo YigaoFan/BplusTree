@@ -31,17 +31,18 @@ namespace Collections
 		Next,
 	};
 
-	template <template <typename...> class Ptr>
-	constexpr bool IsDisk = IsSpecialization<Ptr<int>, UniqueDiskPtr>::value;
+	template <StorePlace Place>
+	constexpr bool IsDisk = Place == StorePlace::Disk;
 
-	template <template <typename...> class Ptr>
-	constexpr StorePlace GetStorePlace = IsDisk<Ptr> ? StorePlace::Disk : StorePlace::Memory;
-
-	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
+	template <typename Key, typename Value, order_int BtreeOrder, StorePlace Place = StorePlace::Memory>
 	class NodeBase
 	{
+	private:
+		template <typename... Ts>
+		using Ptr = typename TypeConfig::template Ptr<Place>::template Type<Ts...>;
 	public:
-		virtual typename TypeSelector<GetStorePlace<Ptr>, Refable::Yes, Key>::Result MinKey() const = 0;
+		virtual typename TypeSelector<Place, Refable::Yes, Key>::Result MinKey() const = 0;
+
 	public:
 		// 下面这些 NodeBase 指针应该不需要成为特殊的硬盘指针 TODO
 		using UpNodeAddSubNodeCallback = function<void(NodeBase*, Ptr<NodeBase>)>;
@@ -49,7 +50,7 @@ namespace Collections
 		using MinKeyChangeCallback = function<void(result_of_t<decltype(&NodeBase::MinKey)(NodeBase)>, NodeBase*)>;
 		using ShallowTreeCallback = function<void()>;
 		template <typename T>
-		using OwnerLessPtr = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, T*>::Result;
+		using OwnerLessPtr = typename TypeSelector<Place, Refable::No, T*>::Result;
 
 	protected:
 		static constexpr order_int LowBound = 1 + ((BtreeOrder - 1) / 2);
@@ -77,15 +78,18 @@ namespace Collections
 		virtual bool Middle() const = 0;
 		virtual vector<Key> Keys() const = 0;
 		/// same as in LeafNode
-		using StoredKey = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Key>::Result;
+		using StoredKey = typename TypeSelector<Place, Refable::No, Key>::Result;
+		using StoredValue = typename TypeSelector<Place, Refable::No, Value>::Result;
 
 #define CONST_KEY_REF_T StoredKey const&
 #define KEY_T StoredKey
+#define VALUE_T StoredValue
 		virtual bool ContainsKey(CONST_KEY_REF_T) const = 0;
 		virtual Value GetValue(CONST_KEY_REF_T) const = 0;
-		virtual void ModifyValue(CONST_KEY_REF_T, Value) = 0;
-		virtual void Add(pair<KEY_T, Value>) = 0;
+		virtual void ModifyValue(CONST_KEY_REF_T, VALUE_T) = 0;
+		virtual void Add(pair<KEY_T, VALUE_T>) = 0;
 		virtual void Remove(CONST_KEY_REF_T) = 0;
+#undef VALUE_T
 #undef KEY_T
 #undef CONST_KEY_REF_T
 		virtual vector<Key> SubNodeMinKeys() const = 0;

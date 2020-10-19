@@ -13,6 +13,7 @@ namespace FuncLib
 	using ::Collections::MiddleNode;
 	using ::Collections::NodeBase;
 	using ::Collections::order_int;
+	using ::Collections::StorePlace;
 	using ::std::declval;
 	using ::std::make_shared;
 	using ::std::move;
@@ -55,9 +56,9 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Order>
-	struct ByteConverter<Btree<Order, Key, Value, UniqueDiskPtr>, false>
+	struct ByteConverter<Btree<Order, Key, Value, StorePlace::Disk>, false>
 	{
-		using ThisType = Btree<Order, Key, Value, UniqueDiskPtr>;
+		using ThisType = Btree<Order, Key, Value, StorePlace::Disk>;
 		using DataMemberType0 = decltype(declval<ThisType>()._keyCount);
 		using DataMemberType1 = decltype(declval<ThisType>()._root);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType0, DataMemberType1>::Result;
@@ -77,9 +78,9 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct ByteConverter<MiddleNode<Key, Value, Count, UniqueDiskPtr>, false>
+	struct ByteConverter<MiddleNode<Key, Value, Count, StorePlace::Disk>, false>
 	{
-		using ThisType = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
+		using ThisType = MiddleNode<Key, Value, Count, StorePlace::Disk>;
 		using DataMemberType = decltype(declval<ThisType>()._elements);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
@@ -96,9 +97,9 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct ByteConverter<LeafNode<Key, Value, Count, UniqueDiskPtr>, false>
+	struct ByteConverter<LeafNode<Key, Value, Count, StorePlace::Disk>, false>
 	{
-		using ThisType = LeafNode<Key, Value, Count, UniqueDiskPtr>;
+		using ThisType = LeafNode<Key, Value, Count, StorePlace::Disk>;
 		using DataMemberType0 = decltype(declval<ThisType>()._elements);
 		using DataMemberType1 = decltype(declval<ThisType>()._previous);
 		using DataMemberType2 = decltype(declval<ThisType>()._next);
@@ -122,11 +123,11 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct ByteConverter<NodeBase<Key, Value, Count, UniqueDiskPtr>, false>
+	struct ByteConverter<NodeBase<Key, Value, Count, StorePlace::Disk>, false>
 	{
-		using ThisType = NodeBase<Key, Value, Count, UniqueDiskPtr>;
-		using MidNode = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
-		using LeafNode = LeafNode<Key, Value, Count, UniqueDiskPtr>;
+		using ThisType = NodeBase<Key, Value, Count, StorePlace::Disk>;
+		using MidNode = MiddleNode<Key, Value, Count, StorePlace::Disk>;
+		using LeafNode = LeafNode<Key, Value, Count, StorePlace::Disk>;
 		static constexpr bool SizeStable = false;
 
 		static void WriteDown(ThisType const& node, IWriter auto* writer)

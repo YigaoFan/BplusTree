@@ -1,5 +1,6 @@
 #include <type_traits>
 #include <string>
+#include <memory>
 #include "../Basic/TypeTrait.hpp"
 #include "../FuncLib/FriendFuncLibDeclare.hpp"
 
@@ -9,9 +10,11 @@ namespace Collections
 	using FuncLib::OwnerLessDiskRef;
 	using FuncLib::OwnerState;
 	using FuncLib::TypeConverter;
+	using FuncLib::UniqueDiskPtr;
 	using ::std::is_fundamental_v;
 	using ::std::reference_wrapper;
 	using ::std::string;
+	using ::std::unique_ptr;
 
 	enum class StorePlace
 	{
@@ -49,4 +52,25 @@ namespace Collections
 	{
 		using Result = typename CompileIf<is_fundamental_v<RawType>, RawType, reference_wrapper<RawType const>>::Type;
 	};
+
+	struct TypeConfig
+	{
+		template <StorePlace place>
+		struct Ptr;
+
+		template <>
+		struct Ptr<StorePlace::Disk>
+		{
+			template <typename... Ts>
+			using Type = UniqueDiskPtr<Ts...>;
+		};
+
+		template <>
+		struct Ptr<StorePlace::Memory>
+		{
+			template <typename... Ts>
+			using Type = unique_ptr<Ts...>;
+		};
+		};
+	
 }

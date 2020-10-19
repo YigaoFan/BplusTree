@@ -23,18 +23,20 @@ namespace Collections
 	using ::std::unique_ptr;
 
 	// 这里用指针参数不太好，可以用个枚举类型。因为这个指针参数不是所有指针都用，有的要用 OwnerLess 的指针
-	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
-	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Ptr>,
-					 public TakeWithDiskPos<LeafNode<Key, Value, BtreeOrder, Ptr>, IsDisk<Ptr> ? Switch::Enable : Switch::Disable>
+	template <typename Key, typename Value, order_int BtreeOrder, StorePlace Place = StorePlace::Memory>
+	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Place>,
+					 public TakeWithDiskPos<LeafNode<Key, Value, BtreeOrder, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>
 	{
 	private:
+		template <typename... Ts>
+		using Ptr = typename TypeConfig::template Ptr<Place>::template Type<Ts...>;
 		friend struct FuncLib::ByteConverter<LeafNode, false>;
-		friend struct FuncLib::TypeConverter<LeafNode<Key, Value, BtreeOrder, unique_ptr>>;
+		friend struct FuncLib::TypeConverter<LeafNode<Key, Value, BtreeOrder, StorePlace::Memory>>;
 		using _LessThan = LessThan<Key>;
-		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
+		using Base = NodeBase<Key, Value, BtreeOrder, Place>;
 #define RAW_PTR(TYPE) typename Base::template OwnerLessPtr<TYPE>
-		using StoredKey = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Key>::Result;
-		using StoredValue = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Value>::Result;
+		using StoredKey = typename Base::StoredKey;
+		using StoredValue = typename Base::StoredValue;
 		Elements<StoredKey, StoredValue, BtreeOrder, _LessThan> _elements;
 		typename Base::template OwnerLessPtr<LeafNode> _next{nullptr};
 		typename Base::template OwnerLessPtr<LeafNode> _previous{nullptr};

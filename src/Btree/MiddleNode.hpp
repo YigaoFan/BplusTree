@@ -26,18 +26,20 @@ namespace Collections
 	using ::std::placeholders::_1;
 	using ::std::placeholders::_2;
 
-	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr>
+	template <typename Key, typename Value, order_int BtreeOrder, StorePlace Place = StorePlace::Memory>
 	class NodeFactory;
 	// 最好把 MiddleNode 和 LeafNode 的构造与 Btree 隔绝起来，使用 NodeBase 来作用，顶多使用强制转型来调用一些函数
-	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
-	class MiddleNode : public NodeBase<Key, Value, BtreeOrder, Ptr>
+	template <typename Key, typename Value, order_int BtreeOrder, StorePlace Place = StorePlace::Memory>
+	class MiddleNode : public NodeBase<Key, Value, BtreeOrder, Place>
 	{
 	private:
+		template <typename... Ts>
+		using Ptr = typename TypeConfig::template Ptr<Place>::template Type<Ts...>;
 		friend struct FuncLib::ByteConverter<MiddleNode, false>;
-		friend struct FuncLib::TypeConverter<MiddleNode<Key, Value, BtreeOrder, unique_ptr>>;
-		friend class NodeFactory<Key, Value, BtreeOrder, Ptr>;
-		using Base = NodeBase<Key, Value, BtreeOrder, Ptr>;
-		using Leaf = LeafNode<Key, Value, BtreeOrder, Ptr>;
+		friend struct FuncLib::TypeConverter<MiddleNode<Key, Value, BtreeOrder, StorePlace::Memory>>;
+		friend class NodeFactory<Key, Value, BtreeOrder, Place>;
+		using Base = NodeBase<Key, Value, BtreeOrder, Place>;
+		using Leaf = LeafNode<Key, Value, BtreeOrder, Place>;
 		// TODO maybe below two item could be pointer, then entity stored in its' parent like Btree do
 		typename Base::UpNodeAddSubNodeCallback _addSubNodeCallback = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
 		typename Base::UpNodeDeleteSubNodeCallback _deleteSubNodeCallback = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
@@ -47,7 +49,7 @@ namespace Collections
 		function<RAW_PTR(MiddleNode)(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
 		using _LessThan = LessThan<Key>;
 		using StoredKey = result_of_t<decltype(&Base::MinKey)(Base)>;
-		using StoredValue = typename TypeSelector<GetStorePlace<Ptr>, Refable::No, Ptr<Base>>::Result;
+		using StoredValue = typename TypeSelector<Place, Refable::No, Ptr<Base>>::Result;
 		Elements<StoredKey, StoredValue, BtreeOrder, _LessThan> _elements;
 
 	public:

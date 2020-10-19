@@ -12,8 +12,9 @@ using namespace std;
 
 TESTCASE("Type converter test")
 {
+	// 使用原来的 BtreeTest 来测试现在的 Disk 版 TODO
+	// 编译 Btree 的成员函数调用
 	// Attention: File don't have valid value
-	// TODO add TypeConvert::
 	// auto file = File::GetFile("typeConverterTest");
 	File* file = nullptr;
 	uint32_t offset = 0;
@@ -125,6 +126,14 @@ TESTCASE("Type converter test")
 	SECTION("Int-int Btree Convert")
 	{
 		using Tree = Btree<4, int, int>;
+		Tree t(intLessThan);
+		auto c_t = TypeConverter<decltype(t)>::ConvertFrom(t, file);
+		BYTE_COV_TEST_UNIT(c_t);
+	}
+
+	SECTION("Int-string Btree Convert")
+	{
+		using Tree = Btree<4, int, string>;
 		Tree t(intLessThan);
 		auto c_t = TypeConverter<decltype(t)>::ConvertFrom(t, file);
 		BYTE_COV_TEST_UNIT(c_t);

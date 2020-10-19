@@ -19,13 +19,15 @@ namespace Collections
 	using ::std::shared_ptr;
 	using ::std::unique_ptr;
 
-	template <typename Key, typename Value, order_int BtreeOrder, template <typename...> class Ptr = unique_ptr>
+	template <typename Key, typename Value, order_int BtreeOrder, StorePlace Place>
 	class NodeFactory
 	{
 	private:
-		using Node = NodeBase<Key, Value, BtreeOrder, Ptr>;
-		using Leaf = LeafNode<Key, Value, BtreeOrder, Ptr>;
-		using Middle = MiddleNode<Key, Value, BtreeOrder, Ptr>;
+		template <typename... Ts>
+		using Ptr = typename TypeConfig::template Ptr<Place>::template Type<Ts...>;
+		using Node = NodeBase<Key, Value, BtreeOrder, Place>;
+		using Leaf = LeafNode<Key, Value, BtreeOrder, Place>;
+		using Middle = MiddleNode<Key, Value, BtreeOrder, Place>;
 		using _LessThan = LessThan<Key>;
 
 	public:
@@ -35,7 +37,7 @@ namespace Collections
 			// remove_reference_t sometimes not very good
 			using T = remove_reference_t<typename Enumerator<Ts...>::ValueType>;
 
-			if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)
+			if constexpr (IsDisk<Place>)
 			{
 				using FuncLib::Store::FileResource;
 				auto f = FileResource::GetCurrentThreadFile().get();

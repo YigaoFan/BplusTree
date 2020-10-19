@@ -97,19 +97,21 @@ namespace Collections
 	class UniversalEnumerator;
 
 	// 这三个类型参数的顺序要不要调整下啊
-	template <order_int BtreeOrder, typename Key, typename Value, template <typename...> class Ptr = unique_ptr>
+	template <order_int BtreeOrder, typename Key, typename Value, StorePlace Place = StorePlace::Memory>
 	class Btree 
 	{
 	public:
 		using _LessThan = LessThan<Key>;
 	private:
 		// 待验证：因为它是某个模板的特化，所以模板需要前置声明，特化不需要
+		template <typename... Ts>
+		using Ptr = typename TypeConfig::template Ptr<Place>::template Type<Ts...>;
 		friend class UniversalEnumerator<BtreeOrder, Key, Value>;
 		friend struct FuncLib::ByteConverter<Btree, false>; // Btree here is undefined or incomplete type
 		friend struct FuncLib::TypeConverter<Btree>;
-		friend struct FuncLib::TypeConverter<Btree<BtreeOrder, Key, Value, unique_ptr>>;
-		using Node   = NodeBase<Key, Value, BtreeOrder, Ptr>;
-		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder, Ptr>;
+		friend struct FuncLib::TypeConverter<Btree<BtreeOrder, Key, Value, StorePlace::Memory>>;
+		using Node = NodeBase<Key, Value, BtreeOrder, Place>;
+		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder, Place>;
 		typename Node::UpNodeAddSubNodeCallback _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
 		typename Node::UpNodeDeleteSubNodeCallback _deleteRootCallback = bind(&Btree::DeleteRootCallback, this, _1);
 		typename Node::MinKeyChangeCallback _minKeyChangeCallback = bind(&Btree::RootMinKeyChangeCallback, this, _1, _2);

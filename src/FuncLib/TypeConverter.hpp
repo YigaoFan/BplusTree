@@ -25,6 +25,7 @@ namespace FuncLib
 	using ::Collections::MiddleNode;
 	using ::Collections::NodeBase;
 	using ::Collections::order_int;
+	using ::Collections::StorePlace;
 	using ::std::declval;
 	using ::std::make_shared;
 	using ::std::shared_ptr;
@@ -79,19 +80,19 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct TypeConverter<MiddleNode<Key, Value, Count, unique_ptr>>
+	struct TypeConverter<MiddleNode<Key, Value, Count, StorePlace::Memory>>
 	{
-		using From = MiddleNode<Key, Value, Count, unique_ptr>;
-		using To = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
+		using From = MiddleNode<Key, Value, Count, StorePlace::Memory>;
+		using To = MiddleNode<Key, Value, Count, StorePlace::Disk>;
 
-		static UniqueDiskPtr<NodeBase<Key, Value, Count, UniqueDiskPtr>> CloneNodeToDisk(typename decltype(declval<From>()._elements)::Item const& item, File* file)
+		static UniqueDiskPtr<NodeBase<Key, Value, Count, StorePlace::Disk>> CloneNodeToDisk(typename decltype(declval<From>()._elements)::Item const& item, File* file)
 		{
 			return TypeConverter<decltype(item.second)>::ConvertFrom(item.second, file);
 		}
 
 		static To ConvertFrom(From const& from, File* file)
 		{
-			using Node = NodeBase<Key, Value, Count, UniqueDiskPtr>;
+			using Node = NodeBase<Key, Value, Count, StorePlace::Disk>;
 			using ::std::placeholders::_1;
 			auto nodes = 
 				EnumeratorPipeline<typename decltype(from._elements)::Item const&, UniqueDiskPtr<Node>>(from._elements.GetEnumerator(), bind(&CloneNodeToDisk, _1, file));
@@ -100,10 +101,10 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct TypeConverter<LeafNode<Key, Value, Count, unique_ptr>>
+	struct TypeConverter<LeafNode<Key, Value, Count, StorePlace::Memory>>
 	{
-		using From = LeafNode<Key, Value, Count, unique_ptr>;
-		using To = LeafNode<Key, Value, Count, UniqueDiskPtr>;
+		using From = LeafNode<Key, Value, Count, StorePlace::Memory>;
+		using To = LeafNode<Key, Value, Count, StorePlace::Disk>;
 
 		static To ConvertFrom(From const& from, File* file)
 		{
@@ -113,23 +114,23 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct TypeConverter<NodeBase<Key, Value, Count, unique_ptr>>
+	struct TypeConverter<NodeBase<Key, Value, Count, StorePlace::Memory>>
 	{
-		using From = NodeBase<Key, Value, Count, unique_ptr>;
-		using To = shared_ptr<NodeBase<Key, Value, Count, UniqueDiskPtr>>;
+		using From = NodeBase<Key, Value, Count, StorePlace::Memory>;
+		using To = shared_ptr<NodeBase<Key, Value, Count, StorePlace::Disk>>;
 
 		static To ConvertFrom(From const& from, File* file)
 		{
 			if (from.Middle())
 			{
-				using FromMidNode = MiddleNode<Key, Value, Count, unique_ptr>;
-				using ToMidNode = MiddleNode<Key, Value, Count, UniqueDiskPtr>;
+				using FromMidNode = MiddleNode<Key, Value, Count, StorePlace::Memory>;
+				using ToMidNode = MiddleNode<Key, Value, Count, StorePlace::Disk>;
 				return make_shared<ToMidNode>(TypeConverter<FromMidNode>::ConvertFrom(static_cast<FromMidNode const&>(from), file));
 			}
 			else
 			{
-				using FromLeafNode = LeafNode<Key, Value, Count, unique_ptr>;
-				using ToLeafNode = LeafNode<Key, Value, Count, UniqueDiskPtr>;
+				using FromLeafNode = LeafNode<Key, Value, Count, StorePlace::Memory>;
+				using ToLeafNode = LeafNode<Key, Value, Count, StorePlace::Disk>;
 				return make_shared<ToLeafNode>(TypeConverter<FromLeafNode>::ConvertFrom(static_cast<FromLeafNode const&>(from), file));
 			}
 		}
@@ -166,17 +167,17 @@ namespace FuncLib
 	};
 
 	template <typename Key, typename Value, order_int Count>
-	struct TypeConverter<Btree<Count, Key, Value, unique_ptr>>
+	struct TypeConverter<Btree<Count, Key, Value, StorePlace::Memory>>
 	{
-		using From = Btree<Count, Key, Value, unique_ptr>;
-		using To = Btree<Count, Key, Value, UniqueDiskPtr>;
+		using From = Btree<Count, Key, Value, StorePlace::Memory>;
+		using To = Btree<Count, Key, Value, StorePlace::Disk>;
 
 		static To ConvertFrom(From const& from, File* file)
 		{
 			return
 			{ 
 				from._keyCount, 
-				TypeConverter<unique_ptr<NodeBase<Key, Value, Count, unique_ptr>>>::ConvertFrom(from._root, file) 
+				TypeConverter<unique_ptr<NodeBase<Key, Value, Count, StorePlace::Memory>>>::ConvertFrom(from._root, file) 
 			};
 		}
 	};
