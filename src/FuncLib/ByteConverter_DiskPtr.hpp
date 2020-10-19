@@ -117,8 +117,7 @@ namespace FuncLib
 			auto elements = ByteConverter<DataMemberType0>::ReadOut(reader);
 			auto preivous = ByteConverter<DataMemberType1>::ReadOut(reader);
 			auto next = ByteConverter<DataMemberType2>::ReadOut(reader);
-			// TODO 缺少一个三者合一的构造函数
-			return { move(elements) };
+			return { move(elements), preivous, next };
 		}
 	};
 

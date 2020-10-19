@@ -163,9 +163,12 @@ namespace Collections
 		void Next(decltype(_next) next)             { _next = move(next); }
 		void Previous(decltype(_previous) previous) { _previous = move(previous); }
 	private:
-		LeafNode(decltype(_elements) elements) : Base(), _elements(move(elements))// TODO less than?
+		LeafNode(decltype(_elements) elements, 
+			typename Base::template OwnerLessPtr<LeafNode> previous, 
+			typename Base::template OwnerLessPtr<LeafNode> next)
+		 : Base(), _elements(move(elements)), _previous(move(previous)), _next(move(next))
 		{
-			// TODO
+			// TODO LessThan?
 		}
 
 		vector<Key> CollectKeys(vector<Key> previousNodesKeys = {}) const

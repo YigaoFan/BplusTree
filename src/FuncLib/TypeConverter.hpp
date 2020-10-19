@@ -108,8 +108,7 @@ namespace FuncLib
 
 		static To ConvertFrom(From const& from, File* file)
 		{
-			// 这下面这里的 Elements 类型应该是有问题
-			return { TypeConverter<decltype(from._elements)>::ConvertFrom(from._elements, file) };
+			return { TypeConverter<decltype(from._elements)>::ConvertFrom(from._elements, file), nullptr, nullptr };
 		}
 	};
 
