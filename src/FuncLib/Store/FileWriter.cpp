@@ -40,6 +40,13 @@ namespace FuncLib::Store
 		: _filename(move(filename)), _pos(startPos)
 	{ }
 
+	FileWriter::FileWriter(PreWriter preWriter, shared_ptr<path> filename, pos_int startPos)
+		: _filename(move(filename)), _pos(startPos)
+	{
+		auto& buffer = preWriter._buffer;
+		Write(buffer.data(), buffer.size());
+	}
+
 #define RUN_COUNTER       \
 	if (_counterRunning)  \
 	{                     \

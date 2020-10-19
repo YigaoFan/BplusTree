@@ -88,15 +88,13 @@ namespace FuncLib::Store
 					ByteConverter<T>::WriteDown(*object, &writer);
 					auto previousSize = _allocator.GetAllocatedSize(posLable);
 					auto newSize = writer.Size();
+					auto start = oldStart;
 					if (previousSize < newSize)
 					{
-						auto newStart = _allocator.ResizeSpaceTo(posLable, newSize);
-						writer.StartPos(newStart);
+						start = _allocator.ResizeSpaceTo(posLable, newSize);
 					}
-					else
-					{
-						writer.StartPos(oldStart);
-					}
+
+					FileWriter(move(writer), _filename, start);
 				}
 			}
 			else
@@ -105,10 +103,9 @@ namespace FuncLib::Store
 				ByteConverter<T>::WriteDown(*object, &writer);
 				auto size = writer.Size();
 				auto start = _allocator.GiveSpaceTo(posLable, size);
-				writer.StartPos(start);
+				FileWriter(move(writer), _filename, start);
 			}
 			
-			// auto internalWriter = make_shared<FileWriter>(filename, start);
 			// 可能需要 assert 这里的 start 和 writer 的当前地址要一样，有的情况下可能不一样也是对的
 			// 要基于位置都是偏移的抽象的基础去工作，感觉有点复杂了可能，之后再想
 

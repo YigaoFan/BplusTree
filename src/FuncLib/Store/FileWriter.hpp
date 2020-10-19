@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <memory>
 #include "StaticConfig.hpp"
+#include "PreWriter.hpp"
 
 namespace FuncLib::Store
 {
@@ -23,6 +24,7 @@ namespace FuncLib::Store
 
 	public:
 		FileWriter(shared_ptr<path> filename, pos_int startPos);
+		FileWriter(PreWriter preWriter, shared_ptr<path> filename, pos_int startPos);
 		void StartCounter();
 		void EndCounter();
 		size_t CounterNum() const;

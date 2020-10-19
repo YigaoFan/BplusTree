@@ -1,3 +1,4 @@
+#pragma once
 #include <vector>
 #include "StaticConfig.hpp"
 
@@ -9,14 +10,14 @@ namespace FuncLib::Store
 	class PreWriter
 	{
 	private:
-		pos_int _startPos;
+		friend class FileWriter;
 		vector<char> _buffer;
 		bool _counterRunning = false;
 		size_t _counter = 0;
 	public:
 		PreWriter();
+
 		size_t Size() const;
-		void StartPos(pos_int pos);
 		void Write(char const* begin, size_t size);
 		void WriteBlank(size_t size);
 		void StartCounter();

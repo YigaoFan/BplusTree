@@ -12,11 +12,6 @@ namespace FuncLib::Store
 		return _buffer.size();
 	}
 
-	void PreWriter::StartPos(pos_int pos)
-	{
-		_startPos = pos;
-	}
-
 #define RUN_COUNTER       \
 	if (_counterRunning)  \
 	{                     \
