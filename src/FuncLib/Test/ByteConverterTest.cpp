@@ -14,7 +14,6 @@ using namespace std;
 TESTCASE("Byte converter test")
 {
 	auto filename = "byteConverterTest";
-	// 生成这些测试代码 TODO 这些测试代码很适合生成
 	auto path = MakeFilePath(filename);
 	{
 		auto writer = FileWriter(path, 0);
