@@ -35,5 +35,6 @@ namespace FuncLib::Store
 		size_t GetAllocatedSize(pos_lable posLable) const;
 		pos_int ResizeSpaceTo(pos_lable posLable, size_t biggerSize);
 		void DeallocatePosLable(pos_lable posLable);
+		void DeallocatePosLables(set<pos_lable> const& posLables);
 	};
 }

@@ -32,7 +32,8 @@ namespace FuncLib::Store
 
 	File::~File()
 	{
-		Files.erase(this);
+		_allocator.DeallocatePosLables(_toDeallocateLables);
 		StorageAllocator::WriteAllocatedInfoTo(*_filename, _allocator);
+		Files.erase(this);
 	}
 }

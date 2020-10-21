@@ -35,6 +35,7 @@ namespace FuncLib::Store
 		shared_ptr<path> _filename;
 		FileCache _cache;
 		StorageAllocator _allocator;
+		set<pos_lable> _toDeallocateLables;// 之后可以基于这个调整文件大小
 	public:
 		static shared_ptr<File> GetFile(path const& filename);
 		File(unsigned int fileId, path filename); // for make_shared use in File class only
@@ -67,12 +68,14 @@ namespace FuncLib::Store
 		{
 			auto lable = _allocator.AllocatePosLable();
 			auto obj = AddToCache(move(t), lable);
-			return {lable, obj};
+			return { lable, obj };
 		}
 
 		template <typename T>
 		void Store(pos_lable posLable, shared_ptr<T> const& object)
 		{
+			_toDeallocateLables.erase(posLable);
+
 			// 触发 写 的唯一一个地方
 			if (_allocator.Ready(posLable))
 			{
@@ -108,15 +111,13 @@ namespace FuncLib::Store
 			
 			// 可能需要 assert 这里的 start 和 writer 的当前地址要一样，有的情况下可能不一样也是对的
 			// 要基于位置都是偏移的抽象的基础去工作，感觉有点复杂了可能，之后再想
-
-			// if constexpr (!ByteConverter<T>::SizeStable)// string 的 ByteConverter 那里可能要改成 SizeStable，map 也是，加一个指针进去，那不 SizeStable 的部分在哪里？
-			// {
-			// }
 		}
 
 		template <typename T>
 		void Delete(pos_lable posLable, shared_ptr<T> object) // 这个模仿 delete 这个接口，但暂不处理 object
 		{
+			_toDeallocateLables.erase(posLable);
+
 			_cache.Remove<T>(posLable);
 			_allocator.DeallocatePosLable(posLable);
 		}
@@ -135,7 +136,7 @@ namespace FuncLib::Store
 		template <typename T>
 		shared_ptr<T> AddToCache(T t, pos_lable posLable)
 		{
-			using Basic::IsSpecialization;
+			_toDeallocateLables.insert(posLable);
 			shared_ptr<T> obj = make_shared<T>(move(t));
 			_cache.Add<T>(posLable, obj);
 			return obj;
@@ -144,6 +145,7 @@ namespace FuncLib::Store
 		template <typename T>
 		shared_ptr<T> AddToCache(shared_ptr<T> obj, pos_lable posLable)
 		{
+			_toDeallocateLables.insert(posLable);
 			_cache.Add<T>(posLable, obj);
 			return obj;
 		}

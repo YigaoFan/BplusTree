@@ -76,4 +76,12 @@ namespace FuncLib::Store
 		return _currentPos - biggerSize;
 	}
 #undef VALID_CHECK
+
+	void StorageAllocator::DeallocatePosLables(set<pos_lable> const& posLables)
+	{
+		for (auto p : posLables)
+		{
+			DeallocatePosLable(p);
+		}
+	}
 }

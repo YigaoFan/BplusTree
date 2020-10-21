@@ -10,7 +10,6 @@ namespace FuncLib::Store
 	using ::std::move;
 	using ::std::shared_ptr;
 
-
 	/// 不支持继承体系下的动态类型，所以需要使用者注意存取的类型
 	/// 一个 File 仅有一个 FileCache
 	class FileCache
