@@ -81,17 +81,15 @@ namespace Collections
 		using StoredKey = typename TypeSelector<Place, Refable::No, Key>::Result;
 		using StoredValue = typename TypeSelector<Place, Refable::No, Value>::Result;
 
-#define CONST_KEY_REF_T StoredKey const&
 #define KEY_T StoredKey
 #define VALUE_T StoredValue
-		virtual bool ContainsKey(CONST_KEY_REF_T) const = 0;
-		virtual Value GetValue(CONST_KEY_REF_T) const = 0;
-		virtual void ModifyValue(CONST_KEY_REF_T, VALUE_T) = 0;
+		virtual bool ContainsKey(Key const& key) const = 0;
+		virtual Value GetValue(Key const& key) const = 0;
+		virtual void ModifyValue(Key const& key, VALUE_T) = 0;
 		virtual void Add(pair<KEY_T, VALUE_T>) = 0;
-		virtual void Remove(CONST_KEY_REF_T) = 0;
+		virtual void Remove(Key const& key) = 0;
 #undef VALUE_T
 #undef KEY_T
-#undef CONST_KEY_REF_T
 		virtual vector<Key> SubNodeMinKeys() const = 0;
 		virtual vector<OwnerLessPtr<NodeBase>> SubNodes() const = 0;
 

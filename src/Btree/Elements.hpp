@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <utility>
+#include <type_traits>
 #include "Basic.hpp"
 #include "IEnumerator.hpp"
 #include "../Basic/Exception.hpp"
@@ -12,15 +13,28 @@
 
 namespace Collections
 {
-	using ::std::pair;
-	using ::std::vector;
-	using ::std::function;
-	using ::std::shared_ptr;
-	using ::std::array;
-	using ::std::move;
-	using ::Basic::KeyNotFoundException;
 	using ::Basic::InvalidOperationException;
+	using ::Basic::KeyNotFoundException;
+	using ::std::array;
+	using ::std::function;
+	using ::std::is_convertible;
+	using ::std::move;
+	using ::std::pair;
+	using ::std::shared_ptr;
+	using ::std::vector;
+
+	template <typename LessThan>
+	struct TraitArgType;
+
+	template <typename T>
+	struct TraitArgType<LessThan<T>>
+	{
+		using Result = T;
+	};
 	
+	template <typename T, typename LessThan>
+	concept MatchLessThanArgType = is_convertible<T, typename TraitArgType<LessThan>::Result>::value;
+
 	// TODO when BtreeOrder is big, use binary search in iterate process
 	template <typename Key, typename Value, order_int BtreeOrder, typename LessThan = LessThan<Key>>
 	class Elements : public LiteVector<pair<Key, Value>, order_int, BtreeOrder>
@@ -75,7 +89,9 @@ namespace Collections
 			: Base(move(that)), LessThanPtr(move(that.LessThanPtr))
 		{ }
 
-		bool ContainsKey(Key const& key) const
+		template <typename T>
+		requires MatchLessThanArgType<T, LessThan>
+		bool ContainsKey(T key) const
 		{
 			auto enumerator = GetEnumerator();
 			while (enumerator.MoveNext())
@@ -163,20 +179,26 @@ namespace Collections
 
 			return move(p);
 		}
-		
+
 		// TODO why should use below code to compile code in MiddleNode
 		using Base::operator[];
-		Value const& GetValue(Key const& key) const
+
+		template <typename T> 
+		requires MatchLessThanArgType<T, LessThan>
+		Value const& GetValue(T key) const
 		{
 			return const_cast<Elements*>(this)->GetValue(key);
 		}
-
-		Value& GetValue(Key const& key)
+		template <typename T>
+		requires MatchLessThanArgType<T, LessThan>
+		Value& GetValue(T key)
 		{
 			return this->operator[](IndexKeyOf(key)).second;
 		}
 
-		order_int IndexKeyOf(Key const& key) const
+		template <typename T>
+		requires MatchLessThanArgType<T, LessThan>
+		order_int IndexKeyOf(T key) const
 		{
 			auto enumerator = GetEnumerator();
 			auto& lessThan = *LessThanPtr;
@@ -193,7 +215,8 @@ namespace Collections
 		}
 
 		template <typename T>
-		order_int SelectBranch(T const& key) const
+		requires MatchLessThanArgType<T, LessThan>
+		order_int SelectBranch(T key) const
 		{
 			for (decltype(this->Count()) i = 1; i < this->Count(); ++i)
 			{

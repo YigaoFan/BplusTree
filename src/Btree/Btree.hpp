@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <array>
 #include "Basic.hpp"
+#include "../Basic/TypeTrait.hpp"
 #include "Enumerator.hpp"
 #include "NodeFactory.hpp"
 #include "TreeInspector.hpp"
@@ -20,6 +21,7 @@
 
 namespace Collections
 {
+	using ::Basic::FuncTraits;
 	using ::Basic::InvalidOperationException;
 	using ::Basic::KeyNotFoundException;
 	using ::std::adjacent_find;
@@ -210,7 +212,8 @@ namespace Collections
 			InspectNodeKeys(_root.get());
 		}
 
-		bool ContainsKey(Key const& key) const
+#define ARG_TYPE_IN_NODE(METHOD, IDX) typename FuncTraits<typename GetMemberFuncType<decltype(&Node::METHOD)>::Result>::template Arg<IDX>::Type
+		bool ContainsKey(ARG_TYPE_IN_NODE(ContainsKey, 0) key) const
 		{
 			if (Empty()) { return false; }
 			return _root->ContainsKey(key);
@@ -232,19 +235,19 @@ namespace Collections
 		}
 
 #define EMPTY_CHECK if (Empty()) { throw KeyNotFoundException("The B+ tree is empty"); }
- 		Value GetValue(Key const& key) const
+		Value GetValue(ARG_TYPE_IN_NODE(GetValue, 0) key) const
 		{
 			EMPTY_CHECK;
 			return _root->GetValue(key);
 		}
 
-		void ModifyValue(Key const& key, Value newValue)
+		void ModifyValue(ARG_TYPE_IN_NODE(ModifyValue, 0) key, ARG_TYPE_IN_NODE(ModifyValue, 1) newValue)
 		{
 			EMPTY_CHECK;
 			_root->ModifyValue(key, move(newValue));
 		}
 
-		void Remove(Key const& key)
+		void Remove(ARG_TYPE_IN_NODE(Remove, 0) key)
 		{
 			EMPTY_CHECK;
 			_root->Remove(key);
@@ -252,11 +255,12 @@ namespace Collections
 		}
 #undef EMPTY_CHECK
 
-		void Add(pair<Key, Value> p)
+		void Add(ARG_TYPE_IN_NODE(Add, 0) p)
 		{
 			_root->Add(move(p));
 			++_keyCount;
 		}
+#undef ARG_TYPE_IN_NODE
 
 	private:
 		Btree(key_int keyCount, Ptr<Node> root) : _root(move(root)), _keyCount(keyCount)
