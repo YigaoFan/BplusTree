@@ -3,36 +3,13 @@
    Enumerator in Collections
 ***********************************/
 
-#include <functional>
-#include <memory>
 #include "IEnumerator.hpp"
 #include "../Basic/Exception.hpp"
 
 namespace Collections
 {
-	using ::std::shared_ptr;
-	using ::std::size_t;
-	using ::std::remove_reference_t;
 	using ::Basic::InvalidAccessException;
-
-	/*template <typename Item>
-	class EmptyEnumerator : public IEnumerator<Item>
-	{
-	public:
-		Item& Current() override
-		{
-			throw InvalidOperationException("Can't read Current() of EmptyEnumerator");
-		}
-		virtual bool MoveNext() override
-		{
-			return false;
-		}
-
-		size_t CurrentIndex() override
-		{
-			throw InvalidOperationException("Can't read CurrentIndex() of EmptyEnumerator");
-		}
-	};*/
+	using ::std::size_t;
 
 	template <typename Item, typename Iterator>
 	class Enumerator;
@@ -53,7 +30,6 @@ namespace Collections
 		return { begin, end };
 	}
 
-	// TODO how to remove the Iterator type in template args
 	template <typename Item, typename Iterator>
 	class Enumerator : public IEnumerator<Item>
 	{
@@ -63,8 +39,8 @@ namespace Collections
 		Iterator const _begin;
 		Iterator const _end;
 	public:
-		// TODO: support array, list, raw array?
-		// TODO how to direct use constructor(arg is container) to deduce Item and Iterator type
+		Enumerator(Iterator begin, Iterator end) : _current(begin), _begin(begin), _end(end)
+		{ }
 
 		Item Current() override
 		{
@@ -80,10 +56,6 @@ namespace Collections
 		{
 			return _current - _begin;
 		}
-
-		Enumerator(Iterator begin, Iterator end)
-			: _current(begin), _begin(begin), _end(end)
-		{ }
 
 		bool MoveNext() override
 		{

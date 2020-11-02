@@ -1,33 +1,33 @@
+#pragma once
 #include <cstddef>
+#include "../../Basic/Concepts.hpp"
 #include "StaticConfig.hpp"
 
 namespace FuncLib::Store
 {
+	using Basic::IsSameTo;
 	using ::std::size_t;
 
 	template <typename T>
 	concept Writer_Write = requires(T t, char const* begin, size_t size)
 	{
-		t.Write(begin, size);
+		t.Add(begin, size);
 	};
 
 	template <typename T>
 	concept Writer_WriteBlank = requires(T t, size_t size)
 	{
-		t.WriteBlank(size);
+		t.AddBlank(size);
 	};
-
-	template <typename T>
-	concept SameToPos_int = std::is_same_v<T, pos_int>;
 
 	template <typename T>
 	concept Writer_OffsetCounter = requires(T t)
 	{
-		t.StartCounter();
-		t.EndCounter();
-		{ t.CounterNum() } -> SameToPos_int;
+		{ t.Size() } -> IsSameTo<size_t>;
 	};
 
 	template <typename T>
-	concept IWriter = Writer_Write<T> &&Writer_OffsetCounter<T> &&Writer_WriteBlank<T>;
+	concept IWriter = Writer_Write<T> and 
+					  Writer_OffsetCounter<T> and 
+					  Writer_WriteBlank<T>;
 }

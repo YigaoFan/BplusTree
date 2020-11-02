@@ -31,15 +31,15 @@ add_executable(RPC
         FuncLib/Store/FileCache.cpp
         FuncLib/Store/FileResource.cpp
         FuncLib/Store/FileReader.cpp
-        FuncLib/Store/FileWriter.cpp
+        FuncLib/Store/LableRelationNode.cpp
+        FuncLib/Store/ObjectBytes.cpp
         FuncLib/Store/StorageAllocator.cpp
-        FuncLib/Store/PreWriter.cpp
         FuncLib/Test/Util.cpp
         FuncLib/Test/FileTest.cpp
         #FuncLib/Test/DiskBtreeTest.cpp
         FuncLib/Test/ByteConverterTest.cpp
         FuncLib/Test/ByteConvereterTest_Gen.cpp
-        FuncLib/Test/FileReader&FileWriterTest.cpp
+        FuncLib/Test/FileReader&ObjectWriterTest.cpp
         FuncLib/Test/StorageAllocatorTest.cpp
         FuncLib/Test/FileCacheTest.cpp
         FuncLib/Test/TypeConverterTest.cpp

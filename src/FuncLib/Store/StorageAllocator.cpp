@@ -4,6 +4,8 @@
 
 namespace FuncLib::Store
 {
+	constexpr pos_lable FileLable = 0;
+
 	StorageAllocator StorageAllocator::ReadAllocatedInfoFrom(path const& filename)
 	{
 		// TODO
@@ -36,7 +38,8 @@ namespace FuncLib::Store
 
 	pos_lable StorageAllocator::AllocatePosLable()
 	{
-		return _posLableTable.size();
+		/// 0 represents File, so from 1
+		return _posLableTable.size() + 1;
 	}
 
 	void StorageAllocator::DeallocatePosLable(pos_lable posLable)
@@ -69,8 +72,8 @@ namespace FuncLib::Store
 
 		using ::std::make_pair;
 		auto allocateInfoIter = _posLableTable.find(posLable);
-		// 也可以加入到 _deletedLables，用一个特殊的 pos_lable 标记
-		_deletedLables.insert({ -1, allocateInfoIter->second });
+		// 也可以加入到 _deletedLables，用一个特殊的 pos_lable 标记，这个 lable 代表空间属于系统或者 File
+		_deletedLables.insert({ FileLable, allocateInfoIter->second });
 		allocateInfoIter->second = make_pair(_currentPos, biggerSize);
 		_currentPos += biggerSize;
 		return _currentPos - biggerSize;

@@ -7,15 +7,15 @@
 #include "StaticConfig.hpp"
 #include "FileCache.hpp"
 #include "FileReader.hpp"
-#include "FileWriter.hpp"
-#include "PreWriter.hpp"
+#include "ObjectBytes.hpp"
 #include "StorageAllocator.hpp"
 #include "../FriendFuncLibDeclare.hpp"// 因为 DiskPos 里面有功能依赖 File，所以这里只能 ByteConverter 的声明
+#include "IWriterConcept.hpp"
+#include "ObjectRelationTree.hpp"
 
 namespace FuncLib::Store
 {
 	using ::std::enable_shared_from_this;
-	using ::std::forward;
 	using ::std::make_shared;
 	using ::std::move;
 	using ::std::pair;
@@ -36,15 +36,29 @@ namespace FuncLib::Store
 		FileCache _cache;
 		StorageAllocator _allocator;
 		set<pos_lable> _toDeallocateLables;// 之后可以基于这个调整文件大小
+		ObjectRelationTree _objRelationTree;
 	public:
 		static shared_ptr<File> GetFile(path const& filename);
 		File(unsigned int fileId, path filename); // for make_shared use in File class only
+		File(File&& that) noexcept = delete;
+		File(File const& that) = delete;
+
 		shared_ptr<path> Path() const;
 		~File();
 
 		template <typename T>
 		shared_ptr<T> Read(pos_lable posLable)
 		{
+			// TODO
+			// if constexpr (T == NodeBase) use a type list to store these inherited type
+			// {
+			// 	Read LeafNode
+			// }
+			// else
+			// {
+			// 	Read MiddleNode
+			// }
+			
 			if (_cache.Cached<T>(posLable))
 			{
 				return _cache.Read<T>(posLable);
@@ -71,51 +85,96 @@ namespace FuncLib::Store
 			return { lable, obj };
 		}
 
+		/// 使用这个方法进行存储只能是最外层的对象，比如用在 OuterDiskPtr 这样
 		template <typename T>
 		void Store(pos_lable posLable, shared_ptr<T> const& object)
 		{
 			_toDeallocateLables.erase(posLable);
 
+			// 这里的 SizeStable 要不要考虑指针指向的对象呀，牵涉到 ByteConverter<DiskPtr> 和这下面的 if
+
 			// 触发 写 的唯一一个地方
+			auto bytes = ObjectBytes(posLable);
+			pos_int start;
+
 			if (_allocator.Ready(posLable))
 			{
-				auto oldStart = _allocator.GetConcretePos(posLable);
+				start = _allocator.GetConcretePos(posLable);
 				if constexpr (ByteConverter<T>::SizeStable)
 				{
-					auto writer = FileWriter(_filename, oldStart);// 如果这里是子调用 Store，可以合并上层的 writer，只形成一次写入吗？
-					ByteConverter<T>::WriteDown(*object, &writer);
+					ByteConverter<T>::WriteDown(*object, &bytes);
 				}
 				else
 				{
-					auto writer = PreWriter();// 这个应该只用一次，析构时自动写入，或并入上层 writer
-					ByteConverter<T>::WriteDown(*object, &writer);
+					ByteConverter<T>::WriteDown(*object, &bytes);
 					auto previousSize = _allocator.GetAllocatedSize(posLable);
-					auto newSize = writer.Size();
-					auto start = oldStart;
+					auto newSize = bytes.Size();
 					if (previousSize < newSize)
 					{
 						start = _allocator.ResizeSpaceTo(posLable, newSize);
 					}
-
-					FileWriter(move(writer), _filename, start);
 				}
 			}
 			else
 			{
-				auto writer = PreWriter(); // 这个应该只用一次（减少复杂性），析构时自动写入，或并入上层 writer
-				ByteConverter<T>::WriteDown(*object, &writer);
-				auto size = writer.Size();
-				auto start = _allocator.GiveSpaceTo(posLable, size);
-				FileWriter(move(writer), _filename, start);
+				ByteConverter<T>::WriteDown(*object, &bytes);
+				auto size = bytes.Size();
+				start = _allocator.GiveSpaceTo(posLable, size);
 			}
-			
+
+			bytes.WriteIn(*_filename, start);
+
+			// update object relation
+			_objRelationTree.UpdateWith(&bytes);
+
 			// 可能需要 assert 这里的 start 和 writer 的当前地址要一样，有的情况下可能不一样也是对的
 			// 要基于位置都是偏移的抽象的基础去工作，感觉有点复杂了可能，之后再想
 		}
 
 		template <typename T>
+		void Store(pos_lable posLable, shared_ptr<T> const& object, IWriter auto* parentWriter)
+		{
+			_toDeallocateLables.erase(posLable);
+
+			using Writer = std::remove_pointer_t<decltype(parentWriter)>;
+			auto bytes = new Writer(posLable);
+			parentWriter->AddSub(bytes);
+			pos_int start;
+
+			// 触发 写 的唯一一个地方
+			if (_allocator.Ready(posLable))
+			{
+				start = _allocator.GetConcretePos(posLable);
+				if constexpr (ByteConverter<T>::SizeStable)
+				{
+					ByteConverter<T>::WriteDown(*object, &bytes);
+				}
+				else
+				{
+					ByteConverter<T>::WriteDown(*object, &bytes);
+					auto previousSize = _allocator.GetAllocatedSize(posLable);
+					auto newSize = bytes.Size();
+					if (previousSize < newSize)
+					{
+						start = _allocator.ResizeSpaceTo(posLable, newSize);
+					}
+				}
+			}
+			else
+			{
+				ByteConverter<T>::WriteDown(*object, &bytes);
+				auto size = bytes.Size();
+				start = _allocator.GiveSpaceTo(posLable, size);
+			}
+
+			bytes.WriteIn(*_filename, start);
+		}
+
+		template <typename T>
 		void Delete(pos_lable posLable, shared_ptr<T> object) // 这个模仿 delete 这个接口，但暂不处理 object
 		{
+			// delete related sub pos_lable TODO
+			// also related to toBeDeleteLables
 			_toDeallocateLables.erase(posLable);
 
 			_cache.Remove<T>(posLable);

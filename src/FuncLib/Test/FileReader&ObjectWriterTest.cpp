@@ -2,23 +2,23 @@
 #include "Util.hpp"
 #include "../../TestFrame/FlyTest.hpp"
 #include "../Store/FileReader.hpp"
-#include "../Store/FileWriter.hpp"
+#include "../Store/ObjectBytes.hpp"
 
 using namespace FuncLib::Store;
 using namespace std;
 using namespace FuncLib::Test;
 
-TESTCASE("FileReader&FileWriter test")
+TESTCASE("FileReader&ObjectBytes test")
 {
 	auto filename = "reader&writer";
 	{
-		auto writer = FileWriter(MakeFilePath(filename), 0);
+		auto writer = ObjectBytes(0);// TODO pos_lable
 		string s = "Hello World";
-		writer.StartCounter();
-		writer.Write(s.c_str(), s.size());
-		writer.EndCounter();
-		auto c = writer.CounterNum();
-		ASSERT(c == s.size());
+		// writer.StartCounter();
+		// writer.Write(s.c_str(), s.size());
+		// writer.EndCounter();
+		// auto c = writer.CounterNum();
+		// ASSERT(c == s.size());
 
 		auto reader = FileReader(MakeFilePath("reader&writer"), 0);
 		ASSERT(reader.GetLessOwnershipFile() == nullptr);
@@ -37,4 +37,4 @@ TESTCASE("FileReader&FileWriter test")
 	remove(filename);
 }
 
-DEF_TEST_FUNC(fileReader_FileWriterTest)
+DEF_TEST_FUNC(fileReader_ObjectWriterTest)

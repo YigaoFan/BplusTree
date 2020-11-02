@@ -61,7 +61,7 @@ namespace FuncLib
 		static void WriteDown(T const& t, IWriter auto* writer) 
 		{
 			char const* start = reinterpret_cast<char const*>(&t);
-			writer->Write(start, sizeof(T));
+			writer->Add(start, sizeof(T));
 		}
 
 		static T ReadOut(FileReader* reader)
@@ -128,7 +128,7 @@ namespace FuncLib
 		{
 			size_t n = t.size();
 			ByteConverter<decltype(n)>::WriteDown(n, writer);
-			writer->Write(t.c_str(), n);
+			writer->Add(t.c_str(), n);
 		}
 
 		static T ReadOut(FileReader* reader)
@@ -152,27 +152,17 @@ namespace FuncLib
 			auto n = vec.Count();
 			ByteConverter<size_int>::WriteDown(n, writer);
 			// Items
-			auto counted = false;
+			auto beforeSize = writer->Size();
 			for (auto& t : vec)
 			{
-				if (SizeStable && !counted)
-				{
-					writer->StartCounter();
-				}
-
 				ByteConverter<T>::WriteDown(t, writer);
-
-				if (SizeStable && !counted)
-				{
-					writer->EndCounter();
-					counted = true;
-				}
 			}
+			auto afterSize = writer->Size();
 
 			if constexpr (SizeStable)
 			{
-				auto unitSize = writer->CounterNum();
-				writer->WriteBlank(unitSize * (Capacity - n));
+				auto unitSize = (afterSize - beforeSize) / n;
+				writer->AddBlank(unitSize * (Capacity - n));
 			}
 		}
 

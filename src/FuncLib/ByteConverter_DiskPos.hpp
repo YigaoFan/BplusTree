@@ -24,7 +24,7 @@ namespace FuncLib
 			WriteDown(p, writer);
 			if (object != nullptr)
 			{
-				p.WriteObject(object);
+				p.WriteObject(object, writer);
 			}
 		}
 

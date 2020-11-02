@@ -2,7 +2,7 @@
 #include <memory>
 #include "../../TestFrame/FlyTest.hpp"
 #include "../ByteConverter.hpp"
-#include "../Store/FileWriter.hpp"
+#include "../Store/ObjectBytes.hpp"
 #include "../Store/FileReader.hpp"
 #include "Util.hpp"
 
@@ -15,7 +15,7 @@ TESTCASE("Byte converter test")
 {
 	auto filename = "byteConverterTest";
 	auto path = MakeFilePath(filename);
-	auto writer = FileWriter(path, 0);
+	auto writer = ObjectBytes(0);// TODO 生成器要加下这个 pos_lable 0
 	auto reader = FileReader(path, 0);
 	SECTION("section0")
 	{

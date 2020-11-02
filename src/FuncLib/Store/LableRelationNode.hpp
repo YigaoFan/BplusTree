@@ -1,113 +1,186 @@
 #pragma once
 #include <vector>
-#include <iterator>
-#include <functional>
 #include "StaticConfig.hpp"
+#include "../../Btree/Enumerator.hpp"
 
 #include "../../Basic/Concepts.hpp" // temp
 
 namespace FuncLib::Store
 {
-	using ::std::back_inserter;
-	using ::std::function;
 	using ::std::move;
 	using ::std::vector;
 
-
-
+	using Basic::IsConvertibleTo;
 	using Basic::IsSameTo;
+	using Collections::CreateEnumerator;
+
+	template <typename T>
+	concept Enumerator = requires(T e)
+	{
+		e.MoveNext();
+		e.Current();
+	};
+
 	template <typename T>
 	concept PosLableNode = requires(T node)
 	{
 		{ node.Lable() } -> IsSameTo<pos_lable>;
-		{ node.Next() } -> PosLableNode;
-		{ node.SubNodes() } -> PosLableNode;
+		{ node.GetLableSortedSubsEnumerator() } -> Enumerator;
 	};
 
-	// 每一个 writer 里面配一个 LableRelationNode*
 	class LableRelationNode
 	{
 	private:
-		function<void(pos_lable)> _releaser;
 		pos_lable _lable;
 		vector<LableRelationNode*> _subLables;// 用 shared_ptr TODO
 	public:
-		LableRelationNode(pos_lable lable, function<void(pos_lable)> releaser);
-
-		LableRelationNode(LableRelationNode&& that) noexcept = delete;
-		LableRelationNode(LableRelationNode const& that) = delete;
-
-		template <typename ReadQuerier>
-		void UpdateWith(PosLableNode auto* node, ReadQuerier const& read)
+		static LableRelationNode* ConsNodeWith(PosLableNode auto* lableNode)
 		{
-			if (not read(_lable))
+			vector<LableRelationNode*> subNodes;
+
+			auto e = lableNode->GetLableSortedSubsEnumerator();
+			while (e.MoveNext())
 			{
-				return;
+				subNodes.push_back(ConsNodeWith(e.Current()));
 			}
 
+			return new LableRelationNode(lableNode->Lable(), move(subNodes));
+		}
+
+		LableRelationNode(pos_lable lable);
+		LableRelationNode(LableRelationNode const& that) = delete;
+		LableRelationNode& operator= (LableRelationNode const& that) = delete;
+		LableRelationNode(LableRelationNode&& that) noexcept = default;
+		LableRelationNode& operator= (LableRelationNode&& that) noexcept
+		{
+			this->_lable = that._lable;
+			this->_subLables = move(that._subLables);
+			return *this;
+		}
+
+		~LableRelationNode();
+
+		// 这样哪些需要 release 是不是就不用那个 toDoDelete set 来记了？还需要，有的没 Store 就要 release
+		// 那这里就要有某种方法标记它已经 Store 了，不要让那个 set 来 release 了
+		template <typename ReadQuerier, typename Releaser>
+		void UpdateWith(PosLableNode auto* node, ReadQuerier const& read, Releaser const& releaser)
+		{
 			if (auto l = node->Lable(); l != this->_lable)
 			{
-				this->ReleaseAll();
-				this->_lable = l;
-				this->_subLables = move(newInfoRealtionNode._subLables);// traverse then cons tree
+				this->ReleaseAll(releaser);
+				auto newNode = ConsNodeWith(node);
+				*this = move(*newNode);// TODO 直接用局部变量
+				delete newNode;
 			}
 			else
 			{
-				for (int i = _subLables.size() - 1; i >= 0; --i)
+				if (not read(_lable))
 				{
-					auto oldP = this->_subLables[i];
+					return;
+				}
+
+				vector<LableRelationNode*> toDeletes;
+				vector<LableRelationNode*> toAdds;
+				auto thatSubs = node->GetLableSortedSubsEnumerator();
+				auto thisSubs = CreateEnumerator(_subLables);
+				while (true)
+				{
+					LableRelationNode* oldP = thisSubs.Current();
 					auto oldLable = oldP->_lable;
-					
-					if (not read(oldLable))
+
+					auto subPtr = thatSubs.Current();
+					auto newLable = subPtr->Lable();
+
+					if (oldLable < newLable)
 					{
-						continue; // 如果这个 lable 没读，那就跳过下面这些步骤
+						toDeletes.push_back(oldP);
+						if (not thisSubs.MoveNext()) { goto ProcessRemainNew; }
 					}
-
-					auto subs = node->SubNodes();// Enumerator like
-					while (subs.MoveNext())
+					else if (oldLable == newLable)
 					{
-						PosLableNode* subPtr = subs.Current();
-						auto newLable = subPtr->Lable();
+						oldP->UpdateWith(subPtr, read, releaser);
+						auto hasOld = thisSubs.MoveNext();
+						auto hasNew = thatSubs.MoveNext();
 
-						if (oldLable == newLable)
+						if (hasOld)
 						{
-							oldP->UpdateWith(subPtr, read);
-							goto NextOld;
+							if (hasNew) { continue; }
+							else { goto ProcessRemainOld; }
+						}
+						else
+						{
+							if (hasNew) { goto ProcessRemainNew; }
+							else { break; }
 						}
 					}
+					else // oldLable > newLable 说明 newLable 没遇到过
+					{
+						LableRelationNode* n = ConsNodeWith(subPtr);
+						toAdds.push_back(n);
 
-					// for (int j = newInfoRealtionNode._subLables.size() - 1; j >= 0; --j)
-					// {
-					// 	// auto newP = newInfoRealtionNode._subLables[j];
-					// 	auto newLable = subPtr->Lable();
+						if (not thatSubs.MoveNext()) { goto ProcessRemainOld; }
+					}
 
-					// 	if (oldLable == newLable)
-					// 	{
-					// 		oldP->UpdateWith(subPtr, read);
-					// 		// delete newP;
-					// 		// newInfoRealtionNode._subLables.erase(newInfoRealtionNode._subLables.begin() + j);
-					// 		goto NextOld;
-					// 	}
-					// }
-				Release:
-					oldP->ReleaseAll();
-					delete oldP;
-					_subLables.erase(_subLables.begin() + i);
-				NextOld:
+				ProcessRemainOld:
+					do
+					{
+						toDeletes.push_back(thisSubs.Current());
+					} while (thisSubs.MoveNext());
+					break;
+
+				ProcessRemainNew:
+					do
+					{
+						toAdds.push_back(ConsNodeWith(thatSubs.Current()));
+					} while (thatSubs.MoveNext());
 					break;
 				}
 
-				// need to collect new pos_lable subs
-				// traverse then cons tree
-				// include new node
-				move(newInfoRealtionNode._subLables.begin(), newInfoRealtionNode._subLables.end(), back_inserter(this->_subLables));
+				for (auto x : toDeletes)
+				{
+					x->ReleaseAll(releaser);
+					delete x;
+					for (size_t i = 0; i < _subLables.size(); ++i)
+					{
+						if (x == _subLables[i])
+						{
+							_subLables.erase(_subLables.begin() + i);
+							break;
+						}
+					}
+				}
+
+				for (auto x : toAdds)
+				{
+					for (size_t i = 0; auto y : _subLables)
+					{
+						if (x->_lable < y->_lable)
+						{
+							_subLables.insert(_subLables.begin() + i, x);
+							break;
+						}
+						
+						++i;
+					}
+				}
+
 			}
 		}
-
-		LableRelationNode* AddSub(pos_lable lable);
 	
 	private:
-		void ReleaseAll();
-		~LableRelationNode();
+		LableRelationNode(pos_lable lable, vector<LableRelationNode*> subNodes);
+
+		template <typename Releaser>
+		void ReleaseAll(Releaser const& releaser)
+		{
+			releaser(_lable);
+			for (auto p : _subLables)
+			{
+				p->ReleaseAll(releaser);
+				delete p;
+			}
+
+			_subLables.clear();
+		}
 	};	
 }
