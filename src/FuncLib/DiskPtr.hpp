@@ -205,8 +205,6 @@ namespace FuncLib
 	private:
 		friend struct ByteConverter<UniqueDiskPtr, false>;
 		using Base = DiskPtrBase<T>;
-		template <typename T1>
-		friend DiskPos<T1> const& GetDiskPos(UniqueDiskPtr<T1> const&);
 	public:
 		using Base::Base;
 

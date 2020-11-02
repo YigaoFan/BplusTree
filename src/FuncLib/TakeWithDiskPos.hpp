@@ -23,11 +23,5 @@ namespace FuncLib
 		{
 			return { *_posPtr };
 		}
-
-		template <typename T1>
-		void AddSub(DiskPos<T1> const& subDiskPos)
-		{
-			_posPtr->AddSub(subDiskPos);
-		}
 	};
 }

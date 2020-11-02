@@ -2,6 +2,7 @@
 #include <memory>
 #include <utility>
 #include "Store/File.hpp"
+#include "Store/IWriterConcept.hpp"
 
 namespace FuncLib
 {
@@ -28,12 +29,6 @@ namespace FuncLib
 		DiskPos(File* file, pos_lable lable) : _file(file), _lable(lable)
 		{ }
 
-		template <typename T1>
-		void AddSub(DiskPos<T1> const& subDiskPos)
-		{
-			_file->SetSubRelation(_lable, subDiskPos._lable);
-		}
-
 		template <typename Derived>
 		DiskPos(DiskPos<Derived> const& that) : _file(that._file), _lable(that._lable)
 		{ }
@@ -43,9 +38,9 @@ namespace FuncLib
 			return _file->Read<T>(_lable);
 		}
 
-		void WriteObject(shared_ptr<T> const& obj) const
+		void WriteObject(shared_ptr<T> const& obj, IWriter auto* writer) const
 		{
-			_file->Store(_lable, obj);
+			_file->Store(_lable, obj, writer);
 		}
 
 		pair<DiskPos, shared_ptr<T>> Clone(shared_ptr<T> const& obj) const

@@ -6,8 +6,6 @@ namespace FuncLib
 	private:
 		friend struct ByteConverter<UniqueDiskRef, false>;
 		friend struct OwnerLessDiskRef<T>;
-		template <typename T1>
-		friend DiskPos<T1> const& GetDiskPos(UniqueDiskRef<T1> const&);
 		UniqueDiskPtr<T> _ptr;
 
 	public:
@@ -15,6 +13,7 @@ namespace FuncLib
 
 		UniqueDiskRef(UniqueDiskRef&& that) noexcept : _ptr(move(that._ptr)) { }
 
+		// TODO 下面这个现在还会用到吗？
 		UniqueDiskRef(UniqueDiskRef const& that) : _ptr(that._ptr.Clone())
 		{ }
 

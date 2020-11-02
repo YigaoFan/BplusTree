@@ -101,8 +101,6 @@ namespace Collections
 		{
 			if (not _elements.Full())
 			{
-				Base::SetSubRelationWhenOnDisk(this, p);
-
 				return _elements.Add(move(p), [this]() 
 				{
 					(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
@@ -246,23 +244,17 @@ namespace Collections
 
 		void Append(typename decltype(_elements)::Item item)
 		{
-			Base::SetSubRelationWhenOnDisk(this, item);
-
 			_elements.Append(move(item));
 		}
 
 		void EmplaceHead(typename decltype(_elements)::Item item)
 		{
-			Base::SetSubRelationWhenOnDisk(this, item);
-
 			_elements.EmplaceHead(move(item));
 			(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
 		}
 
 		void ProcessedAdd(typename decltype(_elements)::Item item)
 		{
-			Base::SetSubRelationWhenOnDisk(this, item);
-
 			_elements.Add(move(item), [this]()
 			{
 				(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
@@ -272,8 +264,6 @@ namespace Collections
 		typename decltype(_elements)::Item
 		ExchangeMin(typename decltype(_elements)::Item item)
 		{
-			Base::SetSubRelationWhenOnDisk(this, item);
-
 			auto min = _elements.ExchangeMin(move(item));
 			(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
 			return move(min);
@@ -282,8 +272,6 @@ namespace Collections
 		typename decltype(_elements)::Item
 		ExchangeMax(typename decltype(_elements)::Item item)
 		{
-			Base::SetSubRelationWhenOnDisk(this, item);
-
 			return _elements.ExchangeMax(move(item));
 		}
 	};
