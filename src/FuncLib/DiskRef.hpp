@@ -6,6 +6,8 @@ namespace FuncLib
 	private:
 		friend struct ByteConverter<UniqueDiskRef, false>;
 		friend struct OwnerLessDiskRef<T>;
+		template <typename T1>
+		friend DiskPos<T1> const& GetDiskPos(UniqueDiskRef<T1> const&);
 		UniqueDiskPtr<T> _ptr;
 
 	public:
@@ -36,7 +38,7 @@ namespace FuncLib
 		friend struct ByteConverter<OwnerLessDiskRef, false>;
 		OwnerLessDiskPtr<T> _ptr;
 	public:
-		OwnerLessDiskRef(UniqueDiskRef<T> const &uniqueRef) : _ptr(uniqueRef._ptr.Get())
+		OwnerLessDiskRef(UniqueDiskRef<T> const& uniqueRef) : _ptr(uniqueRef._ptr.Get())
 		{ }
 
 		OwnerLessDiskRef(OwnerLessDiskPtr<T> ptr) : _ptr(move(ptr)) { }

@@ -30,7 +30,8 @@ namespace Collections
 	class NodeFactory;
 	// 最好把 MiddleNode 和 LeafNode 的构造与 Btree 隔绝起来，使用 NodeBase 来作用，顶多使用强制转型来调用一些函数
 	template <typename Key, typename Value, order_int BtreeOrder, StorePlace Place = StorePlace::Memory>
-	class MiddleNode : public NodeBase<Key, Value, BtreeOrder, Place>
+	class MiddleNode : public NodeBase<Key, Value, BtreeOrder, Place>,
+					   public TakeWithDiskPos<MiddleNode<Key, Value, BtreeOrder, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>
 	{
 	private:
 		template <typename... Ts>
@@ -217,7 +218,7 @@ namespace Collections
 		void AddSubNodeCallback(Base* srcNode, Ptr<Base> newNextNode)
 		{
 			// newNextNode must not be MinSon
-			if (!_elements.Full())
+			if (not _elements.Full())
 			{
 				return this->ProcessedAdd({ StoredKey(newNextNode->MinKey()), move(newNextNode) });
 			}
@@ -377,12 +378,16 @@ namespace Collections
 
 		void Append(typename decltype(_elements)::Item item)
 		{
+			Base::SetSubRelationWhenOnDisk(this, item);
+
 			this->SetSubNodeCallback(item.second->Middle(), item.second);
 			_elements.Append(move(item));
 		}
 
 		void EmplaceHead(typename decltype(_elements)::Item item)
 		{
+			Base::SetSubRelationWhenOnDisk(this, item);
+
 			this->SetSubNodeCallback(item.second->Middle(), item.second);
 			_elements.EmplaceHead(move(item));
 			(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
@@ -390,9 +395,12 @@ namespace Collections
 
 		void ProcessedAdd(typename decltype(_elements)::Item item)
 		{
+			Base::SetSubRelationWhenOnDisk(this, item);
+
 			this->SetSubNodeCallback(item.second->Middle(), item.second);
 			_elements.Add(move(item), [this]()
 			{
+				// TODO add sub relation
 				(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
 			});
 		}
@@ -400,6 +408,8 @@ namespace Collections
 		typename decltype(_elements)::Item
 		ExchangeMin(typename decltype(_elements)::Item item)
 		{
+			Base::SetSubRelationWhenOnDisk(this, item);
+
 			this->SetSubNodeCallback(item.second->Middle(), item.second);
 			auto min = _elements.ExchangeMin(move(item));
 			(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
@@ -409,6 +419,8 @@ namespace Collections
 		typename decltype(_elements)::Item
 		ExchangeMax(typename decltype(_elements)::Item item)
 		{
+			Base::SetSubRelationWhenOnDisk(this, item);
+
 			this->SetSubNodeCallback(item.second->Middle(), item.second);
 			return _elements.ExchangeMax(move(item));
 		}

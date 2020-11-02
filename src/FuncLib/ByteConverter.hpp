@@ -11,3 +11,4 @@
 #include "ByteConverter_DiskPtr.hpp"
 #include "DiskRef.hpp"
 #include "ByteConverter_DiskRef.hpp"
+#include "GetDiskPos.hpp"

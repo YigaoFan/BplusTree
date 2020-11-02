@@ -28,6 +28,12 @@ namespace FuncLib
 		DiskPos(File* file, pos_lable lable) : _file(file), _lable(lable)
 		{ }
 
+		template <typename T1>
+		void AddSub(DiskPos<T1> const& subDiskPos)
+		{
+			_file->SetSubRelation(_lable, subDiskPos._lable);
+		}
+
 		template <typename Derived>
 		DiskPos(DiskPos<Derived> const& that) : _file(that._file), _lable(that._lable)
 		{ }

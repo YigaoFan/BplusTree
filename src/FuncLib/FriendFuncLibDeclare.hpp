@@ -25,6 +25,13 @@ namespace FuncLib
 	template <typename T>
 	class OwnerLessDiskRef;
 
+	template <typename T>
+	class DiskPos;
+	template <typename T>
+	DiskPos<T> const& GetDiskPos(UniqueDiskPtr<T> const& ptr);
+	template <typename T>
+	DiskPos<T> const& GetDiskPos(UniqueDiskRef<T> const& ref);
+
 	template <typename T, Switch SwitchState>
 	class TakeWithDiskPos;
 

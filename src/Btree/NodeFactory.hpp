@@ -42,6 +42,7 @@ namespace Collections
 				using FuncLib::Store::FileResource;
 				auto f = FileResource::GetCurrentThreadFile().get();
 				auto node = Middle(enumerator, lessThan);
+				// 注意下面 Make 的类型
 				return UniqueDiskPtr<Middle>::MakeUnique(move(node), f);// TODO maybe should handle leaf cons, too
 			}
 			else

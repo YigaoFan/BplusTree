@@ -205,6 +205,8 @@ namespace FuncLib
 	private:
 		friend struct ByteConverter<UniqueDiskPtr, false>;
 		using Base = DiskPtrBase<T>;
+		template <typename T1>
+		friend DiskPos<T1> const& GetDiskPos(UniqueDiskPtr<T1> const&);
 	public:
 		using Base::Base;
 
@@ -213,12 +215,13 @@ namespace FuncLib
 		{
 			// 硬存使用的出发点只有这里
 			auto [lable, obj] = file->New(forward<T1>(t));
+			UniqueDiskPtr<T> ptr{ { file, lable }, obj };
 			if constexpr (is_base_of_v<TakeWithDiskPos<T, Switch::Enable>, T>)
 			{
-				TakeWithDiskPos<T, Switch::Enable>::SetDiskPos(obj, DiskPos<T>(file, lable));
+				TakeWithDiskPos<T, Switch::Enable>::SetDiskPos(obj, &ptr._pos);
 			}
 
-			return { { file, lable }, obj };
+			return ptr;
 		}
 
 		UniqueDiskPtr(UniqueDiskPtr const&) = delete;

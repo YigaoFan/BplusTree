@@ -10,18 +10,24 @@ namespace FuncLib
 	class TakeWithDiskPos<T, Switch::Enable>
 	{
 	private:
-		DiskPos<T> _pos;
+		DiskPos<T>* _posPtr = nullptr;
 
 	public:
 		template <typename TakeWithDiskPosPtr>
-		static void SetDiskPos(TakeWithDiskPosPtr ptr, DiskPos<T> pos)
+		static void SetDiskPos(TakeWithDiskPosPtr ptr, DiskPos<T>* posPtr)
 		{
-			ptr->_pos = move(pos);
+			ptr->_posPtr = posPtr;
 		}
 
 		OwnerLessDiskPtr<T> GetOwnerLessDiskPtr() const
 		{
-			return { _pos };
+			return { *_posPtr };
+		}
+
+		template <typename T1>
+		void AddSub(DiskPos<T1> const& subDiskPos)
+		{
+			_posPtr->AddSub(subDiskPos);
 		}
 	};
 }

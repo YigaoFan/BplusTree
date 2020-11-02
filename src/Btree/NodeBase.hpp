@@ -7,6 +7,7 @@
 #include <memory>
 #include <functional>
 #include <type_traits>
+#include <utility>
 #include "Basic.hpp"
 #include "../FuncLib/FriendFuncLibDeclare.hpp"
 #include "../FuncLib/Store/FileResource.hpp"
@@ -19,6 +20,7 @@ namespace Collections
 	using ::FuncLib::UniqueDiskPtr;
 	using ::std::function;
 	using ::std::move;
+	using ::std::pair;
 	using ::std::remove_const_t;
 	using ::std::remove_pointer_t;
 	using ::std::result_of_t;
@@ -111,7 +113,30 @@ namespace Collections
 		{
 			return ChooseAddPosition(preCount, thisCount, nxtCount) == Position::Previous ? Position::Next : Position::Previous;
 		}
+
+		template <typename T1, typename T2, typename ConcreteNodeT>
+		void SetSubRelationWhenOnDisk(ConcreteNodeT* node, pair<T1, T2> const& p)
+		{
+			using FuncLib::GetDiskPos;
+			using FuncLib::UniqueDiskPtr;
+			using FuncLib::UniqueDiskRef;
+
+			if constexpr (Place == StorePlace::Disk)
+			{
+				if constexpr (IsSpecialization<T1, UniqueDiskPtr>::value or IsSpecialization<T1, UniqueDiskRef>::value)
+				{
+					node->AddSub(GetDiskPos(p.first));
+				}
+
+				if constexpr (IsSpecialization<T2, UniqueDiskPtr>::value or IsSpecialization<T2, UniqueDiskRef>::value)
+				{
+					node->AddSub(GetDiskPos(p.second));
+				}
+			}
+		}
 	};
+
+
 }
 
 #define DEF_LESS_THAN_SETTER \
