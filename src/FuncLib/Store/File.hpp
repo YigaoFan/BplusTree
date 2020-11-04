@@ -132,22 +132,13 @@ namespace FuncLib::Store
 			ResizeSpaceQueue rq;
 			ObjectBytes bytes{ posLable, &wq, &aq, &rq };
 			ProcessStore(posLable, object, &bytes);
-			auto ready = false;
-			if (not ready)
-			{
-				// 说明第一次 Store，可以所有层次的要分配的空间大小一起分配，获取 vector<pair<pos_lable, size_t>> 来让
-				// allocator 分配
-				// 这里的从
-			}
-			else
-			{
-				// 说明至少第二次 Store，各个已经拥有独立的地址和空间（独立性保证没读取过的内容的安全）
-				// 这时各层次可以各分各的
-			}
-			
-			auto pos = 0;// TODO remove
-			bytes.WriteIn(*_filename, pos);
 			_objRelationTree.UpdateWith(&bytes, [](pos_lable) {});
+
+			auto wq2 = HandleResize(move(rq));// Resize first, then allocate. It can reuse place.
+			auto wq1 = HandleAllocate(move(aq));// 重命名这三个函数名
+			HandleWrite(wq, wq1, wq2);
+			auto pos = 0;// TODO remove
+			bytes.WriteIn(*_filename, pos);// 这个应该不需要在 bytes 里了
 		}
 
 		// 内外在一起写，是不是就代表内部不用获取具体的位置？
@@ -228,7 +219,6 @@ namespace FuncLib::Store
 					if (previousSize < newSize)
 					{
 						// 加入重分配区
-						// start = _allocator.ResizeSpaceTo(posLable, newSize);
 						bytes->ToResizes->Add(bytes);
 						return;
 					}
@@ -241,9 +231,42 @@ namespace FuncLib::Store
 			{
 				// 加入待分配区
 				bytes->ToAllocates->Add(bytes);
+			}
+		}
 
-				// auto size = bytes.Size();
-				// start = _allocator.GiveSpaceTo(posLable, size);
+		WriteQueue HandleAllocate(WriteQueue queue)
+		{
+			for (auto bytes : queue)
+			{
+				auto size = bytes->Size();
+				auto start = _allocator.GiveSpaceTo(bytes->Lable(), size);// 不用返回 start 了
+			}
+
+			return queue;
+		}
+
+		WriteQueue HandleResize(ResizeSpaceQueue queue)
+		{
+			for (auto bytes : queue)
+			{
+				auto start = _allocator.ResizeSpaceTo(bytes->Lable(), bytes->Size()); // 不用返回 start 了
+			}
+
+			return queue;
+		}
+
+		template <typename... Ts>
+		void HandleWrite(WriteQueue const& queue, Ts... ts)
+		{
+			for (auto bytes : queue)
+			{
+				auto start = _allocator.GetConcretePos(bytes->Lable());
+				bytes->WriteIn(*_filename, start);
+			}
+
+			if constexpr (sizeof...(Ts) > 0)
+			{
+				HandleWrite(forward<Ts>(ts)...);
 			}
 		}
 	};

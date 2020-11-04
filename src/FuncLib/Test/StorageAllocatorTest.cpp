@@ -1,12 +1,17 @@
 #include "../../TestFrame/FlyTest.hpp"
 #include "../Store/StorageAllocator.hpp"
+#include "../Store/FileReader.hpp"
+#include "../Store/ObjectBytes.hpp"
+#include "Util.hpp"
 
 using namespace FuncLib::Store;
+using namespace FuncLib::Test;
 
 TESTCASE("StorageAllocator test")
 {
     auto filename = "storageAllocatorTest";
-    auto alloca = StorageAllocator::ReadAllocatedInfoFrom(filename);
+    FileReader reader{ MakeFilePath(filename), 0 };
+    auto alloca = StorageAllocator::ReadAllocatedInfoFrom(&reader);
     auto lable = alloca.AllocatePosLable();
     ASSERT(!alloca.Ready(lable));
     auto size = 1;
@@ -19,7 +24,8 @@ TESTCASE("StorageAllocator test")
     ASSERT(newSize == alloca.GetAllocatedSize(lable));
 
     alloca.DeallocatePosLable(lable);
-    StorageAllocator::WriteAllocatedInfoTo(filename, alloca);
+    ObjectBytes bytes{ 0 };
+    StorageAllocator::WriteAllocatedInfoTo(alloca, &bytes);
 }
 
 DEF_TEST_FUNC(storageAllocatorTest)

@@ -1,20 +1,23 @@
 #include "../../Basic/Exception.hpp"
 #include "StorageAllocator.hpp"
-// #include "../ByteConverter.hpp"
+#include "../ByteConverter.hpp"
 
 namespace FuncLib::Store
 {
 	constexpr pos_lable FileLable = 0;
 
-	StorageAllocator StorageAllocator::ReadAllocatedInfoFrom(path const& filename)
+	StorageAllocator StorageAllocator::ReadAllocatedInfoFrom(FileReader* reader)
 	{
-		// TODO
+		// using DataMember0 = decltype(allocator._posLableTable);
+		// auto posLableTable = ByteConverter<DataMember0>::ReadOut(reader);
+
 		return { 0, {} };
 	}
 
-	void StorageAllocator::WriteAllocatedInfoTo(path const& filename, StorageAllocator const& allocator)
+	void StorageAllocator::WriteAllocatedInfoTo(StorageAllocator const& allocator, ObjectBytes* bytes)
 	{
-		// 使用 ByteConverter<vector<T>, false> 来持久化这里的信息
+		using DataMember0 = decltype(allocator._posLableTable);
+		ByteConverter<DataMember0>::WriteDown(allocator._posLableTable, bytes);
 	}
 
 	StorageAllocator::StorageAllocator(pos_int currentPos, map<pos_lable, pair<pos_int, size_t>> posLableTable)
@@ -72,7 +75,6 @@ namespace FuncLib::Store
 
 		using ::std::make_pair;
 		auto allocateInfoIter = _posLableTable.find(posLable);
-		// 也可以加入到 _deletedLables，用一个特殊的 pos_lable 标记，这个 lable 代表空间属于系统或者 File
 		_deletedLables.insert({ FileLable, allocateInfoIter->second });
 		allocateInfoIter->second = make_pair(_currentPos, biggerSize);
 		_currentPos += biggerSize;

@@ -14,17 +14,19 @@ namespace FuncLib::Store
 			}
 		}
 
-		auto f = make_shared<File>(Files.size(), filename);
+		FileReader reader{ make_shared<path>(filename), 0 };
+		auto relationTree = ObjectRelationTree::ReadObjRelationTreeFrom(&reader);
+		auto allocator = StorageAllocator::ReadAllocatedInfoFrom(&reader);
+		auto f = make_shared<File>(Files.size(), filename, move(allocator), move(relationTree));
 		Files.insert(f.get());
 
 		return f;
 	}
 
-	File::File(unsigned int fileId, path filename)
-		: _filename(make_shared<path>(move(filename))), _cache(fileId),
-		// 下面这两个应该直接作为参数赋值进来更好 TODO
-		 _allocator(StorageAllocator::ReadAllocatedInfoFrom(*_filename)),
-		 _objRelationTree(ObjectRelationTree::ReadObjRelationTreeFrom(*_filename))
+	File::File(unsigned int fileId, path filename, StorageAllocator allocator, ObjectRelationTree relationTree)
+		: _filename(make_shared<path>(move(filename))),
+		  _cache(fileId), _allocator(move(allocator)),
+		  _objRelationTree(move(relationTree))
 	{ }
 
 	shared_ptr<path> File::Path() const
@@ -35,8 +37,11 @@ namespace FuncLib::Store
 	File::~File()
 	{
 		_allocator.DeallocatePosLables(_toDeallocateLables);
-		StorageAllocator::WriteAllocatedInfoTo(*_filename, _allocator);
-		ObjectRelationTree::WriteObjRelationTreeTo(*_filename, _objRelationTree);
+		ObjectBytes bytes{ 0 };
+		StorageAllocator::WriteAllocatedInfoTo(_allocator, &bytes);
+		ObjectRelationTree::WriteObjRelationTreeTo(_objRelationTree, &bytes);
+		auto pos = 0; // TODO
+		bytes.WriteIn(*_filename, pos);
 		Files.erase(this);
 	}
 }

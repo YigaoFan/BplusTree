@@ -2,32 +2,38 @@
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
-#include <memory>
 #include <vector>
 #include "StaticConfig.hpp"
 #include "LableRelationNode.hpp"
 #include "../../Btree/Enumerator.hpp"
+#include "ObjectBytesQueue.hpp"
 
 namespace FuncLib::Store
 {
 	using Collections::CreateEnumerator;
 	using ::std::ofstream;
-	using ::std::shared_ptr;
 	using ::std::size_t;
 	using ::std::vector;
 	using ::std::filesystem::path;
 
 	void WriteByte(path const& filename, pos_int start, char const* begin, size_t size);
-	void DuplicateWriteByte(path const& filename, pos_int start, size_t count, char ch);
+
+	class WriteQueue;
+	class AllocateSpaceQueue;
 
 	class ObjectBytes
 	{
 	private:
 		pos_lable _lable;
 		vector<char> _bytes;
-		vector<ObjectBytes*> _subObjectBytes;
+		vector<ObjectBytes*> _subObjectBytes;// 用 unique_ptr TODO
 	public:
-		ObjectBytes(pos_lable lable);
+		WriteQueue* ToWrites;
+		AllocateSpaceQueue* ToAllocates;
+		ResizeSpaceQueue* ToResizes;
+
+		// remove nullptr TODO
+		ObjectBytes(pos_lable lable, WriteQueue* writeQueuen = nullptr, AllocateSpaceQueue* allocateQueue = nullptr, ResizeSpaceQueue* resizeQueue = nullptr);
 		ObjectBytes(ObjectBytes const& that) = delete;
 		ObjectBytes(ObjectBytes&& that) noexcept = default;
 		

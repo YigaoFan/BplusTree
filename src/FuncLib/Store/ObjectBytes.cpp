@@ -12,7 +12,8 @@ namespace FuncLib::Store
 		fs->write(begin, size);
 	}
 
-	ObjectBytes::ObjectBytes(pos_lable lable) : _lable(lable)
+	ObjectBytes::ObjectBytes(pos_lable lable, WriteQueue* writeQueue, AllocateSpaceQueue* allocateQueue, ResizeSpaceQueue* resizeQueue)
+		: _lable(lable), ToWrites(writeQueue), ToAllocates(allocateQueue), ToResizes(resizeQueue)
 	{ }
 
 	void ObjectBytes::WriteIn(path const& filename, pos_int pos) const
@@ -38,10 +39,10 @@ namespace FuncLib::Store
 	{
 		auto size = _bytes.size();
 
-		for (auto s : _subObjectBytes)
-		{
-			size += s->Size();
-		}
+		// for (auto s : _subObjectBytes)
+		// {
+		// 	size += s->Size();
+		// }
 
 		return size;
 	}

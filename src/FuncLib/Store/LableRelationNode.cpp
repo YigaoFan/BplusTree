@@ -15,5 +15,10 @@ namespace FuncLib::Store
 		{
 			delete p;
 		}
-	}	
+	}
+
+	pos_lable LableRelationNode::Lable() const
+	{
+		return _lable;
+	}
 }

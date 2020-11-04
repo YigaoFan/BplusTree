@@ -4,6 +4,8 @@
 #include <filesystem>
 #include <map>
 #include "StaticConfig.hpp"
+#include "FileReader.hpp"
+#include "ObjectBytes.hpp"
 
 namespace FuncLib::Store
 {
@@ -23,8 +25,8 @@ namespace FuncLib::Store
 		map<pos_lable, pair<pos_int, size_t>> _deletedLables; // 优先从这里分配
 		StorageAllocator(pos_int currentPos, map<pos_lable, pair<pos_int, size_t>> ownerTable);
 	public:
-		static StorageAllocator ReadAllocatedInfoFrom(path const& filename);
-		static void WriteAllocatedInfoTo(path const& filename, StorageAllocator const& allocator);
+		static StorageAllocator ReadAllocatedInfoFrom(FileReader* reader);
+		static void WriteAllocatedInfoTo(StorageAllocator const& allocator, ObjectBytes* bytes);
 
 		pos_lable AllocatePosLable();
 		bool Ready(pos_lable posLable) const;

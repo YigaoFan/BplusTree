@@ -24,7 +24,7 @@ namespace FuncLib
 	{
 		using ThisType = UniqueDiskPtr<T>;
 		using DataMemberType = decltype(declval<ThisType>()._pos);
-		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType, T>::Result;
+		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
 		static void WriteDown(ThisType const& p, IWriter auto* writer)
 		{
@@ -42,7 +42,7 @@ namespace FuncLib
 	{
 		using ThisType = OwnerLessDiskPtr<T>;
 		using DataMemberType = decltype(declval<ThisType>()._pos);
-		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType, T>::Result;
+		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 
 		static void WriteDown(ThisType const& p, IWriter auto* writer)
 		{

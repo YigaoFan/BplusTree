@@ -40,7 +40,7 @@ namespace FuncLib
 
 		void WriteObject(shared_ptr<T> const& obj, IWriter auto* writer) const
 		{
-			_file->Store(_lable, obj, writer);
+			_file->StoreInner(_lable, obj, writer);
 		}
 
 		pair<DiskPos, shared_ptr<T>> Clone(shared_ptr<T> const& obj) const
