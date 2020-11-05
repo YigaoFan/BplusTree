@@ -21,6 +21,7 @@ namespace FuncLib::Store
 	using ::std::pair;
 	using ::std::set;
 	using ::std::shared_ptr;
+	using ::std::filesystem::exists;
 	using ::std::filesystem::path;
 
 	template <typename... Ts>
@@ -123,26 +124,53 @@ namespace FuncLib::Store
 		template <typename T>
 		void Store(pos_lable posLable, shared_ptr<T> const& object)
 		{
+			constexpr ofstream::openmode openmode = ofstream::binary | ofstream::in | ofstream::out;
+			ofstream fs{*_filename, openmode };
+			auto allocate = [&](ObjectBytes* bytes)
+			{
+				auto size = bytes->Size();
+				auto start = _allocator.GiveSpaceTo(bytes->Lable(), size);// 不用返回 start 了
+			};
+
+			auto resize = [&](ObjectBytes* bytes)
+			{
+				auto start = _allocator.ResizeSpaceTo(bytes->Lable(), bytes->Size()); // 不用返回 start 了
+			};
+
+			auto write = [&](ObjectBytes* bytes)
+			{
+				// 如何合并所有写入 TODO
+				auto start = _allocator.GetConcretePos(bytes->Lable());
+				bytes->WriteIn(&fs, start);
+			};
+
 			_toDeallocateLables.erase(posLable);
 
 			// 这里的 SizeStable 不考虑指针指向的对象，牵涉到 ByteConverter<DiskPtr> 和这下面的 if
-
-			WriteQueue wq;
-			AllocateSpaceQueue aq;
-			ResizeSpaceQueue rq;
-			ObjectBytes bytes{ posLable, &wq, &aq, &rq };
+			auto isNew = not _allocator.Ready(posLable);
+			WriteQueue toWrites;
+			AllocateSpaceQueue toAllocates;
+			ResizeSpaceQueue toResize;
+			ObjectBytes bytes{ posLable, &toWrites, &toAllocates, &toResize };
 			ProcessStore(posLable, object, &bytes);
-			_objRelationTree.UpdateWith(&bytes, [](pos_lable) {});
 
-			auto wq2 = HandleResize(move(rq));// Resize first, then allocate. It can reuse place.
-			auto wq1 = HandleAllocate(move(aq));// 重命名这三个函数名
-			HandleWrite(wq, wq1, wq2);
-			auto pos = 0;// TODO remove
-			bytes.WriteIn(*_filename, pos);// 这个应该不需要在 bytes 里了
+			// Ensure file exist before write
+			if (!exists(*_filename)) { ofstream f(*_filename); }
+
+			toResize | resize | write; // Resize first, then allocate. Below allocates can reuse place.
+			toAllocates | allocate | write;
+			toWrites | write;
+
+			if (isNew)
+			{
+				_objRelationTree.Add(&bytes);
+			}
+			else
+			{
+				_objRelationTree.UpdateWith(&bytes, [](pos_lable) {});
+			}
 		}
 
-		// 内外在一起写，是不是就代表内部不用获取具体的位置？
-		// 如果不在一起写，pos_int 在 writer 里的变化机制要变
 		// 还有没有读的部分，在写入的时候要怎么处理
 		// inner 如果大小固定可以和上层放在一块，不固定就可以隔离出去
 
@@ -203,15 +231,11 @@ namespace FuncLib::Store
 		template <typename T>
 		void ProcessStore(pos_lable posLable, shared_ptr<T> const& object, ObjectBytes* bytes)
 		{
-			// auto bytes = new ObjectBytes(posLable, parentWriter->ToWrites, parentWriter->ToAllocates);
-			// pos_int start;
-
 			ByteConverter<T>::WriteDown(*object, bytes);// 这里把 bytes 准备好，这里的 bytes 都是和地址无关的
 
-			// 触发 写 的唯一一个地方
+			// 决定下一步去向
 			if (_allocator.Ready(posLable))
 			{
-				// start = _allocator.GetConcretePos(posLable);
 				if constexpr (not ByteConverter<T>::SizeStable)
 				{
 					auto previousSize = _allocator.GetAllocatedSize(posLable);
@@ -231,42 +255,6 @@ namespace FuncLib::Store
 			{
 				// 加入待分配区
 				bytes->ToAllocates->Add(bytes);
-			}
-		}
-
-		WriteQueue HandleAllocate(WriteQueue queue)
-		{
-			for (auto bytes : queue)
-			{
-				auto size = bytes->Size();
-				auto start = _allocator.GiveSpaceTo(bytes->Lable(), size);// 不用返回 start 了
-			}
-
-			return queue;
-		}
-
-		WriteQueue HandleResize(ResizeSpaceQueue queue)
-		{
-			for (auto bytes : queue)
-			{
-				auto start = _allocator.ResizeSpaceTo(bytes->Lable(), bytes->Size()); // 不用返回 start 了
-			}
-
-			return queue;
-		}
-
-		template <typename... Ts>
-		void HandleWrite(WriteQueue const& queue, Ts... ts)
-		{
-			for (auto bytes : queue)
-			{
-				auto start = _allocator.GetConcretePos(bytes->Lable());
-				bytes->WriteIn(*_filename, start);
-			}
-
-			if constexpr (sizeof...(Ts) > 0)
-			{
-				HandleWrite(forward<Ts>(ts)...);
 			}
 		}
 	};

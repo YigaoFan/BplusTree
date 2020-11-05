@@ -1,7 +1,7 @@
 #pragma once
 #include "LableRelationNode.hpp"
 #include "FileReader.hpp"
-#include "IWriterConcept.hpp"
+#include "ObjectBytes.hpp"
 
 namespace FuncLib::Store
 {
@@ -10,19 +10,14 @@ namespace FuncLib::Store
 	private:
 		vector<LableRelationNode> _nodes;
 	public:
-		static ObjectRelationTree ReadObjRelationTreeFrom(FileReader* reader)
-		{
-			// TODO 需要应对第一次建立
-			return { };
-		}
-
-		static void WriteObjRelationTreeTo(ObjectRelationTree const& tree, IWriter auto* writer)
-		{
-			// TODO
-		}
+		static ObjectRelationTree ReadObjRelationTreeFrom(FileReader* reader);
+		static void WriteObjRelationTreeTo(ObjectRelationTree const& tree, ObjectBytes* writer);
+		ObjectRelationTree() = default;
 		
-		ObjectRelationTree()
-		{ }
+		void Add(PosLableNode auto* topLevelNode)
+		{
+			_nodes.push_back(LableRelationNode::ConsNodeWith(topLevelNode));
+		}
 
 		template <typename Releaser>
 		void UpdateWith(PosLableNode auto* topLevelNode, Releaser const& releaser)
@@ -38,7 +33,7 @@ namespace FuncLib::Store
 				}
 			}
 
-			_nodes.push_back(LableRelationNode::ConsNodeWith(topLevelNode));
+			// throw exception?
 		}
 
 		template <typename Releaser>

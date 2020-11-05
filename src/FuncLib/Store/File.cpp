@@ -41,7 +41,8 @@ namespace FuncLib::Store
 		StorageAllocator::WriteAllocatedInfoTo(_allocator, &bytes);
 		ObjectRelationTree::WriteObjRelationTreeTo(_objRelationTree, &bytes);
 		auto pos = 0; // TODO
-		bytes.WriteIn(*_filename, pos);
+		ofstream* fs = nullptr;
+		bytes.WriteIn(fs, pos);
 		Files.erase(this);
 	}
 }

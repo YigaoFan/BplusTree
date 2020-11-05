@@ -2,9 +2,6 @@
 
 namespace FuncLib::Store
 {
-	using ::std::filesystem::exists;
-
-	constexpr ofstream::openmode Openmode = ofstream::binary | ofstream::in | ofstream::out;
 
 	void WriteByte(ofstream* fs, pos_int start, char const* begin, size_t size)
 	{
@@ -16,13 +13,9 @@ namespace FuncLib::Store
 		: _lable(lable), ToWrites(writeQueue), ToAllocates(allocateQueue), ToResizes(resizeQueue)
 	{ }
 
-	void ObjectBytes::WriteIn(path const& filename, pos_int pos) const
+	void ObjectBytes::WriteIn(ofstream* fileStream, pos_int pos) const
 	{
-		// create file if not exists
-		if (!exists(filename)) { ofstream f(filename); }
-
-		ofstream fs(filename, Openmode);
-		DoWrite(&fs, pos);
+		DoWrite(fileStream, pos);
 	}
 
 	void ObjectBytes::AddSub(ObjectBytes* subObjectBytes)
@@ -37,14 +30,7 @@ namespace FuncLib::Store
 
 	size_t ObjectBytes::Size() const
 	{
-		auto size = _bytes.size();
-
-		// for (auto s : _subObjectBytes)
-		// {
-		// 	size += s->Size();
-		// }
-
-		return size;
+		return _bytes.size();
 	}
 	
 	void ObjectBytes::Add(char const* begin, size_t size)
@@ -72,11 +58,11 @@ namespace FuncLib::Store
 			WriteByte(stream, pos, &_bytes[0], size);
 		}
 
-		pos += size;
+		// pos += size;
 
-		for (auto o : _subObjectBytes)
-		{
-			o->DoWrite(stream, pos);
-		}
+		// for (auto o : _subObjectBytes)
+		// {
+		// 	o->DoWrite(stream, pos);
+		// }
 	}
 }

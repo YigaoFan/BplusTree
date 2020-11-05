@@ -16,8 +16,6 @@ namespace FuncLib::Store
 	using ::std::vector;
 	using ::std::filesystem::path;
 
-	void WriteByte(path const& filename, pos_int start, char const* begin, size_t size);
-
 	class WriteQueue;
 	class AllocateSpaceQueue;
 
@@ -37,7 +35,7 @@ namespace FuncLib::Store
 		ObjectBytes(ObjectBytes const& that) = delete;
 		ObjectBytes(ObjectBytes&& that) noexcept = default;
 		
-		void WriteIn(path const& filename, pos_int pos) const;
+		void WriteIn(ofstream* fileStream, pos_int pos) const;
 
 		void AddSub(ObjectBytes* subObjectByte);
 		pos_lable Lable() const;
