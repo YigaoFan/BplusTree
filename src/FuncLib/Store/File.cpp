@@ -3,8 +3,10 @@
 namespace FuncLib::Store
 {
 	set<File*> File::Files = {};
+	constexpr pos_int MetaDataSize = 2048; // Byte
+	constexpr pos_int MetaDataStart = 0;
 
-	shared_ptr<File> File::GetFile(path const &filename)
+	shared_ptr<File> File::GetFile(path const& filename)
 	{
 		for (auto f : Files)
 		{
@@ -14,17 +16,18 @@ namespace FuncLib::Store
 			}
 		}
 
-		FileReader reader{ make_shared<path>(filename), 0 };
+		auto namePtr = make_shared<path>(filename);
+		FileReader reader{ namePtr, 0 };
 		auto relationTree = ObjectRelationTree::ReadObjRelationTreeFrom(&reader);
 		auto allocator = StorageAllocator::ReadAllocatedInfoFrom(&reader);
-		auto f = make_shared<File>(Files.size(), filename, move(allocator), move(relationTree));
+		auto f = make_shared<File>(Files.size(), namePtr, move(allocator), move(relationTree));
 		Files.insert(f.get());
 
 		return f;
 	}
 
-	File::File(unsigned int fileId, path filename, StorageAllocator allocator, ObjectRelationTree relationTree)
-		: _filename(make_shared<path>(move(filename))),
+	File::File(unsigned int fileId, shared_ptr<path> filename, StorageAllocator allocator, ObjectRelationTree relationTree)
+		: _filename(move(filename)),
 		  _cache(fileId), _allocator(move(allocator)),
 		  _objRelationTree(move(relationTree))
 	{ }
@@ -40,9 +43,24 @@ namespace FuncLib::Store
 		ObjectBytes bytes{ 0 };
 		StorageAllocator::WriteAllocatedInfoTo(_allocator, &bytes);
 		ObjectRelationTree::WriteObjRelationTreeTo(_objRelationTree, &bytes);
-		auto pos = 0; // TODO
-		ofstream* fs = nullptr;
-		bytes.WriteIn(fs, pos);
+
+		if (bytes.Size() > MetaDataSize)
+		{
+			// throw exception()
+			// adjust the size
+		}
+		else
+		{
+			ofstream fs = MakeOFileStream(_filename);
+			bytes.WriteIn(&fs, MetaDataStart);
+		}
+		
 		Files.erase(this);
+	}
+
+	ofstream File::MakeOFileStream(shared_ptr<path> const& filename)
+	{
+		constexpr ofstream::openmode openmode = ofstream::binary | ofstream::in | ofstream::out;
+		return ofstream{ *filename, openmode };
 	}
 }

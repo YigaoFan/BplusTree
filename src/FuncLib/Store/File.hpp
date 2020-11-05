@@ -75,7 +75,7 @@ namespace FuncLib::Store
 	public:
 		static shared_ptr<File> GetFile(path const& filename);
 		/// below for make_shared use in File class only
-		File(unsigned int fileId, path filename, StorageAllocator allocator, ObjectRelationTree relationTree);
+		File(unsigned int fileId, shared_ptr<path> filename, StorageAllocator allocator, ObjectRelationTree relationTree);
 		File(File&& that) noexcept = delete;
 		File(File const& that) = delete;
 
@@ -126,8 +126,7 @@ namespace FuncLib::Store
 		template <typename T>
 		void Store(pos_lable posLable, shared_ptr<T> const& object)
 		{
-			constexpr ofstream::openmode openmode = ofstream::binary | ofstream::in | ofstream::out;
-			ofstream fs{*_filename, openmode };
+			ofstream fs = MakeOFileStream(_filename);
 			auto allocate = [&](ObjectBytes* bytes)
 			{
 				auto size = bytes->Size();
@@ -259,5 +258,7 @@ namespace FuncLib::Store
 				bytes->ToAllocates->Add(bytes);
 			}
 		}
+
+		static ofstream MakeOFileStream(shared_ptr<path> const& filename);
 	};
 }

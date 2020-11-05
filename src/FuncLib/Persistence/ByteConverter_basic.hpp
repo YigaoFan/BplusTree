@@ -41,7 +41,7 @@ namespace FuncLib::Persistence
 	using ::std::tuple_size_v;
 	using namespace Store;
 
-	/// ByteConverter 的工作是将一个类型和 Byte 之间相互转换
+	/// ByteConverter 的工作是将一个类型和 Byte 之间相互转换，这里代码都很适合静态反射类所含成员去做
 	/// TypeConverter 的工作是将一个转换为适合硬盘读取的类型（可以有类似 DiskPtr 这样的读取隔离，而不是一下子读取完）
 
 	template <typename T, bool>
