@@ -1,6 +1,6 @@
 #pragma once
 
-namespace FuncLib
+namespace FuncLib::Persistence
 {
 	template <typename T>
 	struct ByteConverter<OwnerLessDiskRef<T>, false>

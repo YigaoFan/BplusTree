@@ -2,15 +2,15 @@
 #include <string>
 #include <memory>
 #include "../Basic/TypeTrait.hpp"
-#include "../FuncLib/FriendFuncLibDeclare.hpp"
+#include "../FuncLib/Persistence/FriendFuncLibDeclare.hpp"
 
 namespace Collections
 {
 	using ::Basic::CompileIf;
-	using FuncLib::OwnerLessDiskRef;
-	using FuncLib::OwnerState;
-	using FuncLib::TypeConverter;
-	using FuncLib::UniqueDiskPtr;
+	using FuncLib::Persistence::OwnerLessDiskRef;
+	using FuncLib::Persistence::OwnerState;
+	using FuncLib::Persistence::TypeConverter;
+	using FuncLib::Persistence::UniqueDiskPtr;
 	using ::std::is_fundamental_v;
 	using ::std::reference_wrapper;
 	using ::std::string;

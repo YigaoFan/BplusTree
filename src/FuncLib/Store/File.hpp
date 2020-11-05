@@ -9,12 +9,14 @@
 #include "FileReader.hpp"
 #include "ObjectBytes.hpp"
 #include "StorageAllocator.hpp"
-#include "../FriendFuncLibDeclare.hpp"// 因为 DiskPos 里面有功能依赖 File，所以这里只能 ByteConverter 的声明
-#include "IWriterConcept.hpp"
+#include "../Persistence/FriendFuncLibDeclare.hpp" // 因为 DiskPos 里面有功能依赖 File，所以这里只能 ByteConverter 的声明
+#include "../Persistence/IWriterConcept.hpp"
 #include "ObjectRelationTree.hpp"
 
 namespace FuncLib::Store
 {
+	using FuncLib::Persistence::ByteConverter;
+	using FuncLib::Persistence::IWriter;
 	using ::std::enable_shared_from_this;
 	using ::std::make_shared;
 	using ::std::move;

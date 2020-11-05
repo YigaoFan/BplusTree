@@ -1,6 +1,6 @@
 #include "ObjectRelationTree.hpp"
 #include "ObjectBytes.hpp"
-#include "../ByteConverter.hpp"
+#include "../Persistence/ByteConverter.hpp"
 
 namespace FuncLib::Store
 {

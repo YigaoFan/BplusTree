@@ -13,8 +13,8 @@ namespace Collections
 {
 	using Basic::FuncTraits;
 	using Basic::GetMemberFuncType;
-	using ::FuncLib::Switch;
-	using ::FuncLib::TakeWithDiskPos;
+	using ::FuncLib::Persistence::Switch;
+	using ::FuncLib::Persistence::TakeWithDiskPos;
 	using ::std::back_inserter;
 	using ::std::is_same_v;
 	using ::std::make_unique;
@@ -30,8 +30,8 @@ namespace Collections
 	private:
 		template <typename... Ts>
 		using Ptr = typename TypeConfig::template Ptr<Place>::template Type<Ts...>;
-		friend struct FuncLib::ByteConverter<LeafNode, false>;
-		friend struct FuncLib::TypeConverter<LeafNode<Key, Value, BtreeOrder, StorePlace::Memory>>;
+		friend struct FuncLib::Persistence::ByteConverter<LeafNode, false>;
+		friend struct FuncLib::Persistence::TypeConverter<LeafNode<Key, Value, BtreeOrder, StorePlace::Memory>>;
 		using _LessThan = LessThan<Key>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Place>;
 #define RAW_PTR(TYPE) typename Base::template OwnerLessPtr<TYPE>

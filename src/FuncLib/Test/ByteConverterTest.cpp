@@ -1,7 +1,7 @@
 #include <string>
 #include <filesystem>
 #include "../../TestFrame/FlyTest.hpp"
-#include "../ByteConverter.hpp"
+#include "../Persistence/ByteConverter.hpp"
 #include "../Store/ObjectBytes.hpp"
 #include "../Store/FileReader.hpp"
 #include "Util.hpp"
@@ -9,6 +9,7 @@
 using namespace FuncLib;
 using namespace FuncLib::Store;
 using namespace FuncLib::Test;
+using namespace FuncLib::Persistence;
 using namespace std;
 
 TESTCASE("Byte converter test")

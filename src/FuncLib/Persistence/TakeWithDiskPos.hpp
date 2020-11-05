@@ -1,7 +1,7 @@
 #pragma once
 #include "Switch.hpp"
 
-namespace FuncLib
+namespace FuncLib::Persistence
 {
 	template <typename T, Switch SwitchState>
 	class TakeWithDiskPos;

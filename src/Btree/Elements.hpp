@@ -9,7 +9,7 @@
 #include "../Basic/Exception.hpp"
 #include "CollectionException.hpp"
 #include "LiteVector.hpp"
-#include "../FuncLib/FriendFuncLibDeclare.hpp"
+#include "../FuncLib/Persistence/FriendFuncLibDeclare.hpp"
 
 namespace Collections
 {
@@ -40,9 +40,9 @@ namespace Collections
 	class Elements : public LiteVector<pair<Key, Value>, order_int, BtreeOrder>
 	{
 	public:
-		friend struct FuncLib::ByteConverter<Elements, false>;
-		template <typename, FuncLib::OwnerState>
-		friend struct FuncLib::TypeConverter;
+		friend struct FuncLib::Persistence::ByteConverter<Elements, false>;
+		template <typename, FuncLib::Persistence::OwnerState>
+		friend struct FuncLib::Persistence::TypeConverter;
 		using Item = pair<Key, Value>;
 		using Base = LiteVector<Item, order_int, BtreeOrder>;
 		shared_ptr<LessThan> LessThanPtr;

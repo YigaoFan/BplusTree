@@ -16,8 +16,8 @@
 #include "TreeInspector.hpp"
 #include "../Basic/Exception.hpp"
 #include "CollectionException.hpp"
-#include "../FuncLib/FriendFuncLibDeclare.hpp"
-#include "../FuncLib/PtrSetter.hpp"
+#include "../FuncLib/Persistence/FriendFuncLibDeclare.hpp"
+#include "../FuncLib/Persistence/PtrSetter.hpp"
 
 namespace Collections
 {
@@ -109,9 +109,9 @@ namespace Collections
 		template <typename... Ts>
 		using Ptr = typename TypeConfig::template Ptr<Place>::template Type<Ts...>;
 		friend class UniversalEnumerator<BtreeOrder, Key, Value>;
-		friend struct FuncLib::ByteConverter<Btree, false>; // Btree here is undefined or incomplete type
-		friend struct FuncLib::TypeConverter<Btree>;
-		friend struct FuncLib::TypeConverter<Btree<BtreeOrder, Key, Value, StorePlace::Memory>>;
+		friend struct FuncLib::Persistence::ByteConverter<Btree, false>; // Btree here is undefined or incomplete type
+		friend struct FuncLib::Persistence::TypeConverter<Btree>;
+		friend struct FuncLib::Persistence::TypeConverter<Btree<BtreeOrder, Key, Value, StorePlace::Memory>>;
 		using Node = NodeBase<Key, Value, BtreeOrder, Place>;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder, Place>;
 		typename Node::UpNodeAddSubNodeCallback _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);

@@ -3,7 +3,7 @@
 #include "Switch.hpp"
 #include "OwnerState.hpp"
 
-namespace FuncLib
+namespace FuncLib::Persistence
 {
 	template <typename T>
 	using RR = ::std::remove_reference_t<T>;

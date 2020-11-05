@@ -10,8 +10,8 @@
 #include "Elements.hpp"
 #include "NodeBase.hpp"
 #include "LeafNode.hpp"
-#include "../FuncLib/FriendFuncLibDeclare.hpp"
-#include "../FuncLib/PtrSetter.hpp"
+#include "../FuncLib/Persistence/FriendFuncLibDeclare.hpp"
+#include "../FuncLib/Persistence/PtrSetter.hpp"
 #include "NodeAddRemoveCommon.hpp"
 
 namespace Collections 
@@ -35,8 +35,8 @@ namespace Collections
 	private:
 		template <typename... Ts>
 		using Ptr = typename TypeConfig::template Ptr<Place>::template Type<Ts...>;
-		friend struct FuncLib::ByteConverter<MiddleNode, false>;
-		friend struct FuncLib::TypeConverter<MiddleNode<Key, Value, BtreeOrder, StorePlace::Memory>>;
+		friend struct FuncLib::Persistence::ByteConverter<MiddleNode, false>;
+		friend struct FuncLib::Persistence::TypeConverter<MiddleNode<Key, Value, BtreeOrder, StorePlace::Memory>>;
 		friend class NodeFactory<Key, Value, BtreeOrder, Place>;
 		using Base = NodeBase<Key, Value, BtreeOrder, Place>;
 		using Leaf = LeafNode<Key, Value, BtreeOrder, Place>;

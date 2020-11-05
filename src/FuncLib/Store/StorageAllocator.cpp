@@ -1,6 +1,6 @@
 #include "../../Basic/Exception.hpp"
 #include "StorageAllocator.hpp"
-#include "../ByteConverter.hpp"
+#include "../Persistence/ByteConverter.hpp"
 
 namespace FuncLib::Store
 {

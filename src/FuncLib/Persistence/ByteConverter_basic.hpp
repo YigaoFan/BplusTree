@@ -6,15 +6,15 @@
 #include <memory>
 #include <cstddef>
 #include <map>
-#include "../Btree/Elements.hpp"
-#include "../Btree/LiteVector.hpp"
-#include "../Btree/Basic.hpp"
-#include "../Basic/TypeTrait.hpp"
-#include "./Store/FileReader.hpp"
-#include "./Store/IWriterConcept.hpp"
+#include "../../Btree/Elements.hpp"
+#include "../../Btree/LiteVector.hpp"
+#include "../../Btree/Basic.hpp"
+#include "../../Basic/TypeTrait.hpp"
+#include "../Store/FileReader.hpp"
+#include "IWriterConcept.hpp"
 #include "StructToTuple.hpp"
 
-namespace FuncLib
+namespace FuncLib::Persistence
 {
 	using ::Basic::All;
 	using ::Basic::ReturnType;

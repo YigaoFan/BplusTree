@@ -1,6 +1,6 @@
 #pragma once
 
-namespace FuncLib
+namespace FuncLib::Persistence
 {
 	enum class Switch
 	{

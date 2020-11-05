@@ -1,9 +1,8 @@
 #pragma once
 #include <cstddef>
 #include "../../Basic/Concepts.hpp"
-#include "StaticConfig.hpp"
 
-namespace FuncLib::Store
+namespace FuncLib::Persistence
 {
 	using Basic::IsSameTo;
 	using ::std::size_t;

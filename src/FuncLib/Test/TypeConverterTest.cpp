@@ -3,11 +3,12 @@
 #include <cmath>
 #include <iostream>
 #include "../../TestFrame/FlyTest.hpp"
-#include "../TypeConverter.hpp"
+#include "../Persistence/TypeConverter.hpp"
 
 using namespace FuncLib;
 using namespace FuncLib::Store;
 using namespace Collections;
+using namespace FuncLib::Persistence;
 using namespace std;
 
 TESTCASE("Type converter test")

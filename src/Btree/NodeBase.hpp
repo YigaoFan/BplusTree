@@ -8,7 +8,7 @@
 #include <functional>
 #include <type_traits>
 #include "Basic.hpp"
-#include "../FuncLib/FriendFuncLibDeclare.hpp"
+#include "../FuncLib/Persistence/FriendFuncLibDeclare.hpp"
 #include "../FuncLib/Store/FileResource.hpp"
 #include "../Basic/TypeTrait.hpp"
 #include "TypeConfig.hpp"
@@ -16,7 +16,7 @@
 namespace Collections
 {
 	using ::Basic::IsSpecialization;
-	using ::FuncLib::UniqueDiskPtr;
+	using ::FuncLib::Persistence::UniqueDiskPtr;
 	using ::std::function;
 	using ::std::move;
 	using ::std::remove_const_t;

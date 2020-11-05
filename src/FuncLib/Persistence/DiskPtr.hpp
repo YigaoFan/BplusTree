@@ -5,7 +5,7 @@
 #include <functional>
 #include <cstddef>
 
-namespace FuncLib
+namespace FuncLib::Persistence
 {
 	using ::std::function;
 	using ::std::is_same_v;

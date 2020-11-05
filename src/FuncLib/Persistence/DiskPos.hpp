@@ -1,10 +1,10 @@
 #pragma once
 #include <memory>
 #include <utility>
-#include "Store/File.hpp"
-#include "Store/IWriterConcept.hpp"
+#include "../Store/File.hpp"
+#include "IWriterConcept.hpp"
 
-namespace FuncLib
+namespace FuncLib::Persistence
 {
 	using namespace Store;
 	using ::std::pair;

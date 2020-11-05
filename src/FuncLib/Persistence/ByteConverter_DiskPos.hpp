@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-namespace FuncLib
+namespace FuncLib::Persistence
 {
 	using ::std::shared_ptr;
 

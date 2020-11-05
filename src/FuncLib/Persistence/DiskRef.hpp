@@ -1,4 +1,6 @@
-namespace FuncLib
+#pragma once
+
+namespace FuncLib::Persistence
 {
 	template <typename T>
 	class UniqueDiskRef
