@@ -12,7 +12,6 @@ namespace FuncLib::Store
 
 	using Basic::IsConvertibleTo;
 	using Basic::IsSameTo;
-	using Collections::CreateEnumerator;
 
 	template <typename T>
 	concept Enumerator = requires(T e)
@@ -32,49 +31,39 @@ namespace FuncLib::Store
 	{
 	private:
 		pos_lable _lable;
-		vector<LableRelationNode*> _subLables;// 用 shared_ptr TODO
+		vector<LableRelationNode> _subNodes;
 	public:
-		static LableRelationNode* ConsNodePtrWith(PosLableNode auto* lableNode)
-		{
-			vector<LableRelationNode*> subNodes;
-
-			auto e = lableNode->GetLableSortedSubsEnumerator();
-			while (e.MoveNext())
-			{
-				subNodes.push_back(ConsNodePtrWith(e.Current()));
-			}
-
-			return new LableRelationNode(lableNode->Lable(), move(subNodes));
-		}
-
 		static LableRelationNode ConsNodeWith(PosLableNode auto* lableNode)
 		{
-			vector<LableRelationNode*> subNodes;
+			vector<LableRelationNode> subNodes;
 
 			auto e = lableNode->GetLableSortedSubsEnumerator();
 			while (e.MoveNext())
 			{
-				subNodes.push_back(ConsNodePtrWith(e.Current()));
+				subNodes.push_back(ConsNodeWith(&e.Current()));
 			}
 
 			return LableRelationNode(lableNode->Lable(), move(subNodes));
 		}
 
 		LableRelationNode(pos_lable lable);
+		LableRelationNode(pos_lable lable, vector<LableRelationNode> subNodes);
 		LableRelationNode(LableRelationNode const& that) = delete;
 		LableRelationNode& operator= (LableRelationNode const& that) = delete;
 		LableRelationNode(LableRelationNode&& that) noexcept = default;
 		LableRelationNode& operator= (LableRelationNode&& that) noexcept
 		{
 			this->_lable = that._lable;
-			this->_subLables = move(that._subLables);
+			this->_subNodes = move(that._subNodes);
 			return *this;
 		}
 
-		~LableRelationNode();
+		~LableRelationNode() = default;
 
+		void Subs(vector<LableRelationNode> subNodes);
 		pos_lable Lable() const;
-
+		auto CreateSubNodeEnumerator() { return Collections::CreateEnumerator(_subNodes); }
+		auto CreateSubNodeEnumerator() const { return Collections::CreateEnumerator(_subNodes); }
 		// 这样哪些需要 release 是不是就不用那个 toDoDelete set 来记了？还需要，有的没 Store 就要 release
 		// 那这里就要有某种方法标记它已经 Store 了，不要让那个 set 来 release 了
 		/// 这里要求 node 的 Lable 和当前 LableNode 的 Lable 一样，否则直接在外层直接操作就好了
@@ -87,20 +76,20 @@ namespace FuncLib::Store
 			}
 
 			vector<LableRelationNode *> toDeletes;
-			vector<LableRelationNode *> toAdds;
+			vector<LableRelationNode> toAdds;
 			auto thatSubs = node->GetLableSortedSubsEnumerator();
-			auto thisSubs = CreateEnumerator(_subLables);
+			auto thisSubs = this->CreateSubNodeEnumerator();
 			while (true)
 			{
-				LableRelationNode *oldP = thisSubs.Current();
-				auto oldLable = oldP->_lable;
+				LableRelationNode& oldP = thisSubs.Current();
+				auto oldLable = oldP._lable;
 
-				auto subPtr = thatSubs.Current();
-				auto newLable = subPtr->Lable();
+				auto& sub = thatSubs.Current();
+				auto newLable = sub.Lable();
 
 				if (oldLable < newLable)
 				{
-					toDeletes.push_back(oldP);
+					toDeletes.push_back(&oldP);
 					if (not thisSubs.MoveNext())
 					{
 						goto ProcessRemainNew;
@@ -108,7 +97,7 @@ namespace FuncLib::Store
 				}
 				else if (oldLable == newLable)
 				{
-					oldP->UpdateWith(subPtr, read, releaser);
+					oldP.UpdateWith(&sub, read, releaser);
 					auto hasOld = thisSubs.MoveNext();
 					auto hasNew = thatSubs.MoveNext();
 
@@ -137,8 +126,8 @@ namespace FuncLib::Store
 				}
 				else // oldLable > newLable 说明 newLable 没遇到过
 				{
-					LableRelationNode *n = ConsNodePtrWith(subPtr);
-					toAdds.push_back(n);
+					LableRelationNode n = ConsNodeWith(&sub);
+					toAdds.push_back(move(n));
 
 					if (not thatSubs.MoveNext())
 					{
@@ -149,14 +138,14 @@ namespace FuncLib::Store
 			ProcessRemainOld:
 				do
 				{
-					toDeletes.push_back(thisSubs.Current());
+					toDeletes.push_back(&thisSubs.Current());
 				} while (thisSubs.MoveNext());
 				break;
 
 			ProcessRemainNew:
 				do
 				{
-					toAdds.push_back(ConsNodePtrWith(thatSubs.Current()));
+					toAdds.push_back(ConsNodeWith(&thatSubs.Current()));
 				} while (thatSubs.MoveNext());
 				break;
 			}
@@ -164,24 +153,23 @@ namespace FuncLib::Store
 			for (auto x : toDeletes)
 			{
 				x->ReleaseAll(releaser);
-				delete x;
-				for (size_t i = 0; i < _subLables.size(); ++i)
+				for (size_t i = 0; i < _subNodes.size(); ++i)
 				{
-					if (x == _subLables[i])
+					if (x == (&_subNodes[i]))
 					{
-						_subLables.erase(_subLables.begin() + i);
+						_subNodes.erase(_subNodes.begin() + i);
 						break;
 					}
 				}
 			}
 
-			for (auto x : toAdds)
+			for (auto& x : toAdds)
 			{
-				for (size_t i = 0; auto y : _subLables)
+				for (size_t i = 0; auto& y : _subNodes)
 				{
-					if (x->_lable < y->_lable)
+					if (x._lable < y._lable)
 					{
-						_subLables.insert(_subLables.begin() + i, x);
+						_subNodes.insert(_subNodes.begin() + i, move(x));
 						break;
 					}
 
@@ -194,17 +182,12 @@ namespace FuncLib::Store
 		void ReleaseAll(Releaser const& releaser)
 		{
 			releaser(_lable);
-			for (auto p : _subLables)
+			for (auto& p : _subNodes)
 			{
-				p->ReleaseAll(releaser);
-				delete p;
+				p.ReleaseAll(releaser);
 			}
 
-			_subLables.clear();
+			_subNodes.clear();
 		}
-		
-	private:
-		LableRelationNode(pos_lable lable, vector<LableRelationNode*> subNodes);
-
 	};	
 }

@@ -181,9 +181,9 @@ namespace FuncLib::Store
 			_toDeallocateLables.erase(posLable);// 这个操作在有 inner 的情况下对不对 TODO
 
 			auto parent = parentWriter;
-			auto bytes = new ObjectBytes(posLable, parent->ToWrites, parent->ToAllocates, parent->ToResize);
-			parentWriter->AddSub(bytes);
-			ProcessStore(posLable, object, bytes);
+			auto bytes = ObjectBytes(posLable, parent->ToWrites, parent->ToAllocates, parent->ToResize);
+			ProcessStore(posLable, object, &bytes);
+			parentWriter->AddSub(move(bytes));
 		}
 
 		template <typename T>

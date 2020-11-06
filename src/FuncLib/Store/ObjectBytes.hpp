@@ -24,8 +24,10 @@ namespace FuncLib::Store
 	private:
 		pos_lable _lable;
 		vector<char> _bytes;
-		vector<ObjectBytes*> _subObjectBytes;// 用 unique_ptr TODO
+		vector<ObjectBytes> _subObjectBytes;// 用 unique_ptr TODO
 	public:
+		static constexpr char Blank = ' ';
+
 		WriteQueue* ToWrites;
 		AllocateSpaceQueue* ToAllocates;
 		ResizeSpaceQueue* ToResizes;
@@ -37,7 +39,7 @@ namespace FuncLib::Store
 		
 		void WriteIn(ofstream* fileStream, pos_int pos) const;
 
-		void AddSub(ObjectBytes* subObjectByte);
+		void AddSub(ObjectBytes subObjectByte);
 		pos_lable Lable() const;
 		auto GetLableSortedSubsEnumerator() const { return CreateEnumerator(_subObjectBytes); }
 

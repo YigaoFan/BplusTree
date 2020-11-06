@@ -42,7 +42,7 @@ namespace FuncLib::Store
 		_allocator.DeallocatePosLables(_toDeallocateLables);
 		ObjectBytes bytes{ 0 };
 		StorageAllocator::WriteAllocatedInfoTo(_allocator, &bytes);
-		ObjectRelationTree::WriteObjRelationTreeTo(_objRelationTree, &bytes);
+		ObjectRelationTree::WriteObjRelationTree(_objRelationTree, &bytes);
 
 		if (bytes.Size() > MetaDataSize)
 		{

@@ -2,6 +2,7 @@
 #include "LableRelationNode.hpp"
 #include "FileReader.hpp"
 #include "ObjectBytes.hpp"
+#include "../Persistence/FriendFuncLibDeclare.hpp"
 
 namespace FuncLib::Store
 {
@@ -11,9 +12,9 @@ namespace FuncLib::Store
 		vector<LableRelationNode> _nodes;
 	public:
 		static ObjectRelationTree ReadObjRelationTreeFrom(FileReader* reader);
-		static void WriteObjRelationTreeTo(ObjectRelationTree const& tree, ObjectBytes* writer);
+		static void WriteObjRelationTree(ObjectRelationTree const& tree, ObjectBytes* writer);
 		ObjectRelationTree() = default;
-		
+
 		void Add(PosLableNode auto* topLevelNode)
 		{
 			_nodes.push_back(LableRelationNode::ConsNodeWith(topLevelNode));
@@ -53,5 +54,7 @@ namespace FuncLib::Store
 
 			// throw exception??
 		}
+	private:
+		ObjectRelationTree(vector<LableRelationNode> nodes);
 	};
 }

@@ -2,7 +2,6 @@
 
 namespace FuncLib::Store
 {
-
 	void WriteByte(ofstream* fs, pos_int start, char const* begin, size_t size)
 	{
 		fs->seekp(start);
@@ -18,9 +17,9 @@ namespace FuncLib::Store
 		DoWrite(fileStream, pos);
 	}
 
-	void ObjectBytes::AddSub(ObjectBytes* subObjectBytes)
+	void ObjectBytes::AddSub(ObjectBytes subObjectBytes)
 	{
-		_subObjectBytes.push_back(subObjectBytes);
+		_subObjectBytes.push_back(move(subObjectBytes));
 	}
 
 	pos_lable ObjectBytes::Lable() const
@@ -45,7 +44,7 @@ namespace FuncLib::Store
 	{
 		for (size_t i = 0; i < size; ++i)
 		{
-			_bytes.push_back(' ');
+			_bytes.push_back(Blank);
 		}
 	}
 

@@ -5,16 +5,13 @@ namespace FuncLib::Store
 	LableRelationNode::LableRelationNode(pos_lable lable) : _lable(lable)
 	{ }
 
-	LableRelationNode::LableRelationNode(pos_lable lable, vector<LableRelationNode*> subNodes)
-		: _lable(lable), _subLables(move(subNodes))
+	LableRelationNode::LableRelationNode(pos_lable lable, vector<LableRelationNode> subNodes)
+		: _lable(lable), _subNodes(move(subNodes))
 	{ }
 
-	LableRelationNode::~LableRelationNode()
+	void LableRelationNode::Subs(vector<LableRelationNode> subNodes)
 	{
-		for (auto p : _subLables)
-		{
-			delete p;
-		}
+		_subNodes = move(subNodes);
 	}
 
 	pos_lable LableRelationNode::Lable() const
