@@ -12,6 +12,7 @@
 #include "../Persistence/FriendFuncLibDeclare.hpp" // 因为 DiskPos 里面有功能依赖 File，所以这里只能 ByteConverter 的声明
 #include "../Persistence/IWriterConcept.hpp"
 #include "ObjectRelationTree.hpp"
+#include "CacheSearchRoutine.hpp"
 
 namespace FuncLib::Store
 {
@@ -26,38 +27,10 @@ namespace FuncLib::Store
 	using ::std::filesystem::exists;
 	using ::std::filesystem::path;
 
-	template <typename... Ts>
-	struct TypeList;
+	
 
-	template <typename T>
-	struct TypeList<T>
-	{
-		static constexpr bool IsLast = true;
-		using Current = T;
-	};
+	
 
-	template <typename T, typename... Ts>
-	struct TypeList<T, Ts...>
-	{
-		static constexpr bool IsLast = false;
-		using Current = T;
-		using Remain = TypeList<Ts...>;
-	};
-
-	template <template <typename> class Handler, typename... Ts>
-	auto ForEach(TypeList<Ts...> typelist)
-	{
-		using T = Handler<typename decltype(typelist)::Current>;
-		// if (handler(T)) return type should here
-
-		if constexpr (not typelist.IsLast)
-		{
-			ForEach<Handler>(typelist.Remain());
-		}
-	}
-
-	// template <typename T>
-	// using SearchRoutine = TypeList<NodeBase<T>, MiddleNode<T>, LeafNode<T>>;
 	/// 一个路径仅有一个 File 对象，这里的功能大部分是提供给模块外部使用的
 	/// 那这里就有点问题了，Btree 内部用这个是什么功能
 	/// 这样使用场景是不是就不干净了？指的是内外都用。
@@ -82,28 +55,31 @@ namespace FuncLib::Store
 		shared_ptr<path> Path() const;
 		~File();
 
-		template <typename T>
-		shared_ptr<T> Read(pos_lable posLable)
+		template <typename Des, typename TypeList>
+		shared_ptr<Des> Search(pos_lable lable)
 		{
-			// TODO
-			// if constexpr (T == NodeBase) use a type list to store these inherited type
-			// {
-			// 	Read LeafNode
-			// }
-			// else
-			// {
-			// 	Read MiddleNode
-			// }
-			// New 的时候要用本来的类型，而不要用动态类型
-			
-			if (_cache.Cached<T>(posLable))
+			using T = typename TypeList::Current;
+			if (_cache.Cached<T>(lable))
 			{
-				return _cache.Read<T>(posLable);
+				return _cache.Read<T>(lable);
+			}
+
+			if constexpr (TypeList::IsLast)
+			{
+				return AddToCache(ReadOn<T>(lable), lable);
 			}
 			else
 			{
-				return AddToCache(ReadOn<T>(posLable), posLable);
+				return Search<Des, typename TypeList::Remain>(lable);
 			}
+		}
+
+		template <typename T>
+		shared_ptr<T> Read(pos_lable posLable)
+		{
+			
+			using SearchRoutine = typename GenerateSearchRoutine<T>::Result;
+			return Search<T, SearchRoutine>(posLable);
 		}
 
 		template <typename T>
@@ -114,6 +90,7 @@ namespace FuncLib::Store
 			return { lable, obj };
 		}
 
+		/// New 的时候要用本来的类型，而不要用动态类型
 		template <typename T>
 		pair<pos_lable, shared_ptr<T>> New(shared_ptr<T> t)
 		{

@@ -19,9 +19,11 @@ namespace Collections
 	using ::FuncLib::Persistence::UniqueDiskPtr;
 	using ::std::function;
 	using ::std::move;
+	using ::std::pair;
 	using ::std::remove_const_t;
 	using ::std::remove_pointer_t;
 	using ::std::result_of_t;
+	using ::std::shared_ptr;
 	using ::std::unique_ptr;
 	using ::std::vector;
 
