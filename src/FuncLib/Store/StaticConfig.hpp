@@ -8,4 +8,5 @@ namespace FuncLib::Store
 	constexpr size_t DiskBlockSize = 4096; // Depend on different OS setting
 	using pos_int = size_t;
 	using pos_lable = int;
+	constexpr pos_lable FileLable = 0;
 }

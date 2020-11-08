@@ -100,7 +100,7 @@ namespace FuncLib::Store
 		}
 	}
 
-	ObjectRelationTree::ObjectRelationTree(vector<LableRelationNode> nodes)
+	ObjectRelationTree::ObjectRelationTree(LableRelationNode node)
 		: _nodes(move(nodes))
 	{ }
 }

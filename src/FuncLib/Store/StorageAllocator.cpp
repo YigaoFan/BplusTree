@@ -37,8 +37,6 @@ namespace FuncLib::Persistence
 
 namespace FuncLib::Store
 {
-	constexpr pos_lable FileLable = 0;
-
 	StorageAllocator StorageAllocator::ReadAllocatedInfoFrom(FileReader* reader)
 	{
 		return ByteConverter<StorageAllocator>::ReadOut(reader);
@@ -76,13 +74,17 @@ namespace FuncLib::Store
 
 	void StorageAllocator::DeallocatePosLable(pos_lable posLable)
 	{
-		auto allocateInfoIter = _usingLableTable.find(posLable);
-		_deletedLableTable.insert(*allocateInfoIter);
-		_usingLableTable.erase(posLable); // 那是什么时候调整分配大小，那时候调用上面具体位置的地方就会受影响，所以要尽量少的依赖具体位置
+		if (_usingLableTable.contains(posLable))
+		{
+			auto allocateInfoIter = _usingLableTable.find(posLable);
+			_deletedLableTable.insert(*allocateInfoIter);
+			_usingLableTable.erase(posLable);
+			// 那是什么时候调整分配大小，那时候调用上面具体位置的地方就会受影响，所以要尽量少的依赖具体位置
+		}
 	}
 
 #define VALID_CHECK                                                                                     \
-	if (_deletedLableTable.contains(posLable))                                                              \
+	if (_deletedLableTable.contains(posLable))                                                          \
 	{                                                                                                   \
 		using ::Basic::InvalidAccessException;                                                          \
 		throw InvalidAccessException("Apply space for deleted lable, it means have wrong code logic."); \

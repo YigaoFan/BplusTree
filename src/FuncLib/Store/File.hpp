@@ -27,10 +27,6 @@ namespace FuncLib::Store
 	using ::std::filesystem::exists;
 	using ::std::filesystem::path;
 
-	
-
-	
-
 	/// 一个路径仅有一个 File 对象，这里的功能大部分是提供给模块外部使用的
 	/// 那这里就有点问题了，Btree 内部用这个是什么功能
 	/// 这样使用场景是不是就不干净了？指的是内外都用。
@@ -77,7 +73,6 @@ namespace FuncLib::Store
 		template <typename T>
 		shared_ptr<T> Read(pos_lable posLable)
 		{
-			
 			using SearchRoutine = typename GenerateSearchRoutine<T>::Result;
 			return Search<T, SearchRoutine>(posLable);
 		}
@@ -117,7 +112,6 @@ namespace FuncLib::Store
 
 			auto write = [&](ObjectBytes* bytes)
 			{
-				// 如何合并所有写入 TODO
 				auto start = _allocator.GetConcretePos(bytes->Lable());
 				bytes->WriteIn(&fs, start);
 			};
@@ -145,7 +139,12 @@ namespace FuncLib::Store
 			}
 			else
 			{
-				_objRelationTree.UpdateWith(&bytes, [](pos_lable) {});
+				_objRelationTree.UpdateWith(&bytes, [&](pos_lable lable)
+				{
+					// 已经读了的但没写的（实际上就是删掉了），_toDeallocateLables 会释放
+					// 这里针对已写入过硬盘的、删掉的
+					_allocator.DeallocatePosLable(lable);
+				});
 			}
 		}
 

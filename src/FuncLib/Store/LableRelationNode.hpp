@@ -1,13 +1,16 @@
 #pragma once
 #include <vector>
+#include <optional>
 #include "StaticConfig.hpp"
 #include "../../Btree/Enumerator.hpp"
+#include "VectorUtil.hpp"
 
 #include "../../Basic/Concepts.hpp" // temp
 
 namespace FuncLib::Store
 {
 	using ::std::move;
+	using ::std::optional;
 	using ::std::vector;
 
 	using Basic::IsConvertibleTo;
@@ -182,12 +185,39 @@ namespace FuncLib::Store
 		void ReleaseAll(Releaser const& releaser)
 		{
 			releaser(_lable);
-			for (auto& p : _subNodes)
+			for (auto& n : _subNodes)
 			{
-				p.ReleaseAll(releaser);
+				n.ReleaseAll(releaser);
 			}
 
 			_subNodes.clear();
 		}
+
+		/// 由于是 internal 的，所以不检查当前 node 的 lable
+		optional<LableRelationNode> TakeInternal(pos_lable lable)
+		{
+			if (_subNodes.empty())
+			{
+				return {};
+			}
+
+			for (size_t i = 0; auto& n : _subNodes)
+			{
+				if (n.Lable() == lable)
+				{
+					auto des = move(n);
+					Erase(i, _subNodes);
+					return des;
+				}
+				else if (auto r = n.TakeInternal(lable); r.has_value())
+				{
+					return r;
+				}
+			}
+
+			return { };
+		}
+
+		void AddSub(LableRelationNode node);
 	};	
 }
