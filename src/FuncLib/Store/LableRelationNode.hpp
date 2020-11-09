@@ -64,6 +64,16 @@ namespace FuncLib::Store
 		~LableRelationNode() = default;
 
 		void Subs(vector<LableRelationNode> subNodes);
+		vector<LableRelationNode> GiveSubs()
+		{
+			return move(_subNodes);
+		}
+
+		bool SubsEmpty() const
+		{
+			return _subNodes.empty();
+		}
+
 		pos_lable Lable() const;
 		auto CreateSubNodeEnumerator() { return Collections::CreateEnumerator(_subNodes); }
 		auto CreateSubNodeEnumerator() const { return Collections::CreateEnumerator(_subNodes); }

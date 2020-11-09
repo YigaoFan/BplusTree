@@ -60,8 +60,10 @@ namespace FuncLib::Store
 
 	ObjectRelationTree ObjectRelationTree::ReadObjRelationTreeFrom(FileReader* reader)
 	{
+		auto fileLable = ByteConverter<pos_lable>::ReadOut(reader);
 		auto gen = ReadLables(reader);
-		return { ConsNodes(&gen) };
+
+		return { LableRelationNode(fileLable, ConsNodes(&gen)) };
 	}
 
 	void WriteSubLableOf(LableRelationNode const* node, ObjectBytes* writer)
@@ -85,22 +87,7 @@ namespace FuncLib::Store
 	// 上下这两处代码重复了
 	void ObjectRelationTree::WriteObjRelationTree(ObjectRelationTree const& tree, ObjectBytes* writer)
 	{
-		// 中序遍历
-		for (auto& n : tree._nodes)
-		{
-			auto l = n.Lable();
-			ByteConverter<pos_lable>::WriteDown(l, writer);
-		}
-
-		ByteConverter<pos_lable>::WriteDown(NonLable, writer);
-
-		for (auto& n : tree._nodes)
-		{
-			WriteSubLableOf(&n, writer);
-		}
+		ByteConverter<pos_lable>::WriteDown(tree._fileRoot.Lable(), writer);
+		WriteSubLableOf(&tree._fileRoot, writer);
 	}
-
-	ObjectRelationTree::ObjectRelationTree(LableRelationNode node)
-		: _nodes(move(nodes))
-	{ }
 }

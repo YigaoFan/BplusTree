@@ -42,6 +42,10 @@ namespace FuncLib::Store
 		_allocator.DeallocatePosLables(_toDeallocateLables);
 		ObjectBytes bytes{ 0 };
 		StorageAllocator::WriteAllocatedInfoTo(_allocator, &bytes);
+		_objRelationTree.ReleaseAllFreeNode([&](pos_lable lable)
+		{
+			_allocator.DeallocatePosLable(lable);
+		});
 		ObjectRelationTree::WriteObjRelationTree(_objRelationTree, &bytes);
 
 		if (bytes.Size() > MetaDataSize)

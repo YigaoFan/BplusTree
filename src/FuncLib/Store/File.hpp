@@ -39,7 +39,7 @@ namespace FuncLib::Store
 		shared_ptr<path> _filename;
 		FileCache _cache;
 		StorageAllocator _allocator;
-		set<pos_lable> _toDeallocateLables;// 之后可以基于这个调整文件大小
+		set<pos_lable> _toDeallocateLables;// 之后可以基于这个调整文件大小，这个是为了对象从 New 到 Store 保证的
 		ObjectRelationTree _objRelationTree;
 	public:
 		static shared_ptr<File> GetFile(path const& filename);
@@ -81,6 +81,7 @@ namespace FuncLib::Store
 		pair<pos_lable, shared_ptr<T>> New(T t)
 		{
 			auto lable = _allocator.AllocatePosLable();
+			_toDeallocateLables.insert(lable);
 			auto obj = AddToCache(move(t), lable);
 			return { lable, obj };
 		}
@@ -90,6 +91,7 @@ namespace FuncLib::Store
 		pair<pos_lable, shared_ptr<T>> New(shared_ptr<T> t)
 		{
 			auto lable = _allocator.AllocatePosLable();
+			_toDeallocateLables.insert(lable);
 			auto obj = AddToCache(move(t), lable);
 			return { lable, obj };
 		}
@@ -98,6 +100,8 @@ namespace FuncLib::Store
 		template <typename T>
 		void Store(pos_lable posLable, shared_ptr<T> const& object)
 		{
+			_toDeallocateLables.erase(posLable);
+
 			ofstream fs = MakeOFileStream(_filename);
 			auto allocate = [&](ObjectBytes* bytes)
 			{
@@ -116,10 +120,7 @@ namespace FuncLib::Store
 				bytes->WriteIn(&fs, start);
 			};
 
-			_toDeallocateLables.erase(posLable);
-
 			// 这里的 SizeStable 不考虑指针指向的对象，牵涉到 ByteConverter<DiskPtr> 和这下面的 if
-			auto isNew = not _allocator.Ready(posLable);
 			WriteQueue toWrites;
 			AllocateSpaceQueue toAllocates;
 			ResizeSpaceQueue toResize;
@@ -133,28 +134,14 @@ namespace FuncLib::Store
 			toAllocates | allocate | write;
 			toWrites | write;
 
-			if (isNew)
-			{
-				_objRelationTree.Add(&bytes);
-			}
-			else
-			{
-				_objRelationTree.UpdateWith(&bytes, [&](pos_lable lable)
-				{
-					// 已经读了的但没写的（实际上就是删掉了），_toDeallocateLables 会释放
-					// 这里针对已写入过硬盘的、删掉的
-					_allocator.DeallocatePosLable(lable);
-				});
-			}
+			_objRelationTree.UpdateWith(&bytes);
 		}
 
 		// 还有没有读的部分，在写入的时候要怎么处理
-		// inner 如果大小固定可以和上层放在一块，不固定就可以隔离出去
-
 		template <typename T>
 		void StoreInner(pos_lable posLable, shared_ptr<T> const& object, IWriter auto* parentWriter)
 		{
-			_toDeallocateLables.erase(posLable);// 这个操作在有 inner 的情况下对不对 TODO
+			_toDeallocateLables.erase(posLable);
 
 			auto parent = parentWriter;
 			auto bytes = ObjectBytes(posLable, parent->ToWrites, parent->ToAllocates, parent->ToResize);
@@ -165,15 +152,12 @@ namespace FuncLib::Store
 		template <typename T>
 		void Delete(pos_lable posLable, shared_ptr<T> object) // 这个模仿 delete 这个接口，但暂不处理 object
 		{
-			// delete related sub pos_lable TODO
-			// also related to toBeDeleteLables
-			// Store 那里同样要做这个工作
-			_objRelationTree.DeleteTopLevelObj(posLable, [&](pos_lable lable)
-			{
-				_toDeallocateLables.erase(lable);
-				_allocator.DeallocatePosLable(lable);
-			});
+			// TODO FakeWriter
+			ObjectBytes* fake = nullptr;
+			// use a fake class object to store object
+			// 而且不要触发一些 File 的副作用，比如 Store 中的 _toDeallocateLables.erase(posLable);
 
+			_objRelationTree.Free(fake);
 			_cache.Remove<T>(posLable);
 		}
 
@@ -191,7 +175,6 @@ namespace FuncLib::Store
 		template <typename T>
 		shared_ptr<T> AddToCache(T t, pos_lable posLable)
 		{
-			_toDeallocateLables.insert(posLable);
 			shared_ptr<T> obj = make_shared<T>(move(t));
 			_cache.Add<T>(posLable, obj);
 			return obj;
@@ -200,7 +183,6 @@ namespace FuncLib::Store
 		template <typename T>
 		shared_ptr<T> AddToCache(shared_ptr<T> obj, pos_lable posLable)
 		{
-			_toDeallocateLables.insert(posLable);
 			_cache.Add<T>(posLable, obj);
 			return obj;
 		}
