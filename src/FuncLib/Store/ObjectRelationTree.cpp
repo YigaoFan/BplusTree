@@ -84,7 +84,6 @@ namespace FuncLib::Store
 		}
 	}
 
-	// 上下这两处代码重复了
 	void ObjectRelationTree::WriteObjRelationTree(ObjectRelationTree const& tree, ObjectBytes* writer)
 	{
 		ByteConverter<pos_lable>::WriteDown(tree._fileRoot.Lable(), writer);

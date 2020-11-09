@@ -33,6 +33,7 @@ add_executable(RPC
         FuncLib/Store/FileReader.cpp
         FuncLib/Store/LableRelationNode.cpp
         FuncLib/Store/ObjectBytes.cpp
+        FuncLib/Store/FakeWriter.cpp
         FuncLib/Store/LableTree.cpp
         FuncLib/Store/ObjectRelationTree.cpp
         FuncLib/Store/ObjectBytesQueue.cpp

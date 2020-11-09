@@ -13,6 +13,7 @@
 #include "../Persistence/IWriterConcept.hpp"
 #include "ObjectRelationTree.hpp"
 #include "CacheSearchRoutine.hpp"
+#include "FakeWriter.hpp"
 
 namespace FuncLib::Store
 {
@@ -139,25 +140,31 @@ namespace FuncLib::Store
 
 		// 还有没有读的部分，在写入的时候要怎么处理
 		template <typename T>
-		void StoreInner(pos_lable posLable, shared_ptr<T> const& object, IWriter auto* parentWriter)
+		void StoreInner(pos_lable posLable, shared_ptr<T> const& object, ObjectBytes* parentWriter)
 		{
 			_toDeallocateLables.erase(posLable);
 
 			auto parent = parentWriter;
-			auto bytes = ObjectBytes(posLable, parent->ToWrites, parent->ToAllocates, parent->ToResize);
+			auto bytes = ObjectBytes(posLable, parent->ToWrites, parent->ToAllocates, parent->ToResizes);
 			ProcessStore(posLable, object, &bytes);
 			parentWriter->AddSub(move(bytes));
 		}
 
 		template <typename T>
+		void StoreInner(pos_lable posLable, shared_ptr<T> const& object, FakeWriter* parentWriter)
+		{
+			auto writer = FakeWriter(posLable);
+			ProcessFakeStore(posLable, object, &writer);
+			parentWriter->AddSub(move(writer));
+		}
+
+		template <typename T>
 		void Delete(pos_lable posLable, shared_ptr<T> object) // 这个模仿 delete 这个接口，但暂不处理 object
 		{
-			// TODO FakeWriter
-			ObjectBytes* fake = nullptr;
-			// use a fake class object to store object
-			// 而且不要触发一些 File 的副作用，比如 Store 中的 _toDeallocateLables.erase(posLable);
+			FakeWriter writer{ posLable };
+			ProcessFakeStore(posLable, object, &writer);
 
-			_objRelationTree.Free(fake);
+			_objRelationTree.Free(&writer);
 			_cache.Remove<T>(posLable);
 		}
 
@@ -218,5 +225,11 @@ namespace FuncLib::Store
 		}
 
 		static ofstream MakeOFileStream(shared_ptr<path> const& filename);
+
+		template <typename T>
+		void ProcessFakeStore(pos_lable posLable, shared_ptr<T> const& object, FakeWriter* writer)
+		{
+			ByteConverter<T>::WriteDown(*object, writer);
+		}
 	};
 }
