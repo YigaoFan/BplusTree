@@ -11,7 +11,6 @@ namespace FuncLib::Store
 	class FakeWriter
 	{
 	private:
-		size_t _size = 0;
 		pos_lable _lable;
 		vector<FakeWriter> _subWriters;
 
@@ -22,7 +21,6 @@ namespace FuncLib::Store
 
 		void Add(char const* begin, size_t size);
 		void AddBlank(size_t size);
-		size_t Size() const;
 		void AddSub(FakeWriter subWriter);
 		pos_lable Lable() const;
 		auto GetLableSortedSubsEnumerator() const { return CreateEnumerator(_subWriters); }

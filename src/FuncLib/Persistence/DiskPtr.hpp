@@ -160,6 +160,10 @@ namespace FuncLib::Persistence
 		void ReadObjectFromDisk() const
 		{
 			_tPtr = _pos.ReadObject();
+			if constexpr (is_base_of_v<TakeWithDiskPos<T, Switch::Enable>, T>)
+			{
+				TakeWithDiskPos<T, Switch::Enable>::SetDiskPos(_tPtr, const_cast<DiskPos<T>*>(&_pos));
+			}
 		}
 
 		void SetDone() const

@@ -8,19 +8,10 @@ namespace FuncLib::Store
 	{ }
 
 	void FakeWriter::Add(char const* begin, size_t size)
-	{
-		_size += size;
-	}
+	{ }
 
 	void FakeWriter::AddBlank(size_t size)
-	{
-		_size += size;
-	}
-
-	size_t FakeWriter::Size() const
-	{
-		return _size;
-	}
+	{ }
 
 	void FakeWriter::AddSub(FakeWriter subWriter)
 	{

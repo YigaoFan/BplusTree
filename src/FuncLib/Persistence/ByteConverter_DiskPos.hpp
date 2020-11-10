@@ -10,8 +10,8 @@ namespace FuncLib::Persistence
 	{
 		using ThisType = DiskPos<T>;
 		using DataMemberType = decltype(declval<ThisType>()._lable);
-
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
+		static constexpr size_t Size = Sum<GetSize, DataMemberType>::Result;
 
 		/// only write down DiskPos self, not write the object corresponding to the position
 		static void WriteDown(ThisType const& p, IWriter auto* writer)

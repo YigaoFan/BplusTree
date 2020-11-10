@@ -8,6 +8,7 @@ namespace FuncLib::Persistence
 		using ThisType = OwnerLessDiskRef<T>;
 		using DataMemberType = decltype(declval<ThisType>()._ptr);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
+		static constexpr size_t Size = SizeStable ? Sum<GetSize, DataMemberType>::Result : SIZE_MAX;
 
 		static void WriteDown(ThisType const& t, IWriter auto* writer)
 		{
@@ -26,6 +27,7 @@ namespace FuncLib::Persistence
 		using ThisType = UniqueDiskRef<T>;
 		using DataMemberType = decltype(declval<ThisType>()._ptr);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
+		static constexpr size_t Size = SizeStable ? Sum<GetSize, DataMemberType>::Result : SIZE_MAX;
 
 		static void WriteDown(ThisType const& t, IWriter auto* writer)
 		{

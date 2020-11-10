@@ -64,6 +64,20 @@ namespace Basic
 		static constexpr bool Result = true;
 	};
 
+	template <template <typename> class Getter, typename... Ts>
+	struct Sum
+	{
+		static constexpr auto Result = (... + Getter<Ts>::Result);
+	};
+
+	using ::std::tuple;
+
+	template <template <typename> class Getter, typename... Ts>
+	struct Sum<Getter, tuple<Ts...>>
+	{
+		static constexpr auto Result = Sum<Getter, Ts...>::Result;
+	};
+
 	// Below code ref from:
 	// https://stackoverflow.com/questions/9065081/how-do-i-get-the-argument-types-of-a-function-pointer-in-a-variadic-template-cla
 	template <typename T>

@@ -25,6 +25,7 @@ namespace FuncLib::Persistence
 		using ThisType = UniqueDiskPtr<T>;
 		using DataMemberType = decltype(declval<ThisType>()._pos);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
+		static constexpr size_t Size = Sum<GetSize, DataMemberType>::Result;
 
 		static void WriteDown(ThisType const& p, IWriter auto* writer)
 		{
@@ -43,6 +44,7 @@ namespace FuncLib::Persistence
 		using ThisType = OwnerLessDiskPtr<T>;
 		using DataMemberType = decltype(declval<ThisType>()._pos);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
+		static constexpr size_t Size = Sum<GetSize, DataMemberType>::Result;
 
 		static void WriteDown(ThisType const& p, IWriter auto* writer)
 		{
@@ -62,6 +64,7 @@ namespace FuncLib::Persistence
 		using DataMemberType0 = decltype(declval<ThisType>()._keyCount);
 		using DataMemberType1 = decltype(declval<ThisType>()._root);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType0, DataMemberType1>::Result;
+		static constexpr size_t Size = SizeStable ? Sum<GetSize, DataMemberType0, DataMemberType1>::Result : SIZE_MAX;
 
 		static void WriteDown(ThisType const& t, IWriter auto* writer)
 		{
@@ -83,6 +86,7 @@ namespace FuncLib::Persistence
 		using ThisType = MiddleNode<Key, Value, Count, StorePlace::Disk>;
 		using DataMemberType = decltype(declval<ThisType>()._elements);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
+		static constexpr size_t Size = SizeStable ? Sum<GetSize, DataMemberType>::Result : SIZE_MAX;
 
 		static void WriteDown(ThisType const& t, IWriter auto* writer)
 		{
@@ -104,6 +108,7 @@ namespace FuncLib::Persistence
 		using DataMemberType1 = decltype(declval<ThisType>()._previous);
 		using DataMemberType2 = decltype(declval<ThisType>()._next);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType0, DataMemberType1, DataMemberType2>::Result;
+		static constexpr size_t Size = SizeStable ? Sum<GetSize, DataMemberType0, DataMemberType1, DataMemberType2>::Result : SIZE_MAX;
 
 		static void WriteDown(ThisType const& t, IWriter auto* writer)
 		{

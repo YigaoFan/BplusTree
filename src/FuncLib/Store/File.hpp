@@ -18,7 +18,6 @@
 namespace FuncLib::Store
 {
 	using FuncLib::Persistence::ByteConverter;
-	using FuncLib::Persistence::IWriter;
 	using ::std::enable_shared_from_this;
 	using ::std::make_shared;
 	using ::std::move;

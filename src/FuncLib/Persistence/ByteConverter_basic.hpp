@@ -6,6 +6,7 @@
 #include <memory>
 #include <cstddef>
 #include <map>
+#include <cstdint>
 #include "../../Btree/Elements.hpp"
 #include "../../Btree/LiteVector.hpp"
 #include "../../Btree/Basic.hpp"
@@ -18,6 +19,7 @@ namespace FuncLib::Persistence
 {
 	using ::Basic::All;
 	using ::Basic::ReturnType;
+	using ::Basic::Sum;
 	using ::Collections::Elements;
 	using ::Collections::LiteVector;
 	using ::Collections::order_int;
@@ -52,11 +54,18 @@ namespace FuncLib::Persistence
 	{
 		static constexpr bool Result = ByteConverter<T>::SizeStable;
 	};
-	
+
+	template <typename T>
+	struct GetSize
+	{
+		static constexpr size_t Result = ByteConverter<T>::Size;
+	};
+
 	template <typename T>
 	struct ByteConverter<T, true>
 	{
 		static constexpr bool SizeStable = true;
+		static constexpr size_t Size = sizeof(T);
 
 		static void WriteDown(T const& t, IWriter auto* writer) 
 		{
@@ -77,6 +86,7 @@ namespace FuncLib::Persistence
 	{
 		using Tuple = typename ReturnType<decltype(ToTuple<T>)>::Type;
 		static constexpr bool SizeStable = All<GetSizeStable, Tuple>::Result;
+		static constexpr size_t Size = SizeStable ? Sum<GetSize, Tuple>::Result : SIZE_MAX;
 
 		template <typename Ty, auto... Is>
 		static void WriteEach(IWriter auto* writer, Ty const& tup, index_sequence<Is...>)
@@ -144,6 +154,7 @@ namespace FuncLib::Persistence
 	struct ByteConverter<LiteVector<T, size_int, Capacity>, false>
 	{
 		static constexpr bool SizeStable = GetSizeStable<T>::Result;
+		static constexpr size_t Size = SizeStable ? Sum<GetSize, T>::Result * Capacity : SIZE_MAX;
 		using ThisType = LiteVector<T, size_int, Capacity>;
 
 		static void WriteDown(ThisType const& vec, IWriter auto* writer)
@@ -152,16 +163,14 @@ namespace FuncLib::Persistence
 			auto n = vec.Count();
 			ByteConverter<size_int>::WriteDown(n, writer);
 			// Items
-			auto beforeSize = writer->Size();
 			for (auto& t : vec)
 			{
 				ByteConverter<T>::WriteDown(t, writer);
 			}
-			auto afterSize = writer->Size();
 
 			if constexpr (SizeStable)
 			{
-				auto unitSize = (afterSize - beforeSize) / n;
+				auto unitSize = Size / Capacity;
 				writer->AddBlank(unitSize * (Capacity - n));
 			}
 		}
@@ -184,6 +193,7 @@ namespace FuncLib::Persistence
 	{
 		using ThisType = pair<Key, Value>;
 		static constexpr bool SizeStable = All<GetSizeStable, Key, Value>::Result;
+		static constexpr size_t Size = SizeStable ? Sum<GetSize, Key, Value>::Result : SIZE_MAX;
 
 		static void WriteDown(ThisType const& t, IWriter auto* writer)
 		{
@@ -205,6 +215,7 @@ namespace FuncLib::Persistence
 		using ThisType = Elements<Key, Value, Order, LessThan>;
 		using BaseType = LiteVector<pair<Key, Value>, order_int, Order>;
 		static constexpr bool SizeStable = All<GetSizeStable, BaseType>::Result;
+		static constexpr size_t Size = Sum<GetSize, BaseType>::Result;
 
 		static void WriteDown(ThisType const& t, IWriter auto* writer)
 		{

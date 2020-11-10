@@ -19,14 +19,13 @@ namespace FuncLib::Persistence
 		t.AddBlank(size);
 	};
 
-	template <typename T>
-	concept Writer_OffsetCounter = requires(T t)
-	{
-		{ t.Size() } -> IsSameTo<size_t>;
-	};
+	// template <typename T>
+	// concept Writer_OffsetCounter = requires(T t)
+	// {
+	// 	{ t.Size() } -> IsSameTo<size_t>;
+	// };
 
 	template <typename T>
 	concept IWriter = Writer_Write<T> and 
-					  Writer_OffsetCounter<T> and 
 					  Writer_WriteBlank<T>;
 }
