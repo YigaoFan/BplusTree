@@ -89,8 +89,8 @@ namespace FuncLib::Store
 				return;
 			}
 
-			auto _oldSubs = oldNode.GiveSubs();
-			auto oldSubs = CreateEnumerator(_oldSubs);
+			auto oldSubsVec = oldNode.GiveSubs();
+			auto oldSubs = CreateEnumerator(oldSubsVec);
 			auto newSubs = newNode->CreateSubNodeEnumerator();
 			vector<LableRelationNode *> toCollects;
 
@@ -159,12 +159,19 @@ namespace FuncLib::Store
 			{
 				toCollects.push_back(&oldSubs.Current());
 			} while (oldSubs.MoveNext());
+			goto CollectNotUsed;
 
 		ProcessRemainNew:
-
+			do
+			{
+				Complete(&newSubs.Current(), take, collect);
+			} while (newSubs.MoveNext());
+			goto CollectNotUsed;
+			
+		CollectNotUsed:
 			for (auto ptr : toCollects)
 			{
-				for (auto& n : _oldSubs)
+				for (auto& n : oldSubsVec)
 				{
 					if (ptr == &n)
 					{
