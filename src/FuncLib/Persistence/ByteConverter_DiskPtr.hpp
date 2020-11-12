@@ -8,6 +8,7 @@
 
 namespace FuncLib::Persistence
 {
+	using Basic::Max;
 	using ::Collections::Btree;
 	using ::Collections::LeafNode;
 	using ::Collections::MiddleNode;
@@ -96,7 +97,8 @@ namespace FuncLib::Persistence
 		static ThisType ReadOut(FileReader* reader)
 		{
 			auto elements = ByteConverter<DataMemberType>::ReadOut(reader);
-			return { move(elements) };// TODO provide LeafNode previous, next and callback inner
+			return { move(elements) };
+			// TODO provide LeafNode previous, next and callback inner 这里回调设置的事情还没有弄
 		}
 	};
 
@@ -132,7 +134,8 @@ namespace FuncLib::Persistence
 		using ThisType = NodeBase<Key, Value, Count, StorePlace::Disk>;
 		using MidNode = MiddleNode<Key, Value, Count, StorePlace::Disk>;
 		using LeafNode = LeafNode<Key, Value, Count, StorePlace::Disk>;
-		static constexpr bool SizeStable = false;
+		static constexpr bool SizeStable = All<GetSizeStable, MidNode, LeafNode>::Result;
+		static constexpr size_t Size = SizeStable ? Max<GetSize, MidNode, LeafNode>::Result : SIZE_MAX;
 
 		static void WriteDown(ThisType const& node, IWriter auto* writer)
 		{
@@ -163,4 +166,55 @@ namespace FuncLib::Persistence
 			}
 		}
 	};
+
+	template <template <typename, typename, order_int, StorePlace> class Node, typename Key, typename Value, size_t Left, size_t Right>
+	constexpr size_t FindSuitableNIn() // 不能用 size_t left, size_t right 直接作为参数
+	{
+		constexpr size_t mid = (Left + Right) / 2;
+		// 下面这个有没有考虑当前的 s < DiskBlockSize ？
+		if constexpr (mid == Left)
+		{
+			return Left;
+		}
+		else if constexpr (mid == Right)
+		{
+			return Right;
+		}
+
+		constexpr auto s = ByteConverter<Node<Key, Value, mid, StorePlace::Disk>>::Size;
+		if constexpr (s < DiskBlockSize)
+		{
+			return FindSuitableNIn<Node, Key, Value, mid, Right>();
+		}
+		else
+		{
+			return FindSuitableNIn<Node, Key, Value, Left, mid>();
+		}
+	}
+
+	// 感觉 Mid 和 Leaf 的数量可以不一样，不过不弄了
+	template <template <typename, typename, order_int, StorePlace> class Node, typename Key, typename Value, order_int Count>
+	constexpr size_t CloseToNodeMaxN()
+	{
+		// 如果不 size stable 怎么办？
+		constexpr auto s = ByteConverter<Node<Key, Value, Count, StorePlace::Disk>>::Size;
+		if constexpr (s < DiskBlockSize)
+		{
+			// 直接乘二，乘二失败再取中间
+			return CloseToNodeMaxN<Node, Key, Value, Count * 2>();
+		}
+		else
+		{
+			return FindSuitableNIn<Node, Key, Value, Count / 2, Count>();
+		}
+	}
+
+	template <typename Key, typename Value>
+	constexpr size_t ComputeNodeMaxN()
+	{
+		auto m1 = CloseToNodeMaxN<MiddleNode, Key, Value, 1>();
+		auto m2 = CloseToNodeMaxN<LeafNode, Key, Value, 1>();
+		return m1 < m2 ? m1 : m2;
+	}
+
 }

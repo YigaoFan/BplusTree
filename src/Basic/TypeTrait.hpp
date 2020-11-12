@@ -78,6 +78,31 @@ namespace Basic
 		static constexpr auto Result = Sum<Getter, Ts...>::Result;
 	};
 
+	template <template <typename> class Getter, typename... Ts>
+	struct Max;
+
+	template <template <typename> class Getter, typename T, typename... Ts>
+	struct Max<Getter, T, Ts...>
+	{
+	private:
+		static constexpr auto r1 = Getter<T>::Result;
+		static constexpr auto r2 = Max<Getter, Ts...>::Result;
+	public:
+		static constexpr auto Result = r1 < r2 ? r2 : r1;
+	};
+
+	template <template <typename> class Getter, typename T>
+	struct Max<Getter, T>
+	{
+		static constexpr auto Result = Getter<T>::Result;
+	};
+
+	template <template <typename> class Getter, typename... Ts>
+	struct Max<Getter, tuple<Ts...>>
+	{
+		static constexpr auto Result = Max<Getter, Ts...>::Result;
+	};
+
 	// Below code ref from:
 	// https://stackoverflow.com/questions/9065081/how-do-i-get-the-argument-types-of-a-function-pointer-in-a-variadic-template-cla
 	template <typename T>
