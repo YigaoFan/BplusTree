@@ -192,21 +192,25 @@ namespace FuncLib::Persistence
 		}
 	}
 
-	// 感觉 Mid 和 Leaf 的数量可以不一样，不过不弄了
+	/// Mid 和 Leaf 的数量可以不一样，不过不弄了
 	template <template <typename, typename, order_int, StorePlace> class Node, typename Key, typename Value, order_int Count>
 	constexpr size_t CloseToNodeMaxN()
 	{
-		// 如果不 size stable 怎么办？
+		static_assert(ByteConverter<Node<Key, Value, Count, StorePlace::Disk>>::SizeStable, "Node type must size stable");
+
 		constexpr auto s = ByteConverter<Node<Key, Value, Count, StorePlace::Disk>>::Size;
 		if constexpr (s < DiskBlockSize)
 		{
-			// 直接乘二，乘二失败再取中间
 			return CloseToNodeMaxN<Node, Key, Value, Count * 2>();
+		}
+		else if constexpr (s == DiskBlockSize)
+		{
+			return Count;
 		}
 		else
 		{
-			return FindSuitableNIn<Node, Key, Value, Count / 2, Count>();
-		}
+			return FindSuitableNIn<Node, Key, Value, Count / 2, Count - 1>();
+		}		
 	}
 
 	template <typename Key, typename Value>
@@ -217,4 +221,5 @@ namespace FuncLib::Persistence
 		return m1 < m2 ? m1 : m2;
 	}
 
+	// constexpr auto S = ComputeNodeMaxN<int, int>();
 }
