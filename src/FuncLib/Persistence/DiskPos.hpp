@@ -48,6 +48,11 @@ namespace FuncLib::Persistence
 			auto [lable, clonedObj] = _file->New(*obj);
 			return { DiskPos(_file, lable), clonedObj };
 		}
+
+		File* GetLessOwnershipFile() const
+		{
+			return _file;
+		}
 	};
 
 	template <typename T1, typename T2>

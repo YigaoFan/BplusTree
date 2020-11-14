@@ -22,7 +22,6 @@ namespace Collections
 	using ::std::result_of_t;
 	using ::std::unique_ptr;
 
-	// 这里用指针参数不太好，可以用个枚举类型。因为这个指针参数不是所有指针都用，有的要用 OwnerLess 的指针
 	template <typename Key, typename Value, order_int BtreeOrder, StorePlace Place = StorePlace::Memory>
 	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Place>,
 					 public TakeWithDiskPos<LeafNode<Key, Value, BtreeOrder, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>
@@ -38,8 +37,8 @@ namespace Collections
 		using StoredKey = typename Base::StoredKey;
 		using StoredValue = typename Base::StoredValue;
 		Elements<StoredKey, StoredValue, BtreeOrder, _LessThan> _elements;
-		typename Base::template OwnerLessPtr<LeafNode> _next{nullptr};
-		typename Base::template OwnerLessPtr<LeafNode> _previous{nullptr};
+		RAW_PTR(LeafNode) _next{nullptr};
+		RAW_PTR(LeafNode) _previous{nullptr};
 
 	public:
 		bool Middle() const override { return false; }
@@ -62,14 +61,10 @@ namespace Collections
 
 		Ptr<Base> Clone() const override 
 		{
-			return CopyNode(this);
+			return this->CopyNode(this);
 		}
 
 		DEF_LESS_THAN_SETTER
-
-		DEF_COPY_NODE
-
-		DEF_NEW_EMPTY_NODE
 
 		vector<Key> Keys() const override
 		{
@@ -164,8 +159,7 @@ namespace Collections
 		void Previous(decltype(_previous) previous) { _previous = move(previous); }
 	private:
 		LeafNode(decltype(_elements) elements, 
-			typename Base::template OwnerLessPtr<LeafNode> previous, 
-			typename Base::template OwnerLessPtr<LeafNode> next)
+			RAW_PTR(LeafNode) previous, RAW_PTR(LeafNode) next)
 		 : Base(), _elements(move(elements)), _previous(move(previous)), _next(move(next))
 		{
 			// TODO LessThan?

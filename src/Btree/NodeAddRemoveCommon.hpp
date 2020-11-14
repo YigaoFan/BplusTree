@@ -135,7 +135,8 @@
 	goto ConsNewNode;                                                                                      \
                                                                                                            \
 	ConsNewNode:                                                                                           \
-	auto newNxtNode = NewEmptyNode(this);                                                                  \
+	auto lessThanPred = this->_elements.LessThanPtr;                                                       \
+	auto newNxtNode = this->NewEmptyNode(this, lessThanPred);                                              \
 	if constexpr (IS_LEAF)                                                                                 \
 	{                                                                                                      \
 		this->SetRelationWhileSplitNewNext(newNxtNode.get());                                              \

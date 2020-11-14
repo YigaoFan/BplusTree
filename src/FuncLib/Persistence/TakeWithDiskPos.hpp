@@ -23,5 +23,10 @@ namespace FuncLib::Persistence
 		{
 			return { *_posPtr };
 		}
+
+		File* GetLessOwnershipFile() const
+		{
+			return _posPtr->GetLessOwnershipFile();
+		}
 	};
 }

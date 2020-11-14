@@ -9,7 +9,6 @@
 #include <type_traits>
 #include "Basic.hpp"
 #include "../FuncLib/Persistence/FriendFuncLibDeclare.hpp"
-#include "../FuncLib/Store/FileResource.hpp"
 #include "../Basic/TypeTrait.hpp"
 #include "TypeConfig.hpp"
 
@@ -113,6 +112,37 @@ namespace Collections
 		{
 			return ChooseAddPosition(preCount, thisCount, nxtCount) == Position::Previous ? Position::Next : Position::Previous;
 		}
+
+		static auto CopyNode(auto thisPtr)
+		{
+			using NodeType = remove_const_t<remove_pointer_t<decltype(thisPtr)>>;
+
+			if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)
+			{
+				auto f = thisPtr->GetLessOwnershipFile();
+				return UniqueDiskPtr<NodeType>::MakeUnique(*thisPtr, f);
+			}
+			else
+			{
+				return make_unique<NodeType>(*thisPtr);
+			}
+		}
+
+		static auto NewEmptyNode(auto thisPtr, auto lessThanPred)
+		{
+			using NodeType = remove_const_t<remove_pointer_t<decltype(thisPtr)>>;
+
+			if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)
+			{
+				auto f = thisPtr->GetLessOwnershipFile();
+				auto n = NodeType(lessThanPred);
+				return UniqueDiskPtr<NodeType>::MakeUnique(move(n), f);
+			}
+			else
+			{
+				return make_unique<NodeType>(lessThanPred);
+			}
+		}
 	};
 }
 
@@ -121,38 +151,3 @@ void LessThanPredicate(shared_ptr<LessThan<Key>> lessThan) override\
 {\
 	_elements.LessThanPtr = lessThan;\
 }
-
-#define DEF_COPY_NODE                                                         \
-	static auto CopyNode(auto thisPtr)                                        \
-	{                                                                         \
-		using NodeType = remove_const_t<remove_pointer_t<decltype(thisPtr)>>; \
-                                                                              \
-		if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)       \
-		{                                                                     \
-			using FuncLib::Store::FileResource;                               \
-			auto f = FileResource::GetCurrentThreadFile().get();              \
-			return UniqueDiskPtr<NodeType>::MakeUnique(*thisPtr, f);          \
-		}                                                                     \
-		else                                                                  \
-		{                                                                     \
-			return make_unique<NodeType>(*thisPtr);                           \
-		}                                                                     \
-	}
-
-#define DEF_NEW_EMPTY_NODE                                                    \
-	static auto NewEmptyNode(auto thisPtr)                                    \
-	{                                                                         \
-		using NodeType = remove_const_t<remove_pointer_t<decltype(thisPtr)>>; \
-                                                                              \
-		if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)       \
-		{                                                                     \
-			using FuncLib::Store::FileResource;                               \
-			auto f = FileResource::GetCurrentThreadFile().get();              \
-			auto n = NodeType(thisPtr->_elements.LessThanPtr);                \
-			return UniqueDiskPtr<NodeType>::MakeUnique(move(n), f);           \
-		}                                                                     \
-		else                                                                  \
-		{                                                                     \
-			return make_unique<NodeType>(thisPtr->_elements.LessThanPtr);     \
-		}                                                                     \
-	}

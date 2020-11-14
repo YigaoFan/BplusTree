@@ -30,7 +30,8 @@ namespace Collections
 	class NodeFactory;
 	// 最好把 MiddleNode 和 LeafNode 的构造与 Btree 隔绝起来，使用 NodeBase 来作用，顶多使用强制转型来调用一些函数
 	template <typename Key, typename Value, order_int BtreeOrder, StorePlace Place = StorePlace::Memory>
-	class MiddleNode : public NodeBase<Key, Value, BtreeOrder, Place>
+	class MiddleNode : public NodeBase<Key, Value, BtreeOrder, Place>,
+					   public TakeWithDiskPos<MiddleNode<Key, Value, BtreeOrder, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>
 	{
 	private:
 		template <typename... Ts>
@@ -79,14 +80,10 @@ namespace Collections
 			// If mark copy constructor private, this method cannot compile pass
 			// In make_unique internal will call MiddleNode copy constructor,
 			// but it doesn't have access
-			return CopyNode(this);
+			return this->CopyNode(this);
 		}
 
 		DEF_LESS_THAN_SETTER
-
-		DEF_COPY_NODE
-
-		DEF_NEW_EMPTY_NODE
 
 		void SetShallowCallbackPointer(typename Base::ShallowTreeCallback* shallowTreeCallbackPtr) override
 		{
