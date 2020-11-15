@@ -3,6 +3,7 @@
 #include <tuple>
 #include <utility>
 #include <string_view>
+#include "../Basic/Exception.hpp"
 #include "../Json/JsonConverter/WordEnumerator.hpp"
 
 namespace FuncLib
@@ -57,35 +58,47 @@ namespace FuncLib
 		return n;
 	}
 
-	pair<vector<WordEnumerator>, vector<WordEnumerator>> GenerateFuncDeclareEnumerator(vector<string_view> strs)
+	// TODO test
+	// 要不要搞一种 divide enumerator 不去掉分隔符的那种
+	WordEnumerator CollectFuncBody(WordEnumerator* defEnumerator)
+	{
+		// has a constructor for WordEnumerator({ s })
+		auto start = defEnumerator->Current().end(); // end is {
+
+		int unpairedCount = 1;
+		defEnumerator->ChangeSeparator('}');
+		while (defEnumerator->MoveNext())
+		{
+			auto s = defEnumerator->Current();
+			auto c = Count('{', s);
+			unpairedCount += c;
+			--unpairedCount;
+
+			if (unpairedCount == 0)
+			{
+				auto end = s.end() + 1; // end is }, need include, so + 1
+				defEnumerator->ChangeSeparator('{');
+				return WordEnumerator( { string_view(start, end - start) }, ' ');
+			}
+		}
+
+		throw Basic::InvalidOperationException("{} in func body is unpaired");
+	}
+
+	vector<pair<WordEnumerator, WordEnumerator>> GenerateFuncDeclareEnumerator(vector<string_view> strs)
 	{
 		auto e = WordEnumerator(strs, '{');
-		vector<WordEnumerator> funcDeclareEnumerators;
-		vector<WordEnumerator> funcBodyEnumerators;
-		int unpairedCount = 0;
+		vector<pair<WordEnumerator, WordEnumerator>> funcs;
 
 		while (e.MoveNext())
 		{
-			auto s = e.Current();
-			auto c = Count('}', s);
-			unpairedCount -= c;
-
-			auto subE = WordEnumerator({ s }, ' ');
-			if (unpairedCount == 0)
-			{
-				funcDeclareEnumerators.push_back(subE);
-			}
-			else
-			{
-				funcBodyEnumerators.push_back(subE);
-			}
-			
-
-			unpairedCount += 1; // add for {
+			auto signature = WordEnumerator({ e.Current() }, ' ');
+			auto body = CollectFuncBody(&e);
+			funcs.push_back({ move(signature), move(body) });
 		}
 
-		return { funcDeclareEnumerators, funcBodyEnumerators };
+		return funcs;
 	}
 
-	//如何改名字
+	//如何改名字，让外面改和构造新函数
 }
