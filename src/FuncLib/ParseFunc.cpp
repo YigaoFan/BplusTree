@@ -85,7 +85,7 @@ namespace FuncLib
 		throw Basic::InvalidOperationException("{} in func body is unpaired");
 	}
 
-	vector<pair<WordEnumerator, WordEnumerator>> GenerateFuncDeclareEnumerator(vector<string_view> strs)
+	vector<pair<WordEnumerator, WordEnumerator>> GenerateFuncEnumerator(vector<string_view> strs)
 	{
 		auto e = WordEnumerator(strs, '{');
 		vector<pair<WordEnumerator, WordEnumerator>> funcs;
