@@ -8,6 +8,10 @@ namespace FuncLib
 	using ::std::string;
 	using ::std::vector;
 
+	// add extern
+	// get function def
+	// get function type
+	// 改名，因为 extern 不支持重载
 	// scan | compile | addToLib | addToIndex
 	void Scan(vector<string> const& funcDef)
 	{
@@ -20,7 +24,7 @@ namespace FuncLib
 		Scan(funcDef);
 		// get func type
 		// convert to JsonObject arg type and return type
-		// call compiler to compile it
+		// call compiler to compile it，如果有编译错误怎么办？
 		// read compiled file into memory
 	}
 }

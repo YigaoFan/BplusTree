@@ -25,7 +25,8 @@ namespace FuncLib
 	private:
 		// 这里有个 hash map 作为缓存，快速查询
 		// 下面这个作为 key 可能需要一个 hash<FuncType> 的特化
-		unordered_map<FuncType, pair<pos_int, size_t>> _posCache;
+		// 这里的查询结果可能要包含 summary？
+		unordered_map<FuncType, pair<pos_int, size_t>> _funcInfoCache;
 		FuncBodyLibIndex _index;
 		FuncBodyLib _bodyLib;
 
@@ -51,6 +52,7 @@ namespace FuncLib
 			auto fun = Compile(funcDef);
 			fun.Type().PackageName(packageName);
 			auto p = _bodyLib.Add(fun.BodyBytes());
+			// TODO check duplicate
 			_index.Add(p, fun.Type(), move(summary));
 		}
 
@@ -76,12 +78,14 @@ namespace FuncLib
 		{
 		}
 
+		/// 由外面处理异常
 		JsonObject Invoke(string const& funcName, JsonObject args)
 		{
 			FuncType t;// 从 funcName 构造出 FuncType
 			auto [pos, size] = GetStoreInfo(t);
 			auto bytes = _bodyLib.Read(pos, size);
 			// load byte and call func
+			
 			// return result
 		}
 
@@ -92,14 +96,16 @@ namespace FuncLib
 			
 		}
 	private:
-		pair<pos_int, size_t> GetStoreInfo(FuncType const &type)
+		pair<pos_int, size_t> GetStoreInfo(FuncType const& type)
 		{
-			if (_posCache.contains(type))
+			if (_funcInfoCache.contains(type))
 			{
-				return _posCache[type];
+				return _funcInfoCache[type];
 			}
 
-			return _index.GetStoreInfo(type);
+			auto info = _index.GetStoreInfo(type);
+			_funcInfoCache.insert({ type, info });
+			return info;
 		}
 	}
 }
