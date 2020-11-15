@@ -39,7 +39,7 @@ namespace FuncLib::Store
 		shared_ptr<path> _filename;
 		FileCache _cache;
 		StorageAllocator _allocator;
-		set<pos_lable> _toDeallocateLables;// 之后可以基于这个调整文件大小，这个是为了对象从 New 到 Store 保证的
+		set<pos_lable> _notStoredLables;// 之后可以基于这个调整文件大小，这个是为了对象从 New 到 Store 保证的
 		ObjectRelationTree _objRelationTree;
 	public:
 		static shared_ptr<File> GetFile(path const& filename);
@@ -81,7 +81,7 @@ namespace FuncLib::Store
 		pair<pos_lable, shared_ptr<T>> New(T t)
 		{
 			auto lable = _allocator.AllocatePosLable();
-			_toDeallocateLables.insert(lable);
+			_notStoredLables.insert(lable);
 			auto obj = AddToCache(move(t), lable);
 			return { lable, obj };
 		}
@@ -91,7 +91,7 @@ namespace FuncLib::Store
 		pair<pos_lable, shared_ptr<T>> New(shared_ptr<T> t)
 		{
 			auto lable = _allocator.AllocatePosLable();
-			_toDeallocateLables.insert(lable);
+			_notStoredLables.insert(lable);
 			auto obj = AddToCache(move(t), lable);
 			return { lable, obj };
 		}
@@ -100,7 +100,7 @@ namespace FuncLib::Store
 		template <typename T>
 		void Store(pos_lable posLable, shared_ptr<T> const& object)
 		{
-			_toDeallocateLables.erase(posLable);
+			_notStoredLables.erase(posLable);
 
 			ofstream fs = MakeOFileStream(_filename);
 			auto allocate = [&](ObjectBytes* bytes)
@@ -141,7 +141,7 @@ namespace FuncLib::Store
 		template <typename T>
 		void StoreInner(pos_lable posLable, shared_ptr<T> const& object, ObjectBytes* parentWriter)
 		{
-			_toDeallocateLables.erase(posLable);
+			_notStoredLables.erase(posLable);
 
 			auto parent = parentWriter;
 			auto bytes = ObjectBytes(posLable, parent->ToWrites, parent->ToAllocates, parent->ToResizes);
