@@ -1,6 +1,6 @@
 // extern void diskBtreeTest(bool executed);
 extern void fileTest(bool executed);
-extern void fileReader_FileWriterTest(bool executed);
+extern void fileReader_ObjectWriterTest(bool executed);
 extern void byteConverterTest(bool executed);
 extern void storageAllocatorTest(bool executed);
 extern void fileCacheTest(bool executed);
@@ -15,7 +15,7 @@ namespace FuncLibTest
 		fileCacheTest(executed);
 		storageAllocatorTest(executed);
 		typeConverterTest(executed);
-		fileReader_FileWriterTest(executed);
+		fileReader_ObjectWriterTest(executed);
 		byteConverterTest(executed);
 	}
 }
