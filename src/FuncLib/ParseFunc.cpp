@@ -3,8 +3,10 @@
 #include <tuple>
 #include <utility>
 #include <string_view>
+#include <string>
 #include "../Basic/Exception.hpp"
-#include "../Json/JsonConverter/WordEnumerator.hpp"
+#include "FuncDefTokenReader.hpp"
+#include "../Json/JsonConverter/WordEnumerator.hpp"// TODO remove
 
 namespace FuncLib
 {
@@ -18,30 +20,22 @@ namespace FuncLib
 	/// 不支持全局变量
 	/// 不支持模板，以及非 JSON 包含的基本类型作为参数和返回值
 	/// return type, name, args, current enumerator
-	tuple<string_view, string_view, vector<string_view>, WordEnumerator> ParseFuncType(WordEnumerator defEnumerator)
+	tuple<string, string, string> ParseFuncType(FuncDefTokenReader* reader)
 	{
-		defEnumerator.ChangeSeparator(' ');
-		assert(defEnumerator.MoveNext());
-		auto returnType = defEnumerator.Current();
+		auto g = reader->GetTokenGenerator();
+		reader->Delimiter(' ');
+		g.Resume();// need assert?
+		auto returnType = g.Current();
 
-		defEnumerator.ChangeSeparator('(');
-		assert(defEnumerator.MoveNext());
-		auto name = defEnumerator.Current();
+		reader->Delimiter('(');
+		g.Resume();
+		auto name = g.Current();
 
-		defEnumerator.ChangeSeparator(')');
-		vector<string_view> args;
+		reader->Delimiter(')');
+		g.Resume();
+		auto args = g.Current();
 
-		if (defEnumerator.MoveNext())// 这里支持 () 这样吗？或者 () 的 MoveNext 返回值是？
-		{
-			auto argStr = defEnumerator.Current();
-			WordEnumerator argsEnumerator{ {argStr}, ','};
-			while (argsEnumerator.MoveNext()) // 这里要过滤可能出现的空格吗？
-			{
-				args.push_back(argsEnumerator.Current());
-			}
-		}
-
-		return { returnType, name, move(args), move(defEnumerator) };
+		return { move(returnType), move(name), move(args) };
 	}
 
 	int Count(char c, string_view rangeStr)
@@ -58,13 +52,13 @@ namespace FuncLib
 		return n;
 	}
 
+	// WordEnumerator 还是有问题的，因为 start 到 end 可能跨 string_view 了，这就不行了
 	// TODO test
 	// 要不要搞一种 divide enumerator 不去掉分隔符的那种
 	WordEnumerator CollectFuncBody(WordEnumerator* defEnumerator)
 	{
 		// has a constructor for WordEnumerator({ s })
 		auto start = defEnumerator->Current().end(); // end is {
-
 		int unpairedCount = 1;
 		defEnumerator->ChangeSeparator('}');
 		while (defEnumerator->MoveNext())
