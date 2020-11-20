@@ -17,7 +17,7 @@ TESTCASE("Byte converter test")
 	auto filename = "byteConverterTest";
 	auto path = MakeFilePath(filename);
 	{
-		auto writer = ObjectBytes(0);// TODO pos_lable
+		auto writer = ObjectBytes(0);// TODO pos_label
 		auto reader = FileReader(path, 0);
 
 		SECTION("Basic type")

@@ -11,18 +11,18 @@ namespace FuncLib::Store
 	class FakeWriter
 	{
 	private:
-		pos_lable _lable;
+		pos_label _label;
 		vector<FakeWriter> _subWriters;
 
 	public:
-		FakeWriter(pos_lable lable);
+		FakeWriter(pos_label label);
 		FakeWriter(FakeWriter const& that) = delete;
 		FakeWriter(FakeWriter&& that) noexcept = default;
 
 		void Add(char const* begin, size_t size);
 		void AddBlank(size_t size);
 		void AddSub(FakeWriter subWriter);
-		pos_lable Lable() const;
-		auto GetLableSortedSubsEnumerator() const { return CreateEnumerator(_subWriters); }
+		pos_label Label() const;
+		auto GetLabelSortedSubsEnumerator() const { return CreateEnumerator(_subWriters); }
 	};
 }

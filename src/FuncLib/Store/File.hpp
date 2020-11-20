@@ -39,7 +39,7 @@ namespace FuncLib::Store
 		shared_ptr<path> _filename;
 		FileCache _cache;
 		StorageAllocator _allocator;
-		set<pos_lable> _notStoredLables;// 之后可以基于这个调整文件大小，这个是为了对象从 New 到 Store 保证的
+		set<pos_label> _notStoredLabels;// 之后可以基于这个调整文件大小，这个是为了对象从 New 到 Store 保证的
 		ObjectRelationTree _objRelationTree;
 	public:
 		static shared_ptr<File> GetFile(path const& filename);
@@ -52,71 +52,71 @@ namespace FuncLib::Store
 		~File();
 
 		template <typename Des, typename TypeList>
-		shared_ptr<Des> Search(pos_lable lable)
+		shared_ptr<Des> Search(pos_label label)
 		{
 			using T = typename TypeList::Current;
-			if (_cache.Cached<T>(lable))
+			if (_cache.Cached<T>(label))
 			{
-				return _cache.Read<T>(lable);
+				return _cache.Read<T>(label);
 			}
 
 			if constexpr (TypeList::IsLast)
 			{
-				return AddToCache(ReadOn<T>(lable), lable);
+				return AddToCache(ReadOn<T>(label), label);
 			}
 			else
 			{
-				return Search<Des, typename TypeList::Remain>(lable);
+				return Search<Des, typename TypeList::Remain>(label);
 			}
 		}
 
 		template <typename T>
-		shared_ptr<T> Read(pos_lable posLable)
+		shared_ptr<T> Read(pos_label posLabel)
 		{
 			using SearchRoutine = typename GenerateSearchRoutine<T>::Result;
-			return Search<T, SearchRoutine>(posLable);
+			return Search<T, SearchRoutine>(posLabel);
 		}
 
 		template <typename T>
-		pair<pos_lable, shared_ptr<T>> New(T t)
+		pair<pos_label, shared_ptr<T>> New(T t)
 		{
-			auto lable = _allocator.AllocatePosLable();
-			_notStoredLables.insert(lable);
-			auto obj = AddToCache(move(t), lable);
-			return { lable, obj };
+			auto label = _allocator.AllocatePosLabel();
+			_notStoredLabels.insert(label);
+			auto obj = AddToCache(move(t), label);
+			return { label, obj };
 		}
 
 		/// New 的时候要用本来的类型，而不要用动态类型
 		template <typename T>
-		pair<pos_lable, shared_ptr<T>> New(shared_ptr<T> t)
+		pair<pos_label, shared_ptr<T>> New(shared_ptr<T> t)
 		{
-			auto lable = _allocator.AllocatePosLable();
-			_notStoredLables.insert(lable);
-			auto obj = AddToCache(move(t), lable);
-			return { lable, obj };
+			auto label = _allocator.AllocatePosLabel();
+			_notStoredLabels.insert(label);
+			auto obj = AddToCache(move(t), label);
+			return { label, obj };
 		}
 
 		/// 使用这个方法进行存储只能是最外层的对象，比如用在 OuterDiskPtr 这样
 		template <typename T>
-		void Store(pos_lable posLable, shared_ptr<T> const& object)
+		void Store(pos_label posLabel, shared_ptr<T> const& object)
 		{
-			_notStoredLables.erase(posLable);
+			_notStoredLabels.erase(posLabel);
 
 			ofstream fs = MakeOFileStream(_filename);
 			auto allocate = [&](ObjectBytes* bytes)
 			{
 				auto size = bytes->Size();
-				auto start = _allocator.GiveSpaceTo(bytes->Lable(), size);// 不用返回 start 了
+				auto start = _allocator.GiveSpaceTo(bytes->Label(), size);// 不用返回 start 了
 			};
 
 			auto resize = [&](ObjectBytes* bytes)
 			{
-				auto start = _allocator.ResizeSpaceTo(bytes->Lable(), bytes->Size()); // 不用返回 start 了
+				auto start = _allocator.ResizeSpaceTo(bytes->Label(), bytes->Size()); // 不用返回 start 了
 			};
 
 			auto write = [&](ObjectBytes* bytes)
 			{
-				auto start = _allocator.GetConcretePos(bytes->Lable());
+				auto start = _allocator.GetConcretePos(bytes->Label());
 				bytes->WriteIn(&fs, start);
 			};
 
@@ -124,8 +124,8 @@ namespace FuncLib::Store
 			WriteQueue toWrites;
 			AllocateSpaceQueue toAllocates;
 			ResizeSpaceQueue toResize;
-			ObjectBytes bytes{ posLable, &toWrites, &toAllocates, &toResize };
-			ProcessStore(posLable, object, &bytes);
+			ObjectBytes bytes{ posLabel, &toWrites, &toAllocates, &toResize };
+			ProcessStore(posLabel, object, &bytes);
 
 			// Ensure file exist before write
 			if (!exists(*_filename)) { ofstream f(*_filename); }
@@ -139,71 +139,71 @@ namespace FuncLib::Store
 
 		// 还有没有读的部分，在写入的时候要怎么处理
 		template <typename T>
-		void StoreInner(pos_lable posLable, shared_ptr<T> const& object, ObjectBytes* parentWriter)
+		void StoreInner(pos_label posLabel, shared_ptr<T> const& object, ObjectBytes* parentWriter)
 		{
-			_notStoredLables.erase(posLable);
+			_notStoredLabels.erase(posLabel);
 
 			auto parent = parentWriter;
-			auto bytes = ObjectBytes(posLable, parent->ToWrites, parent->ToAllocates, parent->ToResizes);
-			ProcessStore(posLable, object, &bytes);
+			auto bytes = ObjectBytes(posLabel, parent->ToWrites, parent->ToAllocates, parent->ToResizes);
+			ProcessStore(posLabel, object, &bytes);
 			parentWriter->AddSub(move(bytes));
 		}
 
 		template <typename T>
-		void StoreInner(pos_lable posLable, shared_ptr<T> const& object, FakeWriter* parentWriter)
+		void StoreInner(pos_label posLabel, shared_ptr<T> const& object, FakeWriter* parentWriter)
 		{
-			auto writer = FakeWriter(posLable);
-			ProcessFakeStore(posLable, object, &writer);
+			auto writer = FakeWriter(posLabel);
+			ProcessFakeStore(posLabel, object, &writer);
 			parentWriter->AddSub(move(writer));
 		}
 
 		template <typename T>
-		void Delete(pos_lable posLable, shared_ptr<T> object) // 这个模仿 delete 这个接口，但暂不处理 object
+		void Delete(pos_label posLabel, shared_ptr<T> object) // 这个模仿 delete 这个接口，但暂不处理 object
 		{
-			FakeWriter writer{ posLable };
-			ProcessFakeStore(posLable, object, &writer);
+			FakeWriter writer{ posLabel };
+			ProcessFakeStore(posLabel, object, &writer);
 
 			_objRelationTree.Free(&writer);
-			_cache.Remove<T>(posLable);
+			_cache.Remove<T>(posLabel);
 		}
 
 	private:
 		template <typename T>
-		auto ReadOn(pos_lable posLable)
+		auto ReadOn(pos_label posLabel)
 		{
 			// 触发 读 的唯一一个地方
-			auto start = _allocator.GetConcretePos(posLable);
+			auto start = _allocator.GetConcretePos(posLabel);
 			auto reader = FileReader(this, _filename, start);
 			return ByteConverter<T>::ReadOut(&reader);
 		}
 
 		// 还有 DiskPos 依赖也不是 File 的所有功能，所以可以考虑剥离一部分功能出来形成一个类，来让 DiskPos 依赖
 		template <typename T>
-		shared_ptr<T> AddToCache(T t, pos_lable posLable)
+		shared_ptr<T> AddToCache(T t, pos_label posLabel)
 		{
 			shared_ptr<T> obj = make_shared<T>(move(t));
-			_cache.Add<T>(posLable, obj);
+			_cache.Add<T>(posLabel, obj);
 			return obj;
 		}
 
 		template <typename T>
-		shared_ptr<T> AddToCache(shared_ptr<T> obj, pos_lable posLable)
+		shared_ptr<T> AddToCache(shared_ptr<T> obj, pos_label posLabel)
 		{
-			_cache.Add<T>(posLable, obj);
+			_cache.Add<T>(posLabel, obj);
 			return obj;
 		}
 
 		template <typename T>
-		void ProcessStore(pos_lable posLable, shared_ptr<T> const& object, ObjectBytes* bytes)
+		void ProcessStore(pos_label posLabel, shared_ptr<T> const& object, ObjectBytes* bytes)
 		{
 			ByteConverter<T>::WriteDown(*object, bytes);// 这里把 bytes 准备好，这里的 bytes 都是和地址无关的
 
 			// 决定下一步去向
-			if (_allocator.Ready(posLable))
+			if (_allocator.Ready(posLabel))
 			{
 				if constexpr (not ByteConverter<T>::SizeStable)
 				{
-					auto previousSize = _allocator.GetAllocatedSize(posLable);
+					auto previousSize = _allocator.GetAllocatedSize(posLabel);
 					auto newSize = bytes->Size();
 					if (previousSize < newSize)
 					{
@@ -226,7 +226,7 @@ namespace FuncLib::Store
 		static ofstream MakeOFileStream(shared_ptr<path> const& filename);
 
 		template <typename T>
-		void ProcessFakeStore(pos_lable posLable, shared_ptr<T> const& object, FakeWriter* writer)
+		void ProcessFakeStore(pos_label posLabel, shared_ptr<T> const& object, FakeWriter* writer)
 		{
 			ByteConverter<T>::WriteDown(*object, writer);
 		}

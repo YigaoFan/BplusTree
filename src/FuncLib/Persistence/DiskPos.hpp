@@ -21,32 +21,32 @@ namespace FuncLib::Persistence
 		friend bool operator== (DiskPos const& lhs, DiskPos<T2> const& rhs);
 
 		File* _file;
-		pos_lable _lable;
+		pos_label _label;
 	public:
-		DiskPos() : _file(nullptr), _lable(0)
+		DiskPos() : _file(nullptr), _label(0)
 		{ }
 
-		DiskPos(File* file, pos_lable lable) : _file(file), _lable(lable)
+		DiskPos(File* file, pos_label label) : _file(file), _label(label)
 		{ }
 
 		template <typename Derived>
-		DiskPos(DiskPos<Derived> const& that) : _file(that._file), _lable(that._lable)
+		DiskPos(DiskPos<Derived> const& that) : _file(that._file), _label(that._label)
 		{ }
 
 		shared_ptr<T> ReadObject() const
 		{
-			return _file->Read<T>(_lable);
+			return _file->Read<T>(_label);
 		}
 
 		void WriteObject(shared_ptr<T> const& obj, IWriter auto* writer) const
 		{
-			_file->StoreInner(_lable, obj, writer);
+			_file->StoreInner(_label, obj, writer);
 		}
 
 		pair<DiskPos, shared_ptr<T>> Clone(shared_ptr<T> const& obj) const
 		{
-			auto [lable, clonedObj] = _file->New(*obj);
-			return { DiskPos(_file, lable), clonedObj };
+			auto [label, clonedObj] = _file->New(*obj);
+			return { DiskPos(_file, label), clonedObj };
 		}
 
 		File* GetLessOwnershipFile() const
@@ -58,6 +58,6 @@ namespace FuncLib::Persistence
 	template <typename T1, typename T2>
 	bool operator== (DiskPos<T1> const& lhs, DiskPos<T2> const& rhs)
 	{
-		return lhs._file == rhs._file && lhs._lable == rhs._lable;
+		return lhs._file == rhs._file && lhs._label == rhs._label;
 	}
 }

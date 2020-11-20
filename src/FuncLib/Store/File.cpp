@@ -39,12 +39,12 @@ namespace FuncLib::Store
 
 	File::~File()
 	{
-		_allocator.DeallocatePosLables(_notStoredLables);
+		_allocator.DeallocatePosLabels(_notStoredLabels);
 		ObjectBytes bytes{ 0 };
 		StorageAllocator::WriteAllocatedInfoTo(_allocator, &bytes);
-		_objRelationTree.ReleaseAllFreeNode([&](pos_lable lable)
+		_objRelationTree.ReleaseAllFreeNode([&](pos_label label)
 		{
-			_allocator.DeallocatePosLable(lable);
+			_allocator.DeallocatePosLabel(label);
 		});
 		ObjectRelationTree::WriteObjRelationTree(_objRelationTree, &bytes);
 

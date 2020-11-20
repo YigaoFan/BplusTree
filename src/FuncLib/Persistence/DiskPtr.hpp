@@ -216,8 +216,8 @@ namespace FuncLib::Persistence
 		static UniqueDiskPtr<T> MakeUnique(T1&& t, File* file)
 		{
 			// 硬存使用的出发点只有这里
-			auto [lable, obj] = file->New(forward<T1>(t));
-			UniqueDiskPtr<T> ptr{ { file, lable }, obj };
+			auto [label, obj] = file->New(forward<T1>(t));
+			UniqueDiskPtr<T> ptr{ { file, label }, obj };
 			if constexpr (is_base_of_v<TakeWithDiskPos<T, Switch::Enable>, T>)
 			{
 				TakeWithDiskPos<T, Switch::Enable>::SetDiskPos(obj, &ptr._pos);

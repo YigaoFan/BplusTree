@@ -1,8 +1,8 @@
 #pragma once
 #include <vector>
 #include <utility>
-#include "LableRelationNode.hpp"
-#include "LableTree.hpp"
+#include "LabelRelationNode.hpp"
+#include "LabelTree.hpp"
 #include "FileReader.hpp"
 #include "ObjectBytes.hpp"
 #include "../Persistence/FriendFuncLibDeclare.hpp"
@@ -13,24 +13,24 @@ namespace FuncLib::Store
 	using ::std::pair;
 	using ::std::vector;
 
-	class ObjectRelationTree : private LableTree
+	class ObjectRelationTree : private LabelTree
 	{
 	private:
 		FreeNodes _freeNodes;
 
 		auto MakeTakerAndCollector()
 		{
-			auto take = [&](pos_lable lable)
+			auto take = [&](pos_label label)
 			{
-				if (auto r = this->Take(lable); r.has_value())
+				if (auto r = this->Take(label); r.has_value())
 				{
 					return r;
 				}
 
-				return _freeNodes.Take(lable);				
+				return _freeNodes.Take(label);				
 			};
 
-			auto collect = [&](LableRelationNode node)
+			auto collect = [&](LabelRelationNode node)
 			{
 				_freeNodes.AddSub(move(node));
 			};
@@ -41,13 +41,13 @@ namespace FuncLib::Store
 		static ObjectRelationTree ReadObjRelationTreeFrom(FileReader* reader);
 		static void WriteObjRelationTree(ObjectRelationTree const& tree, ObjectBytes* writer);
 
-		using LableTree::LableTree;
+		using LabelTree::LabelTree;
 		ObjectRelationTree() = default;
 
-		void UpdateWith(PosLableNode auto* topLevelNode)
+		void UpdateWith(PosLabelNode auto* topLevelNode)
 		{
-			// 上层的调用位置保证这里的 topLevelNode 一定是已经存在于磁盘中的 lable
-			// 所以这里 lable 一定在这里的 nodes(tree 和 free node) 之中
+			// 上层的调用位置保证这里的 topLevelNode 一定是已经存在于磁盘中的 label
+			// 所以这里 label 一定在这里的 nodes(tree 和 free node) 之中
 			// 所以这里的每次的 update 就是要在 nodes 里找，然后继续向下 update
 			// 新增的要在 nodes 里查找，不在再创建新的，
 			// 删掉的就放到 FreeNode 里
@@ -55,16 +55,16 @@ namespace FuncLib::Store
 			// 最后以顶层位置加到旧的里
 
 			auto [take, collect] = MakeTakerAndCollector();
-			auto newTopLevelNode = LableRelationNode::ConsNodeWith(topLevelNode);
+			auto newTopLevelNode = LabelRelationNode::ConsNodeWith(topLevelNode);
 			Complete(&newTopLevelNode, take, collect);
 			this->AddSub(move(newTopLevelNode));
 		}
 
 		// 下面这两个函数，递归这种把多余的不同的提出来的方法很棒
 		template <typename NodeTaker, typename NodeCollector>
-		void Complete(LableRelationNode* newNode, NodeTaker take, NodeCollector collect)
+		void Complete(LabelRelationNode* newNode, NodeTaker take, NodeCollector collect)
 		{
-			if (auto r = take(newNode->Lable()); r.has_value())
+			if (auto r = take(newNode->Label()); r.has_value())
 			{
 				auto oldNode = move(r.value());
 				Complete(newNode, move(oldNode), take, collect);
@@ -80,7 +80,7 @@ namespace FuncLib::Store
 		}
 
 		template <typename NodeTaker, typename NodeCollector>
-		void Complete(LableRelationNode* newNode, LableRelationNode oldNode, NodeTaker take, NodeCollector collect)
+		void Complete(LabelRelationNode* newNode, LabelRelationNode oldNode, NodeTaker take, NodeCollector collect)
 		{
 			// 说明指向的内容没读或者下面没有内容了
 			if (newNode->SubsEmpty())
@@ -92,17 +92,17 @@ namespace FuncLib::Store
 			auto oldSubsVec = oldNode.GiveSubs();
 			auto oldSubs = CreateEnumerator(oldSubsVec);
 			auto newSubs = newNode->CreateSubNodeEnumerator();
-			vector<LableRelationNode *> toCollects;
+			vector<LabelRelationNode *> toCollects;
 
 			while (true)
 			{
 				auto& oldSub = oldSubs.Current();
-				auto oldLable = oldSub.Lable();
+				auto oldLabel = oldSub.Label();
 
 				auto& newSub = newSubs.Current();
-				auto newLable = newSub.Lable();
+				auto newLabel = newSub.Label();
 
-				if (oldLable < newLable)
+				if (oldLabel < newLabel)
 				{
 					toCollects.push_back(&oldSub);
 
@@ -111,7 +111,7 @@ namespace FuncLib::Store
 						goto ProcessRemainNew;
 					}
 				}
-				else if (oldLable == newLable)
+				else if (oldLabel == newLabel)
 				{
 					// oldSub 被 move 后里面的 subs 就为空了，然后只有 toCollects 后续会 collect 掉
 					// 其他的说明已经在 newNode 里存在，不用处理，让它析构就行
@@ -143,7 +143,7 @@ namespace FuncLib::Store
 						}
 					}
 				}
-				else // oldLable > newLable 说明 newLable 没遇到过
+				else // oldLabel > newLabel 说明 newLabel 没遇到过
 				{
 					Complete(&newSub, take, collect);
 
@@ -181,10 +181,10 @@ namespace FuncLib::Store
 			}
 		}
 
-		void Free(PosLableNode auto* topLevelNode)
+		void Free(PosLabelNode auto* topLevelNode)
 		{
 			auto [take, collect] = MakeTakerAndCollector();
-			auto newTopLevelNode = LableRelationNode::ConsNodeWith(topLevelNode);
+			auto newTopLevelNode = LabelRelationNode::ConsNodeWith(topLevelNode);
 			Complete(&newTopLevelNode, take, collect);
 			_freeNodes.AddSub(move(newTopLevelNode));
 		}

@@ -24,47 +24,47 @@ namespace FuncLib::Store
 	};
 
 	template <typename T>
-	concept PosLableNode = requires(T node)
+	concept PosLabelNode = requires(T node)
 	{
-		{ node.Lable() } -> IsSameTo<pos_lable>;
-		{ node.GetLableSortedSubsEnumerator() } -> Enumerator;
+		{ node.Label() } -> IsSameTo<pos_label>;
+		{ node.GetLabelSortedSubsEnumerator() } -> Enumerator;
 	};
 
-	class LableRelationNode
+	class LabelRelationNode
 	{
 	private:
-		pos_lable _lable;
-		vector<LableRelationNode> _subNodes;
+		pos_label _label;
+		vector<LabelRelationNode> _subNodes;
 	public:
-		static LableRelationNode ConsNodeWith(PosLableNode auto* lableNode)
+		static LabelRelationNode ConsNodeWith(PosLabelNode auto* labelNode)
 		{
-			vector<LableRelationNode> subNodes;
+			vector<LabelRelationNode> subNodes;
 
-			auto e = lableNode->GetLableSortedSubsEnumerator();
+			auto e = labelNode->GetLabelSortedSubsEnumerator();
 			while (e.MoveNext())
 			{
 				subNodes.push_back(ConsNodeWith(&e.Current()));
 			}
 
-			return LableRelationNode(lableNode->Lable(), move(subNodes));
+			return LabelRelationNode(labelNode->Label(), move(subNodes));
 		}
 
-		LableRelationNode(pos_lable lable);
-		LableRelationNode(pos_lable lable, vector<LableRelationNode> subNodes);
-		LableRelationNode(LableRelationNode const& that) = delete;
-		LableRelationNode& operator= (LableRelationNode const& that) = delete;
-		LableRelationNode(LableRelationNode&& that) noexcept = default;
-		LableRelationNode& operator= (LableRelationNode&& that) noexcept
+		LabelRelationNode(pos_label label);
+		LabelRelationNode(pos_label label, vector<LabelRelationNode> subNodes);
+		LabelRelationNode(LabelRelationNode const& that) = delete;
+		LabelRelationNode& operator= (LabelRelationNode const& that) = delete;
+		LabelRelationNode(LabelRelationNode&& that) noexcept = default;
+		LabelRelationNode& operator= (LabelRelationNode&& that) noexcept
 		{
-			this->_lable = that._lable;
+			this->_label = that._label;
 			this->_subNodes = move(that._subNodes);
 			return *this;
 		}
 
-		~LableRelationNode() = default;
+		~LabelRelationNode() = default;
 
-		void Subs(vector<LableRelationNode> subNodes);
-		vector<LableRelationNode> GiveSubs()
+		void Subs(vector<LabelRelationNode> subNodes);
+		vector<LabelRelationNode> GiveSubs()
 		{
 			return move(_subNodes);
 		}
@@ -74,33 +74,33 @@ namespace FuncLib::Store
 			return _subNodes.empty();
 		}
 
-		pos_lable Lable() const;
+		pos_label Label() const;
 		auto CreateSubNodeEnumerator() { return Collections::CreateEnumerator(_subNodes); }
 		auto CreateSubNodeEnumerator() const { return Collections::CreateEnumerator(_subNodes); }
 		// 这样哪些需要 release 是不是就不用那个 toDoDelete set 来记了？还需要，有的没 Store 就要 release
 		// 那这里就要有某种方法标记它已经 Store 了，不要让那个 set 来 release 了
-		/// 这里要求 node 的 Lable 和当前 LableNode 的 Lable 一样，否则直接在外层直接操作就好了
+		/// 这里要求 node 的 Label 和当前 LabelNode 的 Label 一样，否则直接在外层直接操作就好了
 		template <typename ReadQuerier, typename Releaser>
-		void UpdateWith(PosLableNode auto* node, ReadQuerier const& read, Releaser const& releaser)
+		void UpdateWith(PosLabelNode auto* node, ReadQuerier const& read, Releaser const& releaser)
 		{
-			if (not read(_lable))
+			if (not read(_label))
 			{
 				return;
 			}
 
-			vector<LableRelationNode *> toDeletes;
-			vector<LableRelationNode> toAdds;
-			auto thatSubs = node->GetLableSortedSubsEnumerator();
+			vector<LabelRelationNode *> toDeletes;
+			vector<LabelRelationNode> toAdds;
+			auto thatSubs = node->GetLabelSortedSubsEnumerator();
 			auto thisSubs = this->CreateSubNodeEnumerator();
 			while (true)
 			{
-				LableRelationNode& oldP = thisSubs.Current();
-				auto oldLable = oldP._lable;
+				LabelRelationNode& oldP = thisSubs.Current();
+				auto oldLabel = oldP._label;
 
 				auto& sub = thatSubs.Current();
-				auto newLable = sub.Lable();
+				auto newLabel = sub.Label();
 
-				if (oldLable < newLable)
+				if (oldLabel < newLabel)
 				{
 					toDeletes.push_back(&oldP);
 					if (not thisSubs.MoveNext())
@@ -108,7 +108,7 @@ namespace FuncLib::Store
 						goto ProcessRemainNew;
 					}
 				}
-				else if (oldLable == newLable)
+				else if (oldLabel == newLabel)
 				{
 					oldP.UpdateWith(&sub, read, releaser);
 					auto hasOld = thisSubs.MoveNext();
@@ -137,9 +137,9 @@ namespace FuncLib::Store
 						}
 					}
 				}
-				else // oldLable > newLable 说明 newLable 没遇到过
+				else // oldLabel > newLabel 说明 newLabel 没遇到过
 				{
-					LableRelationNode n = ConsNodeWith(&sub);
+					LabelRelationNode n = ConsNodeWith(&sub);
 					toAdds.push_back(move(n));
 
 					if (not thatSubs.MoveNext())
@@ -180,7 +180,7 @@ namespace FuncLib::Store
 			{
 				for (size_t i = 0; auto& y : _subNodes)
 				{
-					if (x._lable < y._lable)
+					if (x._label < y._label)
 					{
 						_subNodes.insert(_subNodes.begin() + i, move(x));
 						break;
@@ -194,7 +194,7 @@ namespace FuncLib::Store
 		template <typename Releaser>
 		void ReleaseAll(Releaser const& releaser)
 		{
-			releaser(_lable);
+			releaser(_label);
 			for (auto& n : _subNodes)
 			{
 				n.ReleaseAll(releaser);
@@ -203,8 +203,8 @@ namespace FuncLib::Store
 			_subNodes.clear();
 		}
 
-		/// 由于是 internal 的，所以不检查当前 node 的 lable
-		optional<LableRelationNode> TakeInternal(pos_lable lable)
+		/// 由于是 internal 的，所以不检查当前 node 的 label
+		optional<LabelRelationNode> TakeInternal(pos_label label)
 		{
 			if (_subNodes.empty())
 			{
@@ -213,13 +213,13 @@ namespace FuncLib::Store
 
 			for (size_t i = 0; auto& n : _subNodes)
 			{
-				if (n.Lable() == lable)
+				if (n.Label() == label)
 				{
 					auto des = move(n);
 					Erase(i, _subNodes);
 					return des;
 				}
-				else if (auto r = n.TakeInternal(lable); r.has_value())
+				else if (auto r = n.TakeInternal(label); r.has_value())
 				{
 					return r;
 				}
@@ -228,6 +228,6 @@ namespace FuncLib::Store
 			return { };
 		}
 
-		void AddSub(LableRelationNode node);
+		void AddSub(LabelRelationNode node);
 	};	
 }

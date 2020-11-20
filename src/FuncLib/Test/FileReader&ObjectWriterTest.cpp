@@ -12,7 +12,7 @@ TESTCASE("FileReader&ObjectBytes test")
 {
 	auto filename = "reader&writer";
 	{
-		auto writer = ObjectBytes(0);// TODO pos_lable
+		auto writer = ObjectBytes(0);// TODO pos_label
 		string s = "Hello World";
 		// writer.StartCounter();
 		// writer.Write(s.c_str(), s.size());

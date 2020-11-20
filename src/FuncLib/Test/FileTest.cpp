@@ -18,12 +18,12 @@ TESTCASE("File test")
 	auto filename = "fileTest";
 	auto file = File::GetFile("fileTest"); //如果没有就创建文件
 
-	auto [posLable, obj] = file->New(1);
-	auto obj1 = file->Read<int>(posLable);
+	auto [posLabel, obj] = file->New(1);
+	auto obj1 = file->Read<int>(posLabel);
 	ASSERT(obj == obj1);
 	ASSERT(*obj == 1);
-	file->Store(posLable, obj);
-	file->Delete(posLable, obj);
+	file->Store(posLabel, obj);
+	file->Delete(posLabel, obj);
 
 	remove(filename);
 }

@@ -8,8 +8,8 @@ namespace FuncLib::Store
 		fs->write(begin, size);
 	}
 
-	ObjectBytes::ObjectBytes(pos_lable lable, WriteQueue* writeQueue, AllocateSpaceQueue* allocateQueue, ResizeSpaceQueue* resizeQueue)
-		: _lable(lable), ToWrites(writeQueue), ToAllocates(allocateQueue), ToResizes(resizeQueue)
+	ObjectBytes::ObjectBytes(pos_label label, WriteQueue* writeQueue, AllocateSpaceQueue* allocateQueue, ResizeSpaceQueue* resizeQueue)
+		: _label(label), ToWrites(writeQueue), ToAllocates(allocateQueue), ToResizes(resizeQueue)
 	{ }
 
 	void ObjectBytes::WriteIn(ofstream* fileStream, pos_int pos) const
@@ -22,9 +22,9 @@ namespace FuncLib::Store
 		_subObjectBytes.push_back(move(subObjectBytes));
 	}
 
-	pos_lable ObjectBytes::Lable() const
+	pos_label ObjectBytes::Label() const
 	{
-		return _lable;
+		return _label;
 	}
 
 	size_t ObjectBytes::Size() const

@@ -18,8 +18,8 @@ namespace FuncLib::Store
 		using id_int = unsigned int;
 	private:
 		template <typename T>
-		/// file id, pos lable, object
-		static map<id_int, map<pos_lable, shared_ptr<T>>> Cache;
+		/// file id, pos label, object
+		static map<id_int, map<pos_label, shared_ptr<T>>> Cache;
 
 		id_int _fileId;
 		function<void()> _unloader = []() {};
@@ -28,13 +28,13 @@ namespace FuncLib::Store
 		~FileCache();
 
 		template <typename T>
-		bool Cached(pos_lable posLable)
+		bool Cached(pos_label posLabel)
 		{
-			return Cache<T>.contains(_fileId) && Cache<T>[_fileId].contains(posLable);
+			return Cache<T>.contains(_fileId) && Cache<T>[_fileId].contains(posLabel);
 		}
 
 		template <typename T>
-		void Add(pos_lable posLable, shared_ptr<T> object)
+		void Add(pos_label posLabel, shared_ptr<T> object)
 		{
 			if (!Cache<T>.contains(_fileId))
 			{
@@ -47,23 +47,23 @@ namespace FuncLib::Store
 
 			Cache<T>.insert({ _fileId,
 			{ 
-				{ posLable, object },
+				{ posLabel, object },
 			}});
 		}
 
 		template <typename T>
-		void Remove(pos_lable posLable)
+		void Remove(pos_label posLabel)
 		{
-			Cache<T>[_fileId].erase(posLable);
+			Cache<T>[_fileId].erase(posLabel);
 		}
 
 		template <typename T>
-		shared_ptr<T> Read(pos_lable posLable)
+		shared_ptr<T> Read(pos_label posLabel)
 		{
-			return Cache<T>[_fileId][posLable];
+			return Cache<T>[_fileId][posLabel];
 		}
 	};
 
 	template <typename T>
-	map<FileCache::id_int, map<pos_lable, shared_ptr<T>>> FileCache::Cache = {};
+	map<FileCache::id_int, map<pos_label, shared_ptr<T>>> FileCache::Cache = {};
 }

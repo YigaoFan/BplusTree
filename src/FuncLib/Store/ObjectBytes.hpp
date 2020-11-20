@@ -4,7 +4,7 @@
 #include <fstream>
 #include <vector>
 #include "StaticConfig.hpp"
-#include "LableRelationNode.hpp"
+#include "LabelRelationNode.hpp"
 #include "../../Btree/Enumerator.hpp"
 #include "ObjectBytesQueue.hpp"
 
@@ -22,7 +22,7 @@ namespace FuncLib::Store
 	class ObjectBytes
 	{
 	private:
-		pos_lable _lable;
+		pos_label _label;
 		vector<char> _bytes;
 		vector<ObjectBytes> _subObjectBytes;// 用 unique_ptr TODO
 	public:
@@ -33,15 +33,15 @@ namespace FuncLib::Store
 		ResizeSpaceQueue* ToResizes;
 
 		// remove nullptr TODO
-		ObjectBytes(pos_lable lable, WriteQueue* writeQueuen = nullptr, AllocateSpaceQueue* allocateQueue = nullptr, ResizeSpaceQueue* resizeQueue = nullptr);
+		ObjectBytes(pos_label label, WriteQueue* writeQueuen = nullptr, AllocateSpaceQueue* allocateQueue = nullptr, ResizeSpaceQueue* resizeQueue = nullptr);
 		ObjectBytes(ObjectBytes const& that) = delete;
 		ObjectBytes(ObjectBytes&& that) noexcept = default;
 		
 		void WriteIn(ofstream* fileStream, pos_int pos) const;
 
 		void AddSub(ObjectBytes subObjectByte);
-		pos_lable Lable() const;
-		auto GetLableSortedSubsEnumerator() const { return CreateEnumerator(_subObjectBytes); }
+		pos_label Label() const;
+		auto GetLabelSortedSubsEnumerator() const { return CreateEnumerator(_subObjectBytes); }
 
 		size_t Size() const;
 

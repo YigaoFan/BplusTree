@@ -9,18 +9,18 @@ using namespace std;
 
 TESTCASE("FileCache test")
 {
-	auto posLable = 0;// 其实这里是某种唯一标注的数字就可以，不用特意是 pos_lable
+	auto posLabel = 0;// 其实这里是某种唯一标注的数字就可以，不用特意是 pos_label
 	using T = int;
 	auto obj = make_shared<T>(1);
 	auto fileId = 1;
 	auto cache = FileCache(fileId);
 
-	ASSERT(!cache.Cached<T>(posLable));
-	cache.Add(posLable, obj);
-	ASSERT(cache.Cached<T>(posLable));
-	ASSERT(obj == cache.Read<T>(posLable));
-	cache.Remove<T>(posLable);
-	ASSERT(!cache.Cached<T>(posLable));
+	ASSERT(!cache.Cached<T>(posLabel));
+	cache.Add(posLabel, obj);
+	ASSERT(cache.Cached<T>(posLabel));
+	ASSERT(obj == cache.Read<T>(posLabel));
+	cache.Remove<T>(posLabel);
+	ASSERT(!cache.Cached<T>(posLabel));
 }
 
 DEF_TEST_FUNC(fileCacheTest)

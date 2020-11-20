@@ -1,13 +1,13 @@
 #pragma once
-#include "LableTree.hpp"
+#include "LabelTree.hpp"
 
 namespace FuncLib::Store
 {
-	class FreeNodes : private LableTree
+	class FreeNodes : private LabelTree
 	{
 	public:
-		using LableTree::AddSub;
-		using LableTree::Take;
+		using LabelTree::AddSub;
+		using LabelTree::Take;
 
 		template <typename Releaser>
 		void ReleaseAll(Releaser const& releaser)

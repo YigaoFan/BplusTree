@@ -12,15 +12,15 @@ namespace FuncLib::Persistence
 	{
 		using ThisType = StorageAllocator;
 		using DataMember0 = decltype(declval<ThisType>()._currentPos);
-		using DataMember1 = decltype(declval<ThisType>()._usingLableTable);
-		using DataMember2 = decltype(declval<ThisType>()._deletedLableTable);
+		using DataMember1 = decltype(declval<ThisType>()._usingLabelTable);
+		using DataMember2 = decltype(declval<ThisType>()._deletedLabelTable);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMember0, DataMember1, DataMember2>::Result;
 
 		static void WriteDown(ThisType const& p, IWriter auto* writer)
 		{
 			ByteConverter<DataMember0>::WriteDown(p._currentPos, writer);
-			ByteConverter<DataMember1>::WriteDown(p._usingLableTable, writer);
-			ByteConverter<DataMember2>::WriteDown(p._deletedLableTable, writer);
+			ByteConverter<DataMember1>::WriteDown(p._usingLabelTable, writer);
+			ByteConverter<DataMember2>::WriteDown(p._deletedLabelTable, writer);
 		}
 
 		static ThisType ReadOut(FileReader* reader)
@@ -47,77 +47,77 @@ namespace FuncLib::Store
 		ByteConverter<StorageAllocator>::WriteDown(allocator, bytes);
 	}
 
-	StorageAllocator::StorageAllocator(pos_int currentPos, map<pos_lable, pair<pos_int, size_t>> usingLableTable, map<pos_lable, pair<pos_int, size_t>> deletedLableTable)
-		: _currentPos(currentPos), _usingLableTable(move(usingLableTable)), _deletedLableTable(move(deletedLableTable))
+	StorageAllocator::StorageAllocator(pos_int currentPos, map<pos_label, pair<pos_int, size_t>> usingLabelTable, map<pos_label, pair<pos_int, size_t>> deletedLabelTable)
+		: _currentPos(currentPos), _usingLabelTable(move(usingLabelTable)), _deletedLabelTable(move(deletedLabelTable))
 	{ }
 
-	bool StorageAllocator::Ready(pos_lable posLable) const
+	bool StorageAllocator::Ready(pos_label posLabel) const
 	{
-		return _usingLableTable.contains(posLable);
+		return _usingLabelTable.contains(posLabel);
 	}
 
-	pos_int StorageAllocator::GetConcretePos(pos_lable posLable) const
+	pos_int StorageAllocator::GetConcretePos(pos_label posLabel) const
 	{
-		return _usingLableTable.find(posLable)->second.first;
+		return _usingLabelTable.find(posLabel)->second.first;
 	}
 
-	size_t StorageAllocator::GetAllocatedSize(pos_lable posLable) const
+	size_t StorageAllocator::GetAllocatedSize(pos_label posLabel) const
 	{
-		return _usingLableTable.find(posLable)->second.second;
+		return _usingLabelTable.find(posLabel)->second.second;
 	}
 
-	pos_lable StorageAllocator::AllocatePosLable()
+	pos_label StorageAllocator::AllocatePosLabel()
 	{
 		/// 0 represents File, so from 1
-		return _usingLableTable.size() + 1;
+		return _usingLabelTable.size() + 1;
 	}
 
-	void StorageAllocator::DeallocatePosLable(pos_lable posLable)
+	void StorageAllocator::DeallocatePosLabel(pos_label posLabel)
 	{
-		if (_usingLableTable.contains(posLable))
+		if (_usingLabelTable.contains(posLabel))
 		{
-			auto allocateInfoIter = _usingLableTable.find(posLable);
-			_deletedLableTable.insert(*allocateInfoIter);
-			_usingLableTable.erase(posLable);
+			auto allocateInfoIter = _usingLabelTable.find(posLabel);
+			_deletedLabelTable.insert(*allocateInfoIter);
+			_usingLabelTable.erase(posLabel);
 			// 那是什么时候调整分配大小，那时候调用上面具体位置的地方就会受影响，所以要尽量少的依赖具体位置
 		}
 	}
 
 #define VALID_CHECK                                                                                     \
-	if (_deletedLableTable.contains(posLable))                                                          \
+	if (_deletedLabelTable.contains(posLabel))                                                          \
 	{                                                                                                   \
 		using ::Basic::InvalidAccessException;                                                          \
-		throw InvalidAccessException("Apply space for deleted lable, it means have wrong code logic."); \
+		throw InvalidAccessException("Apply space for deleted label, it means have wrong code logic."); \
 	}
 	/// for first use
-	pos_int StorageAllocator::GiveSpaceTo(pos_lable posLable, size_t size)
+	pos_int StorageAllocator::GiveSpaceTo(pos_label posLabel, size_t size)
 	{
 		VALID_CHECK;
 		
 		// 这里是个粗糙的内存分配算法实现
-		_usingLableTable.insert({ posLable, { _currentPos, size }});
+		_usingLabelTable.insert({ posLabel, { _currentPos, size }});
 		_currentPos += size;
 		return _currentPos - size;
 	}
 
-	pos_int StorageAllocator::ResizeSpaceTo(pos_lable posLable, size_t biggerSize)
+	pos_int StorageAllocator::ResizeSpaceTo(pos_label posLabel, size_t biggerSize)
 	{
 		VALID_CHECK;
 
 		using ::std::make_pair;
-		auto allocateInfoIter = _usingLableTable.find(posLable);
-		_deletedLableTable.insert({ FileLable, allocateInfoIter->second });
+		auto allocateInfoIter = _usingLabelTable.find(posLabel);
+		_deletedLabelTable.insert({ FileLabel, allocateInfoIter->second });
 		allocateInfoIter->second = make_pair(_currentPos, biggerSize);
 		_currentPos += biggerSize;
 		return _currentPos - biggerSize;
 	}
 #undef VALID_CHECK
 
-	void StorageAllocator::DeallocatePosLables(set<pos_lable> const& posLables)
+	void StorageAllocator::DeallocatePosLabels(set<pos_label> const& posLabels)
 	{
-		for (auto p : posLables)
+		for (auto p : posLabels)
 		{
-			DeallocatePosLable(p);
+			DeallocatePosLabel(p);
 		}
 	}
 }

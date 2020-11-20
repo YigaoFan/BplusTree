@@ -12,18 +12,18 @@ TESTCASE("StorageAllocator test")
     auto filename = "storageAllocatorTest";
     FileReader reader{ MakeFilePath(filename), 0 };
     auto alloca = StorageAllocator::ReadAllocatedInfoFrom(&reader);
-    auto lable = alloca.AllocatePosLable();
-    ASSERT(!alloca.Ready(lable));
+    auto label = alloca.AllocatePosLabel();
+    ASSERT(!alloca.Ready(label));
     auto size = 1;
-    auto pos = alloca.GiveSpaceTo(lable, size);
-    ASSERT(pos == alloca.GetConcretePos(lable));
-    ASSERT(size == alloca.GetAllocatedSize(lable));
+    auto pos = alloca.GiveSpaceTo(label, size);
+    ASSERT(pos == alloca.GetConcretePos(label));
+    ASSERT(size == alloca.GetAllocatedSize(label));
     auto newSize = size + 1;
-    auto newPos = alloca.ResizeSpaceTo(lable, newSize);
-    ASSERT(newPos == alloca.GetConcretePos(lable));
-    ASSERT(newSize == alloca.GetAllocatedSize(lable));
+    auto newPos = alloca.ResizeSpaceTo(label, newSize);
+    ASSERT(newPos == alloca.GetConcretePos(label));
+    ASSERT(newSize == alloca.GetAllocatedSize(label));
 
-    alloca.DeallocatePosLable(lable);
+    alloca.DeallocatePosLabel(label);
     ObjectBytes bytes{ 0 };
     StorageAllocator::WriteAllocatedInfoTo(alloca, &bytes);
 }

@@ -9,19 +9,19 @@ namespace FuncLib::Store
 	class TakeVerifications
     {
     private:
-        vector<pos_lable> _lables;
+        vector<pos_label> _labels;
     public:
-        auto begin() const { return _lables.begin(); }
-        auto end() const { return _lables.end(); }
-        auto begin() { return _lables.begin(); }
-        auto end() { return _lables.end(); }
-        void Verified(pos_lable lable)
+        auto begin() const { return _labels.begin(); }
+        auto end() const { return _labels.end(); }
+        auto begin() { return _labels.begin(); }
+        auto end() { return _labels.end(); }
+        void Verified(pos_label label)
         {
-            for (size_t i = 0; i < _lables.size(); ++i)
+            for (size_t i = 0; i < _labels.size(); ++i)
             {
-                if (_lables[i] == lable)
+                if (_labels[i] == label)
                 {
-                    Erase(i, _lables);
+                    Erase(i, _labels);
                     return;
                 }
             }

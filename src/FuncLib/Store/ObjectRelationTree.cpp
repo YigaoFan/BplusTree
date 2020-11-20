@@ -8,33 +8,33 @@ namespace FuncLib::Store
 {
 	using ::std::optional;
 
-	constexpr pos_lable NonLable = 0;// 树中不能出现 0
+	constexpr pos_label NonLabel = 0;// 树中不能出现 0
 
-	Generator<optional<vector<pos_lable>>> ReadLables(FileReader* reader)
+	Generator<optional<vector<pos_label>>> ReadLabels(FileReader* reader)
 	{
 
-		for (vector<pos_lable> lables;;)
+		for (vector<pos_label> labels;;)
 		{
-			auto lable = ByteConverter<pos_lable>::ReadOut(reader);
-			if (NonLable == lable)
+			auto label = ByteConverter<pos_label>::ReadOut(reader);
+			if (NonLabel == label)
 			{
-				if (lables.empty())
+				if (labels.empty())
 				{
 					co_yield {};
 				}
 				else
 				{
-					co_yield move(lables);
+					co_yield move(labels);
 				}
 			}
 			else
 			{
-				lables.push_back(lable);
+				labels.push_back(label);
 			}			
 		}
 	}
 
-	vector<LableRelationNode> ConsNodes(Generator<optional<vector<pos_lable>>>* generator)
+	vector<LabelRelationNode> ConsNodes(Generator<optional<vector<pos_label>>>* generator)
 	{
 		generator->Resume();
 
@@ -43,12 +43,12 @@ namespace FuncLib::Store
 			return {};
 		}
 
-		vector<LableRelationNode> nodes;
+		vector<LabelRelationNode> nodes;
 		// will be changed in below inner ConsNodes call, so need to save it
-		auto lables = generator->Current().value();
-		for (auto l : lables)
+		auto labels = generator->Current().value();
+		for (auto l : labels)
 		{
-			auto n = LableRelationNode(l);
+			auto n = LabelRelationNode(l);
 			auto subNodes = ConsNodes(generator);
 			n.Subs(move(subNodes));
 
@@ -60,33 +60,33 @@ namespace FuncLib::Store
 
 	ObjectRelationTree ObjectRelationTree::ReadObjRelationTreeFrom(FileReader* reader)
 	{
-		auto fileLable = ByteConverter<pos_lable>::ReadOut(reader);
-		auto gen = ReadLables(reader);
+		auto fileLabel = ByteConverter<pos_label>::ReadOut(reader);
+		auto gen = ReadLabels(reader);
 
-		return { LableRelationNode(fileLable, ConsNodes(&gen)) };
+		return { LabelRelationNode(fileLabel, ConsNodes(&gen)) };
 	}
 
-	void WriteSubLableOf(LableRelationNode const* node, ObjectBytes* writer)
+	void WriteSubLabelOf(LabelRelationNode const* node, ObjectBytes* writer)
 	{
 		auto e1 = node->CreateSubNodeEnumerator();
 		while (e1.MoveNext())
 		{
-			auto l = e1.Current().Lable();
-			ByteConverter<pos_lable>::WriteDown(l, writer);
+			auto l = e1.Current().Label();
+			ByteConverter<pos_label>::WriteDown(l, writer);
 		}
 
-		ByteConverter<pos_lable>::WriteDown(NonLable, writer);
+		ByteConverter<pos_label>::WriteDown(NonLabel, writer);
 
 		auto e2 = node->CreateSubNodeEnumerator();
 		while (e2.MoveNext())
 		{
-			WriteSubLableOf(&e2.Current(), writer);
+			WriteSubLabelOf(&e2.Current(), writer);
 		}
 	}
 
 	void ObjectRelationTree::WriteObjRelationTree(ObjectRelationTree const& tree, ObjectBytes* writer)
 	{
-		ByteConverter<pos_lable>::WriteDown(tree._fileRoot.Lable(), writer);
-		WriteSubLableOf(&tree._fileRoot, writer);
+		ByteConverter<pos_label>::WriteDown(tree._fileRoot.Label(), writer);
+		WriteSubLabelOf(&tree._fileRoot, writer);
 	}
 }
