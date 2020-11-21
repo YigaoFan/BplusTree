@@ -4,6 +4,7 @@
 #include <utility>
 #include <string_view>
 #include <string>
+#include <array>
 #include "../Basic/Exception.hpp"
 #include "FuncDefTokenReader.hpp"
 #include "../Json/JsonConverter/WordEnumerator.hpp"// TODO remove
@@ -11,6 +12,7 @@
 namespace FuncLib
 {
 	using Json::JsonConverter::WordEnumerator;
+	using ::std::array;
 	using ::std::move;
 	using ::std::pair;
 	using ::std::string_view;
@@ -19,23 +21,28 @@ namespace FuncLib
 
 	/// 不支持全局变量
 	/// 不支持模板，以及非 JSON 包含的基本类型作为参数和返回值
-	/// return type, name, args, current enumerator
-	tuple<string, string, string> ParseFuncType(FuncDefTokenReader* reader)
+	/// return type, name, args
+	array<string, 3> ParseFuncType(FuncDefTokenReader* reader)
 	{
+		array<char, 3> delimiters
+		{
+			' ',
+			'(',
+			')',
+		};
+		array<string, 3> infos;
+
 		auto g = reader->GetTokenGenerator();
-		reader->Delimiter(' ');
-		g.Resume();// need assert?
-		auto returnType = g.Current();
 
-		reader->Delimiter('(');
-		g.Resume();
-		auto name = g.Current();
+		for (auto i = 0; auto d : delimiters)
+		{
+			reader->Delimiter(d);
+			g.Resume(); // need assert?
+			infos[i] = move(g.Current());
+			++i;
+		}
 
-		reader->Delimiter(')');
-		g.Resume();
-		auto args = g.Current();
-
-		return { move(returnType), move(name), move(args) };
+		return infos;
 	}
 
 	int Count(char c, string_view rangeStr)
