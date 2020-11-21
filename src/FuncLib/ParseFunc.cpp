@@ -1,28 +1,14 @@
-#include <cassert>
-#include <vector>
-#include <tuple>
-#include <utility>
-#include <string_view>
-#include <string>
-#include <array>
 #include "../Basic/Exception.hpp"
-#include "FuncDefTokenReader.hpp"
-#include "../Json/JsonConverter/WordEnumerator.hpp"// TODO remove
+#include "ParseFunc.hpp"
 
 namespace FuncLib
 {
-	using Json::JsonConverter::WordEnumerator;
-	using ::std::array;
-	using ::std::move;
-	using ::std::pair;
-	using ::std::string_view;
-	using ::std::tuple;
-	using ::std::vector;
+	// 可能想改下 Generator::Resume 的返回值语义
 
 	/// 不支持全局变量
 	/// 不支持模板，以及非 JSON 包含的基本类型作为参数和返回值
 	/// return type, name, args
-	array<string, 3> ParseFuncType(FuncDefTokenReader* reader)
+	array<string, 3> ParseFuncSignature(FuncDefTokenReader* reader)
 	{
 		array<char, 3> delimiters
 		{
@@ -31,13 +17,12 @@ namespace FuncLib
 			')',
 		};
 		array<string, 3> infos;
-
 		auto g = reader->GetTokenGenerator();
 
 		for (auto i = 0; auto d : delimiters)
 		{
 			reader->Delimiter(d);
-			g.Resume(); // need assert?
+			g.MoveNext(); // 不 assert 了，因为编译检查过了
 			infos[i] = move(g.Current());
 			++i;
 		}
@@ -60,46 +45,44 @@ namespace FuncLib
 	}
 
 	// WordEnumerator 还是有问题的，因为 start 到 end 可能跨 string_view 了，这就不行了
-	// TODO test
-	// 要不要搞一种 divide enumerator 不去掉分隔符的那种
-	WordEnumerator CollectFuncBody(WordEnumerator* defEnumerator)
+	/// body 是不包含函数的 { } 的
+	vector<string> ParseFuncBodyAfterSignature(FuncDefTokenReader* defReader)
 	{
-		// has a constructor for WordEnumerator({ s })
-		auto start = defEnumerator->Current().end(); // end is {
+		vector<string> funcBody;
+		auto g = defReader->GetTokenGenerator();
 		int unpairedCount = 1;
-		defEnumerator->ChangeSeparator('}');
-		while (defEnumerator->MoveNext())
+		defReader->Delimiter('}');
+
+		while (g.MoveNext())
 		{
-			auto s = defEnumerator->Current();
-			auto c = Count('{', s);
-			unpairedCount += c;
+			auto part = g.Current();
+			unpairedCount += Count('{', part);
 			--unpairedCount;
+			funcBody.push_back(move(part));
 
 			if (unpairedCount == 0)
 			{
-				auto end = s.end() + 1; // end is }, need include, so + 1
-				defEnumerator->ChangeSeparator('{');
-				return WordEnumerator( { string_view(start, end - start) }, ' ');
+				return move(funcBody);
 			}
 		}
 
 		throw Basic::InvalidOperationException("{} in func body is unpaired");
 	}
 
-	vector<pair<WordEnumerator, WordEnumerator>> GenerateFuncEnumerator(vector<string_view> strs)
+	/// 使用前要保证函数编译正确，比如可以先编译一遍
+	/// pair: { return type, name, args }, func body 
+	vector<pair<array<string, 3>, vector<string>>> ParseFunc(FuncDefTokenReader* defReader)
 	{
-		auto e = WordEnumerator(strs, '{');
-		vector<pair<WordEnumerator, WordEnumerator>> funcs;
+		vector<pair<array<string, 3>, vector<string>>> funcs;
 
-		while (e.MoveNext())
+		while (not defReader->AtEnd())
 		{
-			auto signature = WordEnumerator({ e.Current() }, ' ');
-			auto body = CollectFuncBody(&e);
-			funcs.push_back({ move(signature), move(body) });
+			auto sign = ParseFuncSignature(defReader);
+			auto body = ParseFuncBodyAfterSignature(defReader);
+
+			funcs.push_back({ move(sign), move(body) });
 		}
 
 		return funcs;
 	}
-
-	//如何改名字，让外面改和构造新函数
 }

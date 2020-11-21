@@ -47,17 +47,18 @@ namespace FuncLib::Store
 		};
 		using coro_handle = coroutine_handle<promise_type>;
 
-		bool Resume()
+		bool MoveNext()
 		{
 			if (not handle.done())
 			{
 				handle.resume();
+				return true;
 			}
 
-			return not handle.done();
+			return false;
 		}
 
-		T &Current()
+		T& Current()
 		{
 			return handle.promise().Value();
 		}

@@ -36,7 +36,7 @@ namespace FuncLib::Store
 
 	vector<LabelRelationNode> ConsNodes(Generator<optional<vector<pos_label>>>* generator)
 	{
-		generator->Resume();
+		generator->MoveNext();
 
 		if (not generator->Current().has_value())
 		{

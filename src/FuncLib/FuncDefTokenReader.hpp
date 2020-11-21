@@ -18,5 +18,6 @@ namespace FuncLib
 		FuncDefTokenReader(decltype(_delimiter) delimiter, decltype(_istream) istream);
 		void Delimiter(decltype(_delimiter) newDelimiter);
 		Generator<string> GetTokenGenerator();
+		bool AtEnd() const;
 	};
 }

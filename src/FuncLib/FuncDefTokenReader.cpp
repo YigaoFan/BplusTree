@@ -31,4 +31,9 @@ namespace FuncLib
 
 		co_yield move(buffer); // 怎么结束 yield，像 C# 里是 yield break;
 	}
+
+	bool FuncDefTokenReader::AtEnd() const
+	{
+		return _istream.eof();
+	}
 }
