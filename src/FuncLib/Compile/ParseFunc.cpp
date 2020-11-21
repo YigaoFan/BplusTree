@@ -1,8 +1,8 @@
 #include <string_view>
-#include "../Basic/Exception.hpp"
+#include "../../Basic/Exception.hpp"
 #include "ParseFunc.hpp"
 
-namespace FuncLib
+namespace FuncLib::Compile
 {
 	using ::std::move;
 	using ::std::string_view;

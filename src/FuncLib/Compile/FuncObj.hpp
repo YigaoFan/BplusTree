@@ -3,7 +3,7 @@
 #include <string>
 #include "FuncType.hpp"
 
-namespace FuncLib
+namespace FuncLib::Compile
 {
 	using ::std::string;
 	using ::std::vector;

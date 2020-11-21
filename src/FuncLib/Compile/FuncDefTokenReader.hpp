@@ -1,8 +1,8 @@
 #include <string>
 #include <fstream>
-#include "Store/Generator.hpp"
+#include "../Store/Generator.hpp"
 
-namespace FuncLib
+namespace FuncLib::Compile
 {
 	using ::std::ifstream;
 	using ::std::move;

@@ -4,7 +4,7 @@
 #include <array>
 #include "FuncDefTokenReader.hpp"
 
-namespace FuncLib
+namespace FuncLib::Compile
 {
 	using ::std::array;
 	using ::std::pair;

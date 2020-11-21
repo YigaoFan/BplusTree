@@ -1,6 +1,6 @@
 #include "FuncDefTokenReader.hpp"
 
-namespace FuncLib
+namespace FuncLib::Compile
 {
 	FuncDefTokenReader::FuncDefTokenReader(decltype(_delimiter) delimiter, decltype(_istream) istream)
 		: _delimiter(move(delimiter)), _istream(move(istream))

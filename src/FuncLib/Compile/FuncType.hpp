@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace FuncLib
+namespace FuncLib::Compile
 {
 	using ::std::string;
 	
