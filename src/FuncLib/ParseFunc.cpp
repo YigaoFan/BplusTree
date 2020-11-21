@@ -1,9 +1,11 @@
+#include <string_view>
 #include "../Basic/Exception.hpp"
 #include "ParseFunc.hpp"
 
 namespace FuncLib
 {
-	// 可能想改下 Generator::Resume 的返回值语义
+	using ::std::move;
+	using ::std::string_view;
 
 	/// 不支持全局变量
 	/// 不支持模板，以及非 JSON 包含的基本类型作为参数和返回值
