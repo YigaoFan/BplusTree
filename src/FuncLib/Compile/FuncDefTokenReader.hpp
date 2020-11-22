@@ -1,5 +1,7 @@
+#pragma once
 #include <string>
 #include <fstream>
+#include <functional>
 #include "../Store/Generator.hpp"
 
 namespace FuncLib::Compile
@@ -7,16 +9,17 @@ namespace FuncLib::Compile
 	using ::std::ifstream;
 	using ::std::move;
 	using ::std::string;
+	using ::std::function;
 	using Store::Generator;
 
 	class FuncDefTokenReader
 	{
 	private:
-		char _delimiter;
+		function<bool(char)> _delimiterPredicate;
 		ifstream _istream;
 	public:
-		FuncDefTokenReader(decltype(_delimiter) delimiter, decltype(_istream) istream);
-		void Delimiter(decltype(_delimiter) newDelimiter);
+		FuncDefTokenReader(decltype(_istream) istream);
+		void DelimiterPredicate(decltype(_delimiterPredicate) newDelimiter);
 		Generator<string> GetTokenGenerator();
 		bool AtEnd() const;
 	};

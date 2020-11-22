@@ -11,7 +11,10 @@ namespace FuncLib::Compile
 	private:
 		/* data */
 	public:
-		FuncType(/* args */);
+		FuncType(/* args */)
+		{
+			
+		}
 
 		void PackageName(string packageName)
 		{

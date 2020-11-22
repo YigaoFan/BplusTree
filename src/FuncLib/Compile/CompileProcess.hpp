@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 #include <string_view>
+#include <cstdlib>
+#include <iostream>
 #include "FuncObj.hpp"
 #include "../../Basic/Exception.hpp"
 #include "ParseFunc.hpp"
@@ -19,11 +21,12 @@ namespace FuncLib::Compile
 
 	void CompileOnUnix()
 	{
-
+		// system("");
 	}
 
 	void CompileOnWindows()
 	{
+		// system("");
 	}
 
 	void CheckGrammar(FuncDefTokenReader* defReader)
@@ -43,10 +46,12 @@ namespace FuncLib::Compile
 			// 这里的检测还比较粗，因为下面这样的 new 有可能在一个变量名末尾或者注释中
 			if (l.find("new ") != string::npos)
 			{
-				throw InvalidOperationException("No permit to use new operator in lib function");
+				throw InvalidOperationException("Not permit to use new operator in lib function");
 			}
 		}
 	}
+
+	char const* FuncNameSuffix = "_impl";
 
 	pair<array<string, 3>, vector<string>> GenerateWrapperFunc(pair<array<string, 3>, vector<string>> const& funInfo)
 	{
@@ -61,7 +66,11 @@ namespace FuncLib::Compile
 		auto divideArg = [](string_view s, char delimiter)
 		{
 			auto i = s.find_first_of(delimiter);
-			return array<string_view, 2>(s.substr(0, i), s.substr(i));
+			return array<string_view, 2>
+			{
+				s.substr(0, i), 
+				s.substr(i)
+			};
 		};
 
 		WordEnumerator e{ vector<string_view>{ args }, ',' };
@@ -70,8 +79,11 @@ namespace FuncLib::Compile
 		// Deserialize code
 		while (e.MoveNext())
 		{
-			auto [type, name] = divideArg(e.Current(), ' ');
-			argDeserialCodes.push_back(string("JsonConverter::Deserialize<") + type.data() + ">(jsonObj)");
+			if (not e.Current().empty())
+			{
+				auto [type, name] = divideArg(e.Current(), ' ');
+				argDeserialCodes.push_back(string("JsonConverter::Deserialize<") + type.data() + ">(jsonObj)");
+			}
 		}
 
 		auto ConsArgTupleStr = [](vector<string> initCodes)
@@ -84,18 +96,25 @@ namespace FuncLib::Compile
 			tupleStr.append("};");
 			return tupleStr;
 		};
-		// add var name
+		// tuple 无参数也行
+		// 改名字
 		string argsTuple = ConsArgTupleStr(move(argDeserialCodes));
-		// for (auto i = 0; auto& x : argDeserialCodes)
-		// {
-		// 	x.insert(0, string("auto a") + to_string(i) + " = ");
-		// }
 
 		// add JsonConverter, std::apply header(<tuple> file)
-		// apply()
-		string invokeStatement("auto r = apply(" + name + ", move(argsTuple));");
+		string invokeStatement("auto r = apply(" + name + FuncNameSuffix + ", move(argsTuple));");
 
 		string returnStatement("return JsonConverter::Serialize(r);");
+		vector<string> body
+		{
+			argsTuple,
+			invokeStatement,
+			returnStatement,
+		};
+		return 
+		{
+			move(typeInfos),
+			move(body)
+		};
 	}
 
 	/// include 所有必要的头文件，让外界方便使用，后期需求
@@ -108,8 +127,21 @@ namespace FuncLib::Compile
 
 		for (auto& f : funcs)
 		{
+			auto& t = f.first;
+			std::cout << "Parse type result: \"" << t[0] << "\" \"" << t[1] << "\" \"" << t[2] << "\"" << std::endl;
+			auto& b = f.second;
+
+			std::cout << "Parse body result: " << std::endl;
+			for (auto& l : b)
+			{
+				std::cout << l << std::endl;
+			}
+
 			CheckProhibitedUseage(f.second);
 			cookedFuncs.push_back(GenerateWrapperFunc(f));
+			f.first[1] = f.first[1] + FuncNameSuffix;
+
+			std::cout << "end" << std::endl;
 		}
 
 #ifdef _MSVC_LANG
@@ -123,5 +155,7 @@ namespace FuncLib::Compile
 		// convert to JsonObject arg type and return type
 		// call compiler to compile it，如果有编译错误怎么办？
 		// read compiled file into memory
+
+		return {};
 	}
 }

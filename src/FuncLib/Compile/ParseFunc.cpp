@@ -1,32 +1,53 @@
 #include <string_view>
+#include <optional>
+#include <cctype>
+#include <array>
+#include <utility>
+#include <functional>
 #include "../../Basic/Exception.hpp"
 #include "ParseFunc.hpp"
 
 namespace FuncLib::Compile
 {
+	using ::std::array;
+	using ::std::function;
 	using ::std::move;
+	using ::std::optional;
+	using ::std::pair;
 	using ::std::string_view;
 
 	/// 不支持全局变量
 	/// 不支持模板，以及非 JSON 包含的基本类型作为参数和返回值
 	/// return type, name, args
-	array<string, 3> ParseFuncSignature(FuncDefTokenReader* reader)
+	optional<array<string, 3>> ParseFuncSignature(FuncDefTokenReader* reader)
 	{
-		array<char, 3> delimiters
+		array<pair<bool, function<bool(char)>>, 3> parseConfigs
 		{
-			' ',
-			'(',
-			')',
+			// pair: 允许为空字符串, delimiter predicate
+			pair<bool, function<bool(char)>>{ false, [](char c) { return std::isspace(c); } },
+			{ false, [](char c) { return c == '('; } },
+			{ true, [](char c) { return c == ')'; } },
 		};
+		
 		array<string, 3> infos;
 		auto g = reader->GetTokenGenerator();
 
-		for (auto i = 0; auto d : delimiters)
+		for (auto i = 0; auto c : parseConfigs)
 		{
-			reader->Delimiter(d);
-			g.MoveNext(); // 不 assert 了，因为编译检查过了
-			infos[i] = move(g.Current());
-			++i;
+			reader->DelimiterPredicate(c.second);
+			while (g.MoveNext())
+			{
+				auto t = g.Current();
+				if (c.first or not t.empty())
+				{
+					infos[i++] = move(g.Current());
+					goto Continue;
+				}
+			}
+			
+			return {};
+		Continue:
+			continue;
 		}
 
 		return infos;
@@ -52,23 +73,28 @@ namespace FuncLib::Compile
 	{
 		vector<string> funcBody;
 		auto g = defReader->GetTokenGenerator();
-		int unpairedCount = 1;
-		defReader->Delimiter('}');
+		int unpairedCount = 0;
+		defReader->DelimiterPredicate([](char c) { return c == '}'; });
 
 		while (g.MoveNext())
 		{
 			auto part = g.Current();
 			unpairedCount += Count('{', part);
 			--unpairedCount;
-			funcBody.push_back(move(part));
 
 			if (unpairedCount == 0)
 			{
+				funcBody.push_back(move(part));
 				return move(funcBody);
+			}
+			else
+			{
+				funcBody.push_back(move(part) + '}');
 			}
 		}
 
-		throw Basic::InvalidOperationException("{} in func body is unpaired");
+		return funcBody;
+		// throw Basic::InvalidOperationException("{} in func body is unpaired");
 	}
 
 	/// 使用前要保证函数编译正确，比如可以先编译一遍
@@ -79,10 +105,11 @@ namespace FuncLib::Compile
 
 		while (not defReader->AtEnd())
 		{
-			auto sign = ParseFuncSignature(defReader);
-			auto body = ParseFuncBodyAfterSignature(defReader);
-
-			funcs.push_back({ move(sign), move(body) });
+			if (auto sign = ParseFuncSignature(defReader); sign.has_value())
+			{
+				auto body = ParseFuncBodyAfterSignature(defReader);
+				funcs.push_back({ move(sign.value()), move(body) });
+			}
 		}
 
 		return funcs;

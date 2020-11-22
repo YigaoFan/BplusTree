@@ -2,13 +2,13 @@
 
 namespace FuncLib::Compile
 {
-	FuncDefTokenReader::FuncDefTokenReader(decltype(_delimiter) delimiter, decltype(_istream) istream)
-		: _delimiter(move(delimiter)), _istream(move(istream))
+	FuncDefTokenReader::FuncDefTokenReader(decltype(_istream) istream)
+		: _istream(move(istream))
 	{ }
 
-	void FuncDefTokenReader::Delimiter(decltype(_delimiter) newDelimiter)
+	void FuncDefTokenReader::DelimiterPredicate(decltype(_delimiterPredicate) delimiterPredicate)
 	{
-		_delimiter = move(newDelimiter);
+		_delimiterPredicate = move(delimiterPredicate);
 	}
 
 	Generator<string> FuncDefTokenReader::GetTokenGenerator()
@@ -18,7 +18,7 @@ namespace FuncLib::Compile
 		while (not _istream.eof())
 		{
 			auto c = _istream.get();
-			if (c == _delimiter)
+			if (_delimiterPredicate(c))
 			{
 				co_yield move(buffer);
 				buffer.clear();

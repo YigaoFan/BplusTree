@@ -1,3 +1,4 @@
+#pragma once
 #include <experimental/coroutine>
 
 namespace FuncLib::Store
