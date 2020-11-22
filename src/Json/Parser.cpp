@@ -357,6 +357,6 @@ namespace Json
 
 	LocationInfo Parser::CurrentLocationInfo() const { return LocationInfoAt(_currentIndex); }
 	LocationInfo Parser::LocationInfoAt(size_t i) const { return LocationInfo(Str, i); }
-	bool Parser::IsSpace(char c) { return ::std::isblank(static_cast<unsigned char>(c)); }
+	bool Parser::IsSpace(char c) { return ::std::isspace(static_cast<unsigned char>(c)); }
 	bool Parser::IsNumStart(char c) { return ::std::isdigit(static_cast<unsigned char>(c)) || c == '-'; }
 }
