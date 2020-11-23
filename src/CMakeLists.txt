@@ -31,13 +31,16 @@ add_executable(RPC
         FuncLib/Store/FileCache.cpp
         FuncLib/Store/FileResource.cpp
         FuncLib/Store/FileReader.cpp
-        FuncLib/Store/LableRelationNode.cpp
+        FuncLib/Store/LabelRelationNode.cpp
         FuncLib/Store/ObjectBytes.cpp
         FuncLib/Store/FakeWriter.cpp
-        FuncLib/Store/LableTree.cpp
+        FuncLib/Store/LabelTree.cpp
         FuncLib/Store/ObjectRelationTree.cpp
         FuncLib/Store/ObjectBytesQueue.cpp
         FuncLib/Store/StorageAllocator.cpp
+        FuncLib/Compile/ParseFunc.cpp
+        FuncLib/Compile/FuncDefTokenReader.cpp
+        FuncLib/Compile/CompileProcess.cpp
         FuncLib/Test/Util.cpp
         FuncLib/Test/FileTest.cpp
         #FuncLib/Test/DiskBtreeTest.cpp
@@ -47,4 +50,5 @@ add_executable(RPC
         FuncLib/Test/StorageAllocatorTest.cpp
         FuncLib/Test/FileCacheTest.cpp
         FuncLib/Test/TypeConverterTest.cpp
+        FuncLib/Test/CompileTest.cpp
         )
