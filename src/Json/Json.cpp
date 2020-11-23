@@ -128,6 +128,7 @@ namespace Json
 
 	bool JsonObject::GetBool() const
 	{
+		Assert(IsBool());
 		return _type == JsonType::True;
 	}
 
