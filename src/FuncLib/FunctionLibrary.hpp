@@ -56,7 +56,6 @@ namespace FuncLib
 		void Add(vector<string> packageHierarchy, FuncDefTokenReader defReader, string summary)
 		{
 			auto [funcs, bin] = Compile(&defReader);
-			auto needAdd = false;
 			auto p = _binLib.Add(bin);
 
 			for (auto& f : funcs)
@@ -70,13 +69,9 @@ namespace FuncLib
 				}
 				else
 				{
-					_binLib.ClearIfNoRef(p); // p 析构时这个函数也隐含调用
-
 					// throw exception
 				}	
 			}
-
-			_binLib.ClearIfNoRef(p);// p 析构时这个函数也隐含调用
 		}
 
 		// 是用 type 这种，把组装对象的逻辑放在外面，还是 vector<string> packageHierarchy, string funcName，把组装的逻辑放在这里
