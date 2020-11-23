@@ -6,12 +6,15 @@
 #include <filesystem>
 #include <unordered_map>
 #include "../Json/Json.hpp"
-#include "CompileProcess.hpp"
-#include "FuncBodyLib.hpp"
-#include "FuncBodyLibIndex.hpp"
+#include "Compile/CompileProcess.hpp"
+#include "Compile/FuncDefTokenReader.hpp"
+#include "FuncBinaryLib.hpp"
+#include "FuncBinaryLibIndex.hpp"
 
 namespace FuncLib
 {
+	using FuncLib::Compile::Compile;
+	using FuncLib::Compile::FuncDefTokenReader;
 	using Json::JsonObject;
 	using ::std::pair;
 	using ::std::string;
@@ -27,8 +30,8 @@ namespace FuncLib
 		// 下面这个作为 key 可能需要一个 hash<FuncType> 的特化
 		// 这里的查询结果可能要包含 summary？
 		unordered_map<FuncType, pair<pos_int, size_t>> _funcInfoCache;
-		FuncBodyLibIndex _index;
-		FuncBodyLib _bodyLib;
+		FuncBinaryLibIndex _index;
+		FuncBinaryLib _binLib;
 
 		static FunctionLibrary Get(string libName)
 		{
@@ -41,49 +44,61 @@ namespace FuncLib
 		}
 
 	public:
-		void Add(string const& packageName, path const& dirPath)
+		// 这个功能让上层（脚本命令行）来做
+		// void Add(string const& packageName, path const& dirPath)
+		// {
+		// 	// 暂定一个函数对应一个 dll 文件，多对一加载 dll 的时候可能要想一下
+		// 	// 扫描某个目录，批量添加函数，以文件中的函数名为函数名（结合提供的 packageName）
+		// }
+
+		/// 加入多个项，如果中间某一个项爆异常，那就会处于一个中间状态了，让用户来处理，
+		/// 所以需要有个 Contains 作用的函数在这个类中
+		void Add(vector<string> packageHierarchy, FuncDefTokenReader defReader, string summary)
 		{
-			// 暂定一个函数对应一个 dll 文件，多对一加载 dll 的时候可能要想一下
-			// 扫描某个目录，批量添加函数，以文件中的函数名为函数名（结合提供的 packageName）
+			auto [funcs, bin] = Compile(&defReader);
+			auto needAdd = false;
+			auto p = _binLib.Add(bin);
+
+			for (auto& f : funcs)
+			{
+				f.Type.PackageHierarchy(packageHierarchy);
+				if (not _index.Contains(f.Type))
+				{
+					// 那这样要考虑多个引用一个的问题，删的时候要注意
+					_binLib.AddRefCount(p);
+					_index.Add(p, f);
+				}
+				else
+				{
+					_binLib.ClearIfNoRef(p); // p 析构时这个函数也隐含调用
+
+					// throw exception
+				}	
+			}
+
+			_binLib.ClearIfNoRef(p);// p 析构时这个函数也隐含调用
 		}
 
-		void Add(string packageName, vector<string> funcDef, string summary)
-		{
-			auto fun = Compile(funcDef);
-			fun.Type().PackageName(packageName);
-			auto p = _bodyLib.Add(fun.BodyBytes());
-			// TODO check duplicate
-			_index.Add(p, fun.Type(), move(summary));
-		}
-
-		void ReplaceName(string funcName, string newFuncName)
+		// 是用 type 这种，把组装对象的逻辑放在外面，还是 vector<string> packageHierarchy, string funcName，把组装的逻辑放在这里
+		void ModifyFuncName(FuncType type, string newFuncName)
 		{
 
 		}
 
-		void ReplaceSummary(string funcName, string newSummary)
+		void ModifyPackageNameOfFunc(FuncType type, vector<string> packageHierarchy)
 		{
-
-		}
-
-		/// FuncName: A.B.Func
-		void ReplaceDef(string funcName, vector<string> newFuncDef)
-		{
-			auto fun = Compile(newFuncDef);
-			
 		}
 
 		/// A.B.Func
-		void Remove(string const& funcName)
+		void Remove(FuncType type)
 		{
 		}
 
 		/// 由外面处理异常
-		JsonObject Invoke(string const& funcName, JsonObject args)
+		JsonObject Invoke(FuncType type, JsonObject args)
 		{
-			FuncType t;// 从 funcName 构造出 FuncType
-			auto [pos, size] = GetStoreInfo(t);
-			auto bytes = _bodyLib.Read(pos, size);
+			auto [pos, size] = GetStoreInfo(type);
+			auto bytes = _binLib.Read(pos, size);
 			// load byte and call func
 			
 			// return result
