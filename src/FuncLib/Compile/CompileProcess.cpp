@@ -54,15 +54,13 @@ namespace FuncLib::Compile
 		}
 	}
 
-	char const* FuncNameSuffix = "_impl";
-
 	pair<array<string, 3>, vector<string>> GenerateWrapperFunc(pair<array<string, 3>, vector<string>> const& funInfo)
 	{
 		auto [returnType, name, args] = funInfo.first;
 		array<string, 3> typeInfos
 		{
 			"JsonObject",
-			name,
+			name + "_wrapper",
 			"JsonObject jsonObj",
 		};
 
@@ -104,7 +102,7 @@ namespace FuncLib::Compile
 		string argsTuple = ConsArgTupleStr(move(argDeserialCodes));
 
 		// add JsonConverter, std::apply header(<tuple> file)
-		string invokeStatement("auto r = apply(" + name + FuncNameSuffix + ", move(argsTuple));");
+		string invokeStatement("auto r = apply(" + name + ", move(argsTuple));");
 
 		string returnStatement("return JsonConverter::Serialize(r);");
 		vector<string> body
@@ -121,6 +119,7 @@ namespace FuncLib::Compile
 	}
 
 	/// include 所有必要的头文件，让外界方便使用，后期需求
+	/// add extern "C"
 	pair<vector<FuncObj>, vector<char>> Compile(FuncDefTokenReader* defReader)
 	{
 		CheckGrammar(defReader);
@@ -143,7 +142,6 @@ namespace FuncLib::Compile
 
 			CheckProhibitedUseage(f.second);
 			cookedFuncs.push_back(GenerateWrapperFunc(f));
-			f.first[1] = f.first[1] + FuncNameSuffix;
 			string summary;
 			FuncType type{t[0], t[1], {}};
 			funcObjs.push_back(FuncObj{ move(type), summary });
