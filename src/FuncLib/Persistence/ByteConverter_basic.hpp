@@ -98,6 +98,7 @@ namespace FuncLib::Persistence
 	template <typename T>
 	struct ByteConverter<T, false>
 	{
+		// RemoveRefConstInTuple 呼应 converter 里面的两个 remove...
 		using Tuple = typename RemoveRefConstInTuple<typename ReturnType<decltype(ToTuple<T>)>::Type>::Result;
 		static constexpr bool SizeStable = All<GetSizeStable, Tuple>::Result;
 		static constexpr size_t Size = SizeStable ? Sum<GetSize, Tuple>::Result : SIZE_MAX;
