@@ -26,6 +26,11 @@ namespace FuncLib::Compile
 			_packageHierarchy = move(packageHierarchy);
 		}
 
+		void FuncName(string funcName)
+		{
+			_funcName = move(funcName);
+		}
+
 		// 可以像 TiKV 那样对 Key 对 package name 做一些优化存储 TODO
 		string ToKey() const
 		{
