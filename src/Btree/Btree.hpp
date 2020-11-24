@@ -179,7 +179,7 @@ namespace Collections
 		}
 
 		Btree(Btree&& that) noexcept
-			: _keyCount(that._keyCount), _root(that._root.release()), _lessThanPtr(move(that._lessThanPtr))
+			: _keyCount(that._keyCount), _root(move(that._root)), _lessThanPtr(move(that._lessThanPtr))
 		{
 			this->SetRootCallbacks();
 			that._keyCount = 0;
