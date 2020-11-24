@@ -6,6 +6,7 @@
 #include <memory>
 #include <cstddef>
 #include <map>
+#include <vector>
 #include <cstdint>
 #include "../../Btree/Elements.hpp"
 #include "../../Btree/LiteVector.hpp"
@@ -81,10 +82,23 @@ namespace FuncLib::Persistence
 		}
 	};
 
+
+	template <typename T>
+	struct RemoveRefConstInTuple;
+
+	using ::std::tuple;
+	template <typename... Ts>
+	struct RemoveRefConstInTuple<tuple<Ts...>>
+	{
+		// 下面这个 ... 居然可以，我还以为是返回最后一个类型的结果呢
+		// 那 Btree 的获得 NodeBase 参数可以这么搞吗？
+		using Result = tuple<remove_const_t<remove_reference_t<Ts>>...>;
+	};
+
 	template <typename T>
 	struct ByteConverter<T, false>
 	{
-		using Tuple = typename ReturnType<decltype(ToTuple<T>)>::Type;
+		using Tuple = typename RemoveRefConstInTuple<typename ReturnType<decltype(ToTuple<T>)>::Type>::Result;
 		static constexpr bool SizeStable = All<GetSizeStable, Tuple>::Result;
 		static constexpr size_t Size = SizeStable ? Sum<GetSize, Tuple>::Result : SIZE_MAX;
 
@@ -257,6 +271,37 @@ namespace FuncLib::Persistence
 				t.insert(move(item));
 			}
 			
+			return t;
+		}
+	};
+
+	template <typename T>
+	struct ByteConverter<vector<T>, false>
+	{
+		using ThisType = vector<T>;
+		static constexpr bool SizeStable = false;
+
+		static void WriteDown(ThisType const& t, IWriter auto* writer)
+		{
+			size_t size = t.size();
+			ByteConverter<size_t>::WriteDown(size, writer);
+
+			for (auto& item : t)
+			{
+				ByteConverter<T>::WriteDown(item, writer);
+			}
+		}
+
+		static ThisType ReadOut(FileReader *reader)
+		{
+			size_t size = ByteConverter<size_t>::ReadOut(reader);
+			ThisType t;
+			for (auto i = 0; i < size; ++i)
+			{
+				auto item = ByteConverter<T>::ReadOut(reader);
+				t.push_back(move(item));
+			}
+
 			return t;
 		}
 	};
