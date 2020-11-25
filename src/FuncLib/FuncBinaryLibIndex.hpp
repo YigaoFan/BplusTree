@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <memory>
+#include <cassert>
 #include <filesystem>
 #include "Store/StaticConfig.hpp"
 #include "Compile/FuncObj.hpp"
@@ -23,6 +24,7 @@ namespace FuncLib
 	using FuncLib::Store::pos_label;
 	using ::std::shared_ptr;
 	using ::std::string;
+	using ::std::filesystem::exists;
 	using ::std::filesystem::path;
 
 	constexpr Collections::order_int Order = 3; // TODO
@@ -42,12 +44,29 @@ namespace FuncLib
 	public:
 		static FuncBinaryLibIndex GetFrom(path const& path)
 		{
-			// if exist, load
-			// or create
-			constexpr pos_label btreeLabel = 1;// 这里是 hardcode 的
-			auto f = File::GetFile(path);
-			auto t = f->Read<DiskBtree>(btreeLabel);// 其实这里需要判断这个 label 存不存在的，不存在的话要新建
-			return FuncBinaryLibIndex(move(f), move(t));
+			auto firstSetup = not exists(path);
+			auto file = File::GetFile(path);
+
+			shared_ptr<DiskBtree> tree;
+			auto pred = [](string const& s1, string const& s2)
+			{
+				return s1 < s2;
+			};
+
+			if (firstSetup)
+			{
+				// auto [l, tree] = file->New(DiskBtree(move(pred)));
+				// assert(l == 1);// l should be 1
+			}
+			else
+			{
+				constexpr pos_label btreeLabel = 1; // 这里是 hardcode 为 1
+				tree = file->Read<DiskBtree>(btreeLabel);
+				// 设置 lessThan predicate
+				// tree->
+			}
+			
+			return FuncBinaryLibIndex(move(file), move(tree));
 		}
 
 #define STR_TO_DISK_REF_STR(STR) TypeConverter<string, OwnerState::FullOwner>::ConvertFrom(STR, _file.get())
@@ -68,25 +87,35 @@ namespace FuncLib
 
 		void ModifyFuncName(FuncType type, string newFuncName)
 		{
-			auto l = _diskBtree->GetValue(type.ToKey());
-			_diskBtree->Remove(type.ToKey());
-
-			type.FuncName(move(newFuncName));
-			_diskBtree->Add({ STR_TO_DISK_REF_STR(type.ToKey()), l });
+			ModifyType(move(type), [n=move(newFuncName)](FuncType* oldType)
+			{
+				oldType->FuncName(move(n));
+			});
 		}
 
 		void ModifyPackageNameOf(FuncType type, vector<string> packageHierarchy)
 		{
-			auto l = _diskBtree->GetValue(type.ToKey());// 要不要直接传 key 进来？
-			_diskBtree->Remove(type.ToKey());
-
-			type.PackageHierarchy(move(packageHierarchy));
-			_diskBtree->Add({ STR_TO_DISK_REF_STR(type.ToKey()), l });
+			ModifyType(move(type), [h=move(packageHierarchy)](FuncType* oldType)
+			{
+				oldType->PackageHierarchy(move(h));
+			});
 		}
 
 		void Remove(FuncType const& type)
 		{
 			_diskBtree->Remove(type.ToKey());
 		}
+
+	private:
+		template <typename Callback>
+		void ModifyType(FuncType oldType, Callback setTypeCallback)
+		{
+			auto l = _diskBtree->GetValue(oldType.ToKey());
+			_diskBtree->Remove(oldType.ToKey());
+
+			setTypeCallback(&oldType);
+			_diskBtree->Add({ STR_TO_DISK_REF_STR(oldType.ToKey()), l });
+		}
+#undef STR_TO_DISK_REF_STR
 	};
 }

@@ -51,25 +51,6 @@ namespace FuncLib::Store
 		shared_ptr<path> Path() const;
 		~File();
 
-		template <typename Des, typename TypeList>
-		shared_ptr<Des> Search(pos_label label)
-		{
-			using T = typename TypeList::Current;
-			if (_cache.Cached<T>(label))
-			{
-				return _cache.Read<T>(label);
-			}
-
-			if constexpr (TypeList::IsLast)
-			{
-				return AddToCache(ReadOn<T>(label), label);
-			}
-			else
-			{
-				return Search<Des, typename TypeList::Remain>(label);
-			}
-		}
-
 		template <typename T>
 		shared_ptr<T> Read(pos_label posLabel)
 		{
@@ -168,6 +149,25 @@ namespace FuncLib::Store
 		}
 
 	private:
+		template <typename Des, typename TypeList>
+		shared_ptr<Des> Search(pos_label label)
+		{
+			using T = typename TypeList::Current;
+			if (_cache.Cached<T>(label))
+			{
+				return _cache.Read<T>(label);
+			}
+
+			if constexpr (TypeList::IsLast)
+			{
+				return AddToCache(ReadOn<T>(label), label);
+			}
+			else
+			{
+				return Search<Des, typename TypeList::Remain>(label);
+			}
+		}
+
 		template <typename T>
 		auto ReadOn(pos_label posLabel)
 		{

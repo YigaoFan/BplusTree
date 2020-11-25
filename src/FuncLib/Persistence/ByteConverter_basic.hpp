@@ -92,7 +92,7 @@ namespace FuncLib::Persistence
 	{
 		// 下面这个 ... 居然可以，我还以为是返回最后一个类型的结果呢
 		// 那 Btree 的获得 NodeBase 参数可以这么搞吗？
-		using Result = tuple<remove_const_t<remove_reference_t<Ts>>...>;
+		using Result = tuple<remove_const_t<remove_reference_t<Ts>>...>;// 这里对应着我们常用的 Ts...，试一下在函数参数里面展开 TODO
 	};
 
 	template <typename T>
