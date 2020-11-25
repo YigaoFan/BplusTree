@@ -33,13 +33,16 @@ namespace Collections
 	struct TypeSelector;
 
 	/// Refable 在 disk 里的另一层意思是拥不拥有 Ownership
-	template <typename RawType, Refable RefProperty>
-	struct TypeSelector<StorePlace::Disk, RefProperty, RawType>
+	template <typename RawType>
+	struct TypeSelector<StorePlace::Disk, Refable::Yes, RawType>
 	{
-		using Result = 
-			typename TypeConverter<RawType, 
-								   RefProperty == Refable::Yes ? OwnerState::OwnerLess : OwnerState::FullOwner
-									>::To;
+		using Result = typename TypeConverter<RawType, OwnerState::OwnerLess>::To;
+	};
+
+	template <typename RawType>
+	struct TypeSelector<StorePlace::Disk, Refable::No, RawType>
+	{
+		using Result = typename TypeConverter<RawType, OwnerState::FullOwner>::To;
 	};
 
 	template <typename RawType>

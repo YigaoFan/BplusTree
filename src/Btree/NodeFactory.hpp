@@ -34,16 +34,33 @@ namespace Collections
 		template <typename... Ts>
 		static Ptr<Node> MakeNode(Enumerator<Ts...> enumerator, shared_ptr<_LessThan> lessThan)
 		{
-			// remove_reference_t sometimes not very good
-			using T = remove_reference_t<typename Enumerator<Ts...>::ValueType>;
+			using T = remove_reference_t<ValueTypeOf<Enumerator<Ts...>>>;
 
 			if constexpr (IsDisk<Place>)
 			{
 				using FuncLib::Store::FileResource;
+				// TODO 这里的 f 应该去掉
 				auto f = FileResource::GetCurrentThreadFile().get();
-				auto node = Middle(enumerator, lessThan);
-				// 注意下面 Make 的类型
-				return UniqueDiskPtr<Middle>::MakeUnique(move(node), f);// TODO maybe should handle leaf cons, too
+
+				if constexpr (IsSpecialization<T, UniqueDiskPtr>::value)
+				{
+					auto node = Middle(enumerator, lessThan);
+					return UniqueDiskPtr<Middle>::MakeUnique(move(node), f);
+				}
+				else
+				{
+					// 要转换 string 到 UniqueDiskRef
+					function converter = [f=f](T from)
+					{
+						// 这里有点把 TypeSelector 的逻辑以这种形式部分重写一遍的意思
+						// 转成 NodeBase::StoredKey 和 NodeBase::StoredValue
+						return TypeConverter<T, OwnerState::FullOwner>::ConvertFrom(from, f);
+					};
+
+					auto converted = EnumeratorPipeline<T, typename decltype(converter)::result_type, decltype(enumerator)>(enumerator, converter);
+					auto node = Leaf(converted, lessThan);
+					return UniqueDiskPtr<Leaf>::MakeUnique(move(node), f);
+				}
 			}
 			else
 			{

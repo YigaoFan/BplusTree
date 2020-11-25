@@ -59,14 +59,14 @@ namespace Collections
 		MiddleNode(shared_ptr<_LessThan> lessThanPtr) : Base(), _elements(lessThanPtr)
 		{ }	
 
-		MiddleNode(IEnumerator<Ptr<Base>&>& enumerator, shared_ptr<_LessThan> lessThanPtr)
-			: Base(), _elements(EnumeratorPipeline<Ptr<Base>&, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertRefPtrToKeyPtrPair, _1)), lessThanPtr)
+		MiddleNode(IEnumerator<Ptr<Base>> auto enumerator, shared_ptr<_LessThan> lessThanPtr)
+			: Base(), _elements(EnumeratorPipeline<Ptr<Base>, typename decltype(_elements)::Item, decltype(enumerator)>(enumerator, bind(&MiddleNode::ConvertPtrToKeyPtrPair, _1)), lessThanPtr)
 		{
 			SetSubNode();
 		}
 
 		MiddleNode(MiddleNode const& that)
-			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, Ptr<Base>>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
+			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, Ptr<Base>, decltype(that._elements.GetEnumerator())>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
 		{ }
 
 		MiddleNode(MiddleNode&& that) noexcept
@@ -176,11 +176,7 @@ namespace Collections
 			SetSubNode();
 		}
 
-		MiddleNode(IEnumerator<Ptr<Base>>&& enumerator, shared_ptr<_LessThan> lessThanPtr)
-			: Base(), _elements(EnumeratorPipeline<Ptr<Base>, typename decltype(_elements)::Item>(enumerator, bind(&MiddleNode::ConvertPtrToKeyPtrPair, _1)), lessThanPtr)
-		{
-			SetSubNode();
-		}
+		
 
 		RAW_PTR(Base) MinSon() const { return _elements[0].second.get(); }
 		RAW_PTR(Base) MaxSon() const { return _elements[_elements.Count() - 1].second.get(); }

@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <utility>
 #include <functional>
 #include "../../Basic/TypeTrait.hpp"
 #include "../../Btree/Elements.hpp"
@@ -28,6 +29,7 @@ namespace FuncLib::Persistence
 	using ::Collections::StorePlace;
 	using ::std::declval;
 	using ::std::make_shared;
+	using ::std::pair;
 	using ::std::shared_ptr;
 	using ::std::string;
 	using ::std::unique_ptr;
@@ -52,10 +54,11 @@ namespace FuncLib::Persistence
 		using To = OwnerLessDiskPtr<T>;
 
 		// file is not must use, only for string like
-		static To ConvertFrom(From const &t, File* file)
-		{
-			return t;
-		}
+		// convert cannot run if only with raw pointer
+		// static To ConvertFrom(From const& t, File* file)
+		// {
+		// 	return t;
+		// }
 	};
 
 	template <typename Key, typename Value, order_int Count, typename LessThan>
@@ -94,8 +97,9 @@ namespace FuncLib::Persistence
 		{
 			using Node = NodeBase<Key, Value, Count, StorePlace::Disk>;
 			using ::std::placeholders::_1;
-			auto nodes = 
-				EnumeratorPipeline<typename decltype(from._elements)::Item const&, UniqueDiskPtr<Node>>(from._elements.GetEnumerator(), bind(&CloneNodeToDisk, _1, file));
+			auto nodes =
+				// why need decltype(from._elements.GetEnumerator()), it's obvious
+				EnumeratorPipeline<typename decltype(from._elements)::Item const &, UniqueDiskPtr<Node>, decltype(from._elements.GetEnumerator())>(from._elements.GetEnumerator(), bind(&CloneNodeToDisk, _1, file));
 			return { move(nodes), from._elements.LessThanPtr };
 		}
 	};
@@ -204,5 +208,22 @@ namespace FuncLib::Persistence
 		// {
 		// 	return { UniqueDiskPtr<string>::MakeUnique(from, file) };
 		// }
+	};
+
+	template <typename Key, typename Value>
+	struct TypeConverter<pair<Key, Value>, OwnerState::FullOwner>
+	{
+		using From = pair<Key, Value>;
+		using To = pair<typename TypeConverter<Key, OwnerState::FullOwner>::To,
+						typename TypeConverter<Value, OwnerState::FullOwner>::To>;
+
+		static To ConvertFrom(From const& from, File* file)
+		{
+			return pair
+			{
+				TypeConverter<Key, OwnerState::FullOwner>::ConvertFrom(from.first, file),
+				TypeConverter<Value, OwnerState::FullOwner>::ConvertFrom(from.second, file)
+			};
+		}
 	};
 }

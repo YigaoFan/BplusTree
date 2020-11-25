@@ -54,16 +54,7 @@ namespace Collections
 			: Base(), LessThanPtr(lessThanPtr)
 		{ }
 
-		Elements(IEnumerator<Item&>& enumerator, shared_ptr<LessThan> lessThanPtr)
-			: Base(), LessThanPtr(lessThanPtr)
-		{
-			while (enumerator.MoveNext())
-			{
-				Base::Add(move(enumerator.Current()));
-			}
-		}
-
-		Elements(IEnumerator<Item&>&& enumerator, shared_ptr<LessThan> lessThanPtr)
+		Elements(IEnumerator<Item&> auto enumerator, shared_ptr<LessThan> lessThanPtr)
 			: Base(), LessThanPtr(lessThanPtr)
 		{
 			while (enumerator.MoveNext())
@@ -73,7 +64,7 @@ namespace Collections
 		}
 
 		// TODO how to solve && and & in up and below method
-		Elements(IEnumerator<Item>&& enumerator, shared_ptr<LessThan> lessThanPtr)
+		Elements(IEnumerator<Item> auto enumerator, shared_ptr<LessThan> lessThanPtr)
 			: Base(), LessThanPtr(lessThanPtr)
 		{ 
 			while (enumerator.MoveNext())
@@ -229,8 +220,8 @@ namespace Collections
 			return this->Count() - 1;
 		}
 
-		auto GetEnumerator() { return CreateEnumerator(*this); }
-		auto GetEnumerator() const { return CreateEnumerator(*this); }
+		auto GetEnumerator() { return CreateRefEnumerator(*this); }
+		auto GetEnumerator() const { return CreateRefEnumerator(*this); }
 
 	private:
 		Elements(LiteVector<pair<Key, Value>, order_int, BtreeOrder> base) : Base(move(base))

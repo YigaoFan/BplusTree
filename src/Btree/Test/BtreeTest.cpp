@@ -111,7 +111,7 @@ TESTCASE("Str-Str btree test")
 		SECTION("Normal function")
 		{
 			auto keys = btree.Keys();
-			MapContainers(CreateEnumerator(basicKeyValueArray), CreateEnumerator(keys), [&successCount](auto& e1, auto& e2)
+			MapContainers(CreateRefEnumerator(basicKeyValueArray), CreateRefEnumerator(keys), [&successCount](auto& e1, auto& e2)
 			{
 				ASSERT(e1.first == e2);
 			});

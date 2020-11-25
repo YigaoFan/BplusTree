@@ -90,7 +90,7 @@ namespace FuncLib::Store
 			}
 
 			auto oldSubsVec = oldNode.GiveSubs();
-			auto oldSubs = CreateEnumerator(oldSubsVec);
+			auto oldSubs = CreateRefEnumerator(oldSubsVec);
 			auto newSubs = newNode->CreateSubNodeEnumerator();
 			vector<LabelRelationNode *> toCollects;
 

@@ -46,8 +46,7 @@ namespace Collections
 		LeafNode(shared_ptr<_LessThan> lessThan) : Base(), _elements(lessThan)
 		{ }
 
-		template <typename Iterator>
-		LeafNode(Enumerator<pair<Key, Value>&, Iterator> enumerator, shared_ptr<_LessThan> lessThan)
+		LeafNode(IEnumerator<pair<StoredKey, StoredValue>> auto enumerator, shared_ptr<_LessThan> lessThan)
 			: Base(), _elements(enumerator, lessThan)
 		{ }
 

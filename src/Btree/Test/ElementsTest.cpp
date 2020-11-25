@@ -37,7 +37,7 @@ TESTCASE("Element test")
 
 	SECTION("Enumerator cons")
 	{
-		auto es = Ele(CreateEnumerator(kvs), lessThanPtr);
+		auto es = Ele(CreateMoveEnumerator(kvs), lessThanPtr);
 		ASSERT(es[0].first == kv0.first);
 		ASSERT(es[1].first == kv1.first);
 		ASSERT(es[2].first == kv2.first);
@@ -59,7 +59,7 @@ TESTCASE("Element test")
 
 	SECTION("Member function")
 	{
-		auto es = Ele(CreateEnumerator(kvs), lessThanPtr);
+		auto es = Ele(CreateMoveEnumerator(kvs), lessThanPtr);
 
 		SECTION("Move cons")
 		{

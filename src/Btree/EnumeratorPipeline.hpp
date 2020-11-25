@@ -15,42 +15,37 @@ namespace Collections
     using ::std::move;
     using ::std::size_t;
 
-    // TODO could refactor function process related code
-    template <typename RawItem, typename Item> // TODO add another type arg for func arg
-    class EnumeratorPipeline : public IEnumerator<Item>
+    template <typename RawItem, typename Item, typename Enumerator> // TODO add another type arg for func arg
+    class EnumeratorPipeline
     {
     private:
-        IEnumerator<RawItem>& _enumerator;
+        Enumerator _enumerator;
         function<Item(RawItem)> _func;
 
     public:
-        EnumeratorPipeline(IEnumerator<RawItem>& enumerator, function<Item(RawItem)> func)
+        EnumeratorPipeline(Enumerator enumerator, function<Item(RawItem)> func) requires IEnumerator<Enumerator, RawItem>
             : _enumerator(enumerator), _func(move(func))
         { }
 
-        EnumeratorPipeline(IEnumerator<RawItem>&& enumerator, function<Item(RawItem)> func)
-            : _enumerator(enumerator), _func(move(func))
-        { }
-
-        Item Current() override
+        Item Current()
         {
             return _func(_enumerator.Current());
         }
 
-        bool MoveNext() override
+        bool MoveNext()
         {
             return _enumerator.MoveNext();
         }
 
-        size_t CurrentIndex() override
+        size_t CurrentIndex()
         {
             return _enumerator.CurrentIndex();
         }
 
         template <typename T>
-		auto operator| (function<T(Item&)> func)
+		auto operator| (function<T(Item)> func)
         {
-            return EnumeratorPipeline<RawItem, T>(_enumerator,
+            return EnumeratorPipeline<RawItem, T, decltype(_enumerator)>(_enumerator,
                 [func1 = _func, func2 = move(func)](RawItem item) 
                 {
                     return func2(move(func1(move(item))));

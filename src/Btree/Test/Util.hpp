@@ -16,18 +16,8 @@ for (auto& e : container) \
 using ::Collections::IEnumerator;
 
 // Ensure enumerator1 longer than enumerator2
-template <typename T1, typename T2, typename Func>
-void MapContainers(IEnumerator<T1>& enumerator1, IEnumerator<T2>& enumerator2, Func func)
-{
-	while (enumerator1.MoveNext() && enumerator2.MoveNext())
-	{
-		func(enumerator1.Current(), enumerator2.Current());
-	}
-}
-
-// Ensure enumerator1 longer than enumerator2
-template <typename T1, typename T2, typename Func>
-void MapContainers(IEnumerator<T1>&& enumerator1, IEnumerator<T2>&& enumerator2, Func func)
+template <typename Func>
+void MapContainers(auto enumerator1, auto enumerator2, Func func)
 {
 	while (enumerator1.MoveNext() && enumerator2.MoveNext())
 	{

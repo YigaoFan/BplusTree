@@ -55,15 +55,14 @@ namespace FuncLib
 
 			if (firstSetup)
 			{
-				// auto [l, tree] = file->New(DiskBtree(move(pred)));
-				// assert(l == 1);// l should be 1
+				auto [l, tree] = file->New(DiskBtree(move(pred)));
+				assert(l == 1);// l should be 1
 			}
 			else
 			{
 				constexpr pos_label btreeLabel = 1; // 这里是 hardcode 为 1
 				tree = file->Read<DiskBtree>(btreeLabel);
-				// 设置 lessThan predicate
-				// tree->
+				tree->LessThanPredicate(move(pred));
 			}
 			
 			return FuncBinaryLibIndex(move(file), move(tree));

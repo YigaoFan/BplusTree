@@ -5,7 +5,7 @@
 
 namespace FuncLib::Store
 {
-	using Collections::CreateEnumerator;
+	using Collections::CreateRefEnumerator;
 	using ::std::vector;
 
 	class FakeWriter
@@ -23,6 +23,6 @@ namespace FuncLib::Store
 		void AddBlank(size_t size);
 		void AddSub(FakeWriter subWriter);
 		pos_label Label() const;
-		auto GetLabelSortedSubsEnumerator() const { return CreateEnumerator(_subWriters); }
+		auto GetLabelSortedSubsEnumerator() const { return CreateRefEnumerator(_subWriters); }
 	};
 }

@@ -128,48 +128,21 @@ namespace Collections
 
 		template <size_t NumOfEle>
 		Btree(_LessThan lessThan, array<pair<Key, Value>, NumOfEle> keyValueArray)
-			: _lessThanPtr(make_shared<_LessThan>(lessThan))
+			: _lessThanPtr(make_shared<_LessThan>(lessThan)),
+			  _root(ConstructRoot(move(keyValueArray), lessThan)),
+			  _keyCount(NumOfEle)
 		{
-			auto less = [&](auto const& p1, auto const& p2)
-			{
-				return lessThan(p1.first, p2.first);
-			};
-
-			sort(keyValueArray.begin(), keyValueArray.end(), less);
-
-			auto equal = [&](auto const& p1, auto const& p2)
-			{
-				return less(p1, p2) == less(p2, p1);
-			};
-
-			auto last = adjacent_find(keyValueArray.begin(), keyValueArray.end(), equal);
-			if (last != keyValueArray.end())
-			{
-				throw DuplicateKeyException(move(last->first), "Duplicate key in constructor keyValueArray");
-			}
-
-			ConstructFromLeafToRoot(move(keyValueArray));
-			_keyCount += NumOfEle;
+			this->SetRootCallbacks();
 		}
 
 		// TODO wait to test
-		Btree(_LessThan lessThan, IEnumerator<pair<Key, Value>>& enumerator)
+		Btree(_LessThan lessThan, IEnumerator<pair<Key, Value>> auto enumerator)
 			: Btree(move(lessThan))
 		{
 			while (enumerator.MoveNext())
 			{
 				Add(enumerator.Current());
 			}	
-		}
-		
-		// TODO wait to test
-		Btree(_LessThan lessThan, IEnumerator<pair<Key, Value>>&& enumerator)
-			: Btree(move(lessThan))
-		{ 
-			while (enumerator.MoveNext())
-			{
-				Add(enumerator.Current());
-			}
 		}
 
 		Btree(Btree const& that)
@@ -262,17 +235,17 @@ namespace Collections
 		}
 #undef ARG_TYPE_IN_NODE
 
+		// 感觉这些类型有的用推导，有的直接写出来了，有些随意
+		void LessThanPredicate(_LessThan lessThan)
+		{
+			_lessThanPtr = make_shared<_LessThan>(lessThan);
+			SET_PROPERTY(_root, ->LessThanPredicate(_lessThanPtr));
+		}
+
 	private:
 		Btree(key_int keyCount, Ptr<Node> root) : _root(move(root)), _keyCount(keyCount)
 		{
 			this->SetRootCallbacks();
-		}
-
-		// 感觉这些类型有的用推导，有的直接写出来了，有些随意
-		void LessThanPredicate(decltype(_lessThanPtr) lessThanPtr)
-		{
-			_lessThanPtr = lessThanPtr;
-			SET_PROPERTY(_root, ->LessThanPredicate(lessThanPtr));
 		}
 
 		template <auto Total, auto Index, auto... Is>
@@ -300,7 +273,7 @@ namespace Collections
 			{
 				auto begin = srcArray.begin() + preItemsCount;
 				auto end = begin + itemsCount;
-				consNodes[index] = NodeFactoryType::MakeNode(CreateEnumerator(begin, end), lessThan);
+				consNodes[index] = NodeFactoryType::MakeNode(CreateMoveEnumerator(begin, end), lessThan);
 			};
 			if constexpr (is.size() == 0)
 			{
@@ -320,17 +293,41 @@ namespace Collections
 			return ConsNodeInArrayImp(move(src), move(lessThan), make_index_sequence<GetNodeCount<Count, BtreeOrder>()>());
 		}
 
+		template <size_t NumOfEle>
+		decltype(_root) ConstructRoot(array<pair<Key, Value>, NumOfEle> keyValueArray, _LessThan const& lessThan)
+		{
+			// Check duplicate
+			auto less = [&](auto const& p1, auto const& p2)
+			{
+				return lessThan(p1.first, p2.first);
+			};
+
+			sort(keyValueArray.begin(), keyValueArray.end(), less);
+
+			auto equal = [&](auto const &p1, auto const &p2)
+			{
+				return less(p1, p2) == less(p2, p1);
+			};
+
+			auto last = adjacent_find(keyValueArray.begin(), keyValueArray.end(), equal);
+			if (last != keyValueArray.end())
+			{
+				throw DuplicateKeyException(move(last->first), "Duplicate key in constructor keyValueArray");
+			}
+
+			return ConstructFromLeafToRoot(move(keyValueArray));
+		}
+
 		template <typename T, size_t Count>
-		void ConstructFromLeafToRoot(array<T, Count> ItemsToConsNode)
+		decltype(_root) ConstructFromLeafToRoot(array<T, Count> ItemsToConsNode)
 		{
 			if constexpr (Count <= BtreeOrder)
 			{
-				_root = NodeFactoryType::MakeNode(CreateEnumerator(ItemsToConsNode.begin(), ItemsToConsNode.end()), _lessThanPtr);
-				this->SetRootCallbacks();
-				return;
+				auto root = NodeFactoryType::MakeNode(CreateMoveEnumerator(ItemsToConsNode.begin(), ItemsToConsNode.end()), _lessThanPtr);
+				return root;
 			}
 
-			ConstructFromLeafToRoot(move(ConsNodeInArray(move(ItemsToConsNode), _lessThanPtr)));
+			return ConstructFromLeafToRoot(move(ConsNodeInArray(move(ItemsToConsNode), _lessThanPtr)));
 		}
 
 		void SetRootCallbacks()
@@ -345,7 +342,7 @@ namespace Collections
 			// TODO Assert the srcNode == _root when debug
 			_root->ResetShallowCallbackPointer();
 			array<Ptr<Node>, 2> nodes { move(_root), move(newNextNode) }; // TODO have average node count between nodes?
-			_root = NodeFactoryType::MakeNode(CreateEnumerator(nodes), _lessThanPtr);
+			_root = NodeFactoryType::MakeNode(CreateMoveEnumerator(nodes), _lessThanPtr);
 			SetRootCallbacks();
 		}
 

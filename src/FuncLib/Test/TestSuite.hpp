@@ -19,6 +19,6 @@ namespace FuncLibTest
 		typeConverterTest(executed);
 		fileReader_ObjectWriterTest(executed);
 		byteConverterTest(executed);
-		compileTest(true);
+		compileTest(executed);
 	}
 }

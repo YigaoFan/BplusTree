@@ -10,7 +10,7 @@
 
 namespace FuncLib::Store
 {
-	using Collections::CreateEnumerator;
+	using Collections::CreateRefEnumerator;
 	using ::std::ofstream;
 	using ::std::size_t;
 	using ::std::vector;
@@ -41,7 +41,7 @@ namespace FuncLib::Store
 
 		void AddSub(ObjectBytes subObjectByte);
 		pos_label Label() const;
-		auto GetLabelSortedSubsEnumerator() const { return CreateEnumerator(_subObjectBytes); }
+		auto GetLabelSortedSubsEnumerator() const { return CreateRefEnumerator(_subObjectBytes); }
 
 		size_t Size() const;
 

@@ -32,6 +32,9 @@ namespace FuncLib::Persistence
 		mutable shared_ptr<T> _tPtr;
 
 	public:
+		DiskPtrBase() : _pos(), _tPtr(nullptr)
+		{ }
+		
 		DiskPtrBase(DiskPos<T> pos, shared_ptr<T> object) : _pos(pos), _tPtr(object)
 		{ }
 

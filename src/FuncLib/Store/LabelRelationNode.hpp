@@ -75,8 +75,8 @@ namespace FuncLib::Store
 		}
 
 		pos_label Label() const;
-		auto CreateSubNodeEnumerator() { return Collections::CreateEnumerator(_subNodes); }
-		auto CreateSubNodeEnumerator() const { return Collections::CreateEnumerator(_subNodes); }
+		auto CreateSubNodeEnumerator() { return Collections::CreateRefEnumerator(_subNodes); }
+		auto CreateSubNodeEnumerator() const { return Collections::CreateRefEnumerator(_subNodes); }
 		// 这样哪些需要 release 是不是就不用那个 toDoDelete set 来记了？还需要，有的没 Store 就要 release
 		// 那这里就要有某种方法标记它已经 Store 了，不要让那个 set 来 release 了
 		/// 这里要求 node 的 Label 和当前 LabelNode 的 Label 一样，否则直接在外层直接操作就好了
