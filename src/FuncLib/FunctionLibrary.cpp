@@ -5,6 +5,7 @@
 namespace FuncLib
 {
 	using Basic::InvalidOperationException;
+	using ::std::move;
 
 	FunctionLibrary::FunctionLibrary(decltype(_index) index, decltype(_binLib) binLib)
 		: _index(move(index)), _binLib(move(binLib))
@@ -66,7 +67,6 @@ namespace FuncLib
 		throw InvalidOperationException("Function not exist");
 	}
 
-	/// A.B.Func
 	void FunctionLibrary::Remove(FuncType const &type)
 	{
 		if (_index.Contains(type))

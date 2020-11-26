@@ -29,6 +29,7 @@ add_executable(RPC
 
         FuncLib/FunctionLibrary.cpp
         FuncLib/FuncBinaryLibIndex.cpp
+        FuncLib/FuncBinaryLib.cpp
         FuncLib/Store/File.cpp
         FuncLib/Store/FileCache.cpp
         FuncLib/Store/FileResource.cpp

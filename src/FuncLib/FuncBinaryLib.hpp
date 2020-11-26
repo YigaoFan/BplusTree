@@ -3,6 +3,7 @@
 #include <memory>
 #include <filesystem>
 #include "Store/StaticConfig.hpp"
+#include "Persistence/ByteConverter.hpp"
 #include "Store/File.hpp"
 
 namespace FuncLib
@@ -50,21 +51,15 @@ namespace FuncLib
 	class FuncBinaryLib
 	{
 	private:
-		
 		shared_ptr<File> _file;
 
-		FuncBinaryLib(decltype(_file) file) : _file(move(file))
-		{ }
+		FuncBinaryLib(decltype(_file) file);
 
 	public:
-		static FuncBinaryLib GetFrom(path const& path)
-		{
-			// if exist, load
-			// or create
-			auto f = File::GetFile(path);
-			return FuncBinaryLib(move(f));
-		}
-		
+		static FuncBinaryLib GetFrom(path const& path);
+		void DecreaseRefCount(pos_label label);
+		vector<char> Read(pos_label label);
+
 		auto Add(vector<char> bin)
 		{
 			auto [l, binUnitObj] = _file->New<BinUnit>(BinUnit{ 0, move(bin) });
@@ -83,22 +78,6 @@ namespace FuncLib
 		void AddRefCount(BookingPos<T>& pos)
 		{
 			++pos._binUnitObj->RefCount;
-		}
-
-		void DecreaseRefCount(pos_label label)
-		{
-			auto binUnitObj = _file->Read<BinUnit>(label);
-			auto &refCount = binUnitObj->RefCount;
-			--refCount;
-			if (refCount == 0)
-			{
-				_file->Delete(label, binUnitObj);
-			}
-		}
-
-		vector<char> Read(pos_label label)
-		{
-			return _file->Read<BinUnit>(label)->Bin;
 		}
 	};
 }
