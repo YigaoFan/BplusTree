@@ -15,7 +15,7 @@ namespace Collections
     using ::std::move;
     using ::std::size_t;
 
-    template <typename RawItem, typename Item, typename Enumerator> // TODO add another type arg for func arg
+    template <typename RawItem, typename Item, typename Enumerator>
     class EnumeratorPipeline
     {
     private:

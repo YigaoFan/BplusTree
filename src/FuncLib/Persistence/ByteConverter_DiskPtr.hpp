@@ -220,6 +220,4 @@ namespace FuncLib::Persistence
 		auto m2 = CloseToNodeMaxN<LeafNode, Key, Value, 1>();
 		return m1 < m2 ? m1 : m2;
 	}
-
-	// constexpr auto S = ComputeNodeMaxN<int, int>();
 }
