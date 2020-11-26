@@ -49,7 +49,6 @@ namespace Collections
 
 	public:
 		// Items in constructor is sorted, will be moved
-
 		Elements(shared_ptr<LessThan> lessThanPtr)
 			: Base(), LessThanPtr(lessThanPtr)
 		{ }
@@ -63,7 +62,6 @@ namespace Collections
 			}
 		}
 
-		// TODO how to solve && and & in up and below method
 		Elements(IEnumerator<Item> auto enumerator, shared_ptr<LessThan> lessThanPtr)
 			: Base(), LessThanPtr(lessThanPtr)
 		{ 
