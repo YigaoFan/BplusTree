@@ -60,7 +60,7 @@ namespace FuncLib
 	{
 		if (_index.Contains(type))
 		{
-			return _index.ModifyPackageNameOf(type, move(packageHierarchy));
+			return _index.ModifyPackageOf(type, move(packageHierarchy));
 		}
 
 		throw InvalidOperationException("Function not exist");

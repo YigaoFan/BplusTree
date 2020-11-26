@@ -28,6 +28,7 @@ add_executable(RPC
         Json/JsonConverter/Test/WordEnumeratorTest.cpp
 
         FuncLib/FunctionLibrary.cpp
+        FuncLib/FuncBinaryLibIndex.cpp
         FuncLib/Store/File.cpp
         FuncLib/Store/FileCache.cpp
         FuncLib/Store/FileResource.cpp
