@@ -17,52 +17,11 @@ namespace FuncLib::Compile
 		string _funcName;
 		vector<string> _argTypes;
 	public:
-		FuncType(string returnType, string functionName, vector<string> argTypes)
-			: _returnType(move(returnType)), _funcName(move(functionName)), _argTypes(move(argTypes))
-		{ }
-
-		void PackageHierarchy(vector<string> packageHierarchy)
-		{
-			_packageHierarchy = move(packageHierarchy);
-		}
-
-		void FuncName(string funcName)
-		{
-			_funcName = move(funcName);
-		}
-
+		FuncType(string returnType, string functionName, vector<string> argTypes);
+		void PackageHierarchy(vector<string> packageHierarchy);
+		void FuncName(string funcName);
 		// 可以像 TiKV 那样对 Key 对 package name 做一些优化存储 TODO
-		string ToKey() const
-		{
-			string const DefalutPackage = "Global";
-			string s;
-
-			// 我希望排序的时候优先比较 pack，所以把包名放在了前面
-			if (_packageHierarchy.empty())
-			{
-				s.append(DefalutPackage);
-			}
-			else
-			{
-				for (auto& p : _packageHierarchy)
-				{
-					s.append(p + ':');
-				}
-
-				s.pop_back();
-			}
-			s.append(" ");
-			
-			s.append(_returnType + ' ');
-			s.append(_funcName + ' ');
-
-			for (auto& a : _argTypes)
-			{
-				s.append(a + ',');
-			}
-			s.pop_back();
-
-			return s;
-		}
+		string ToKey() const;
+		string ToString() const;
 	};
 }
