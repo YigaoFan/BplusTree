@@ -3,9 +3,9 @@
 
 namespace Collections
 {
-	using std::move;
-	using std::experimental::coroutine_handle;
-	using std::experimental::suspend_always;
+	using ::std::move;
+	using ::std::experimental::coroutine_handle;
+	using ::std::experimental::suspend_always;
 
 	template <typename T>
 	struct Generator
@@ -16,8 +16,6 @@ namespace Collections
 		{
 			using coro_handle = coroutine_handle<promise_type>;
 			T value;
-			promise_type* Upper;
-			promise_type* Root;
 
 			T& Value()
 			{
@@ -216,6 +214,7 @@ namespace Collections
 		{
 			if (not handle.done())
 			{
+				// 通过驱动 promise 来实现更丰富的功能
 				handle.promise().Resume();
 				return true;
 			}
