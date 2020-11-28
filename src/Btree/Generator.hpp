@@ -131,7 +131,7 @@ namespace Collections
 					if (parent != nullptr)
 					{
 						root->CurrentStaying = parent;
-						return coro_handle::from_promise(parent);
+						return coro_handle::from_promise(*parent);
 					}
 
 					return std::noop_coroutine();
