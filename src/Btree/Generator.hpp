@@ -5,6 +5,7 @@ namespace Collections
 {
 	using ::std::move;
 	using ::std::experimental::coroutine_handle;
+	using ::std::experimental::noop_coroutine;
 	using ::std::experimental::suspend_always;
 
 	template <typename T>
@@ -87,13 +88,15 @@ namespace Collections
 		struct promise_type
 		{
 			using coro_handle = coroutine_handle<promise_type>;
-			// 这里树的结构要再想一想
 			T value;
-			promise_type* Root;
-			promise_type* CurrentStaying;
 			promise_type* Parent;
+			union
+			{
+				promise_type* Root;
+				promise_type* CurrentStaying;
+			};
 
-			promise_type() : Root(nullptr), CurrentStaying(nullptr), Parent(nullptr)
+			promise_type() : Root(nullptr), Parent(nullptr)
 			{ }
 
 			bool Done() const { return coro_handle::from_promise(*this).done(); }
@@ -122,7 +125,7 @@ namespace Collections
 					return false;
 				}
 
-				std::coroutine_handle<> await_suspend(coro_handle handle) noexcept
+				coroutine_handle<> await_suspend(coro_handle handle) noexcept
 				{
 					auto& current = handle.promise();
 					auto parent = current.Parent;
@@ -134,7 +137,7 @@ namespace Collections
 						return coro_handle::from_promise(*parent);
 					}
 
-					return std::noop_coroutine();
+					return noop_coroutine();
 				}
 				
 				void await_resume() noexcept {}
@@ -150,6 +153,7 @@ namespace Collections
 				std::terminate();
 			}
 
+			// 这里的参数如果是右值，有的程序 promise 里存的是 value_ptr，那这样安全吗，右值在外面会被析构吗？
 			auto yield_value(T t)
 			{
 				Root->value = move(t);
@@ -180,7 +184,7 @@ namespace Collections
 					
 					inner.Root = root;
 					inner.Parent = &current;
-					Root->CurrentStaying = &inner;
+					root->CurrentStaying = &inner;
 
 					return Generator.handle;
 				}
@@ -195,13 +199,13 @@ namespace Collections
 				return YieldSequenceAwaiter(move(generator));
 			}
 
-			auto yield_value(Generator generator)
-			{
-				// 这个暂时做不到，因为要做到普通的 Generator 里面注册上层的信息，表示当层结束后怎么返回上层
-				return YieldSequenceAwaiter(move(generator));
-			}
+			// auto yield_value(Generator generator)
+			// {
+			// 	// 这个暂时做不到，因为要做到普通的 Generator 里面注册上层的信息，表示当层结束后怎么返回上层
+			// 	return YieldSequenceAwaiter(move(generator));
+			// }
 
-			Generator get_return_object()
+			RecursiveGenerator get_return_object()
 			{
 				return coro_handle::from_promise(*this);
 			}
@@ -227,9 +231,9 @@ namespace Collections
 			return handle.promise().Value();
 		}
 
-		Generator(coro_handle handle) : handle(handle) {}
+		RecursiveGenerator(coro_handle handle) : handle(handle) {}
 
-		~Generator()
+		~RecursiveGenerator()
 		{
 			handle.destroy();
 		}
