@@ -3,16 +3,19 @@
 #include <memory>
 #include <filesystem>
 #include <vector>
+#include <utility>
 #include "Store/StaticConfig.hpp"
 #include "Compile/FuncType.hpp"
 #include "Store/File.hpp"
 #include "Persistence/ByteConverter.hpp"
 #include "Persistence/TypeConverter.hpp" // 这是因为 TypeSelector 里面用到了 TypeConverter，不优雅，想办法解决下
 #include "../Btree/Btree.hpp"
+#include "../Btree/Generator.hpp"
 
 namespace FuncLib
 {
 	using Collections::Btree;
+	using Collections::Generator;
 	using Collections::StorePlace;
 	using FuncLib::Compile::FuncType;
 	using FuncLib::Persistence::ComputeNodeMaxN;
@@ -20,6 +23,7 @@ namespace FuncLib
 	using FuncLib::Persistence::TypeConverter;
 	using FuncLib::Store::File;
 	using FuncLib::Store::pos_label;
+	using ::std::pair;
 	using ::std::shared_ptr;
 	using ::std::string;
 	using ::std::vector;
@@ -33,7 +37,7 @@ namespace FuncLib
 		static constexpr Collections::order_int Order = 3;
 
 		using Key = string;
-		using DiskBtree = Btree<Order, Key, pos_label, StorePlace::Disk>;
+		using DiskBtree = Btree<Order, Key, pair<pos_label, string>, StorePlace::Disk>;
 		shared_ptr<File> _file;
 		shared_ptr<DiskBtree> _diskBtree;
 
@@ -41,12 +45,13 @@ namespace FuncLib
 
 	public:
 		static FuncBinaryLibIndex GetFrom(path const& path);
-		void Add(pos_label label, FuncType const& type);
+		void Add(FuncType const& type, pair<pos_label, string> info);
 		pos_label GetStoreLabel(FuncType const& type) const;
 		bool Contains(FuncType const& type) const;
 		void ModifyFuncName(FuncType type, string newFuncName);
 		void ModifyPackageOf(FuncType type, vector<string> packageHierarchy);
 		void Remove(FuncType const& type);
+		Generator<pair<Key, pair<pos_label, string>>> Search(string const& keyword);
 
 	private:
 		template <typename Callback>

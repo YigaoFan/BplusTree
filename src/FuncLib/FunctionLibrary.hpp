@@ -8,9 +8,11 @@
 #include "Compile/FuncDefTokenReader.hpp"
 #include "FuncBinaryLib.hpp"
 #include "FuncBinaryLibIndex.hpp"
+#include "../Btree/Generator.hpp"
 
 namespace FuncLib
 {
+	using Collections::Generator;
 	using FuncLib::Compile::FuncDefTokenReader;
 	using Json::JsonObject;
 	using ::std::pair;
@@ -40,8 +42,7 @@ namespace FuncLib
 	class FunctionLibrary
 	{
 	private:
-		// 这里有个 hash map 作为缓存，快速查询
-		// 下面这个作为 key 可能需要一个 hash<FuncType> 的特化
+		//  hash map 作为缓存，快速查询
 		unordered_map<FuncType, pos_label, FuncTypeHash, FuncTypeEqualTo> _funcInfoCache;
 		FuncBinaryLibIndex _index;
 		FuncBinaryLib _binLib;
@@ -49,8 +50,8 @@ namespace FuncLib
 		FunctionLibrary(decltype(_index) index, decltype(_binLib) binLib);
 
 	public:
-		static FunctionLibrary GetFrom(path const& dirPath);
-		// 这个功能让上层（脚本命令行）来做
+		static FunctionLibrary GetFrom(path dirPath);
+		// 批量 Add 功能让上层（脚本命令行）来做
 		// void Add(string const& packageName, path const& dirPath)
 		// {
 		// 	// 暂定一个函数对应一个 dll 文件，多对一加载 dll 的时候可能要想一下
@@ -58,9 +59,8 @@ namespace FuncLib
 		// }
 
 		/// 加入多个项，如果中间某一个项爆异常，那就会处于一个中间状态了，让用户来处理，
-		/// 所以需要有个 Contains 作用的函数在这个类中
 		void Add(vector<string> packageHierarchy, FuncDefTokenReader defReader, string summary);
-
+		bool Contains(FuncType const& type) const;
 		// 是用 type 这种，把组装对象的逻辑放在外面，还是 vector<string> packageHierarchy, string funcName，把组装的逻辑放在这里
 		void ModifyFuncName(FuncType const& type, string newFuncName);
 		void ModifyPackageNameOf(FuncType const& type, vector<string> packageHierarchy);
@@ -69,7 +69,8 @@ namespace FuncLib
 		JsonObject Invoke(FuncType const& type, JsonObject args);
 		// keyword maybe part package name, 需要去匹配，所以返回值可能不能做到返回函数的相关信息
 		// 这里的查询结果可能要包含 summary？
-		vector<FuncType> Search(string const& keyword);
+		Generator<pair<string, pair<pos_label, string>>> Search(string const &keyword);
+
 	private:
 		pos_label GetStoreLabel(FuncType const& type);
 	};
