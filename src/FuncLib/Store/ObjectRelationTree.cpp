@@ -1,11 +1,12 @@
 #include "ObjectRelationTree.hpp"
 #include "ObjectBytes.hpp"
 #include "../Persistence/ByteConverter.hpp"
-#include "Generator.hpp"
+#include "../../Btree/Generator.hpp"
 #include <optional>
 
 namespace FuncLib::Store
 {
+	using Collections::Generator;
 	using ::std::optional;
 
 	constexpr pos_label NonLabel = 0;// 树中不能出现 0

@@ -2,15 +2,15 @@
 #include <string>
 #include <fstream>
 #include <functional>
-#include "../Store/Generator.hpp"
+#include "../../Btree/Generator.hpp"
 
 namespace FuncLib::Compile
 {
+	using Collections::Generator;
+	using ::std::function;
 	using ::std::ifstream;
 	using ::std::move;
 	using ::std::string;
-	using ::std::function;
-	using Store::Generator;
 
 	class FuncDefTokenReader
 	{
