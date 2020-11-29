@@ -4,7 +4,6 @@
 
 namespace FuncLib::Compile
 {
-	using ::std::move;
 	using ::std::string;
 	using ::std::vector;
 
