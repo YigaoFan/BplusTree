@@ -81,7 +81,7 @@ namespace Collections
 			return _elements.ContainsKey(move(key));
 		}
 
-		Value GetValue(ARG_TYPE_IN_BASE(GetValue, 0) key) const override
+		StoredValue& GetValue(ARG_TYPE_IN_BASE(GetValue, 0) key) override
 		{
 			return _elements.GetValue(move(key));
 		}
@@ -150,6 +150,14 @@ namespace Collections
 		result_of_t<decltype (&Base::SubNodes)(Base)> SubNodes() const override
 		{
 			return {};
+		}
+
+		RecursiveGenerator<pair<StoredKey, StoredValue>*> GetStoredPairEnumerator() override
+		{
+			for (auto e : _elements)
+			{
+				co_yield &e;
+			}
 		}
 
 		decltype(_next)     Next()     const { return _next; }

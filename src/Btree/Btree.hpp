@@ -12,6 +12,7 @@
 #include "Basic.hpp"
 #include "../Basic/TypeTrait.hpp"
 #include "Enumerator.hpp"
+#include "Generator.hpp"
 #include "NodeFactory.hpp"
 #include "TreeInspector.hpp"
 #include "../Basic/Exception.hpp"
@@ -34,6 +35,7 @@ namespace Collections
 	using ::std::make_unique;
 	using ::std::move;
 	using ::std::pair;
+	using ::std::remove_cvref_t;
 	using ::std::size_t;
 	using ::std::sort;
 	using ::std::unique_ptr;
@@ -220,6 +222,17 @@ namespace Collections
 			_root->ModifyValue(key, move(newValue));
 		}
 
+		void ModifyKey(ARG_TYPE_IN_NODE(ModifyValue, 0) oldOey, typename Node::StoredKey newKey)
+		{
+			EMPTY_CHECK;
+			auto v = move(_root->GetValue(oldOey));
+			_root->Remove(oldOey);
+			--_keyCount;
+
+			_root->Add({ move(newKey), move(v) });
+			++_keyCount;
+		}
+
 		void Remove(ARG_TYPE_IN_NODE(Remove, 0) key)
 		{
 			EMPTY_CHECK;
@@ -240,6 +253,11 @@ namespace Collections
 		{
 			_lessThanPtr = make_shared<_LessThan>(lessThan);
 			SET_PROPERTY(_root, ->LessThanPredicate(_lessThanPtr));
+		}
+
+		RecursiveGenerator<pair<typename Node::StoredKey, typename Node::StoredValue>*> GetStoredPairEnumerator()
+		{
+			return _root->GetStoredPairEnumerator();
 		}
 
 	private:

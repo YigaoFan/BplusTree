@@ -120,7 +120,7 @@ namespace Collections
 			return _elements[i].second->ContainsKey(key);
 		}
 
-		Value GetValue(ARG_TYPE_IN_BASE(GetValue, 0) key) const override
+		typename Base::StoredValue& GetValue(ARG_TYPE_IN_BASE(GetValue, 0) key) override
 		{
 			SELECT_BRANCH(key);
 			return _elements[i].second->GetValue(key);
@@ -169,6 +169,14 @@ namespace Collections
 			}
 
 			return subs;
+		}
+
+		RecursiveGenerator<pair<typename Base::StoredKey, typename Base::StoredValue>*> GetStoredPairEnumerator() override
+		{
+			for (auto& e : _elements)
+			{
+				co_yield e.second->GetStoredPairEnumerator();
+			}
 		}
 	private:
 		MiddleNode(decltype(_elements) elements) : Base(), _elements(move(elements))

@@ -8,6 +8,7 @@
 #include <functional>
 #include <type_traits>
 #include "Basic.hpp"
+#include "Generator.hpp"
 #include "../FuncLib/Persistence/FriendFuncLibDeclare.hpp"
 #include "../Basic/TypeTrait.hpp"
 #include "TypeConfig.hpp"
@@ -85,7 +86,7 @@ namespace Collections
 #define KEY_T StoredKey
 #define VALUE_T StoredValue
 		virtual bool ContainsKey(Key const& key) const = 0;
-		virtual Value GetValue(Key const& key) const = 0;
+		virtual StoredValue& GetValue(Key const& key) = 0;
 		virtual void ModifyValue(Key const& key, VALUE_T) = 0;
 		virtual void Add(pair<KEY_T, VALUE_T>) = 0;
 		virtual void Remove(Key const& key) = 0;
@@ -93,6 +94,7 @@ namespace Collections
 #undef KEY_T
 		virtual vector<Key> SubNodeMinKeys() const = 0;
 		virtual vector<OwnerLessPtr<NodeBase>> SubNodes() const = 0;
+		virtual RecursiveGenerator<pair<StoredKey, StoredValue>*> GetStoredPairEnumerator() = 0;
 
 	protected:
 		static Position ChooseAddPosition(order_int preCount, order_int thisCount, order_int nxtCount)
