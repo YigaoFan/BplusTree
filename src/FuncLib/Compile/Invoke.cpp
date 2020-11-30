@@ -14,15 +14,20 @@ namespace FuncLib::Compile
 	using ::std::string;
 	using ::std::filesystem::remove;
 
-	/// Invoke on *nix OS
-	JsonObject Invoke(vector<char> const& bin, char const* name, JsonObject args)
+	void NewSoFile(char const* filename, vector<char> const& bytes)
 	{
-		char const* tempFileName = "temp_invoke.so";// 改名
-		ofstream of(tempFileName);
-		for (auto b : bin)
+		ofstream of(filename);
+		for (auto b : bytes)
 		{
 			of.put(b);
 		}
+	}
+
+	/// Invoke on *nix OS
+	JsonObject Invoke(vector<char> const& bin, char const* funcName, JsonObject args)
+	{
+		char const* tempFileName = "temp_invoke.so";
+		NewSoFile(tempFileName, bin);
 
 		void* handle = dlopen(tempFileName, RTLD_LAZY);
 		if (handle == nullptr)
@@ -46,11 +51,11 @@ namespace FuncLib::Compile
 		};
 		Cleaner releaser{ handle, tempFileName };
 		using InvokeFunc = JsonObject (*)(JsonObject);
-		InvokeFunc func = reinterpret_cast<InvokeFunc>(dlsym(handle, name));
+		InvokeFunc func = reinterpret_cast<InvokeFunc>(dlsym(handle, funcName));
 		char* error;
 		if ((error = dlerror()) != NULL)
 		{
-			throw InvalidOperationException(string("load ") + name + " failed: " + error);
+			throw InvalidOperationException(string("load ") + funcName + " failed: " + error);
 		}
 		
 		return func(move(args));
