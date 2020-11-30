@@ -49,7 +49,7 @@ namespace FuncLib::Compile
 				}
 			}
 		};
-		Cleaner releaser{ handle, tempFileName };
+		Cleaner cleaner{ handle, tempFileName };
 		using InvokeFunc = JsonObject (*)(JsonObject);
 		InvokeFunc func = reinterpret_cast<InvokeFunc>(dlsym(handle, funcName));
 		char* error;
