@@ -1,6 +1,7 @@
 #include "FunctionLibrary.hpp"
 #include "../Basic/Exception.hpp"
 #include "Compile/CompileProcess.hpp"
+#include "Compile/Invoke.hpp"
 
 namespace FuncLib
 {
@@ -54,15 +55,15 @@ namespace FuncLib
 	}
 
 #define FUNC_NOT_EXIST_EXCEPTION(FUNC_TYPE) throw InvalidOperationException("Function not exist: " + FUNC_TYPE.ToString())
-	void FunctionLibrary::ModifyFuncName(FuncType const& type, string newFuncName)
-	{
-		if (_index.Contains(type))
-		{
-			return _index.ModifyFuncName(type, move(newFuncName));
-		}
+	// void FunctionLibrary::ModifyFuncName(FuncType const& type, string newFuncName)
+	// {
+	// 	if (_index.Contains(type))
+	// 	{
+	// 		return _index.ModifyFuncName(type, move(newFuncName));
+	// 	}
 
-		FUNC_NOT_EXIST_EXCEPTION(type);
-	}
+	// 	FUNC_NOT_EXIST_EXCEPTION(type);
+	// }
 
 	void FunctionLibrary::ModifyPackageNameOf(FuncType const &type, vector<string> packageHierarchy)
 	{
@@ -89,13 +90,11 @@ namespace FuncLib
 
 	JsonObject FunctionLibrary::Invoke(FuncType const& type, JsonObject args)
 	{
+		// 改名字再调用会出现问题
 		auto l = GetStoreLabel(type);
 		auto bytes = _binLib.Read(l);
-		// call func_wrapper function
-		// load byte and call func
-
-		// return result
-		return JsonObject(1.0);
+		auto wrapperFuncName = type.FuncName() + "_wrapper";
+		return Compile::Invoke(bytes, wrapperFuncName.c_str(), move(args));
 	}
 
 	// keyword maybe part package name, 需要去匹配，所以返回值可能不能做到返回函数的相关信息

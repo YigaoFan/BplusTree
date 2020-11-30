@@ -62,14 +62,13 @@ namespace FuncLib
 		void Add(vector<string> packageHierarchy, FuncDefTokenReader defReader, string summary);
 		bool Contains(FuncType const& type) const;
 		// 是用 type 这种，把组装对象的逻辑放在外面，还是 vector<string> packageHierarchy, string funcName，把组装的逻辑放在这里
-		void ModifyFuncName(FuncType const& type, string newFuncName);
+		// void ModifyFuncName(FuncType const& type, string newFuncName);
 		void ModifyPackageNameOf(FuncType const& type, vector<string> packageHierarchy);
 		void Remove(FuncType const& type);
 		/// 由外面处理异常
 		JsonObject Invoke(FuncType const& type, JsonObject args);
 		// keyword maybe part package name, 需要去匹配，所以返回值可能不能做到返回函数的相关信息
-		// 这里的查询结果可能要包含 summary？
-		Generator<pair<string, pair<pos_label, string>>> Search(string const &keyword);
+		Generator<pair<string, pair<pos_label, string>>> Search(string const& keyword);
 
 	private:
 		pos_label GetStoreLabel(FuncType const& type);

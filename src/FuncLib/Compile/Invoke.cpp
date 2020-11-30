@@ -29,6 +29,7 @@ namespace FuncLib::Compile
 		char const* tempFileName = "temp_invoke.so";
 		NewSoFile(tempFileName, bin);
 
+		// 本项目因为需要动态链接，需要特殊编译吗？ TODO
 		void* handle = dlopen(tempFileName, RTLD_LAZY);
 		if (handle == nullptr)
 		{

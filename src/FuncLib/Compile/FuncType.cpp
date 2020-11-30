@@ -25,6 +25,16 @@ namespace FuncLib::Compile
 		return _funcName;
 	}
 
+	string const& FuncType::ReturnType() const
+	{
+		return _returnType;
+	}
+
+	vector<string> const& FuncType::ArgTypes() const
+	{
+		return _argTypes;
+	}
+
 	// 可以像 TiKV 那样对 Key 对 package name 做一些优化存储 TODO
 	string FuncType::ToKey() const
 	{

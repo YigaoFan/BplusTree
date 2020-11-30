@@ -9,4 +9,5 @@ namespace FuncLib::Compile
 
 	/// Invoke on *nix OS
 	JsonObject Invoke(vector<char> const& bin, char const* name, JsonObject args);
+	// TODO Invoke on Windows
 }

@@ -6,9 +6,16 @@ namespace FuncLib
 	using ::std::move;
 	using ::std::filesystem::exists;
 
+	constexpr pos_label DiskTreeLable = 1;
+
 	FuncBinaryLibIndex::FuncBinaryLibIndex(shared_ptr<File> file, shared_ptr<DiskBtree> diskBtree)
 		: _file(move(file)), _diskBtree(move(diskBtree))
 	{ }
+
+	FuncBinaryLibIndex::~FuncBinaryLibIndex()
+	{
+		_file->Store(DiskTreeLable, _diskBtree);
+	}
 
 	FuncBinaryLibIndex FuncBinaryLibIndex::GetFrom(path const &path)
 	{
@@ -16,19 +23,19 @@ namespace FuncLib
 		auto file = File::GetFile(path);
 
 		shared_ptr<DiskBtree> tree;
-		auto pred = [](string const &s1, string const &s2) {
+		auto pred = [](string const& s1, string const& s2)
+		{
 			return s1 < s2;
 		};
 
 		if (firstSetup)
 		{
 			auto [l, tree] = file->New(DiskBtree(move(pred)));
-			assert(l == 1); // l should be 1
+			assert(l == DiskTreeLable); // l should be 1
 		}
 		else
 		{
-			constexpr pos_label btreeLabel = 1; // 这里是 hardcode 为 1
-			tree = file->Read<DiskBtree>(btreeLabel);
+			tree = file->Read<DiskBtree>(DiskTreeLable);
 			tree->LessThanPredicate(move(pred));
 		}
 

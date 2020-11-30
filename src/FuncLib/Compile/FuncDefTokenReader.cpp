@@ -36,4 +36,10 @@ namespace FuncLib::Compile
 	{
 		return _istream.eof();
 	}
+
+	void FuncDefTokenReader::ResetReadPos()
+	{
+		_istream.clear();
+		_istream.seekg(0, ifstream::beg);
+	}
 }

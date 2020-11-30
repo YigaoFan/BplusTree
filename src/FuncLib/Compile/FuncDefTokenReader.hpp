@@ -22,5 +22,6 @@ namespace FuncLib::Compile
 		void DelimiterPredicate(decltype(_delimiterPredicate) newDelimiter);
 		Generator<string> GetTokenGenerator();
 		bool AtEnd() const;
+		void ResetReadPos();
 	};
 }

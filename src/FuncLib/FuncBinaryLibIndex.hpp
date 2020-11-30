@@ -52,6 +52,7 @@ namespace FuncLib
 		void ModifyPackageOf(FuncType type, vector<string> packageHierarchy);
 		void Remove(FuncType const& type);
 		Generator<pair<Key, pair<pos_label, string>>> Search(string const& keyword);
+		~FuncBinaryLibIndex();
 
 	private:
 		template <typename Callback>

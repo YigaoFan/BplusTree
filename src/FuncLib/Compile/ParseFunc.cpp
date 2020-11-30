@@ -6,9 +6,11 @@
 #include <functional>
 #include "../../Basic/Exception.hpp"
 #include "ParseFunc.hpp"
+#include "../../Json/JsonConverter/WordEnumerator.hpp"
 
 namespace FuncLib::Compile
 {
+	using Json::JsonConverter::WordEnumerator;
 	using ::std::array;
 	using ::std::function;
 	using ::std::move;
@@ -97,18 +99,45 @@ namespace FuncLib::Compile
 		// throw Basic::InvalidOperationException("{} in func body is unpaired");
 	}
 
-	/// 使用前要保证函数编译正确，比如可以先编译一遍
-	/// pair: { return type, name, args }, func body 
-	vector<pair<array<string, 3>, vector<string>>> ParseFunc(FuncDefTokenReader* defReader)
+	vector<string> ParseOutArgs(string argsStr)
 	{
-		vector<pair<array<string, 3>, vector<string>>> funcs;
+		auto divideArg = [](string_view s, char delimiter)
+		{
+			auto i = s.find_first_of(delimiter);
+			return array<string_view, 2>
+			{
+				s.substr(0, i), 
+				s.substr(i)
+			};
+		};
+
+		WordEnumerator e{ vector<string_view>{ argsStr }, ','};
+		vector<string> args;
+		while (e.MoveNext())
+		{
+			if (not e.Current().empty())
+			{
+				auto [type, name] = divideArg(e.Current(), ' ');
+				args.push_back(string(type));
+			}
+		}
+
+		return args;
+	}
+
+	/// 使用前要保证函数编译正确，比如可以先编译一遍
+	/// pair: FuncType, func body 
+	vector<pair<FuncType, vector<string>>> ParseFunc(FuncDefTokenReader* defReader)
+	{
+		vector<pair<FuncType, vector<string>>> funcs;
 
 		while (not defReader->AtEnd())
 		{
 			if (auto sign = ParseFuncSignature(defReader); sign.has_value())
 			{
 				auto body = ParseFuncBodyAfterSignature(defReader);
-				funcs.push_back({ move(sign.value()), move(body) });
+				auto& s = sign.value();
+				funcs.push_back({ { move(s[0]), move(s[1]), ParseOutArgs(move(s[2])) }, move(body) });
 			}
 		}
 

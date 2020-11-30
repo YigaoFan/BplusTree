@@ -3,44 +3,95 @@
 #include <string_view>
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
 #include "CompileProcess.hpp"
 #include "../../Basic/Exception.hpp"
+#include "../../Btree/Generator.hpp"
 #include "ParseFunc.hpp"
-#include "../../Json/JsonConverter/WordEnumerator.hpp"
 
 namespace FuncLib::Compile
 {
 	using Basic::InvalidOperationException;
-	using Json::JsonConverter::WordEnumerator;
+	using Basic::NotImplementException;
+	using Collections::RecursiveGenerator;
+	using ::std::ifstream;
 	using ::std::move;
+	using ::std::ofstream;
 	using ::std::string;
 	using ::std::string_view;
 	using ::std::to_string;
 	using ::std::vector;
 
+	struct ExternCBody
+	{
+		RecursiveGenerator<string> ToLineCode()
+		{
+			co_yield {};
+		}
+	};
+
+	struct AppendCode
+	{
+		vector<string> IncludeNames;
+		ExternCBody ExternCBody;
+
+		RecursiveGenerator<string> ToLineCode()
+		{
+			for (auto& i :IncludeNames)
+			{
+				co_yield "#include \"" + i + "\"";
+			}
+
+			co_yield "extern \"C\"";
+			co_yield "{";
+			co_yield ExternCBody.ToLineCode();
+			co_yield "}";
+		}
+	};
+
 	/// 返回编译过后的字节
 	// read compiled file into memory
-	vector<char> CompileOnUnix()
+	vector<char> CompileOnUnix(FuncDefTokenReader* defReader, AppendCode* appendCode)
 	{
+		char const* filename = "temp_compile";
+		ofstream f(filename);
+		// read defReader TODO
+		auto g = appendCode->ToLineCode();// 记得把这句移出这个函数
+		while (g.MoveNext())
+		{
+			f << g.Current();
+		}
+
+		auto compileCmd = string("g++ -m64 -g -shared-libgcc -fPIC -o ") + filename + ".so " + filename + ".cpp -std=c++0x -shared";
+		system(compileCmd.c_str());
+
+		// 删掉相关的临时文件
 		return {};
-		// system("");
 	}
 
-	vector<char> CompileOnWindows()
+	vector<char> CompileOnWindows(FuncDefTokenReader* defReader, AppendCode* appendCode)
 	{
-		return {};
-		// system("");
+		throw NotImplementException("CompileOnWindows function not implemented");
 	}
 
+	/// Has ResetReadPos effect
 	void CheckGrammar(FuncDefTokenReader* defReader)
 	{
+		defReader->ResetReadPos();
+		char const *filename = "temp_compile";
 
+		auto compileCmd = string("g++ -m64 -g -shared-libgcc -fPIC -o ") + filename + ".so " + filename + ".cpp -std=c++0x -shared";
+		if (system(compileCmd.c_str()) != 0)
+		{
+			throw InvalidOperationException("function definitions have compile error");
+		}
+
+		defReader->ResetReadPos();
 	}
 
-	// add extern
+	// add extern，extern 内只需要有 wrapper 函数
 	// get function def
 	// get function type
-	// 改名，因为 extern 不支持重载
 	// scan | compile | addToLib | addToIndex
 	void CheckProhibitedUseage(vector<string> const& funcBody)
 	{
@@ -54,14 +105,14 @@ namespace FuncLib::Compile
 		}
 	}
 
-	pair<array<string, 3>, vector<string>> GenerateWrapperFunc(pair<array<string, 3>, vector<string>> const& funInfo)
+	vector<string> GenerateWrapperFunc(FuncType const& funcType)
 	{
-		auto [returnType, name, args] = funInfo.first;
-		array<string, 3> typeInfos
+		auto& returnType = funcType.ReturnType();
+		auto& name = funcType.FuncName();
+		auto& argTypes = funcType.ArgTypes();
+		vector<string> wrapperFuncDef
 		{
-			"JsonObject",
-			name + "_wrapper",
-			"JsonObject jsonObj",
+			"JsonObject " + name + "_wrapper(JsonObject jsonObj)",
 		};
 
 		auto divideArg = [](string_view s, char delimiter)
@@ -74,17 +125,12 @@ namespace FuncLib::Compile
 			};
 		};
 
-		WordEnumerator e{ vector<string_view>{ args }, ',' };
 		vector<string> argDeserialCodes;
-
 		// Deserialize code
-		while (e.MoveNext())
+		for (auto& t : argTypes)// names 可能有用
 		{
-			if (not e.Current().empty())
-			{
-				auto [type, name] = divideArg(e.Current(), ' ');
-				argDeserialCodes.push_back(string("JsonConverter::Deserialize<") + type.data() + ">(jsonObj)");
-			}
+			auto name = "";// TODO
+			argDeserialCodes.push_back(string("JsonConverter::Deserialize<") + t + ">(jsonObj[" + name + "])");
 		}
 
 		auto ConsArgTupleStr = [](vector<string> initCodes)
@@ -98,39 +144,31 @@ namespace FuncLib::Compile
 			return tupleStr;
 		};
 		// tuple 无参数也行
-		// 改名字
+
 		string argsTuple = ConsArgTupleStr(move(argDeserialCodes));
 
 		// add JsonConverter, std::apply header(<tuple> file)
-		string invokeStatement("auto r = apply(" + name + ", move(argsTuple));");
+		string invokeStatement("auto r = std::apply(" + name + ", std::move(argsTuple));");
 
 		string returnStatement("return JsonConverter::Serialize(r);");
-		vector<string> body
-		{
-			argsTuple,
-			invokeStatement,
-			returnStatement,
-		};
-		return 
-		{
-			move(typeInfos),
-			move(body)
-		};
-	}
+		wrapperFuncDef.push_back(move(argsTuple));
+		wrapperFuncDef.push_back(move(invokeStatement));
+		wrapperFuncDef.push_back(move(returnStatement));
 
-	/// include 所有必要的头文件，让外界方便使用，后期需求
-	/// add extern "C"
+		return wrapperFuncDef;
+	}
+	
 	pair<vector<FuncObj>, vector<char>> Compile(FuncDefTokenReader* defReader)
 	{
 		CheckGrammar(defReader);
 
 		auto funcs = ParseFunc(defReader);
-		decltype(funcs) cookedFuncs;
+		vector<vector<string>> wrapperFuncsDef;
 		vector<FuncObj> funcObjs;
 
 		for (auto& f : funcs)
 		{
-			auto& t = f.first;
+			auto& type = f.first;
 			// std::cout << "Parse type result: \"" << t[0] << "\" \"" << t[1] << "\" \"" << t[2] << "\"" << std::endl;
 			auto& b = f.second;
 
@@ -140,20 +178,23 @@ namespace FuncLib::Compile
 			// 	std::cout << l << std::endl;
 			// }
 
+			// 这样的话，f.second 即 body 根本没必要返回
 			CheckProhibitedUseage(f.second);
-			cookedFuncs.push_back(GenerateWrapperFunc(f));
+			wrapperFuncsDef.push_back(GenerateWrapperFunc(type));
 			string summary;
-			FuncType type{t[0], t[1], {}};
 			funcObjs.push_back(FuncObj{ move(type), summary });
-			// share bin?
 
 			// std::cout << "end" << std::endl;
 		}
 
+		defReader->ResetReadPos();
+		AppendCode appendCode;
+		appendCode.IncludeNames.push_back("Json.hpp");
+		appendCode.IncludeNames.push_back("tuple");
 #ifdef _MSVC_LANG
-		auto bins = CompileOnWindows();
+		auto bins = CompileOnWindows(defReader, &appendCode);
 #else // __clang__ or __GNUC__
-		auto bins = CompileOnUnix();
+		auto bins = CompileOnUnix(defReader, &appendCode);
 #endif
 
 		// 先用编译器编译一遍，有报错直接停止
