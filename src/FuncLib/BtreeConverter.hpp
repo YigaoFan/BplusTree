@@ -18,6 +18,7 @@ namespace FuncLib
 	using ::Collections::LessThan;
 	using ::Collections::Btree;
 
+	// 这个文件或许应该变成 IDX 类
 	template <typename Key, typename Value, order_int Order>
 	class BtreeConverter
 	{
