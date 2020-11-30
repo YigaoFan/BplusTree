@@ -14,7 +14,7 @@ namespace Json::JsonConverter
 	using ::std::vector;
 	using ::Collections::IEnumerator;
 
-	// ������Ҫ��Ĵ��ǲ����еģ�����һ���ʷֲ����ڵ����� vector ���У����ǲ�������
+	// 假设你要求的词是不跨行的，比如一个词分布相邻的两个 vector 项中，这是不允许的
 	class WordEnumerator
 	{
 	private:
