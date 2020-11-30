@@ -43,6 +43,7 @@ add_executable(RPC
         FuncLib/Store/StorageAllocator.cpp
         FuncLib/Compile/ParseFunc.cpp
         FuncLib/Compile/FuncType.cpp
+        FuncLib/Compile/Invoke.cpp
         FuncLib/Compile/FuncDefTokenReader.cpp
         FuncLib/Compile/CompileProcess.cpp
         FuncLib/Test/Util.cpp
