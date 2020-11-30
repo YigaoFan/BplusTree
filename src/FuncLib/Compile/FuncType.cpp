@@ -20,6 +20,11 @@ namespace FuncLib::Compile
 		_funcName = move(funcName);
 	}
 
+	string const& FuncType::FuncName() const
+	{
+		return _funcName;
+	}
+
 	// 可以像 TiKV 那样对 Key 对 package name 做一些优化存储 TODO
 	string FuncType::ToKey() const
 	{

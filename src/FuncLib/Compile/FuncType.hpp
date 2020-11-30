@@ -19,6 +19,7 @@ namespace FuncLib::Compile
 		FuncType(string returnType, string functionName, vector<string> argTypes);
 		void PackageHierarchy(vector<string> packageHierarchy);
 		void FuncName(string funcName);
+		string const& FuncName() const;
 		// 可以像 TiKV 那样对 Key 对 package name 做一些优化存储 TODO
 		string ToKey() const;
 		string ToString() const;
