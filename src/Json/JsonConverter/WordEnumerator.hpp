@@ -14,8 +14,8 @@ namespace Json::JsonConverter
 	using ::std::vector;
 	using ::Collections::IEnumerator;
 
-	// ¼ÙÉèÄãÒªÇóµÄ´ÊÊÇ²»¿çÐÐµÄ£¬±ÈÈçÒ»¸ö´Ê·Ö²¼ÏàÁÚµÄÁ½¸ö vector ÏîÖÐ£¬ÕâÊÇ²»ÔÊÐíµÄ
-	class WordEnumerator : public IEnumerator<string_view>
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½Ä´ï¿½ï¿½Ç²ï¿½ï¿½ï¿½ï¿½ÐµÄ£ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ê·Ö²ï¿½ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ vector ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½ï¿½Ç²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	class WordEnumerator
 	{
 	private:
 		bool _firstMove = true;
@@ -29,9 +29,9 @@ namespace Json::JsonConverter
 	public:
 		WordEnumerator(vector<string_view> strs, char separator);
 		void ChangeSeparator(char newSeparator);
-		string_view Current() override;
-		bool MoveNext() override;
-		size_t CurrentIndex() override;
+		string_view Current();
+		bool MoveNext();
+		size_t CurrentIndex();
 
 	private:
 		bool MoveInStrView();
