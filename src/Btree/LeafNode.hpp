@@ -168,9 +168,7 @@ namespace Collections
 		LeafNode(decltype(_elements) elements, 
 			RAW_PTR(LeafNode) previous, RAW_PTR(LeafNode) next)
 		 : Base(), _elements(move(elements)), _previous(move(previous)), _next(move(next))
-		{
-			// TODO LessThan?
-		}
+		{ }
 
 		vector<Key> CollectKeys(vector<Key> previousNodesKeys = {}) const
 		{
