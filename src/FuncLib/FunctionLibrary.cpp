@@ -42,9 +42,10 @@ namespace FuncLib
 			}
 			else
 			{
-				// 那这样要考虑多个引用一个的问题，删的时候要注意
+				f.Summary = summary;
+				// 使用 FuncObj 可以生成客户端调用代码
 				_binLib.AddRefCount(p);
-				_index.Add(f.Type, { p.Label(), summary });
+				_index.Add(f, p.Label());
 			}
 		}
 	}
@@ -98,7 +99,7 @@ namespace FuncLib
 	}
 
 	// keyword maybe part package name, 需要去匹配，所以返回值可能不能做到返回函数的相关信息
-	Generator<pair<string, pair<pos_label, string>>> FunctionLibrary::Search(string const& keyword)
+	Generator<pair<string, string>> FunctionLibrary::Search(string const& keyword)
 	{
 		return _index.Search(keyword);
 	}

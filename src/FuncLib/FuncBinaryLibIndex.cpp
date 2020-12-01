@@ -43,9 +43,28 @@ namespace FuncLib
 	}
 
 #define STR_TO_DISK_REF_STR(STR) TypeConverter<string, OwnerState::FullOwner>::ConvertFrom(STR, _file.get())
-	void FuncBinaryLibIndex::Add(FuncType const& type, pair<pos_label, string> info)
+	void FuncBinaryLibIndex::Add(FuncObj const& funcObj, pos_label label)
 	{
-		_diskBtree->Add({ STR_TO_DISK_REF_STR(type.ToKey()), { info.first, STR_TO_DISK_REF_STR(info.second) } });
+		auto combineStrWithSpace = [](vector<string> const& strs)
+		{
+			string combined;
+			for (auto& s : strs)
+			{
+				combined.append(s);
+			}
+
+			return combined;
+		};
+
+		_diskBtree->Add({
+			STR_TO_DISK_REF_STR(funcObj.Type.ToKey()),
+			{
+				label,
+				{
+					STR_TO_DISK_REF_STR(funcObj.Summary),
+					STR_TO_DISK_REF_STR(combineStrWithSpace(funcObj.ParaNames))
+				}
+			}});
 	}
 
 	pos_label FuncBinaryLibIndex::GetStoreLabel(FuncType const& type) const
@@ -81,7 +100,7 @@ namespace FuncLib
 		_diskBtree->Remove(type.ToKey());
 	}
 
-	auto FuncBinaryLibIndex::Search(string const& keyword) -> Generator<pair<Key, pair<pos_label, string>>>
+	auto FuncBinaryLibIndex::Search(string const& keyword) -> Generator<pair<string, string>>
 	{
 		auto g = _diskBtree->GetStoredPairEnumerator();
 		auto includedIn = [&keyword](string const& word)
@@ -92,14 +111,16 @@ namespace FuncLib
 		while (g.MoveNext())
 		{
 			auto p = g.Current();
-			if (includedIn(p->first))
+			if (includedIn(p->first)) // Key
 			{
 				// 后续如果 FuncType::ToKey 的形成规则变了，这里也要变
-				co_yield { Key(p->first), { p->second.first, Key(p->second.second) } };
+#define YIELD_EXP co_yield { string(p->first), string(p->second.second.first)}
+				YIELD_EXP;
 			}
-			else if (includedIn(p->second.second))
+			else if (includedIn(p->second.second.first)) // summary
 			{
-				co_yield { Key(p->first), { p->second.first, Key(p->second.second) } };
+				YIELD_EXP;
+#undef YIELD_EXP
 			}
 		}
 	}
@@ -110,4 +131,5 @@ namespace FuncLib
 		_diskBtree->ModifyKey(oldType.ToKey(), STR_TO_DISK_REF_STR(genNewTypeCallback(oldType).ToKey()));
 	}
 #undef STR_TO_DISK_REF_STR
+	// TODO Generate function meta info
 }

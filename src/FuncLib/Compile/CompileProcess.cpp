@@ -1,9 +1,12 @@
 
+#include <array>
 #include <string>
 #include <string_view>
 #include <cstdlib>
-#include <iostream>
 #include <fstream>
+#include <random>
+#include <algorithm>
+#include <filesystem>
 #include "CompileProcess.hpp"
 #include "../../Basic/Exception.hpp"
 #include "../../Btree/Generator.hpp"
@@ -14,6 +17,8 @@ namespace FuncLib::Compile
 	using Basic::InvalidOperationException;
 	using Basic::NotImplementException;
 	using Collections::RecursiveGenerator;
+	using ::std::array;
+	using ::std::get;
 	using ::std::ifstream;
 	using ::std::move;
 	using ::std::ofstream;
@@ -21,12 +26,20 @@ namespace FuncLib::Compile
 	using ::std::string_view;
 	using ::std::to_string;
 	using ::std::vector;
+	using ::std::filesystem::remove;
 
 	struct ExternCBody
 	{
-		RecursiveGenerator<string> ToLineCode()
+		vector<vector<string>> WrapperFuncDefs;
+		RecursiveGenerator<string> GetLineCodeGenerator() const
 		{
-			co_yield {};
+			for (auto& funcDef : WrapperFuncDefs)
+			{
+				for (auto& line : funcDef)
+				{
+					co_yield line;
+				}
+			}
 		}
 	};
 
@@ -35,7 +48,7 @@ namespace FuncLib::Compile
 		vector<string> IncludeNames;
 		ExternCBody ExternCBody;
 
-		RecursiveGenerator<string> ToLineCode()
+		RecursiveGenerator<string> GetLineCodeGenerator() const
 		{
 			for (auto& i :IncludeNames)
 			{
@@ -44,29 +57,63 @@ namespace FuncLib::Compile
 
 			co_yield "extern \"C\"";
 			co_yield "{";
-			co_yield ExternCBody.ToLineCode();
+			co_yield ExternCBody.GetLineCodeGenerator();
 			co_yield "}";
 		}
 	};
+
+	string RandomString()
+	{
+		string src = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+		std::random_device rd;
+		std::mt19937 generator(rd());
+
+		std::shuffle(src.begin(), src.end(), generator);
+
+		return src.substr(0, 5);
+	}
+	
+	template <typename Generator>
+	void AddCodeFrom(ofstream* file, Generator* generator)
+	{
+		while (generator->MoveNext())
+		{
+			*file << generator->Current();
+		}
+	}
 
 	/// 返回编译过后的字节
 	// read compiled file into memory
 	vector<char> CompileOnUnix(FuncDefTokenReader* defReader, AppendCode* appendCode)
 	{
-		char const* filename = "temp_compile";
-		ofstream f(filename);
-		// read defReader TODO
-		auto g = appendCode->ToLineCode();// 记得把这句移出这个函数
-		while (g.MoveNext())
-		{
-			f << g.Current();
-		}
+		string filename = "temp_compile_" + RandomString();// 加入随机性
+		ofstream f(filename + ".cpp");
+
+		auto g1 = defReader->GetLineCodeGenerator();
+		AddCodeFrom(&f, &g1);
+		auto g2 = appendCode->GetLineCodeGenerator();
+		AddCodeFrom(&f, &g2);
 
 		auto compileCmd = string("g++ -m64 -g -shared-libgcc -fPIC -o ") + filename + ".so " + filename + ".cpp -std=c++0x -shared";
 		system(compileCmd.c_str());
 
-		// 删掉相关的临时文件
-		return {};
+		ifstream binReader(filename + ".so", ifstream::binary);
+		binReader.unsetf(ifstream::skipws); // Stop eating new lines in binary mode
+		binReader.seekg(0, ifstream::end);
+		auto size = binReader.tellg();
+		binReader.clear();
+		binReader.seekg(0, ifstream::beg);
+
+		vector<char> bytes;
+		bytes.reserve(size);
+		bytes.insert(bytes.begin(),
+					 std::istream_iterator<char>(binReader),
+					 std::istream_iterator<char>());
+
+		remove(filename + ".cpp");
+		remove(filename + ".so");
+
+		return bytes;
 	}
 
 	vector<char> CompileOnWindows(FuncDefTokenReader* defReader, AppendCode* appendCode)
@@ -77,22 +124,24 @@ namespace FuncLib::Compile
 	/// Has ResetReadPos effect
 	void CheckGrammar(FuncDefTokenReader* defReader)
 	{
-		defReader->ResetReadPos();
-		char const *filename = "temp_compile";
+		string filename = "temp_pre_compile_" + RandomString();
+		ofstream f(filename + ".cpp");
 
+		defReader->ResetReadPos();
+		auto g = defReader->GetLineCodeGenerator();
+		AddCodeFrom(&f, &g);
 		auto compileCmd = string("g++ -m64 -g -shared-libgcc -fPIC -o ") + filename + ".so " + filename + ".cpp -std=c++0x -shared";
 		if (system(compileCmd.c_str()) != 0)
 		{
 			throw InvalidOperationException("function definitions have compile error");
 		}
 
+		remove(filename + ".cpp");
+		remove(filename + ".so");
 		defReader->ResetReadPos();
 	}
 
 	// add extern，extern 内只需要有 wrapper 函数
-	// get function def
-	// get function type
-	// scan | compile | addToLib | addToIndex
 	void CheckProhibitedUseage(vector<string> const& funcBody)
 	{
 		for (auto& l : funcBody)
@@ -105,14 +154,14 @@ namespace FuncLib::Compile
 		}
 	}
 
-	vector<string> GenerateWrapperFunc(FuncType const& funcType)
+	vector<string> GenerateWrapperFunc(FuncType const& funcType, vector<string> const& paraNames)
 	{
 		auto& returnType = funcType.ReturnType();
 		auto& name = funcType.FuncName();
-		auto& argTypes = funcType.ArgTypes();
+		auto& paraTypes = funcType.ArgTypes();
 		vector<string> wrapperFuncDef
 		{
-			"JsonObject " + name + "_wrapper(JsonObject jsonObj)",
+			"JsonObject " + name + "_wrapper(JsonObject jsonObj) {",
 		};
 
 		auto divideArg = [](string_view s, char delimiter)
@@ -127,10 +176,11 @@ namespace FuncLib::Compile
 
 		vector<string> argDeserialCodes;
 		// Deserialize code
-		for (auto& t : argTypes)// names 可能有用
+		for (auto i = 0; i < paraTypes.size(); ++i)
 		{
-			auto name = "";// TODO
-			argDeserialCodes.push_back(string("JsonConverter::Deserialize<") + t + ">(jsonObj[" + name + "])");
+			auto& t = paraTypes[i];
+			auto& n = paraNames[i];
+			argDeserialCodes.push_back(string("JsonConverter::Deserialize<") + t + ">(jsonObj[" + n + "])");
 		}
 
 		auto ConsArgTupleStr = [](vector<string> initCodes)
@@ -154,6 +204,7 @@ namespace FuncLib::Compile
 		wrapperFuncDef.push_back(move(argsTuple));
 		wrapperFuncDef.push_back(move(invokeStatement));
 		wrapperFuncDef.push_back(move(returnStatement));
+		wrapperFuncDef.push_back("}");
 
 		return wrapperFuncDef;
 	}
@@ -168,29 +219,20 @@ namespace FuncLib::Compile
 
 		for (auto& f : funcs)
 		{
-			auto& type = f.first;
-			// std::cout << "Parse type result: \"" << t[0] << "\" \"" << t[1] << "\" \"" << t[2] << "\"" << std::endl;
-			auto& b = f.second;
+			auto& type = get<0>(f);
+			auto& paraNames = get<1>(f);
+			auto& body = get<2>(f);
 
-			// std::cout << "Parse body result: " << std::endl;
-			// for (auto& l : b)
-			// {
-			// 	std::cout << l << std::endl;
-			// }
-
-			// 这样的话，f.second 即 body 根本没必要返回
-			CheckProhibitedUseage(f.second);
-			wrapperFuncsDef.push_back(GenerateWrapperFunc(type));
-			string summary;
-			funcObjs.push_back(FuncObj{ move(type), summary });
-
-			// std::cout << "end" << std::endl;
+			CheckProhibitedUseage(body);
+			wrapperFuncsDef.push_back(GenerateWrapperFunc(type, paraNames));
+			funcObjs.push_back(FuncObj{ move(type), move(paraNames), {} });
 		}
 
 		defReader->ResetReadPos();
 		AppendCode appendCode;
 		appendCode.IncludeNames.push_back("Json.hpp");
 		appendCode.IncludeNames.push_back("tuple");
+		appendCode.ExternCBody.WrapperFuncDefs = move(wrapperFuncsDef);
 #ifdef _MSVC_LANG
 		auto bins = CompileOnWindows(defReader, &appendCode);
 #else // __clang__ or __GNUC__

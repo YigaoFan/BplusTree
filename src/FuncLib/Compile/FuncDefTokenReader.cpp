@@ -2,6 +2,8 @@
 
 namespace FuncLib::Compile
 {
+	using ::std::getline;
+
 	FuncDefTokenReader::FuncDefTokenReader(decltype(_istream) istream)
 		: _istream(move(istream))
 	{ }
@@ -39,7 +41,18 @@ namespace FuncLib::Compile
 
 	void FuncDefTokenReader::ResetReadPos()
 	{
-		_istream.clear();
+		_istream.clear();// 这句到底需不需要？
 		_istream.seekg(0, ifstream::beg);
+	}
+
+	Generator<string> FuncDefTokenReader::GetLineCodeGenerator()
+	{
+		while (not _istream.eof())
+		{
+			string line;
+			getline(_istream, line);
+			co_yield move(line);
+			line.clear();
+		}
 	}
 }

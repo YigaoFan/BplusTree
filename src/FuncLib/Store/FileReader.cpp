@@ -10,13 +10,17 @@ namespace FuncLib::Store
 		}
 
 		ifstream fs(filename, ifstream::in | ifstream::binary);
+		// fs.unsetf(ifstream::skipws); // Stop eating new lines in binary mode
 		fs.seekg(start);
 
 		vector<byte> mem(size);
 
 		if (fs.is_open())
 		{
-			fs.read(reinterpret_cast<char *>(&mem[0]), size);
+			for (auto i = 0; i < size; ++i)
+			{
+				mem.push_back(static_cast<byte>(fs.get()));
+			}
 		}
 
 		return mem;

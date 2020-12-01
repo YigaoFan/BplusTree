@@ -2,6 +2,7 @@
 #include <type_traits>
 #include <string>
 #include <vector>
+#include <tuple>
 #include <memory>
 #include <utility>
 #include <functional>
@@ -18,21 +19,26 @@
 
 namespace FuncLib::Persistence
 {
-	using ::Basic::ReturnType;
-	using ::Collections::Btree;
-	using ::Collections::Elements;
-	using ::Collections::EnumeratorPipeline;
-	using ::Collections::LeafNode;
-	using ::Collections::MiddleNode;
-	using ::Collections::NodeBase;
-	using ::Collections::order_int;
-	using ::Collections::StorePlace;
+	using Basic::ReturnType;
+	using Collections::Btree;
+	using Collections::Elements;
+	using Collections::EnumeratorPipeline;
+	using Collections::LeafNode;
+	using Collections::MiddleNode;
+	using Collections::NodeBase;
+	using Collections::order_int;
+	using Collections::StorePlace;
 	using ::std::declval;
+	using ::std::get;
+	using ::std::index_sequence;
 	using ::std::make_shared;
 	using ::std::pair;
 	using ::std::shared_ptr;
 	using ::std::string;
+	using ::std::tuple;
+	using ::std::tuple_element_t;
 	using ::std::unique_ptr;
+	using ::std::vector;
 
 	template <typename T, OwnerState Owner>
 	struct TypeConverter
@@ -210,6 +216,27 @@ namespace FuncLib::Persistence
 		// }
 	};
 
+	template <typename... Ts>
+	struct TypeConverter<tuple<Ts...>, OwnerState::FullOwner>
+	{
+		using From = tuple<Ts...>;
+		using To = tuple<typename TypeConverter<Ts, OwnerState::FullOwner>::To...>;
+
+		template <size_t... Idxs>
+		static To ConvertEach(From const& from, index_sequence<Idxs...> idx, File* file)
+		{
+			return 
+			{
+				TypeConverter<tuple_element_t<Idxs, From>, OwnerState::FullOwner>::ConvertFrom(get<Idxs>(from), file)...
+			};
+		}
+
+		static To ConvertFrom(From const& from, File* file)
+		{
+			return ConvertEach(from, make_index_sequence<tuple_size_v<From>>(), file);
+		}
+	};
+
 	template <typename Key, typename Value>
 	struct TypeConverter<pair<Key, Value>, OwnerState::FullOwner>
 	{
@@ -224,6 +251,27 @@ namespace FuncLib::Persistence
 				TypeConverter<Key, OwnerState::FullOwner>::ConvertFrom(from.first, file),
 				TypeConverter<Value, OwnerState::FullOwner>::ConvertFrom(from.second, file)
 			};
+		}
+	};
+
+	// Disk 中对象存储的大小不稳定会影响相邻数据的存储
+	template <typename T>
+	struct TypeConverter<vector<T>, OwnerState::FullOwner>
+	{
+		using From = vector<T>;
+		using SubType = vector<typename TypeConverter<T, OwnerState::FullOwner>::To>;
+		using To = UniqueDiskRef<SubType>;
+
+		static To ConvertFrom(From const& from, File* file)
+		{
+			auto ptr = UniqueDiskPtr<SubType>::MakeUnique({}, file);
+
+			for (auto& x : from)
+			{
+				ptr->push_back(TypeConverter<T, OwnerState::FullOwner>::ConvertFrom(x, file));
+			}
+
+			return To(move(ptr));
 		}
 	};
 }

@@ -99,7 +99,8 @@ namespace FuncLib::Compile
 		// throw Basic::InvalidOperationException("{} in func body is unpaired");
 	}
 
-	vector<string> ParseOutArgs(string argsStr)
+	/// pair: type and parameter name
+	pair<vector<string>, vector<string>> ParseOutParas(string const &argsStr)
 	{
 		auto divideArg = [](string_view s, char delimiter)
 		{
@@ -112,24 +113,24 @@ namespace FuncLib::Compile
 		};
 
 		WordEnumerator e{ vector<string_view>{ argsStr }, ','};
-		vector<string> args;
+		pair<vector<string>, vector<string>> paras;
 		while (e.MoveNext())
 		{
 			if (not e.Current().empty())
 			{
 				auto [type, name] = divideArg(e.Current(), ' ');
-				args.push_back(string(type));
+				paras.first.push_back(string(type));
+				paras.second.push_back(string(name));
 			}
 		}
 
-		return args;
+		return paras;
 	}
 
-	/// 使用前要保证函数编译正确，比如可以先编译一遍
-	/// pair: FuncType, func body 
-	vector<pair<FuncType, vector<string>>> ParseFunc(FuncDefTokenReader* defReader)
+	/// tuple: FuncType, para name, func body 
+	vector<tuple<FuncType, vector<string>, vector<string>>> ParseFunc(FuncDefTokenReader* defReader)
 	{
-		vector<pair<FuncType, vector<string>>> funcs;
+		vector<tuple<FuncType, vector<string>, vector<string>>> funcs;
 
 		while (not defReader->AtEnd())
 		{
@@ -137,7 +138,11 @@ namespace FuncLib::Compile
 			{
 				auto body = ParseFuncBodyAfterSignature(defReader);
 				auto& s = sign.value();
-				funcs.push_back({ { move(s[0]), move(s[1]), ParseOutArgs(move(s[2])) }, move(body) });
+				auto [paraType, paraName] = ParseOutParas(s[2]);
+				funcs.push_back({ 
+					FuncType(move(s[0]), move(s[1]), move(paraType)),
+					move(paraName),
+					move(body) });
 			}
 		}
 

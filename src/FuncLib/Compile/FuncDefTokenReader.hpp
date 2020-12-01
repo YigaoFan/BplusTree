@@ -23,5 +23,6 @@ namespace FuncLib::Compile
 		Generator<string> GetTokenGenerator();
 		bool AtEnd() const;
 		void ResetReadPos();
+		Generator<string> GetLineCodeGenerator();
 	};
 }
