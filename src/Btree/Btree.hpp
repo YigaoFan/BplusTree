@@ -102,7 +102,7 @@ namespace Collections
 
 	// 这三个类型参数的顺序要不要调整下啊
 	template <order_int BtreeOrder, typename Key, typename Value, StorePlace Place = StorePlace::Memory>
-	class Btree 
+	class Btree : public TakeWithDiskPos<Btree<BtreeOrder, Key, Value, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>
 	{
 	public:
 		using _LessThan = LessThan<Key>;
@@ -283,15 +283,15 @@ namespace Collections
 		}
 
 		template <typename T, auto Count, size_t... Is>
-		static auto ConsNodeInArrayImp(array<T, Count> srcArray, shared_ptr<_LessThan> lessThan, index_sequence<Is...> is)
+		auto ConsNodeInArrayImp(array<T, Count> srcArray, shared_ptr<_LessThan> lessThan, index_sequence<Is...> is)
 		{
 			constexpr auto nodesCount = is.size() == 0 ? 1 : is.size();
 			array<Ptr<Node>, nodesCount> consNodes;
-			auto constor = [&srcArray, &consNodes, &lessThan](auto index, auto itemsCount, auto preItemsCount)
+			auto constor = [&srcArray, &consNodes, &lessThan, self=this](auto index, auto itemsCount, auto preItemsCount)
 			{
 				auto begin = srcArray.begin() + preItemsCount;
 				auto end = begin + itemsCount;
-				consNodes[index] = NodeFactoryType::MakeNode(CreateMoveEnumerator(begin, end), lessThan);
+				consNodes[index] = self->MakeNewNode(CreateMoveEnumerator(begin, end), lessThan);
 			};
 			if constexpr (is.size() == 0)
 			{
@@ -306,7 +306,7 @@ namespace Collections
 		}
 
 		template <typename T, auto Count>
-		static auto ConsNodeInArray(array<T, Count> src, shared_ptr<_LessThan> lessThan)
+		auto ConsNodeInArray(array<T, Count> src, shared_ptr<_LessThan> lessThan)
 		{
 			return ConsNodeInArrayImp(move(src), move(lessThan), make_index_sequence<GetNodeCount<Count, BtreeOrder>()>());
 		}
@@ -341,7 +341,7 @@ namespace Collections
 		{
 			if constexpr (Count <= BtreeOrder)
 			{
-				auto root = NodeFactoryType::MakeNode(CreateMoveEnumerator(ItemsToConsNode.begin(), ItemsToConsNode.end()), _lessThanPtr);
+				auto root = MakeNewNode(CreateMoveEnumerator(ItemsToConsNode.begin(), ItemsToConsNode.end()), _lessThanPtr);
 				return root;
 			}
 
@@ -360,7 +360,7 @@ namespace Collections
 			// TODO Assert the srcNode == _root when debug
 			_root->ResetShallowCallbackPointer();
 			array<Ptr<Node>, 2> nodes { move(_root), move(newNextNode) }; // TODO have average node count between nodes?
-			_root = NodeFactoryType::MakeNode(CreateMoveEnumerator(nodes), _lessThanPtr);
+			_root = MakeNewNode(CreateMoveEnumerator(nodes), _lessThanPtr);
 			SetRootCallbacks();
 		}
 
@@ -382,6 +382,20 @@ namespace Collections
 			{
 				this->SetRootCallbacks();
 			});
+		}
+
+		template <typename... Args>
+		Ptr<Node> MakeNewNode(Args&&... args)
+		{
+			if constexpr (Place == StorePlace::Disk)
+			{
+				auto f = this->GetLessOwnershipFile();
+				return NodeFactoryType::MakeNodeOnDisk(f, forward<Args>(args)...);
+			}
+			else
+			{
+				return NodeFactoryType::MakeNodeOnMemory(forward<Args>(args)...);
+			}
 		}
 	};
 }

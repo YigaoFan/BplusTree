@@ -1,6 +1,5 @@
 #pragma once
 #include <memory>
-#include <type_traits>
 #include <vector>
 #include <functional>
 #include <cstddef>
@@ -8,13 +7,11 @@
 namespace FuncLib::Persistence
 {
 	using ::std::function;
-	using ::std::is_same_v;
 	using ::std::move;
 	using ::std::nullptr_t;
 	using ::std::shared_ptr;
 	using ::std::static_pointer_cast;
 	using ::std::vector;
-	using ::std::is_base_of_v;
 
 	template <typename T>
 	class DiskPtrBase
@@ -163,10 +160,6 @@ namespace FuncLib::Persistence
 		void ReadObjectFromDisk() const
 		{
 			_tPtr = _pos.ReadObject();
-			if constexpr (is_base_of_v<TakeWithDiskPos<T, Switch::Enable>, T>)
-			{
-				TakeWithDiskPos<T, Switch::Enable>::SetDiskPos(_tPtr, const_cast<DiskPos<T>*>(&_pos));
-			}
 		}
 
 		void SetDone() const
@@ -221,11 +214,6 @@ namespace FuncLib::Persistence
 			// 硬存使用的出发点只有这里
 			auto [label, obj] = file->New(forward<T1>(t));
 			UniqueDiskPtr<T> ptr{ { file, label }, obj };
-			if constexpr (is_base_of_v<TakeWithDiskPos<T, Switch::Enable>, T>)
-			{
-				TakeWithDiskPos<T, Switch::Enable>::SetDiskPos(obj, &ptr._pos);
-			}
-
 			return ptr;
 		}
 

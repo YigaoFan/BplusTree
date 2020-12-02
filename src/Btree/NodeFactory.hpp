@@ -6,12 +6,13 @@
 #include "Enumerator.hpp"
 #include "LeafNode.hpp"
 #include "MiddleNode.hpp"
-#include "../FuncLib/Store/FileResource.hpp"
+#include "../FuncLib/Store/File.hpp"
 #include "../Basic/TypeTrait.hpp"
 
 namespace Collections
 {
-	using ::Basic::IsSpecialization;
+	using Basic::IsSpecialization;
+	using FuncLib::Store::File;
 	using ::std::function;
 	using ::std::make_unique;
 	using ::std::move;
@@ -32,46 +33,44 @@ namespace Collections
 
 	public:
 		template <typename... Ts>
-		static Ptr<Node> MakeNode(Enumerator<Ts...> enumerator, shared_ptr<_LessThan> lessThan)
+		static Ptr<Node> MakeNodeOnMemory(Enumerator<Ts...> enumerator, shared_ptr<_LessThan> lessThan)
 		{
 			using T = remove_reference_t<ValueTypeOf<Enumerator<Ts...>>>;
 
-			if constexpr (IsDisk<Place>)
+			if constexpr (IsSpecialization<T, unique_ptr>::value)
 			{
-				using FuncLib::Store::FileResource;
-				// TODO 这里的 f 应该去掉
-				auto f = FileResource::GetCurrentThreadFile().get();
-
-				if constexpr (IsSpecialization<T, UniqueDiskPtr>::value)
-				{
-					auto node = Middle(enumerator, lessThan);
-					return UniqueDiskPtr<Middle>::MakeUnique(move(node), f);
-				}
-				else
-				{
-					// 要转换 string 到 UniqueDiskRef
-					function converter = [f=f](T from)
-					{
-						// 这里有点把 TypeSelector 的逻辑以这种形式部分重写一遍的意思
-						// 转成 NodeBase::StoredKey 和 NodeBase::StoredValue
-						return TypeConverter<T, OwnerState::FullOwner>::ConvertFrom(from, f);
-					};
-
-					auto converted = EnumeratorPipeline<T, typename decltype(converter)::result_type, decltype(enumerator)>(enumerator, converter);
-					auto node = Leaf(converted, lessThan);
-					return UniqueDiskPtr<Leaf>::MakeUnique(move(node), f);
-				}
+				return make_unique<Middle>(enumerator, lessThan);
 			}
 			else
 			{
-				if constexpr (IsSpecialization<T, unique_ptr>::value)
+				return make_unique<Leaf>(enumerator, lessThan);
+			}
+		}
+
+		template <typename... Ts>
+		static Ptr<Node> MakeNodeOnDisk(File* file, Enumerator<Ts...> enumerator, shared_ptr<_LessThan> lessThan)
+		{
+			using T = remove_reference_t<ValueTypeOf<Enumerator<Ts...>>>;
+
+			if constexpr (IsSpecialization<T, UniqueDiskPtr>::value)
+			{
+				auto node = Middle(enumerator, lessThan);
+				return UniqueDiskPtr<Middle>::MakeUnique(move(node), file);
+			}
+			else
+			{
+				// 要转换 string 到 UniqueDiskRef
+				// 这里要这种转换吗，为何不像 Btree::Add 让用户直接传相应的类型？
+				function converter = [f=file](T from)
 				{
-					return make_unique<Middle>(enumerator, lessThan);
-				}
-				else
-				{
-					return make_unique<Leaf>(enumerator, lessThan);
-				}
+					// 这里有点把 TypeSelector 的逻辑以这种形式部分重写一遍的意思
+					// 转成 NodeBase::StoredKey 和 NodeBase::StoredValue
+					return TypeConverter<T, OwnerState::FullOwner>::ConvertFrom(from, f);
+				};
+
+				auto converted = EnumeratorPipeline<T, typename decltype(converter)::result_type, decltype(enumerator)>(enumerator, converter);
+				auto node = Leaf(converted, lessThan);
+				return UniqueDiskPtr<Leaf>::MakeUnique(move(node), file);
 			}
 		}
 

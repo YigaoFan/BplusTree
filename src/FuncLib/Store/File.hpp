@@ -18,7 +18,11 @@
 namespace FuncLib::Store
 {
 	using FuncLib::Persistence::ByteConverter;
+	using FuncLib::Persistence::DiskPos;
+	using FuncLib::Persistence::Switch;
+	using FuncLib::Persistence::TakeWithDiskPos;
 	using ::std::enable_shared_from_this;
+	using ::std::is_base_of_v;
 	using ::std::make_shared;
 	using ::std::move;
 	using ::std::pair;
@@ -55,26 +59,20 @@ namespace FuncLib::Store
 		shared_ptr<T> Read(pos_label posLabel)
 		{
 			using SearchRoutine = typename GenerateSearchRoutine<T>::Result;
-			return Search<T, SearchRoutine>(posLabel);
-		}
-
-		template <typename T>
-		pair<pos_label, shared_ptr<T>> New(T t)
-		{
-			auto label = _allocator.AllocatePosLabel();
-			_notStoredLabels.insert(label);
-			auto obj = AddToCache(move(t), label);
-			return { label, obj };
+			auto obj = Search<T, SearchRoutine>(posLabel);
+			return obj;
 		}
 
 		/// New 的时候要用本来的类型，而不要用动态类型
 		template <typename T>
-		pair<pos_label, shared_ptr<T>> New(shared_ptr<T> t)
+		auto New(T t)
 		{
 			auto label = _allocator.AllocatePosLabel();
 			_notStoredLabels.insert(label);
-			auto obj = AddToCache(move(t), label);
-			return { label, obj };
+			// SetItUp 针对 shared_ptr 有个特化，要注意下
+			auto obj = SetItUp(move(t), label);
+
+			return pair{ label, obj };
 		}
 
 		/// 使用这个方法进行存储只能是最外层的对象，比如用在 OuterDiskPtr 这样
@@ -160,7 +158,7 @@ namespace FuncLib::Store
 
 			if constexpr (TypeList::IsLast)
 			{
-				return AddToCache(ReadOn<T>(label), label);
+				return SetItUp(ReadOn<T>(label), label);
 			}
 			else
 			{
@@ -177,19 +175,31 @@ namespace FuncLib::Store
 			return ByteConverter<T>::ReadOut(&reader);
 		}
 
+		template <typename T>
+		void SetDiskPosIfEnable(shared_ptr<T>& obj, pos_label lable)
+		{
+			if constexpr (is_base_of_v<TakeWithDiskPos<T, Switch::Enable>, T>)
+			{
+				DiskPos<T> pos(this, lable);
+				TakeWithDiskPos<T, Switch::Enable>::SetDiskPos(obj, move(pos));
+			}
+		}
+
 		// 还有 DiskPos 依赖也不是 File 的所有功能，所以可以考虑剥离一部分功能出来形成一个类，来让 DiskPos 依赖
 		template <typename T>
-		shared_ptr<T> AddToCache(T t, pos_label posLabel)
+		shared_ptr<T> SetItUp(T t, pos_label posLabel)
 		{
 			shared_ptr<T> obj = make_shared<T>(move(t));
 			_cache.Add<T>(posLabel, obj);
+			SetDiskPosIfEnable(obj, posLabel);
 			return obj;
 		}
 
 		template <typename T>
-		shared_ptr<T> AddToCache(shared_ptr<T> obj, pos_label posLabel)
+		shared_ptr<T> SetItUp(shared_ptr<T> obj, pos_label posLabel)
 		{
 			_cache.Add<T>(posLabel, obj);
+			SetDiskPosIfEnable(obj, posLabel);
 			return obj;
 		}
 
