@@ -80,7 +80,7 @@ namespace Json
 		double GetNumber()         const;
 		string GetString()         const;
 		bool   GetBool()           const;
-		size_t Count() const;
+		size_t Count()             const;
 
 		string ToString();
 	};
