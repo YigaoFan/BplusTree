@@ -1,79 +1,50 @@
-#include <string_view>
-#include "../Json/Parser.hpp"
-#include "ThreadPool.hpp"
-#include "RequestListener.hpp"
-#include "RequestResponder.hpp"
-#include "InvokeWorker.hpp"
+#pragma once
 #include "../Logger/Logger.hpp"
+#include "ThreadPool.hpp"
+#include "Acceptor.hpp"
+#include "Responder.hpp"
+#include "InvokeWorker.hpp"
 
 namespace Server
 {
-	using ::std::string_view;
+	using ::std::move;
 
-	// Server 里有个中间层对象隔离来控制 FunctionLibrary，加锁以及任务队列可以在这里面加
-	// 对于每个合法的调用请求生成唯一的 id 标识唯一性
+#define LOG_FORMAT STRING("%h %l %u %t %r %s %b %i %i")
 	class Server
 	{
 	private:
-		decltype(Log::MakeLoggerWith(STRING("%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\""))) _logger;
-		ThreadPool _threadPool;
-		RequestListener _listener; // 这个可能要调整下
-		RequestResponder _responder; // 这个可能要调整下
+		decltype(Log::MakeLoggerWith(LOG_FORMAT)) _logger;
 		InvokeWorker _invokeWorker;
+		Acceptor _acceptor;
 	public:
-		Server();
-		void Init();
-		void Run();
+		static Server New()
+		{
+			ThreadPool threadPool;
+			Responder responder;
+			auto acceptor = Acceptor(move(threadPool), move(responder));
+			auto invokeWorker = InvokeWorker();
+			auto logger = Log::MakeLoggerWith(LOG_FORMAT);
+			return Server(move(acceptor), move(invokeWorker), move(logger));
+		}
 
+		Server(Acceptor acceptor, InvokeWorker invokeWorker, decltype(_logger) logger)
+			: _acceptor(move(acceptor)), _invokeWorker(move(invokeWorker)), _logger(move(logger))
+		{
+			_acceptor.SetServiceFactory(
+				[&](Socket socket, Responder *responder) { return ClientService(socket, &_invokeWorker, responder); },
+				[&](Socket socket, Responder *responder) { return AdminService(socket, &_invokeWorker, responder);  });
+		}
 
-		// admin 路线
-		void HandleAdminConnect()
+		void Init()
 		{
 
 		}
 
-		// client 路线
-		void HandleClientConnect()
+		void Start()
 		{
-			_threadPool.Execute(AllWorkflow);
+			_invokeWorker.StartRunBackground();
+			_acceptor.StartAcceptBackground();
 		}
-
-		void AllWorkflow()
-		{
-			// 前期通讯和鉴权
-			// 调用
-			HandleInvoke();
-		}
-
-		struct Awaiter
-		{
-
-		};
-
-		Awaiter HandleInvoke(string_view funcInvokeRequest)
-		{
-			// 下面的代码需要异常处理
-			auto invokeInfo = Json::Parse(funcInvokeRequest);
-			auto funcName = invokeInfo["name"].GetString();// 这里 funcName 要注意和函数库的 type 包含同样的信息
-			auto arg = invokeInfo["arg"];
-			FuncType type;// TODO
-			// if step above has error, then set Continuation type to respond error client
-			// log between below steps
-			co_await _invokeWorker.Invoke(type, move(arg), /* continuation */);
-			
-			// await call worker to invoke, then outside put
-			// send result to client
-		}
-
-		~Server();
 	};
-	
-	Server::Server()
-	{
-	}
-	
-	Server::~Server()
-	{
-	}
-		
+#undef LOG_FORMAT
 }
