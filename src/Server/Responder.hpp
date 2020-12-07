@@ -13,12 +13,12 @@ namespace Server
 	public:
 		Responder(/* args */)
 		{
-			
+
 		}
 
-		void RespondTo(Socket const& connectSocket, string const& message)
+		void RespondTo(Socket& peer, string const& message)
 		{
-
+			peer.send(asio::buffer(message));
 		}
 	};
 }

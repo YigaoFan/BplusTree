@@ -4,7 +4,8 @@
 TESTCASE("Server Test")
 {
     asio::io_context io;
-    Server::New(io, 13);
+    auto s = Server::New(io, 13);
+    s.Start();
 }
 
 // 下面这个改为大写驼峰，其他的也改一下 TODO
