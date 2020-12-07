@@ -1,50 +1,64 @@
 #pragma once
+#include <functional>
+#include <asio.hpp>
 #include "../Logger/Logger.hpp"
 #include "ThreadPool.hpp"
-#include "Acceptor.hpp"
+#include "BusinessAcceptor.hpp"
 #include "Responder.hpp"
 #include "InvokeWorker.hpp"
 
 namespace Server
 {
+	using ::asio::io_context;
+	using ::asio::ip::tcp;
 	using ::std::move;
 
-#define LOG_FORMAT STRING("%h %l %u %t %r %s %b %i %i")
+	template <typename Logger>
 	class Server
 	{
 	private:
-		decltype(Log::MakeLoggerWith(LOG_FORMAT)) _logger;
+		tcp::acceptor _netAcceptor;
+		BusinessAcceptor _businessAcceptor;
 		InvokeWorker _invokeWorker;
-		Acceptor _acceptor;
-	public:
-		static Server New()
-		{
-			ThreadPool threadPool;
-			Responder responder;
-			auto acceptor = Acceptor(move(threadPool), move(responder));
-			auto invokeWorker = InvokeWorker();
-			auto logger = Log::MakeLoggerWith(LOG_FORMAT);
-			return Server(move(acceptor), move(invokeWorker), move(logger));
-		}
+		Logger _logger;
 
-		Server(Acceptor acceptor, InvokeWorker invokeWorker, decltype(_logger) logger)
-			: _acceptor(move(acceptor)), _invokeWorker(move(invokeWorker)), _logger(move(logger))
+	public:
+
+		Server(tcp::acceptor netAcceptor, BusinessAcceptor businessAcceptor, InvokeWorker invokeWorker, Logger logger)
+			: _netAcceptor(move(netAcceptor)), _businessAcceptor(move(businessAcceptor)),
+			  _invokeWorker(move(invokeWorker)), _logger(move(logger))
 		{
-			_acceptor.SetServiceFactory(
-				[&](Socket socket, Responder *responder) { return ClientService(socket, &_invokeWorker, responder); },
-				[&](Socket socket, Responder *responder) { return AdminService(socket, &_invokeWorker, responder);  });
+			_businessAcceptor.SetServiceFactory(
+				[&](Socket socket, Responder *responder) mutable { return ClientService(move(socket), &_invokeWorker, responder); },
+				[&](Socket socket, Responder *responder) mutable { return AdminService(move(socket), &_invokeWorker, responder); });
+
+			_netAcceptor.async_accept(
+				std::bind(&BusinessAcceptor::HandleAccept, &_businessAcceptor,
+						  std::placeholders::_1, std::placeholders::_2));
 		}
 
 		void Init()
 		{
-
+			// for future init
 		}
 
 		void Start()
 		{
 			_invokeWorker.StartRunBackground();
-			_acceptor.StartAcceptBackground();
+			_businessAcceptor.StartAcceptBackground();
 		}
 	};
+
+#define LOG_FORMAT STRING("%h %l %u %t %r %s %b %i %i")
+	auto New(io_context& ioContext, int port)
+	{
+		ThreadPool threadPool;
+		Responder responder;
+		auto acceptor = BusinessAcceptor(move(threadPool), move(responder));
+		auto invokeWorker = InvokeWorker();
+		auto logger = Log::MakeLoggerWith(LOG_FORMAT);
+		tcp::acceptor netAcceptor(ioContext, tcp::endpoint(tcp::v4(), port));
+		return Server(move(netAcceptor), move(acceptor), move(invokeWorker), move(logger));
+	}
 #undef LOG_FORMAT
 }

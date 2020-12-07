@@ -6,33 +6,13 @@ namespace FuncLib::Compile
 
 	// 包含包名、函数名、返回值类型、参数类型（参数类型和名字，这个信息可以放到 summary 里面去）
 	FuncType::FuncType(string returnType, string functionName, vector<string> argTypes)
-		: _returnType(move(returnType)), _funcName(move(functionName)), _argTypes(move(argTypes))
+		: FuncType(move(returnType), move(functionName), move(argTypes), {})
 	{
 	}
 
-	void FuncType::PackageHierarchy(vector<string> packageHierarchy)
+	FuncType::FuncType(string returnType, string functionName, vector<string> argTypes, vector<string> package)
+		: ReturnType(move(returnType)), FuncName(move(functionName)), ArgTypes(move(argTypes)), PackageHierarchy(move(package))
 	{
-		_packageHierarchy = move(packageHierarchy);
-	}
-
-	void FuncType::FuncName(string funcName)
-	{
-		_funcName = move(funcName);
-	}
-
-	string const& FuncType::FuncName() const
-	{
-		return _funcName;
-	}
-
-	string const& FuncType::ReturnType() const
-	{
-		return _returnType;
-	}
-
-	vector<string> const& FuncType::ArgTypes() const
-	{
-		return _argTypes;
 	}
 
 	// 可以像 TiKV 那样对 Key 对 package name 做一些优化存储 TODO
@@ -41,14 +21,14 @@ namespace FuncLib::Compile
 		string s;
 
 		// 我希望排序的时候优先比较 pack，所以把包名放在了前面
-		if (_packageHierarchy.empty())
+		if (PackageHierarchy.empty())
 		{
 			char const *DefalutPackage = "Global";
 			s.append(DefalutPackage);
 		}
 		else
 		{
-			for (auto &p : _packageHierarchy)
+			for (auto& p : PackageHierarchy)
 			{
 				s.append(p + '.');
 			}
@@ -57,10 +37,10 @@ namespace FuncLib::Compile
 		}
 		s.append(" ");
 
-		s.append(_returnType + ' ');
-		s.append(_funcName + ' ');
+		s.append(ReturnType + ' ');
+		s.append(FuncName + ' ');
 
-		for (auto &a : _argTypes)
+		for (auto &a : ArgTypes)
 		{
 			s.append(a + ',');
 		}

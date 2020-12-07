@@ -10,18 +10,13 @@ namespace FuncLib::Compile
 	// 包含包名、函数名、返回值类型、参数类型（参数类型和名字，这个信息可以放到 summary 里面去）
 	class FuncType
 	{
-	private:
-		vector<string> _packageHierarchy;
-		string _returnType;
-		string _funcName;
-		vector<string> _argTypes;
 	public:
+		string ReturnType;
+		string FuncName;
+		vector<string> ArgTypes;
+		vector<string> PackageHierarchy;
 		FuncType(string returnType, string functionName, vector<string> argTypes);
-		void PackageHierarchy(vector<string> packageHierarchy);
-		void FuncName(string funcName);
-		string const& ReturnType() const;
-		vector<string> const& ArgTypes() const;
-		string const& FuncName() const;
+		FuncType(string returnType, string functionName, vector<string> argTypes, vector<string> package);
 		// 可以像 TiKV 那样对 Key 对 package name 做一些优化存储
 		string ToKey() const;
 		string ToString() const;

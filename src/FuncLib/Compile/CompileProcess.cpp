@@ -156,9 +156,9 @@ namespace FuncLib::Compile
 
 	vector<string> GenerateWrapperFunc(FuncType const& funcType, vector<string> const& paraNames)
 	{
-		auto& returnType = funcType.ReturnType();
-		auto& name = funcType.FuncName();
-		auto& paraTypes = funcType.ArgTypes();
+		auto& returnType = funcType.ReturnType;
+		auto& name = funcType.FuncName;
+		auto& paraTypes = funcType.ArgTypes;
 		vector<string> wrapperFuncDef
 		{
 			"JsonObject " + name + "_wrapper(JsonObject jsonObj) {",

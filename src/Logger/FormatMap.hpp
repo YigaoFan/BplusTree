@@ -1,20 +1,15 @@
+#pragma once
 #include <chrono>
 #include <string>
 
 namespace Log
 {
 	using ::std::string;
-	
+
 	template <char Char>
 	struct FormatMap;
 
-	// template <>
-	// struct FormatMap<'s'>
-	// {
-	// 	// Sample
-	// 	using To = string;
-	// };
-
+	// 那些要加双引号或者其他东西的规定应该放在这里的类里面
 	template <>
 	struct FormatMap<'h'>
 	{

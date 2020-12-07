@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include <string_view>
 #include "FormatMap.hpp"
@@ -5,7 +6,6 @@
 
 namespace Log
 {
-	using Basic::TypeList;
 	using ::std::string;
 
 	// below code from: https://ctrpeach.io/posts/cpp20-string-literal-template-parameters/
@@ -18,17 +18,30 @@ namespace Log
 		// 每天存档前一日的 log 文件
 		// "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\""
 	public:
-		Logger(/* args */);
-		// Where to set format
+		Logger(/* args */)
+		{
+
+		}
+
+		void Info(string);
 		void Info(InfoTypes...);
 		void Warn(InfoTypes...);
 		void Error(InfoTypes...);
 	};
 
+	template <typename TypeList, size_t... Idxs>
+	auto DoMakeLogger(TypeList, index_sequence<Idxs...>)
+	{
+		return Logger<typename Get<TypeList, Idxs>::Result...>();
+	}
+
 	template <char... FormatChars>
 	auto MakeLoggerWith(integer_sequence<char, FormatChars...> format)
 	{
-		ParseFormat(format);
-		return Logger<FormatMap<FormatChars>::To...>();
+		auto typeList = ParseFormat(format);
+		using TypeList = decltype(typeList);
+		constexpr int size = Length<TypeList>::Result;
+		auto idxs = make_index_sequence<size>();
+		return DoMakeLogger(typeList, idxs);
 	}
 }

@@ -27,13 +27,37 @@ namespace Log
 		using Cdr = T2;
 	};
 
+	template <typename List>
+	struct Length
+	{
+		static constexpr int Result = 1 + Length<typename List::Cdr>::Result;
+	};
+
+	template <>
+	struct Length<Null>
+	{
+		static constexpr int Result = 0;
+	};
+
+	template <typename List, int Index>
+	struct Get
+	{
+		using Result = typename Get<typename List::Cdr, Index - 1>::Result;
+	};
+
+	template <typename List>
+	struct Get<List, 0>
+	{
+		using Result = typename List::Car;
+	};
+
 	template <typename List, typename Item>
 	struct Append
 	{
 		template <typename Remain>
 		struct Recur
 		{
-			using Result = Cons<Remain::Car, Recur<Remain::Cdr>::Result>;
+			using Result = Cons<typename Remain::Car, typename Recur<typename Remain::Cdr>::Result>;
 		};
 
 		template <>
@@ -42,7 +66,7 @@ namespace Log
 			using Result = Cons<Item, Null>;
 		};
 
-		using Result = Recur<List>::Result;
+		using Result = typename Recur<List>::Result;
 	};
 	
 	using ::std::index_sequence;
@@ -76,14 +100,22 @@ namespace Log
 	{
 		if constexpr (FirstChar == '%')
 		{
-			return Cons<FormatMap<SecondChar>::To, decltype(ParseFormat<RemainChars...>())>();
+			using Current = typename FormatMap<SecondChar>::To;
+			// how to use parser combinator here
+			if constexpr (sizeof...(RemainChars) == 0)
+			{
+				return Cons<Current, Null>();
+			}
+			else
+			{
+				return Cons<Current, decltype(ParseFormat(integer_sequence<char, RemainChars...>()))>();
+			}
 		}
 		else if constexpr (FirstChar == ' ')
 		{
-			return ParseFormat<SecondChar, RemainChars...>();
+			return ParseFormat(integer_sequence<char, SecondChar, RemainChars...>());
 		}
-		// other char wait to parse
 
-		return Null();
+		// return Null(); // error
 	}
 }

@@ -81,7 +81,7 @@ namespace FuncLib
 	{
 		ModifyType(move(type), [n = move(newFuncName)](FuncType oldType)
 		{
-			oldType.FuncName(move(n));
+			oldType.FuncName = move(n);
 			return oldType;
 		});
 	}
@@ -90,7 +90,7 @@ namespace FuncLib
 	{
 		ModifyType(move(type), [h = move(packageHierarchy)](FuncType oldType)
 		{
-			oldType.PackageHierarchy(move(h));
+			oldType.PackageHierarchy = move(h);
 			return oldType;
 		});
 	}

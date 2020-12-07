@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 project(RPC)
 
 set(CMAKE_CXX_STANDARD 20)
+include_directories(include)
 
 add_executable(RPC
         Main.cpp
@@ -24,6 +25,7 @@ add_executable(RPC
         Json/JsonConverter/StructObject.cpp
         Json/JsonConverter/StructParser.cpp
         Json/JsonConverter/WordEnumerator.cpp
+        Json/JsonConverter/JsonConverter.cpp
         Json/JsonConverter/Test/StructParserTest.cpp
         Json/JsonConverter/Test/WordEnumeratorTest.cpp
 
@@ -56,4 +58,6 @@ add_executable(RPC
         FuncLib/Test/FileCacheTest.cpp
         FuncLib/Test/TypeConverterTest.cpp
         FuncLib/Test/CompileTest.cpp
+
+        Server/Test/ServerTest.cpp
         )

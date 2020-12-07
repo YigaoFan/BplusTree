@@ -30,11 +30,13 @@ namespace Json
 	// how to read data from Json
 	class JsonObject 
 	{
-		friend class Parser;
-	private:
-		JsonType _type;
-		using _Array = vector<shared_ptr<JsonObject>>; // maybe need to be public?
+	public:
+		// change below 2 types TODO
+		using _Array = vector<shared_ptr<JsonObject>>;
 		using _Object = map<string, shared_ptr<JsonObject>>;
+	private:
+		friend class Parser;
+		JsonType _type;
 		variant<string, _Array, double, _Object> _content;
 	public:
 		// How to dynamic cons JsonObject with any type? has this demand?

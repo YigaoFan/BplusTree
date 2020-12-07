@@ -35,7 +35,7 @@ namespace FuncLib
 
 		for (auto& f : funcs)
 		{
-			f.Type.PackageHierarchy(packageHierarchy);
+			f.Type.PackageHierarchy = packageHierarchy;
 			if (_index.Contains(f.Type))
 			{
 				throw InvalidOperationException("Function already exist: " + f.Type.ToString());
@@ -94,7 +94,7 @@ namespace FuncLib
 		// 改名字再调用会出现问题
 		auto l = GetStoreLabel(type);
 		auto bytes = _binLib.Read(l);
-		auto wrapperFuncName = type.FuncName() + "_wrapper";
+		auto wrapperFuncName = type.FuncName + "_wrapper";
 		return Compile::Invoke(bytes, wrapperFuncName.c_str(), move(args));
 	}
 
