@@ -8,7 +8,7 @@ extern void fileCacheTest(bool executed);
 extern void typeConverterTest(bool executed);
 extern void compileTest(bool executed);
 
-namespace FuncLibTest
+namespace FuncLib::Test
 {
 	void AllTest(bool executed)
 	{

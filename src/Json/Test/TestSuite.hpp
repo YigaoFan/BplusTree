@@ -2,7 +2,7 @@
 #include "../JsonConverter/Test/TestSuite.hpp"
 extern void parserTest(bool executed);
 
-namespace JsonTest
+namespace Json::Test
 {
 	void AllTest(bool executed)
 	{

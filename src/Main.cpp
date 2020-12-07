@@ -6,6 +6,7 @@
 #define COLLECTIONS_TEST_SWITCH true
 #define JSON_TEST_SWITCH true
 #define FUNC_LIB_TEST_SWITCH true
+#define SERVER_TEST_SWITCH false
 
 #if COLLECTIONS_TEST_SWITCH
 #include "Btree/Test/TestSuite.hpp"
@@ -28,8 +29,18 @@
 #define FUNC_LIB_TEST(FUNC)
 #endif
 
+#if SERVER_TEST_SWITCH
+#include "Server/Test/TestSuite.hpp"
+#define SERVER_TEST(FUNC) FUNC
+#else
+#define SERVER_TEST(FUNC)
+#endif
+
 int main()
 {
+	// resumable res = foo();
+	// while (res.resume());// 这里应该就是调度器的作用
+	// return 0;
 #if MEMO_CHECK
 	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDOUT);
@@ -38,9 +49,10 @@ int main()
 	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDOUT);
 #endif
-	COLLECTIONS_TEST(CollectionsTest::AllTest(true));
-	JSON_TEST(JsonTest::AllTest(true));
-	FUNC_LIB_TEST(FuncLibTest::AllTest(true));
+	COLLECTIONS_TEST(Collections::Test::AllTest(true));
+	JSON_TEST(Json::Test::AllTest(true));
+	FUNC_LIB_TEST(FuncLib::Test::AllTest(false));
+	SERVER_TEST(Server::Test::AllTest(true));
 
 #if MEMO_CHECK
 	 _CrtDumpMemoryLeaks();
