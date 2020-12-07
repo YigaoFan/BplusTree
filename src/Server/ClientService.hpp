@@ -53,7 +53,6 @@ namespace Json::JsonConverter
 	template <>
 	JsonObject Serialize(InvokeInfo const& invokeInfo)
 	{
-#define nameof(VAR) #VAR
 		auto [func, arg] = invokeInfo;
 		JsonObject::_Object obj;
 		obj.insert({ nameof(func), make_shared<JsonObject>(Serialize(func)) });
