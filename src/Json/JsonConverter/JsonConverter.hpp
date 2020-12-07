@@ -11,21 +11,18 @@
 
 namespace Json::JsonConverter
 {
+	using ::std::array;
+	using ::std::decay_t;
 	using ::std::declval;
 	using ::std::false_type;
 	using ::std::forward;
+	using ::std::make_shared;
 	using ::std::make_tuple;
+	using ::std::map;
+	using ::std::shared_ptr;
 	using ::std::string;
 	using ::std::true_type;
 	using ::std::vector;
-	using ::std::array;
-	using ::std::map;
-	using ::std::to_string;
-	using ::std::decay_t;
-	using ::std::vector;
-	using ::std::shared_ptr;
-	using ::std::make_shared;
-	using ::std::make_pair;
 
 	// Below code to ToTuple inspire from Chris Ohk
 	// https://gist.github.com/utilForever/1a058050b8af3ef46b58bcfa01d5375d
@@ -215,28 +212,16 @@ namespace Json::JsonConverter
 	// why can not write like this?
 
 	template <>
-	JsonObject Serialize<string>(string const& t)
-	{
-		return JsonObject(t);
-	}
+	JsonObject Serialize<string>(string const& t);
 
 	template <>
-	JsonObject Serialize(int const& t)
-	{
-		return JsonObject(static_cast<double>(t));
-	}
+	JsonObject Serialize(int const& t);
 
 	template <>
-	JsonObject Serialize(double const& t)
-	{
-		return JsonObject(t);
-	}
+	JsonObject Serialize(double const& t);
 
 	template <>
-	JsonObject Serialize(bool const& t)
-	{
-		return JsonObject(t);
-	}
+	JsonObject Serialize(bool const& t);
 
 	template <typename T>
 	JsonObject Serialize(vector<T> const& t)
@@ -283,28 +268,16 @@ namespace Json::JsonConverter
 	T Deserialize(JsonObject const&);
 
 	template <>
-	string Deserialize(JsonObject const& json)
-	{
-		return json.GetString();
-	}
+	string Deserialize(JsonObject const& json);
 
 	template <>
-	int Deserialize(JsonObject const& json)
-	{
-		return static_cast<int>(json.GetNumber());
-	}
+	int Deserialize(JsonObject const& json);
 
 	template <>
-	double Deserialize(JsonObject const& json)
-	{
-		return json.GetNumber();
-	}
+	double Deserialize(JsonObject const& json);
 
 	template <>
-	bool Deserialize(JsonObject const& json)
-	{
-		return json.GetBool();
-	}
+	bool Deserialize(JsonObject const& json);
 
 	template <typename T>
 	vector<T> DeserializeImp(JsonObject const& json, vector<T>*)
