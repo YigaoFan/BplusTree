@@ -115,6 +115,8 @@ namespace Collections
 		friend struct FuncLib::Persistence::TypeConverter<Btree>;
 		friend struct FuncLib::Persistence::TypeConverter<Btree<BtreeOrder, Key, Value, StorePlace::Memory>>;
 		using Node = NodeBase<Key, Value, BtreeOrder, Place>;
+		using StoredKey = typename Node::StoredKey;
+		using StoredValue = typename Node::StoredValue;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder, Place>;
 		typename Node::UpNodeAddSubNodeCallback _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
 		typename Node::UpNodeDeleteSubNodeCallback _deleteRootCallback = bind(&Btree::DeleteRootCallback, this, _1);
@@ -125,11 +127,11 @@ namespace Collections
 		Ptr<Node>            _root;
 
 	public:
-		Btree(_LessThan lessThan) : Btree(move(lessThan), array<pair<Key, Value>, 0>())
+		Btree(_LessThan lessThan) : Btree(move(lessThan), array<pair<StoredKey, StoredValue>, 0>())
 		{ }
 
 		template <size_t NumOfEle>
-		Btree(_LessThan lessThan, array<pair<Key, Value>, NumOfEle> keyValueArray)
+		Btree(_LessThan lessThan, array<pair<StoredKey, StoredValue>, NumOfEle> keyValueArray)
 			: _lessThanPtr(make_shared<_LessThan>(lessThan)),
 			  _root(ConstructRoot(move(keyValueArray), lessThan)),
 			  _keyCount(NumOfEle)
@@ -138,7 +140,7 @@ namespace Collections
 		}
 
 		// TODO wait to test
-		Btree(_LessThan lessThan, IEnumerator<pair<Key, Value>> auto enumerator)
+		Btree(_LessThan lessThan, IEnumerator<pair<StoredKey, StoredValue>> auto enumerator)
 			: Btree(move(lessThan))
 		{
 			while (enumerator.MoveNext())
@@ -222,7 +224,7 @@ namespace Collections
 			_root->ModifyValue(key, move(newValue));
 		}
 
-		void ModifyKey(ARG_TYPE_IN_NODE(ModifyValue, 0) oldOey, typename Node::StoredKey newKey)
+		void ModifyKey(ARG_TYPE_IN_NODE(ModifyValue, 0) oldOey, StoredKey newKey)
 		{
 			EMPTY_CHECK;
 			auto v = move(_root->GetValue(oldOey));
@@ -255,7 +257,7 @@ namespace Collections
 			SET_PROPERTY(_root, ->LessThanPredicate(_lessThanPtr));
 		}
 
-		RecursiveGenerator<pair<typename Node::StoredKey, typename Node::StoredValue>*> GetStoredPairEnumerator()
+		RecursiveGenerator<pair<StoredKey, StoredValue>*> GetStoredPairEnumerator()
 		{
 			return _root->GetStoredPairEnumerator();
 		}
@@ -312,7 +314,7 @@ namespace Collections
 		}
 
 		template <size_t NumOfEle>
-		decltype(_root) ConstructRoot(array<pair<Key, Value>, NumOfEle> keyValueArray, _LessThan const& lessThan)
+		decltype(_root) ConstructRoot(array<pair<StoredKey, StoredValue>, NumOfEle> keyValueArray, _LessThan const& lessThan)
 		{
 			// Check duplicate
 			auto less = [&](auto const& p1, auto const& p2)
@@ -389,6 +391,7 @@ namespace Collections
 		{
 			if constexpr (Place == StorePlace::Disk)
 			{
+				// 这里拿到的 file 对不对？会不会是未构造的状态？
 				auto f = this->GetLessOwnershipFile();
 				return NodeFactoryType::MakeNodeOnDisk(f, forward<Args>(args)...);
 			}

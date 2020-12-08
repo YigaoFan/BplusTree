@@ -59,17 +59,7 @@ namespace Collections
 			}
 			else
 			{
-				// 要转换 string 到 UniqueDiskRef
-				// 这里要这种转换吗，为何不像 Btree::Add 让用户直接传相应的类型？
-				function converter = [f=file](T from)
-				{
-					// 这里有点把 TypeSelector 的逻辑以这种形式部分重写一遍的意思
-					// 转成 NodeBase::StoredKey 和 NodeBase::StoredValue
-					return TypeConverter<T, OwnerState::FullOwner>::ConvertFrom(from, f);
-				};
-
-				auto converted = EnumeratorPipeline<T, typename decltype(converter)::result_type, decltype(enumerator)>(enumerator, converter);
-				auto node = Leaf(converted, lessThan);
+				auto node = Leaf(enumerator, lessThan);
 				return UniqueDiskPtr<Leaf>::MakeUnique(move(node), file);
 			}
 		}
