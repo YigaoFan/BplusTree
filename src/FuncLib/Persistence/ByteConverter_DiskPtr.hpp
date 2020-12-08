@@ -77,7 +77,8 @@ namespace FuncLib::Persistence
 		{
 			auto member0 = ByteConverter<DataMemberType0>::ReadOut(reader);
 			auto member1 = ByteConverter<DataMemberType1>::ReadOut(reader);
-			return { member0, move(member1) };
+			auto f = reader->GetLessOwnershipFile();
+			return { member0, move(member1), f };
 		}
 	};
 

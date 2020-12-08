@@ -30,7 +30,7 @@ namespace FuncLib
 
 		if (firstSetup)
 		{
-			auto [l, tree] = file->New(DiskBtree(move(pred)));
+			auto [l, tree] = file->New(DiskBtree(move(pred), file.get()));
 			assert(l == DiskTreeLable); // l should be 1
 		}
 		else

@@ -19,12 +19,14 @@
 #include "CollectionException.hpp"
 #include "../FuncLib/Persistence/FriendFuncLibDeclare.hpp"
 #include "../FuncLib/Persistence/PtrSetter.hpp"
+#include "../FuncLib/Store/TakeWithFile.hpp"
 
 namespace Collections
 {
-	using ::Basic::FuncTraits;
-	using ::Basic::InvalidOperationException;
-	using ::Basic::KeyNotFoundException;
+	using Basic::FuncTraits;
+	using Basic::InvalidOperationException;
+	using Basic::KeyNotFoundException;
+	using FuncLib::Store::TakeWithFile;
 	using ::std::adjacent_find;
 	using ::std::array;
 	using ::std::function;
@@ -102,7 +104,7 @@ namespace Collections
 
 	// 这三个类型参数的顺序要不要调整下啊
 	template <order_int BtreeOrder, typename Key, typename Value, StorePlace Place = StorePlace::Memory>
-	class Btree : public TakeWithDiskPos<Btree<BtreeOrder, Key, Value, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>
+	class Btree : public TakeWithFile<IsDisk<Place> ? Switch::Enable : Switch::Disable>
 	{
 	public:
 		using _LessThan = LessThan<Key>;
@@ -114,6 +116,7 @@ namespace Collections
 		friend struct FuncLib::Persistence::ByteConverter<Btree, false>; // Btree here is undefined or incomplete type
 		friend struct FuncLib::Persistence::TypeConverter<Btree>;
 		friend struct FuncLib::Persistence::TypeConverter<Btree<BtreeOrder, Key, Value, StorePlace::Memory>>;
+		using Base = TakeWithFile<IsDisk<Place> ? Switch::Enable : Switch::Disable>;
 		using Node = NodeBase<Key, Value, BtreeOrder, Place>;
 		using StoredKey = typename Node::StoredKey;
 		using StoredValue = typename Node::StoredValue;
@@ -129,6 +132,16 @@ namespace Collections
 	public:
 		Btree(_LessThan lessThan) : Btree(move(lessThan), array<pair<StoredKey, StoredValue>, 0>())
 		{ }
+
+		/// 只有这一种构造才能保证，Node 被构造出来携带正确的 DiskPos
+		Btree(_LessThan lessThan, File* file)
+			: Base(file),
+			  _lessThanPtr(make_shared<_LessThan>(lessThan)),
+			  _root(ConstructRoot(array<pair<StoredKey, StoredValue>, 0>(), lessThan)),
+			  _keyCount(0)
+		{
+			static_assert(Place == StorePlace::Disk, "Only Btree on disk can call this method");
+		}
 
 		template <size_t NumOfEle>
 		Btree(_LessThan lessThan, array<pair<StoredKey, StoredValue>, NumOfEle> keyValueArray)
@@ -156,7 +169,7 @@ namespace Collections
 		}
 
 		Btree(Btree&& that) noexcept
-			: _keyCount(that._keyCount), _root(move(that._root)), _lessThanPtr(move(that._lessThanPtr))
+			: Base(move(that)), _keyCount(that._keyCount), _root(move(that._root)), _lessThanPtr(move(that._lessThanPtr))
 		{
 			this->SetRootCallbacks();
 			that._keyCount = 0;
@@ -263,8 +276,9 @@ namespace Collections
 		}
 
 	private:
-		Btree(key_int keyCount, Ptr<Node> root) : _root(move(root)), _keyCount(keyCount)
+		Btree(key_int keyCount, Ptr<Node> root, File* file) : Base(file), _root(move(root)), _keyCount(keyCount)
 		{
+			static_assert(Place == StorePlace::Disk, "Only Btree on disk can call this method");
 			this->SetRootCallbacks();
 		}
 
@@ -289,11 +303,11 @@ namespace Collections
 		{
 			constexpr auto nodesCount = is.size() == 0 ? 1 : is.size();
 			array<Ptr<Node>, nodesCount> consNodes;
-			auto constor = [&srcArray, &consNodes, &lessThan, self=this](auto index, auto itemsCount, auto preItemsCount)
+			auto constor = [&srcArray, &consNodes, &lessThan, this](auto index, auto itemsCount, auto preItemsCount)
 			{
 				auto begin = srcArray.begin() + preItemsCount;
 				auto end = begin + itemsCount;
-				consNodes[index] = self->MakeNewNode(CreateMoveEnumerator(begin, end), lessThan);
+				consNodes[index] = this->MakeNewNode(CreateMoveEnumerator(begin, end), lessThan);
 			};
 			if constexpr (is.size() == 0)
 			{
@@ -391,7 +405,6 @@ namespace Collections
 		{
 			if constexpr (Place == StorePlace::Disk)
 			{
-				// 这里拿到的 file 对不对？会不会是未构造的状态？
 				auto f = this->GetLessOwnershipFile();
 				return NodeFactoryType::MakeNodeOnDisk(f, forward<Args>(args)...);
 			}

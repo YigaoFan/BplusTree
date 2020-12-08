@@ -186,7 +186,8 @@ namespace FuncLib::Persistence
 			return
 			{ 
 				from._keyCount, 
-				TypeConverter<unique_ptr<NodeBase<Key, Value, Count, StorePlace::Memory>>>::ConvertFrom(from._root, file) 
+				TypeConverter<unique_ptr<NodeBase<Key, Value, Count, StorePlace::Memory>>>::ConvertFrom(from._root, file),
+				file
 			};
 		}
 	};
