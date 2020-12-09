@@ -1,6 +1,7 @@
 
 #include <array>
 #include <string>
+#include <vector>
 #include <string_view>
 #include <cstdlib>
 #include <fstream>
@@ -73,6 +74,27 @@ namespace FuncLib::Compile
 		return src.substr(0, 5);
 	}
 	
+	struct FileCleaner
+	{
+		vector<string> _filenames;
+
+		FileCleaner(vector<string> filenames = {}) : _filenames(move(filenames))
+		{ }
+
+		void Add(string filename)
+		{
+			_filenames.push_back(move(filename));
+		}
+
+		~FileCleaner()
+		{
+			for (auto& f : _filenames)
+			{
+				remove(f);
+			}
+		}
+	};
+	
 	template <typename Generator>
 	void AddCodeFrom(ofstream* file, Generator* generator)
 	{
@@ -86,8 +108,10 @@ namespace FuncLib::Compile
 	// read compiled file into memory
 	vector<char> CompileOnUnix(FuncDefTokenReader* defReader, AppendCode* appendCode)
 	{
+		FileCleaner cleaner;
 		string filename = "temp_compile_" + RandomString();// 加入随机性
 		ofstream f(filename + ".cpp");
+		cleaner.Add(filename + ".cpp");
 
 		auto g1 = defReader->GetLineCodeGenerator();
 		AddCodeFrom(&f, &g1);
@@ -98,6 +122,7 @@ namespace FuncLib::Compile
 		system(compileCmd.c_str());
 
 		ifstream binReader(filename + ".so", ifstream::binary);
+		cleaner.Add(filename + ".so");
 		binReader.unsetf(ifstream::skipws); // Stop eating new lines in binary mode
 		binReader.seekg(0, ifstream::end);
 		auto size = binReader.tellg();
@@ -110,9 +135,6 @@ namespace FuncLib::Compile
 					 std::istream_iterator<char>(binReader),
 					 std::istream_iterator<char>());
 
-		remove(filename + ".cpp");
-		remove(filename + ".so");
-
 		return bytes;
 	}
 
@@ -124,8 +146,11 @@ namespace FuncLib::Compile
 	/// Has ResetReadPos effect
 	void CheckGrammar(FuncDefTokenReader* defReader)
 	{
+		FileCleaner cleaner;
+
 		string filename = "temp_pre_compile_" + RandomString();
 		ofstream f(filename + ".cpp");
+		cleaner.Add(filename + ".cpp");
 
 		defReader->ResetReadPos();
 		auto g = defReader->GetLineCodeGenerator();
@@ -136,8 +161,7 @@ namespace FuncLib::Compile
 			throw InvalidOperationException("function definitions have compile error");
 		}
 
-		remove(filename + ".cpp");
-		remove(filename + ".so");
+		cleaner.Add(filename + ".so");
 		defReader->ResetReadPos();
 	}
 
