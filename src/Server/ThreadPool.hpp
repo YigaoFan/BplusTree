@@ -35,8 +35,7 @@ namespace Server
 	public:
 		ThreadPool(size_t threadCount) : _data(make_shared<Data>())
 		{
-			auto n = thread::hardware_concurrency();
-			for (size_t i = 0; i < n; ++i)
+			for (size_t i = 0; i < threadCount; ++i)
 			{
 				thread([data = _data]
 				{
