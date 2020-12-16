@@ -1,12 +1,13 @@
 #pragma once
-#include <functional>
 #include <array>
+#include <memory>
+#include <functional>
 #include <asio.hpp>
 #include "../Json/Parser.hpp"
 #include "../Json/JsonConverter/JsonConverter.hpp"
 #include "BasicType.hpp"
 #include "ThreadPool.hpp"
-#include "InvokeWorker.hpp"
+#include "FuncLibWorker.hpp"
 #include "Responder.hpp"
 #include "ClientService.hpp"
 #include "AdminService.hpp"
@@ -49,27 +50,33 @@ namespace Json::JsonConverter
 
 namespace Server
 {
-	using ::std::function;
 	using ::std::array;
+	using ::std::function;
+	using ::std::shared_ptr;
 	using namespace Json;
 
 	class BusinessAcceptor
 	{
 	private:
 		bool _startAccept = false;
-		ThreadPool _threadPool;
+		ThreadPool* _threadPool = nullptr;
 		Responder _responder;
-		function<ClientService(Socket, Responder*)> _clientServiceFactory;
-		function<AdminService(Socket, Responder*)> _adminServiceFactory;
+		function<ClientService(shared_ptr<Socket>, Responder*)> _clientServiceFactory;
+		function<AdminService(shared_ptr<Socket>, Responder*)> _adminServiceFactory;
 
 	public:
-		BusinessAcceptor(ThreadPool threadPool, Responder responder)
-			: _threadPool(threadPool), _responder(responder)
+		BusinessAcceptor(Responder responder)
+			: _responder(move(responder))
 		{
 		}
 
-		void SetServiceFactory(function<ClientService(Socket, Responder*)> clientServiceFactory,
-							function<AdminService(Socket, Responder*)> adminServiceFactory)
+		void SetThreadPool(ThreadPool* threadPool)
+		{
+			_threadPool = threadPool;
+		}
+
+		template <typename ClientServiceFactory, typename AdminServiceFactory>
+		void SetServiceFactory(ClientServiceFactory clientServiceFactory, AdminServiceFactory adminServiceFactory)
 		{
 			_clientServiceFactory = move(clientServiceFactory);
 			_adminServiceFactory = move(adminServiceFactory);
@@ -88,19 +95,22 @@ namespace Server
 				return;
 			}
 
-			// handle error code TODO
-
-			_threadPool.Execute([p=move(peer), this] () mutable
+			if (error)
+			{
+				
+			}
+			
+			_threadPool->Execute([p=make_shared<Socket>(move(peer)), this] () mutable
 			{
 				CommunicateWith(move(p));
 			});
 		}
 
 		// peer 是连接中对端的意思
-		void CommunicateWith(Socket peer)
+		void CommunicateWith(shared_ptr<Socket> peer)
 		{
 			array<char, 128> buff;
-			auto size = peer.receive(asio::buffer(buff));
+			auto size = peer->receive(asio::buffer(buff));
 
 			auto send = [&](string const& message)
 			{
@@ -121,7 +131,7 @@ namespace Server
 
 				auto isAdmin = false;
 				// client send username and password 鉴权
-				size = peer.receive(asio::buffer(buff));
+				size = peer->receive(asio::buffer(buff));
 				auto loginInfoJObj = Json::Parse({ buff.data(), size });
 				auto loginInfo = JsonConverter::Deserialize<LoginInfo>(loginInfoJObj);
 				
@@ -146,7 +156,7 @@ namespace Server
 			catch (...)
 			{
 				// get info from exception
-				send("");
+				send("Exception happend");
 			}
 		}
 	};

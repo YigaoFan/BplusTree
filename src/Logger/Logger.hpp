@@ -15,7 +15,7 @@ namespace Log
 	{
 	private:
 		// compile time format
-		// 每天存档前一日的 log 文件
+		// 每天存档前一日的 log 文件，触发 log 操作的时候检查下，或者能设置定时回调吗？设个定时任务
 		// "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\""
 	public:
 		Logger(/* args */)

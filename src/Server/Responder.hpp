@@ -1,9 +1,11 @@
 #pragma once
 #include <string>
+#include <memory>
 #include "BasicType.hpp"
 
 namespace Server
 {
+	using ::std::shared_ptr;
 	using ::std::string;
 
 	class Responder
@@ -16,9 +18,9 @@ namespace Server
 
 		}
 
-		void RespondTo(Socket& peer, string const& message)
+		void RespondTo(shared_ptr<Socket> peer, string const& message)
 		{
-			peer.send(asio::buffer(message));
+			peer->send(asio::buffer(message));
 		}
 	};
 }

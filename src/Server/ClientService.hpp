@@ -1,14 +1,15 @@
 #pragma once
 #include <utility>
 #include <array>
+#include <memory>
 #include <string_view>
-#include <experimental/coroutine>
 #include "../Json/Parser.hpp"
 #include "../Json/JsonConverter/JsonConverter.hpp"
 #include "../FuncLib/Compile/FuncType.hpp"
-#include "Responder.hpp"
-#include "InvokeWorker.hpp"
 #include "BasicType.hpp"
+#include "Responder.hpp"
+#include "FuncLibWorker.hpp"
+#include "promise_Void.hpp"
 
 namespace Server
 {
@@ -78,8 +79,8 @@ namespace Server
 	using FuncLib::Compile::FuncType;
 	using ::std::array;
 	using ::std::move;
+	using ::std::shared_ptr;
 	using ::std::string_view;
-	using ::std::experimental::suspend_never;
 
 	// template <typename T>
 	// T Deserialize(string_view s)
@@ -93,12 +94,12 @@ namespace Server
 	class ClientService
 	{
 	private:
-		Socket _peer;
-		InvokeWorker* _invokeWorker;
+		shared_ptr<Socket> _peer;
+		FuncLibWorker* _funcLibWorker;
 		Responder* _responder;
 	public:
-		ClientService(Socket peer, InvokeWorker* invokeWorker, Responder* responder)
-			: _peer(move(peer)), _invokeWorker(invokeWorker), _responder(responder)
+		ClientService(shared_ptr<Socket> peer, FuncLibWorker* funcLibWorker, Responder* responder)
+			: _peer(move(peer)), _funcLibWorker(funcLibWorker), _responder(responder)
 		{ }
 
 		void Run()
@@ -108,7 +109,20 @@ namespace Server
 			while (true)
 			{
 				// if step above has error, respond error to client
-				auto n = _peer.receive(asio::buffer(buff));
+				asio::error_code error;
+				auto n = _peer->read_some(asio::buffer(buff), error);
+				if (error)
+				{
+					if (error == asio::error::eof)
+					{
+						break;
+					}
+					else
+					{
+						// TODO handle other error
+					}
+				}
+
 				auto input = string_view(buff.data(), n);
 				auto infoJsonObj = Json::Parse(input);
 				auto invokeInfo = Json::JsonConverter::Deserialize<InvokeInfo>(infoJsonObj);
@@ -121,37 +135,8 @@ namespace Server
 			// 上面这些的错误如何处理，是抛出来统一做异常处理，不选择：不允许抛异常，都自己在里面处理
 
 			// 最终结束，Socket 中的连接要怎么断开？让上层处理，每一次来一个函数请求，调用一个这个函数
+			_peer->close(); // handle exception? like finally
 		}
-
-		struct Void
-		{
-			struct promise_type
-			{
-				suspend_never initial_suspend()
-				{
-					return {};
-				}
-
-				// 不 final_suspend 了，还需要显式 destroy handle 吗？
-				suspend_never final_suspend()
-				{
-					return {};
-				}
-
-				void unhandled_exception()
-				{
-					// std::terminate(); 这里可能要处理下
-					// 要把异常给出去
-				}
-
-				Void get_return_object()
-				{
-					return {};
-				}
-
-				void return_void() { }
-			};
-		};
 
 		Void InvokeFuncOf(InvokeInfo invokeInfo)
 		{
@@ -159,9 +144,8 @@ namespace Server
 			
 			// log between below steps
 			// 下面代码需要异常处理
-			auto result = co_await _invokeWorker->Invoke(invokeInfo.Func, invokeInfo.Arg);
+			auto result = co_await _funcLibWorker->Invoke(invokeInfo.Func, invokeInfo.Arg);
 			auto respond = result.ToString(); // TODO add other content
-			// send result to client
 			_responder->RespondTo(_peer, respond);
 		}
 	};	
