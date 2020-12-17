@@ -52,7 +52,7 @@ int main()
 	COLLECTIONS_TEST(Collections::Test::AllTest(true));
 	JSON_TEST(Json::Test::AllTest(true));
 	FUNC_LIB_TEST(FuncLib::Test::AllTest(false));
-	SERVER_TEST(Server::Test::AllTest(true));
+	SERVER_TEST(Server::Test::AllTest(false));
 
 #if MEMO_CHECK
 	 _CrtDumpMemoryLeaks();
