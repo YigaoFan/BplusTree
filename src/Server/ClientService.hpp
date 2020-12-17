@@ -104,7 +104,7 @@ namespace Server
 
 		void Run()
 		{
-			Loop<InvokeInfo>([this](auto invokeInfo)
+			LoopAcquire<InvokeInfo>([this](auto invokeInfo)
 			{
 				InvokeFuncOf(move(invokeInfo));
 			});
@@ -196,7 +196,7 @@ namespace Server
 }()
 
 		template <typename Receive, typename Handler>
-		void Loop(Handler handler)
+		void LoopAcquire(Handler handler)
 		{
 			// log and send and throw
 
