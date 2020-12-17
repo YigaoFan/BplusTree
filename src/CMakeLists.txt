@@ -46,6 +46,7 @@ add_executable(RPC
         FuncLib/Compile/ParseFunc.cpp
         FuncLib/Compile/FuncType.cpp
         FuncLib/Compile/Invoke.cpp
+        FuncLib/Compile/Util.cpp
         FuncLib/Compile/FuncDefTokenReader.cpp
         FuncLib/Compile/CompileProcess.cpp
         FuncLib/Test/Util.cpp

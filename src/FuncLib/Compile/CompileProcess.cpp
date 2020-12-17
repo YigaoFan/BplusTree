@@ -5,13 +5,12 @@
 #include <string_view>
 #include <cstdlib>
 #include <fstream>
-#include <random>
-#include <algorithm>
 #include <filesystem>
 #include "CompileProcess.hpp"
 #include "../../Basic/Exception.hpp"
 #include "../../Btree/Generator.hpp"
 #include "ParseFunc.hpp"
+#include "Util.hpp"
 
 namespace FuncLib::Compile
 {
@@ -62,17 +61,6 @@ namespace FuncLib::Compile
 			co_yield "}";
 		}
 	};
-
-	string RandomString()
-	{
-		string src = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-		std::random_device rd;
-		std::mt19937 generator(rd());
-
-		std::shuffle(src.begin(), src.end(), generator);
-
-		return src.substr(0, 5);
-	}
 	
 	struct FileCleaner
 	{
