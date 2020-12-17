@@ -58,7 +58,6 @@ namespace Json
 		return *this;
 	}
 
-	// TODO test if previous has shared_ptr, will it be deconstructed when assign?
 	JsonObject& JsonObject::operator= (_Array array)
 	{
 		this->_type = JsonType::Array;
@@ -97,7 +96,6 @@ namespace Json
 	{
 		this->_type = JsonType::Null;
 		return *this;
-		/* need to release previous resource?*/
 	}
 
 	// Think necessary
