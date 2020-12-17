@@ -20,10 +20,9 @@ namespace Server
 				return {};
 			}
 
+			// 让函数自己处理好异常
 			void unhandled_exception()
 			{
-				// std::terminate(); 这里可能要处理下
-				// 要把异常给出去
 			}
 
 			Void get_return_object()

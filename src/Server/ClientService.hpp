@@ -104,38 +104,43 @@ namespace Server
 
 		void Run()
 		{
-			array<char, 1024> buff;
-
-			while (true)
+			Loop<InvokeInfo>([this](auto invokeInfo)
 			{
-				// if step above has error, respond error to client
-				asio::error_code error;
-				auto n = _peer->read_some(asio::buffer(buff), error);
-				if (error)
-				{
-					if (error == asio::error::eof)
-					{
-						break;
-					}
-					else
-					{
-						// TODO handle other error
-					}
-				}
-
-				auto input = string_view(buff.data(), n);
-				auto infoJsonObj = Json::Parse(input);
-				auto invokeInfo = Json::JsonConverter::Deserialize<InvokeInfo>(infoJsonObj);
-				// 对于每个合法的调用请求生成唯一的 id 标识唯一性
 				InvokeFuncOf(move(invokeInfo));
-			}
+			});
+			// array<char, 1024> buff;
+
+
+			// while (true)
+			// {
+			// 	// if step above has error, respond error to client
+			// 	asio::error_code error;
+			// 	auto n = _peer->read_some(asio::buffer(buff), error);
+			// 	if (error)
+			// 	{
+			// 		// how client send eof? 让它自然析构就行或者先 shutdown 然后 close
+			// 		if (error == asio::error::eof)
+			// 		{
+			// 			break;
+			// 		}
+			// 		else
+			// 		{
+			// 			// log
+			// 			_responder->RespondTo(_peer, string("Access terminated. Because read_some process has error: " + error.message()));
+			// 			break;
+			// 		}
+			// 	}
+
+			// 	auto input = string_view(buff.data(), n);
+			// 	auto infoJsonObj = Json::Parse(input);
+			// 	auto invokeInfo = Json::JsonConverter::Deserialize<InvokeInfo>(infoJsonObj);
+			// 	// 对于每个合法的调用请求生成唯一的 id 标识唯一性
+			// 	InvokeFuncOf(move(invokeInfo));
+			// }
 			
 			// component like pipe，然后不符合成功了进行下一步，错误了抛异常
 			// Parse >> Invoke >> Respond
 			// 上面这些的错误如何处理，是抛出来统一做异常处理，不选择：不允许抛异常，都自己在里面处理
-
-			// 最终结束，Socket 中的连接要怎么断开？让上层处理，每一次来一个函数请求，调用一个这个函数
-			_peer->close(); // handle exception? like finally
 		}
 
 		Void InvokeFuncOf(InvokeInfo invokeInfo)
@@ -148,5 +153,59 @@ namespace Server
 			auto respond = result.ToString(); // TODO add other content
 			_responder->RespondTo(_peer, respond);
 		}
+
+		template <typename Return>
+		Return ReceiveFromClient()
+		{
+			array<char, 256> buff;
+			asio::error_code error;
+			auto n = _peer->read_some(asio::buffer(buff), error);
+
+			if (error)
+			{
+				if (error == asio::error::eof)
+				{
+					// log client disconnect
+				}
+				else
+				{
+					// log message
+				}
+
+				// TODO modify
+				throw string("Access end due to " + error.message());
+			}
+			else
+			{
+				auto input = string_view(buff.data(), n);
+				auto jsonObj = Json::Parse(input);
+				return Json::JsonConverter::Deserialize<Return>(jsonObj);
+			}
+		}
+
+// TODO wait complete
+#define try_with_exception_handle(STATEMENT) [&] { \
+	try                                            \
+	{                                              \
+		return STATEMENT;                          \
+	}                                              \
+	catch (...)                                    \
+	{                                              \
+		throw;                                     \
+	}                                              \
+}()
+
+		template <typename Receive, typename Handler>
+		void Loop(Handler handler)
+		{
+			// log and send and throw
+
+			while (true)
+			{
+				auto r = try_with_exception_handle(ReceiveFromClient<Receive>());
+				try_with_exception_handle(handler(move(r)));
+			}
+		}
+#undef try_with_exception_handle
 	};	
 }

@@ -2,6 +2,7 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <tuple>
 #include "BasicType.hpp"
 #include "Responder.hpp"
 #include "FuncLibWorker.hpp"
@@ -13,6 +14,7 @@ namespace Server
 	using ::std::move;
 	using ::std::pair;
 	using ::std::shared_ptr;
+	using ::std::tuple;
 	using namespace Json;
 
 	class AdminService
@@ -42,6 +44,7 @@ namespace Server
 			{
 				string response;
 
+				// TODO add arg
 				co_await _funcLibWorker->AddFunc({}, {{}}, "Hello");
 				_responder->RespondTo(_peer, response);
 
@@ -85,7 +88,7 @@ namespace Server
 			while (true)
 			{
 
-				auto op = GetThisSeriveOption();
+				ServiceOption op = static_cast<ServiceOption>(ReceiveFromClient<int>());
 
 #define PROCESS(OP_NAME, ...)    \
 	case ServiceOption::OP_NAME: \
@@ -98,30 +101,92 @@ namespace Server
 					PROCESS(RemoveFunc);
 					PROCESS(SearchFunc, {});
 				default:
-					return;// remember close peer
+					return;
 				}
 #undef PROCESS
 			}
-			_peer->close();
 		}
 
 	private:
-		ServiceOption GetThisSeriveOption()
+		template <typename Return>
+		Return ReceiveFromClient()
 		{
 			array<char, 64> buff;
-
 			asio::error_code error;
 			auto n = _peer->read_some(asio::buffer(buff), error);
 
-			if (error and error == asio::error::eof)
+			if (error)
 			{
-				return ServiceOption::End;
+				if (error == asio::error::eof)
+				{
+					// log client disconnect
+				}
+				else
+				{
+					// log message
+				}
+				
+				// TODO modify
+				throw string("Access end due to " + error.message());
 			}
 			else
 			{
-				JsonObject j; // TODO
-				return static_cast<ServiceOption>(JsonConverter::Deserialize<int>(j));
+				auto input = string_view(buff.data(), n);
+				auto jsonObj = Json::Parse(input);
+				return JsonConverter::Deserialize<Return>(jsonObj);
+			}
+		}
 
+#define try_with_exception_handle(STATEMENT) [&] { \
+	try                                            \
+	{                                              \
+		return STATEMENT;                          \
+	}                                              \
+	catch (...)                                    \
+	{                                              \
+	}                                              \
+}()
+		template <typename Receive, typename Handler, typename... Handlers>
+		void Fun(Handler handler)
+		{
+			// log and send and throw 
+
+			while (true)
+			{
+				auto r = try_with_exception_handle(ReceiveFromClient<Receive>());
+				try_with_exception_handle(handler(move(r)));
+			}
+#undef try_with_exception_handle
+		}
+
+		template <typename Receive, typename Dispatcher, typename... Handlers>
+		void Fun(Dispatcher dispatcher, Handlers... handlers)
+		{
+
+			while (true)
+			{
+				tuple handlersTuple = { move(handlers)... };
+				auto r = try_with_exception_handle(ReceiveFromClient<Receive>());
+				auto d = dispatcher(move(r));
+
+				InvokeWhenEqualTo<0>(d, move(handlersTuple));
+			}
+		}
+
+		template <auto CurrentOption, typename... Handlers>
+		void InvokeWhenEqualTo(int dispatcherResult, tuple<Handlers...> handlersTuple)
+		{
+			if (dispatcherResult == CurrentOption)
+			{
+				std::get<CurrentOption>(handlersTuple)();
+			}
+			else if constexpr (CurrentOption < std::tuple_size_v<decltype(handlersTuple)>)
+			{
+				InvokeWhenEqualTo(dispatcherResult, move(handlersTuple));
+			}
+			else
+			{
+				throw string("No handler of ") + std::to_string(dispatcherResult);
 			}
 		}
 	};
