@@ -25,7 +25,7 @@ namespace Json
 		False,
 		Null,
 	};
-	// how to read data from Json
+
 	class JsonObject 
 	{
 	public:

@@ -16,7 +16,6 @@ namespace Json
 	using ::std::variant;
 	using ::std::vector;
 
-	// How to dynamic cons JsonObject with any type? has this demand?
 	JsonObject::JsonObject() : _type(JsonType::Null) {}
 	JsonObject::JsonObject(_Object object) : _type(JsonType::Object), _content(move(object)) {}
 	JsonObject::JsonObject(_Array array) : _type(JsonType::Array), _content(move(array)) {}
