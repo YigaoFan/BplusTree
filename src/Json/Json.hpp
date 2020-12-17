@@ -3,7 +3,6 @@
 #include <variant>
 #include <vector>
 #include <map>
-#include <memory>
 
 namespace Json
 {
@@ -14,7 +13,6 @@ namespace Json
 	using ::std::to_string;
 	using ::std::map;
 	using ::std::move;
-	using ::std::shared_ptr; // In Json semantic, there are some data will be shared with external, so shared_ptr
 	using ::std::get;
 
 	enum JsonType
@@ -38,7 +36,6 @@ namespace Json
 		JsonType _type;
 		variant<string, _Array, double, _Object> _content;
 	public:
-		// How to dynamic cons JsonObject with any type? has this demand?
 		JsonObject();
 		explicit JsonObject(_Object object);
 		explicit JsonObject(_Array array);
@@ -66,7 +63,6 @@ namespace Json
 
 		JsonObject& operator= (JsonObject const& that);
 		JsonObject& operator= (JsonObject&& that);
-		// TODO test if previous has shared_ptr, will it be deconstructed when assign?
 		JsonObject& operator= (_Array array);
 		JsonObject& operator= (_Object obj);
 		JsonObject& operator= (double num);

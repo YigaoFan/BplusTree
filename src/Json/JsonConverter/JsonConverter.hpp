@@ -3,7 +3,6 @@
 #include <type_traits>
 #include <tuple>
 #include <utility>
-#include <memory>
 #include <vector>
 #include <array>
 #include <map>
@@ -19,7 +18,6 @@ namespace Json::JsonConverter
 	using ::std::make_shared;
 	using ::std::make_tuple;
 	using ::std::map;
-	using ::std::shared_ptr;
 	using ::std::string;
 	using ::std::true_type;
 	using ::std::vector;
