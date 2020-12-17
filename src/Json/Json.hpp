@@ -31,7 +31,6 @@ namespace Json
 	class JsonObject 
 	{
 	public:
-		// change below 2 types TODO
 		using _Array = vector<JsonObject>;
 		using _Object = map<string, JsonObject>;
 	private:
