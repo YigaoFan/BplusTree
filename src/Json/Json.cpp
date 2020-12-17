@@ -19,7 +19,7 @@ namespace Json
 	// How to dynamic cons JsonObject with any type? has this demand?
 	JsonObject::JsonObject() : _type(JsonType::Null) {}
 	JsonObject::JsonObject(_Object object) : _type(JsonType::Object), _content(move(object)) {}
-	JsonObject::JsonObject(vector<shared_ptr<JsonObject>> array) : _type(JsonType::Array), _content(move(array)) {}
+	JsonObject::JsonObject(_Array array) : _type(JsonType::Array), _content(move(array)) {}
 	JsonObject::JsonObject(double num) : _type(JsonType::Number), _content(num) {}
 	JsonObject::JsonObject(string str) : _type(JsonType::String), _content(move(str)) {}
 	JsonObject::JsonObject(bool value) : _type(value ? JsonType::True : JsonType::False) {}
@@ -35,9 +35,9 @@ namespace Json
 	bool JsonObject::IsBool() const { return IsTrue() || IsFalse(); }
 	bool JsonObject::IsNull() const { return _type == JsonType::Null; }
 
-	JsonObject& JsonObject::operator[] (string const& key) { Assert(IsObject()); return *(get<_Object>(_content).at(key)); }
+	JsonObject& JsonObject::operator[] (string const& key) { Assert(IsObject()); return get<_Object>(_content).at(key); }
 	JsonObject& JsonObject::operator[] (JsonObject const& key) { Assert(IsObject() && key.IsString()); return operator[](key.GetString()); }
-	JsonObject& JsonObject::operator[] (size_t i) { Assert(IsArray()); return *(get<_Array>(_content)[i]); }
+	JsonObject& JsonObject::operator[] (size_t i) { Assert(IsArray()); return get<_Array>(_content)[i]; }
 
 	JsonObject const& JsonObject::operator[] (string const& key)     const { return const_cast<JsonObject*>(this)->operator[](key); }
 	JsonObject const& JsonObject::operator[] (JsonObject const& key) const { return const_cast<JsonObject*>(this)->operator[](key); }
@@ -145,7 +145,7 @@ namespace Json
 		}
 	}
 
-	string JsonObject::ToString()
+	string JsonObject::ToString() const
 	{
 		switch (_type)
 		{
@@ -153,13 +153,13 @@ namespace Json
 		{
 			string objStr{ "{" };
 			auto& objectMap = GetObject(); // TODO reduce the judge in GetObject()
-			for (auto& pair : objectMap)
+			for (auto& p : objectMap)
 			{
 				objStr += '"';
-				objStr += pair.first;
+				objStr += p.first;
 				objStr += '"';
 				objStr += ':';
-				objStr += pair.second->ToString();
+				objStr += p.second.ToString();
 				objStr += ',';
 			}
 			objStr += '}';
@@ -172,7 +172,7 @@ namespace Json
 			auto& array = GetArray();
 			for (auto& e : array)
 			{
-				arrStr += e->ToString();
+				arrStr += e.ToString();
 				arrStr += ',';
 			}
 			arrStr += ']';

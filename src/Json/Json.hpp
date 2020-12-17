@@ -32,8 +32,8 @@ namespace Json
 	{
 	public:
 		// change below 2 types TODO
-		using _Array = vector<shared_ptr<JsonObject>>;
-		using _Object = map<string, shared_ptr<JsonObject>>;
+		using _Array = vector<JsonObject>;
+		using _Object = map<string, JsonObject>;
 	private:
 		friend class Parser;
 		JsonType _type;
@@ -42,7 +42,7 @@ namespace Json
 		// How to dynamic cons JsonObject with any type? has this demand?
 		JsonObject();
 		explicit JsonObject(_Object object);
-		explicit JsonObject(vector<shared_ptr<JsonObject>> array);
+		explicit JsonObject(_Array array);
 		explicit JsonObject(double num);
 		explicit JsonObject(string str);
 		explicit JsonObject(bool value);
@@ -84,6 +84,6 @@ namespace Json
 		bool   GetBool()           const;
 		size_t Count()             const;
 
-		string ToString();
+		string ToString()          const;
 	};
 }

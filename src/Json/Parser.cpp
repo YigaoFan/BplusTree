@@ -1,7 +1,6 @@
 #include <string>
 #include <vector>
 #include <cctype>
-#include <memory>
 #include <cstdlib>
 #include <cerrno>
 #include <cmath>
@@ -14,7 +13,6 @@
 
 namespace Json
 {
-	using ::std::make_shared;
 	using ::std::strtod;
 	using ::std::move;
 	using ::Basic::Assert;
@@ -140,7 +138,7 @@ namespace Json
 			}
 			else if (expectJson)
 			{
-				objectMap.emplace(move(key), make_shared<JsonObject>(ParseNest()));
+				objectMap.emplace(move(key), ParseNest());
 				key.clear();
 				expectJson = false;
 				expectComma = expectBracket = true;
@@ -195,7 +193,7 @@ namespace Json
 			}
 			else if (expectJson)
 			{
-				array.emplace_back(make_shared<JsonObject>(ParseNest()));
+				array.emplace_back(ParseNest());
 				expectJson = false;
 				expectComma = expectSqrBracket = true;
 			}

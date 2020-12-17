@@ -226,21 +226,21 @@ namespace Json::JsonConverter
 	template <typename T>
 	JsonObject Serialize(vector<T> const& t)
 	{
-		vector<shared_ptr<JsonObject>> vec;
+		JsonObject::_Array vec;
 		vec.reserve(t.size());
 
 		for (auto& i : t)
 		{
-			vec.emplace_back(make_shared<JsonObject>(Serialize(i)));
+			vec.emplace_back(Serialize(i));
 		}
 
-		return JsonObject(vec);
+		return JsonObject(move(vec));
 	}
 
 	template <typename T, auto Count>
 	JsonObject Serialize(array<T, Count> const& t)
 	{
-		vector<shared_ptr<JsonObject>> vec;
+		JsonObject::_Array vec;
 		vec.reserve(t.size());
 
 		for (auto& i : t)
@@ -254,14 +254,14 @@ namespace Json::JsonConverter
 	template <typename Value>
 	JsonObject Serialize(map<string, Value> const& t)
 	{
-		map<string, shared_ptr<JsonObject>> m;
+		JsonObject::_Object m;
 
 		for (auto& p : t)
 		{
-			m.insert({ p.first, make_shared<JsonObject>(Serialize(p.second)) });
+			m.insert({ p.first, Serialize(p.second) });
 		}
 
-		return JsonObject(m);
+		return JsonObject(move(m));
 	}
 
 	template <typename T>
@@ -283,9 +283,9 @@ namespace Json::JsonConverter
 	vector<T> DeserializeImp(JsonObject const& json, vector<T>*)
 	{
 		vector<T> des;
-		for (auto& objPtr : json.GetArray())
+		for (auto& obj : json.GetArray())
 		{
-			des.push_back(Deserialize<T>(*objPtr));
+			des.push_back(Deserialize<T>(obj));
 		}
 
 		return des;
@@ -298,7 +298,7 @@ namespace Json::JsonConverter
 
 		for (auto& p : json.GetObject())
 		{
-			des.insert({ p.first, Deserialize<Value>(*p.second) });
+			des.insert({ p.first, Deserialize<Value>(p.second) });
 		}
 
 		return des;

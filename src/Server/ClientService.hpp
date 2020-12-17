@@ -30,10 +30,10 @@ namespace Json::JsonConverter
 #define nameof(VAR) #VAR
 		auto [returnType, funcName, argTypes, package] = type;
 		JsonObject::_Object obj;
-		obj.insert({ nameof(returnType), make_shared<JsonObject>(Serialize(returnType)) });
-		obj.insert({ nameof(funcName),   make_shared<JsonObject>(Serialize(funcName)) });
-		obj.insert({ nameof(argTypes),   make_shared<JsonObject>(Serialize(argTypes)) });
-		obj.insert({ nameof(package),    make_shared<JsonObject>(Serialize(package)) });
+		obj.insert({ nameof(returnType), Serialize(returnType) });
+		obj.insert({ nameof(funcName),   Serialize(funcName) });
+		obj.insert({ nameof(argTypes),   Serialize(argTypes) });
+		obj.insert({ nameof(package),    Serialize(package) });
 
 		return JsonObject(move(obj));
 	}
@@ -56,8 +56,8 @@ namespace Json::JsonConverter
 	{
 		auto [func, arg] = invokeInfo;
 		JsonObject::_Object obj;
-		obj.insert({ nameof(func), make_shared<JsonObject>(Serialize(func)) });
-		obj.insert({ nameof(arg),   make_shared<JsonObject>(arg) });
+		obj.insert({ nameof(func), Serialize(func) });
+		obj.insert({ nameof(arg),  arg });
 
 		return JsonObject(move(obj));
 	}

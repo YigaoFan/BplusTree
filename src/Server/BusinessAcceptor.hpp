@@ -31,8 +31,8 @@ namespace Json::JsonConverter
 #define nameof(VAR) #VAR
 		auto [username, password] = account;
 		JsonObject::_Object obj;
-		obj.insert({ nameof(username), make_shared<JsonObject>(Serialize(username)) });
-		obj.insert({ nameof(password),   make_shared<JsonObject>(Serialize(password)) });
+		obj.insert({ nameof(username), Serialize(username) });
+		obj.insert({ nameof(password), Serialize(password) });
 
 		return JsonObject(move(obj));
 	}
