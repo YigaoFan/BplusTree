@@ -1,5 +1,6 @@
 #pragma once
 #include <mutex>
+#include <queue>
 #include <string>
 #include <functional>
 #include "ThreadPool.hpp"
@@ -15,6 +16,7 @@ namespace Server
 	using ::std::lock_guard;
 	using ::std::move;
 	using ::std::mutex;
+	using ::std::queue;
 	using ::std::scoped_lock;
 	using ::std::string;
 
@@ -25,19 +27,13 @@ namespace Server
 		Request(Request&& that) noexcept : Mutex(), CondVar(), Continuation()
 		{
 			lock_guard<mutex> guard(that.Mutex);
+			Done = that.Done;
 			Continuation = move(that.Continuation);
-		}
-
-		Request& operator= (Request const& that)
-		{
-			scoped_lock guard(this->Mutex, that.Mutex);
-			Continuation = move(that.Continuation);
-
-			return *this;
 		}
 
 		mutable mutex Mutex;
 		mutable condition_variable CondVar;
+		bool Done = false;
 		function<void()> Continuation;
 	};
 
@@ -59,7 +55,7 @@ namespace Server
 	class RequestQueue
 	{
 	private:
-		vector<T> _queue;
+		queue<T> _queue;
 		mutex _mutex;
 
 	public:
@@ -72,26 +68,17 @@ namespace Server
 		T* Add(T t)
 		{
 			lock_guard<mutex> guard(_mutex);
-			_queue.push_back(move(t));
+			while (_queue.front().Done)
+			{
+				_queue.pop();
+			}
+
+			_queue.emplace(move(t));
 			return &_queue.back();
 		}
 
-		void Remove(T* requestPtr)
-		{
-			lock_guard<mutex> guard(_mutex);
-
-			for (auto it = _queue.begin(); it != _queue.end(); ++it)
-			{
-				if (&(*it) == requestPtr)
-				{
-					_queue.erase(it);
-					break;
-				}
-			}
-		}
-
 	private:
-		static vector<T> MoveFrom(RequestQueue&& that)
+		static queue<T> MoveFrom(RequestQueue&& that)
 		{
 			lock_guard<mutex> guard(that._mutex);
 			return move(that._queue);
@@ -108,6 +95,26 @@ namespace Server
 		RequestQueue<InvokeRequest> _invokeRequestQueue;
 		RequestQueue<AddFuncRequest> _addFuncRequestQueue;
 
+	private:
+		auto GenerateTask(auto requestPtr, auto specificTask)
+		{
+			return [this, request = requestPtr, task = move(specificTask)]
+			{
+				unique_lock<mutex> lock(request->Mutex);
+				{
+					lock_guard<mutex> libGuard(this->_funcLibMutex);
+					task(request);
+				}
+
+				request->CondVar.wait(lock, [=]
+				{
+					return (bool)request->Continuation;
+				});
+				request->Continuation();
+				request->Done = true;
+			};
+		}
+
 	public:
 		FuncLibWorker(FunctionLibrary funcLib) : _funcLib(move(funcLib)) { }
 
@@ -123,6 +130,7 @@ namespace Server
 			_threadPool = threadPool;
 		}
 
+		// 这个类要改名 TODO
 		template <typename Request>
 		struct Task
 		{
@@ -162,50 +170,26 @@ namespace Server
 		Task<InvokeRequest> Invoke(FuncType func, JsonObject arg)
 		{
 			auto requestPtr = _invokeRequestQueue.Add({ {}, move(func), move(arg), {} });
-			_threadPool->Execute([this, request = requestPtr]
+			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
 			{
-				unique_lock lock(this->_funcLibMutex);
-
-				request->Result = this->_funcLib.Invoke(request->Func, request->Arg);
-				if (not request->Continuation)
-				{
-					request->CondVar.wait(lock);
-				}
-
-				request->Continuation();
-				lock.unlock();
-
-				// 下面这个要锁 queue
-				this->_invokeRequestQueue.Remove(request);
-			});
+				request->Result = _funcLib.Invoke(request->Func, request->Arg);
+			}));
 
 			return { requestPtr };
 		}
 
-		// return is task
 		Task<AddFuncRequest> AddFunc(vector<string> package, FuncDefTokenReader defReader, string summary)
 		{
 			auto requestPtr = _addFuncRequestQueue.Add({ {}, move(package), move(defReader), move(summary) });
-			_threadPool->Execute([this, request = requestPtr]
+			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
 			{
-				unique_lock lock(this->_funcLibMutex);
-
-				this->_funcLib.Add(move(request->Package), move(request->DefReader), move(request->Summary));
-
-				if (not request->Continuation)
-				{
-					request->CondVar.wait(lock);
-				}
-				
-				request->Continuation();
-				lock.unlock();
-				this->_addFuncRequestQueue.Remove(request);
-			});
+				_funcLib.Add(move(request->Package), move(request->DefReader), move(request->Summary));
+			}));
 
 			return { requestPtr };
 		}
 
-		void RemoveFunc(FuncType const& type)
+		void RemoveFunc(FuncType type)
 		{
 
 		}
