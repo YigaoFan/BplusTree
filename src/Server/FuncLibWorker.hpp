@@ -2,6 +2,7 @@
 #include <mutex>
 #include <queue>
 #include <string>
+#include <utility>
 #include <functional>
 #include "ThreadPool.hpp"
 #include "../FuncLib/FunctionLibrary.hpp"
@@ -19,6 +20,7 @@ namespace Server
 	using ::std::queue;
 	using ::std::scoped_lock;
 	using ::std::string;
+	using ::std::pair;
 
 	struct Request
 	{
@@ -49,6 +51,18 @@ namespace Server
 		vector<string> Package;
 		FuncDefTokenReader DefReader;
 		string Summary;
+	};
+
+	struct RemoveFuncRequest : public Request
+	{
+		FuncType Func;
+	};
+
+	struct SearchFuncRequest : public Request
+	{
+		string Keyword;
+		// 暂时 Result 是这个类型吧，之后看能不能改成 Generator 形式 TODO
+		vector<pair<string, string>> Result;
 	};
 
 	template <typename T>
@@ -85,7 +99,6 @@ namespace Server
 		}
 	};
 
-	// 这里不止是 invoke，还有其他工作
 	class FuncLibWorker
 	{
 	private:
@@ -94,6 +107,8 @@ namespace Server
 		ThreadPool* _threadPool;
 		RequestQueue<InvokeRequest> _invokeRequestQueue;
 		RequestQueue<AddFuncRequest> _addFuncRequestQueue;
+		RequestQueue<RemoveFuncRequest> _removeFuncRequestQueue;
+		RequestQueue<SearchFuncRequest> _searchFuncRequestQueue;
 
 	private:
 		auto GenerateTask(auto requestPtr, auto specificTask)
@@ -122,17 +137,15 @@ namespace Server
 		FuncLibWorker(FuncLibWorker&& that) noexcept
 			: _funcLibMutex(), _funcLib(move(that._funcLib)),
 			  _threadPool(that._threadPool), _invokeRequestQueue(move(that._invokeRequestQueue))
-		{
-		}
+		{ }
 
 		void SetThreadPool(ThreadPool* threadPool)
 		{
 			_threadPool = threadPool;
 		}
 
-		// 这个类要改名 TODO
 		template <typename Request>
-		struct Task
+		struct Awaiter
 		{
 			Request* RequestPtr;
 
@@ -167,9 +180,9 @@ namespace Server
 			}
 		};
 
-		Task<InvokeRequest> Invoke(FuncType func, JsonObject arg)
+		Awaiter<InvokeRequest> Invoke(FuncType func, JsonObject arg)
 		{
-			auto requestPtr = _invokeRequestQueue.Add({ {}, move(func), move(arg), {} });
+			auto requestPtr = _invokeRequestQueue.Add({ {}, move(func), move(arg) });
 			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
 			{
 				request->Result = _funcLib.Invoke(request->Func, request->Arg);
@@ -178,7 +191,7 @@ namespace Server
 			return { requestPtr };
 		}
 
-		Task<AddFuncRequest> AddFunc(vector<string> package, FuncDefTokenReader defReader, string summary)
+		Awaiter<AddFuncRequest> AddFunc(vector<string> package, FuncDefTokenReader defReader, string summary)
 		{
 			auto requestPtr = _addFuncRequestQueue.Add({ {}, move(package), move(defReader), move(summary) });
 			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
@@ -189,14 +202,31 @@ namespace Server
 			return { requestPtr };
 		}
 
-		void RemoveFunc(FuncType type)
+		Awaiter<RemoveFuncRequest> RemoveFunc(FuncType func)
 		{
+			auto requestPtr = _removeFuncRequestQueue.Add({ {}, move(func) });
+			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
+			{
+				_funcLib.Remove(request->Func);
+			}));
 
+			return { requestPtr };
 		}
 
-		void SearchFunc(string keyword)
+		Awaiter<SearchFuncRequest> SearchFunc(string keyword)
 		{
-			// return 1;
+			// {} 构造时，处于后面的有默认构造函数的可以省略，如下面的 Result
+			auto requestPtr = _searchFuncRequestQueue.Add({ {}, move(keyword) });
+			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
+			{
+				auto g = _funcLib.Search(request->Keyword);
+				while (g.MoveNext())
+				{
+					request->Result.push_back(move(g.Current()));
+				}
+			}));
+
+			return { requestPtr };
 		}
 	};
 }

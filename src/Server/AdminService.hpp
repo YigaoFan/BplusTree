@@ -78,41 +78,46 @@ namespace Server
 
 		void Run()
 		{
-			auto AddFunc = [this]() -> Void
-			{
-				string response;
-
-				// TODO add arg
-				co_await _funcLibWorker->AddFunc({}, {{}}, "Hello");
-				_responder->RespondTo(_peer, response);
-
-			};
-
-			auto RemoveFunc = [&]()
-			{
-
-			};
-
-			auto SearchFunc = [&]() -> Void
-			{
-				JsonObject arg;
-				string response;
+#define HANDLER_OF(NAME, ARG_TYPE)                                          \
+	auto NAME = [this]() -> Void                                            \
+	{                                                                       \
+		string response;                                                    \
+		auto arg = ReceiveFromClient<ARG_TYPE>();                           \
+		if constexpr (is_same_v<decltype(_funcLibWorker->NAME(arg)), void>) \
+		{                                                                   \
+			co_await _funcLibWorker->NAME(move(arg));                       \
+			response = nameof(NAME) " operate succeed(或者返回 null 也行)";                     \
+		}                                                                   \
+		else                                                                \
+		{                                                                   \
+			auto result = co_await _funcLibWorker->NAME(move(arg));         \
+			response = Json::JsonConverter::Serialize(result);              \
+		}                                                                   \
+		_responder->RespondTo(_peer, response);                             \
+	}
 #define nameof(VAR) #VAR
 
-				if constexpr (is_same_v<decltype(_funcLibWorker->SearchFunc(JsonConverter::Deserialize<string>(arg))), void>)
-				{
-					// co_await _funcLibWorker->SearchFunc(JsonConverter::Deserialize<string>(arg));
-					response = nameof(SearchFunc) " operate succeed";
-				}
-				else
-				{
-					// auto result = _funcLibWorker->SearchFunc(JsonConverter::Deserialize<string>(arg));
-					// auto json = JsonConverter::Serialize(result);
-					// response = json.ToString();
-				}
 #undef nameof
+			auto AddFunc = [this]() -> Void 
+			{
+				// TODO add arg
+				co_await _funcLibWorker->AddFunc({}, {{}}, "Hello");
+				_responder->RespondTo(_peer, "remove succeed");
+			};
+
+			auto RemoveFunc = [this]() -> Void
+			{
+				auto func = ReceiveFromClient<FuncType>();
+				co_await _funcLibWorker->RemoveFunc(move(func));
+			};
+
+			auto SearchFunc = [this]() -> Void
+			{
+
+				auto keyword = ReceiveFromClient<string>();
+				auto result = co_await _funcLibWorker->SearchFunc(move(keyword));
+				auto response = Json::JsonConverter::Serialize(result).ToString();
 				_responder->RespondTo(_peer, response);
-				return {}; // 这句是为了消除编译 warning，之后使用协程后可以去掉
 			};
 
 			auto ModifyFunc = []{};
