@@ -1,9 +1,7 @@
 #pragma once
-#include <mutex>
 #include <queue>
 #include <string>
-#include <utility>
-#include <functional>
+#include "Request.hpp"
 #include "ThreadPool.hpp"
 #include "../FuncLib/FunctionLibrary.hpp"
 
@@ -13,57 +11,9 @@ namespace Server
 	using FuncLib::FunctionLibrary;
 	using FuncLib::FuncType;
 	using Json::JsonObject;
-	using ::std::function;
-	using ::std::lock_guard;
 	using ::std::move;
-	using ::std::mutex;
 	using ::std::queue;
-	using ::std::scoped_lock;
 	using ::std::string;
-	using ::std::pair;
-
-	struct Request
-	{
-		Request() = default;
-
-		Request(Request&& that) noexcept : Mutex(), CondVar(), Continuation()
-		{
-			lock_guard<mutex> guard(that.Mutex);
-			Done = that.Done;
-			Continuation = move(that.Continuation);
-		}
-
-		mutable mutex Mutex;
-		mutable condition_variable CondVar;
-		bool Done = false;
-		function<void()> Continuation;
-	};
-
-	struct InvokeRequest : public Request
-	{
-		FuncType Func;
-		JsonObject Arg;
-		JsonObject Result;
-	};
-
-	struct AddFuncRequest : public Request
-	{
-		vector<string> Package;
-		FuncDefTokenReader DefReader;
-		string Summary;
-	};
-
-	struct RemoveFuncRequest : public Request
-	{
-		FuncType Func;
-	};
-
-	struct SearchFuncRequest : public Request
-	{
-		string Keyword;
-		// 暂时 Result 是这个类型吧，之后看能不能改成 Generator 形式 TODO
-		vector<pair<string, string>> Result;
-	};
 
 	template <typename T>
 	class RequestQueue
