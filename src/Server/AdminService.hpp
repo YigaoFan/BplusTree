@@ -80,6 +80,7 @@ namespace Server
 				{
 					return static_cast<int>(serviceOption);
 				},
+				// 下面的顺序需要和 ServiceOption enum 的顺序一致
 				ASYNC_HANDLER_OF_NO_RESULT(AddFunc),
 				ASYNC_HANDLER_OF_NO_RESULT(RemoveFunc),
 				ASYNC_HANDLER_OF_WITH_RESULT(SearchFunc),
