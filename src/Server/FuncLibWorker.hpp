@@ -1,8 +1,8 @@
 #pragma once
-#include <queue>
 #include <string>
 #include "Request.hpp"
 #include "ThreadPool.hpp"
+#include "RequestQueue.hpp"
 #include "../FuncLib/FunctionLibrary.hpp"
 
 namespace Server
@@ -12,42 +12,7 @@ namespace Server
 	using FuncLib::FuncType;
 	using Json::JsonObject;
 	using ::std::move;
-	using ::std::queue;
 	using ::std::string;
-
-	template <typename T>
-	class RequestQueue
-	{
-	private:
-		queue<T> _queue;
-		mutex _mutex;
-
-	public:
-		RequestQueue() { }
-
-		RequestQueue(RequestQueue&& that) noexcept
-			: _queue(MoveFrom(move(that))), _mutex()
-		{ }
-
-		T* Add(T t)
-		{
-			lock_guard<mutex> guard(_mutex);
-			while (_queue.front().Done)
-			{
-				_queue.pop();
-			}
-
-			_queue.emplace(move(t));
-			return &_queue.back();
-		}
-
-	private:
-		static queue<T> MoveFrom(RequestQueue&& that)
-		{
-			lock_guard<mutex> guard(that._mutex);
-			return move(that._queue);
-		}
-	};
 
 	class FuncLibWorker
 	{
@@ -114,7 +79,8 @@ namespace Server
 					{
 						handle.resume();
 						// outside co_routine should without final suspend, so the
-						// resource can be free
+						// resource can be free？
+						// handle.destroy(); 看文章说要不要
 					};
 				}
 
