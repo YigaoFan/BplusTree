@@ -10,7 +10,7 @@ namespace Server
 		AddFunc,
 		RemoveFunc,
 		SearchFunc,
-		ModifyFunc,
+		ModifyFuncPackage,
 	};
 }
 
@@ -52,6 +52,7 @@ namespace Server
 		void Run()
 		{
 // 后面看有没有办法利用模板运算把两个宏合为一个，难点在于 co_await 那一步和 result 很紧密，而 result 关系到 response
+// 其实就是统一返回值类型为 string
 // 以及生成 response 那一步可以拿个函数包一下，这样可以进行一些调整操作
 #define ASYNC_HANDLER_OF_NO_RESULT(NAME)                                   \
 	[this]() -> Void                                                       \
@@ -82,7 +83,7 @@ namespace Server
 				ASYNC_HANDLER_OF_NO_RESULT(AddFunc),
 				ASYNC_HANDLER_OF_NO_RESULT(RemoveFunc),
 				ASYNC_HANDLER_OF_WITH_RESULT(SearchFunc),
-				ModifyFunc
+				ASYNC_HANDLER_OF_NO_RESULT(ModifyFuncPackage)
 				// 这里的 lambda 里面还可以用 LoopAcquireThenDispatch，这样就可以写复杂情况了
 			);
 #undef nameof

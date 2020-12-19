@@ -82,6 +82,17 @@ namespace Server
 		// 暂时 Result 是这个类型吧，之后看能不能改成 Generator 形式 TODO
 		vector<pair<string, string>> Result;
 	};
+
+	struct ModifyFuncPackageRequest : public Request
+	{
+		struct Content
+		{
+			FuncType Func;
+			vector<string> Package;
+		};
+
+		Content Paras;
+	};
 }
 
 namespace Json::JsonConverter
@@ -89,6 +100,7 @@ namespace Json::JsonConverter
 	using FuncLib::Compile::FuncType;
 	using Server::AddFuncRequest;
 	using Server::InvokeFuncRequest;
+	using Server::ModifyFuncPackageRequest;
 	using Server::RemoveFuncRequest;
 	using Server::SearchFuncRequest;
 	using ::std::move;
@@ -202,25 +214,25 @@ namespace Json::JsonConverter
 		return { move(keyword) };
 	}
 
-	///---------- ModifyFuncRequest ----------
-	// template <>
-	// JsonObject Serialize(InvokeFuncRequest::Content const& content)
-	// {
-	// 	auto [func, arg] = content;
-	// 	JsonObject::_Object obj;
-	// 	obj.insert({ nameof(func), Serialize(func) });
-	// 	obj.insert({ nameof(arg),  arg });
+	///---------- ModifyFuncPackageRequest ----------
+	template <>
+	JsonObject Serialize(ModifyFuncPackageRequest::Content const& content)
+	{
+		auto [func, package] = content;
+		JsonObject::_Object obj;
+		obj.insert({ nameof(func), Serialize(func) });
+		obj.insert({ nameof(package), Serialize(package) });
 
-	// 	return JsonObject(move(obj));
-	// }
+		return JsonObject(move(obj));
+	}
 
-	// template <>
-	// InvokeFuncRequest::Content Deserialize(JsonObject const& jsonObj)
-	// {
-	// 	auto func = Deserialize<FuncType>(jsonObj[nameof(func)]);
-	// 	auto arg = jsonObj[nameof(arg)];
+	template <>
+	ModifyFuncPackageRequest::Content Deserialize(JsonObject const& jsonObj)
+	{
+		auto func = Deserialize<FuncType>(jsonObj[nameof(func)]);
+		auto package = Deserialize<vector<string>>(jsonObj[nameof(package)]);
 		
-	// 	return { move(func), move(arg) };
-	// }
+		return { move(func), move(package) };
+	}
 #undef nameof
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <memory>
 #include "Request.hpp"
 #include "ThreadPool.hpp"
 #include "RequestQueue.hpp"
@@ -11,6 +12,7 @@ namespace Server
 	using FuncLib::FunctionLibrary;
 	using FuncLib::FuncType;
 	using Json::JsonObject;
+	using ::std::make_unique;
 	using ::std::move;
 	using ::std::string;
 
@@ -24,10 +26,12 @@ namespace Server
 		RequestQueue<AddFuncRequest> _addFuncRequestQueue;
 		RequestQueue<RemoveFuncRequest> _removeFuncRequestQueue;
 		RequestQueue<SearchFuncRequest> _searchFuncRequestQueue;
+		RequestQueue<ModifyFuncPackageRequest> _modifyFuncPackageRequestQueue;
 
 	private:
 		auto GenerateTask(auto requestPtr, auto specificTask)
 		{
+			/// 对 specificTask 提供一个安全访问 request 和 funcLib 的环境
 			return [this, request = requestPtr, task = move(specificTask)]
 			{
 				unique_lock<mutex> lock(request->Mutex);
@@ -110,10 +114,12 @@ namespace Server
 		Awaiter<AddFuncRequest> AddFunc(AddFuncRequest::Content paras)
 		{
 			auto requestPtr = _addFuncRequestQueue.Add({ {}, move(paras) });
-			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request) {
-				// 这里的 FuncsDef 要处理下 TODO
-				// move(request->Paras.FuncsDef)
-				_funcLib.Add(move(request->Paras.Package), {{}}, move(request->Paras.Summary));
+			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
+			{
+				using ::std::stringstream;
+
+				stringstream strStream(move(request->Paras.FuncsDef));
+				_funcLib.Add(move(request->Paras.Package), { make_unique<stringstream>(move(strStream)) }, move(request->Paras.Summary));
 			}));
 
 			return { requestPtr };
@@ -141,6 +147,19 @@ namespace Server
 				{
 					request->Result.push_back(move(g.Current()));
 				}
+			}));
+
+			return { requestPtr };
+		}
+
+		Awaiter<ModifyFuncPackageRequest> ModifyFuncPackage(ModifyFuncPackageRequest::Content paras)
+		{
+			// {} 构造时，处于后面的有默认构造函数的可以省略，曾经如下面的 Result
+			auto requestPtr = _modifyFuncPackageRequestQueue.Add({ {}, move(paras) });
+			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
+			{
+				auto& paras = request->Paras;
+				_funcLib.ModifyPackageOf(paras.Func, paras.Package);
 			}));
 
 			return { requestPtr };
