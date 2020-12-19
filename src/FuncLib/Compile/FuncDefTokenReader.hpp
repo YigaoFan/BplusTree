@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <memory>
 #include <fstream>
 #include <functional>
 #include "../../Btree/Generator.hpp"
@@ -8,15 +9,16 @@ namespace FuncLib::Compile
 {
 	using Collections::Generator;
 	using ::std::function;
-	using ::std::ifstream;
+	using ::std::istream;
 	using ::std::move;
 	using ::std::string;
+	using ::std::unique_ptr;
 
 	class FuncDefTokenReader
 	{
 	private:
 		function<bool(char)> _delimiterPredicate;
-		ifstream _istream;
+		unique_ptr<istream> _istream;
 	public:
 		FuncDefTokenReader(decltype(_istream) istream);
 		void DelimiterPredicate(decltype(_delimiterPredicate) newDelimiter);

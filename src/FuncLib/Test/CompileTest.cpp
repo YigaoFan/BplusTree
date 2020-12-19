@@ -1,7 +1,9 @@
+#include <fstream>
 #include "../../TestFrame/FlyTest.hpp"
 #include "../Compile/CompileProcess.hpp"
 
 using namespace FuncLib::Compile;
+using namespace std;
 
 TESTCASE("CompileTest")
 {
@@ -9,8 +11,7 @@ TESTCASE("CompileTest")
 	{
 		auto filename = "FuncDef.cpp";
 		ifstream fs(filename, ifstream::in | ifstream::binary);
-
-		auto reader = FuncDefTokenReader(move(fs));
+		auto reader = FuncDefTokenReader(make_unique<ifstream>(move(fs)));
 		Compile(&reader);
 	}
 }

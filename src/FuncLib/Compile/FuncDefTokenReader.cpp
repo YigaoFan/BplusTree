@@ -17,9 +17,9 @@ namespace FuncLib::Compile
 	{
 		string buffer;
 
-		while (not _istream.eof())
+		while (not _istream->eof())
 		{
-			auto c = _istream.get();
+			auto c = _istream->get();
 			if (_delimiterPredicate(c))
 			{
 				co_yield move(buffer);
@@ -36,21 +36,21 @@ namespace FuncLib::Compile
 
 	bool FuncDefTokenReader::AtEnd() const
 	{
-		return _istream.eof();
+		return _istream->eof();
 	}
 
 	void FuncDefTokenReader::ResetReadPos()
 	{
-		_istream.clear();// 这句到底需不需要？
-		_istream.seekg(0, ifstream::beg);
+		_istream->clear();// 这句到底需不需要？TODO
+		_istream->seekg(0, istream::beg);
 	}
 
 	Generator<string> FuncDefTokenReader::GetLineCodeGenerator()
 	{
-		while (not _istream.eof())
+		while (not _istream->eof())
 		{
 			string line;
-			getline(_istream, line);
+			getline(*_istream, line);
 			co_yield move(line);
 			line.clear();
 		}
