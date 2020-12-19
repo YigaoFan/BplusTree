@@ -50,51 +50,52 @@ namespace FuncLib
 		}
 	}
 
-	bool FunctionLibrary::Contains(FuncType const& type) const
+	bool FunctionLibrary::Contains(FuncType const& func) const
 	{
-		return _index.Contains(type);
+		return _index.Contains(func);
 	}
 
 #define FUNC_NOT_EXIST_EXCEPTION(FUNC_TYPE) throw InvalidOperationException("Function not exist: " + FUNC_TYPE.ToString())
-	// void FunctionLibrary::ModifyFuncName(FuncType const& type, string newFuncName)
+	// void FunctionLibrary::ModifyFuncName(FuncType const& func, string newFuncName)
 	// {
-	// 	if (_index.Contains(type))
+		// 调用时的名字变了，要怎么处理
+	// 	if (_index.Contains(func))
 	// 	{
-	// 		return _index.ModifyFuncName(type, move(newFuncName));
+	// 		return _index.ModifyFuncName(func, move(newFuncName));
 	// 	}
 
-	// 	FUNC_NOT_EXIST_EXCEPTION(type);
+	// 	FUNC_NOT_EXIST_EXCEPTION(func);
 	// }
 
-	void FunctionLibrary::ModifyPackageNameOf(FuncType const &type, vector<string> packageHierarchy)
+	void FunctionLibrary::ModifyPackageOf(FuncType const &func, vector<string> packageHierarchy)
 	{
-		if (_index.Contains(type))
+		if (_index.Contains(func))
 		{
-			return _index.ModifyPackageOf(type, move(packageHierarchy));
+			return _index.ModifyPackageOf(func, move(packageHierarchy));
 		}
 
-		FUNC_NOT_EXIST_EXCEPTION(type);
+		FUNC_NOT_EXIST_EXCEPTION(func);
 	}
 
-	void FunctionLibrary::Remove(FuncType const& type)
+	void FunctionLibrary::Remove(FuncType const& func)
 	{
-		if (_index.Contains(type))
+		if (_index.Contains(func))
 		{
-			auto l = GetStoreLabel(type);
+			auto l = GetStoreLabel(func);
 			_binLib.DecreaseRefCount(l);
-			_index.Remove(type);
+			_index.Remove(func);
 			return;
 		}
 
-		FUNC_NOT_EXIST_EXCEPTION(type);
+		FUNC_NOT_EXIST_EXCEPTION(func);
 	}
 
-	JsonObject FunctionLibrary::Invoke(FuncType const& type, JsonObject args)
+	JsonObject FunctionLibrary::Invoke(FuncType const& func, JsonObject args)
 	{
 		// 改名字再调用会出现问题
-		auto l = GetStoreLabel(type);
+		auto l = GetStoreLabel(func);
 		auto bytes = _binLib.Read(l);
-		auto wrapperFuncName = type.FuncName + "_wrapper";
+		auto wrapperFuncName = func.FuncName + "_wrapper";
 		return Compile::Invoke(bytes, wrapperFuncName.c_str(), move(args));
 	}
 
@@ -104,21 +105,21 @@ namespace FuncLib
 		return _index.Search(keyword);
 	}
 
-	pos_label FunctionLibrary::GetStoreLabel(FuncType const& type)
+	pos_label FunctionLibrary::GetStoreLabel(FuncType const& func)
 	{
-		if (_funcInfoCache.contains(type))
+		if (_funcInfoCache.contains(func))
 		{
-			return _funcInfoCache[type];
+			return _funcInfoCache[func];
 		}
 
-		if (_index.Contains(type))
+		if (_index.Contains(func))
 		{
-			auto l = _index.GetStoreLabel(type);
-			_funcInfoCache.insert({ type, l });
+			auto l = _index.GetStoreLabel(func);
+			_funcInfoCache.insert({ func, l });
 			return l;
 		}
 
-		FUNC_NOT_EXIST_EXCEPTION(type);
+		FUNC_NOT_EXIST_EXCEPTION(func);
 	}
 #undef FUNC_NOT_EXIST_EXCEPTION
 }
