@@ -27,6 +27,12 @@ namespace Json::JsonConverter
 	}
 
 	template <>
+	JsonObject Serialize(JsonObject const& t)
+	{
+		return t;
+	}
+
+	template <>
 	string Deserialize(JsonObject const& json)
 	{
 		return json.GetString();

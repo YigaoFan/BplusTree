@@ -3,43 +3,14 @@
 #include "ServiceBase.hpp"
 #include "promise_Void.hpp"
 
-#include <vector>
-#include <string>
-
 namespace Server
 {
-	using ::std::string;
-	using ::std::vector;
-
 	enum ServiceOption
 	{
 		AddFunc,
 		RemoveFunc,
 		SearchFunc,
 		ModifyFunc,
-	};
-
-	// 这里的这些类与 Worker 文件里的类有重复，之后考虑消除
-	struct AddFuncInfo
-	{
-		vector<string> Package;
-		string FuncsDef;
-		string Summary;
-	};
-
-	struct RemoveFuncInfo
-	{
-
-	};
-
-	struct SearchFuncInfo
-	{
-
-	};
-
-	struct ModifyFuncInfo
-	{
-
 	};
 }
 
@@ -76,49 +47,30 @@ namespace Server
 	public:
 		using Base::Base;
 
+#define PRIMITIVE_CAT(A, B) A##B
+#define CAT(A, B) PRIMITIVE_CAT(A, B)
 		void Run()
 		{
-#define HANDLER_OF(NAME, ARG_TYPE)                                          \
-	auto NAME = [this]() -> Void                                            \
-	{                                                                       \
-		string response;                                                    \
-		auto arg = ReceiveFromClient<ARG_TYPE>();                           \
-		if constexpr (is_same_v<decltype(_funcLibWorker->NAME(arg)), void>) \
-		{                                                                   \
-			co_await _funcLibWorker->NAME(move(arg));                       \
-			response = nameof(NAME) " operate succeed(或者返回 null 也行)";                     \
-		}                                                                   \
-		else                                                                \
-		{                                                                   \
-			auto result = co_await _funcLibWorker->NAME(move(arg));         \
-			response = Json::JsonConverter::Serialize(result);              \
-		}                                                                   \
-		_responder->RespondTo(_peer, response);                             \
+// 后面看有没有办法利用模板运算把两个宏合为一个，难点在于 co_await 那一步和 result 很紧密，而 result 关系到 response
+// 以及生成 response 那一步可以拿个函数包一下，这样可以进行一些调整操作
+#define ASYNC_HANDLER_OF_NO_RESULT(NAME)                                   \
+	[this]() -> Void                                                       \
+	{                                                                      \
+		auto paras = ReceiveFromClient<CAT(NAME, Request)::Content>();     \
+		co_await _funcLibWorker->NAME(move(paras));                        \
+		auto response = nameof(NAME) " operate succeed(或者返回 null 也行)"; \
+		_responder->RespondTo(_peer, response);                            \
+	}
+
+#define ASYNC_HANDLER_OF_WITH_RESULT(NAME)                                 \
+	[this]() -> Void                                                       \
+	{                                                                      \
+		auto paras = ReceiveFromClient<CAT(NAME, Request)::Content>();     \
+		auto result = co_await _funcLibWorker->NAME(move(paras));          \
+		auto response = Json::JsonConverter::Serialize(result).ToString(); \
+		_responder->RespondTo(_peer, response);                            \
 	}
 #define nameof(VAR) #VAR
-
-#undef nameof
-			auto AddFunc = [this]() -> Void 
-			{
-				// TODO add arg
-				co_await _funcLibWorker->AddFunc({}, {{}}, "Hello");
-				_responder->RespondTo(_peer, "remove succeed");
-			};
-
-			auto RemoveFunc = [this]() -> Void
-			{
-				auto func = ReceiveFromClient<FuncType>();
-				co_await _funcLibWorker->RemoveFunc(move(func));
-			};
-
-			auto SearchFunc = [this]() -> Void
-			{
-
-				auto keyword = ReceiveFromClient<string>();
-				auto result = co_await _funcLibWorker->SearchFunc(move(keyword));
-				auto response = Json::JsonConverter::Serialize(result).ToString();
-				_responder->RespondTo(_peer, response);
-			};
 
 			auto ModifyFunc = []{};
 
@@ -127,12 +79,15 @@ namespace Server
 				{
 					return static_cast<int>(serviceOption);
 				},
-				AddFunc,
-				RemoveFunc,
-				SearchFunc,
+				ASYNC_HANDLER_OF_NO_RESULT(AddFunc),
+				ASYNC_HANDLER_OF_NO_RESULT(RemoveFunc),
+				ASYNC_HANDLER_OF_WITH_RESULT(SearchFunc),
 				ModifyFunc
 				// 这里的 lambda 里面还可以用 LoopAcquireThenDispatch，这样就可以写复杂情况了
 			);
+#undef nameof
 		}
+// #undef CAT 因为 FlyTest 也用这个，所以不能 undef，之后把部分代码移入 cpp 文件应该可以 undef 了
+// #undef PRIMITIVE_CAT
 	};
 }

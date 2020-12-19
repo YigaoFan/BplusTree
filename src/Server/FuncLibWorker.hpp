@@ -20,7 +20,7 @@ namespace Server
 		mutex _funcLibMutex;
 		FunctionLibrary _funcLib;
 		ThreadPool* _threadPool;
-		RequestQueue<InvokeRequest> _invokeRequestQueue;
+		RequestQueue<InvokeFuncRequest> _invokeRequestQueue;
 		RequestQueue<AddFuncRequest> _addFuncRequestQueue;
 		RequestQueue<RemoveFuncRequest> _removeFuncRequestQueue;
 		RequestQueue<SearchFuncRequest> _searchFuncRequestQueue;
@@ -96,46 +96,47 @@ namespace Server
 			}
 		};
 
-		Awaiter<InvokeRequest> Invoke(FuncType func, JsonObject arg)
+		Awaiter<InvokeFuncRequest> InvokeFunc(InvokeFuncRequest::Content paras)
 		{
-			auto requestPtr = _invokeRequestQueue.Add({ {}, move(func), move(arg) });
+			auto requestPtr = _invokeRequestQueue.Add({ {}, move(paras) });
 			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
 			{
-				request->Result = _funcLib.Invoke(request->Func, request->Arg);
+				request->Result = _funcLib.Invoke(request->Paras.Func, request->Paras.Arg);
 			}));
 
 			return { requestPtr };
 		}
 
-		Awaiter<AddFuncRequest> AddFunc(vector<string> package, FuncDefTokenReader defReader, string summary)
+		Awaiter<AddFuncRequest> AddFunc(AddFuncRequest::Content paras)
 		{
-			auto requestPtr = _addFuncRequestQueue.Add({ {}, move(package), move(defReader), move(summary) });
-			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
-			{
-				_funcLib.Add(move(request->Package), move(request->DefReader), move(request->Summary));
+			auto requestPtr = _addFuncRequestQueue.Add({ {}, move(paras) });
+			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request) {
+				// 这里的 FuncsDef 要处理下 TODO
+				// move(request->Paras.FuncsDef)
+				_funcLib.Add(move(request->Paras.Package), {{}}, move(request->Paras.Summary));
 			}));
 
 			return { requestPtr };
 		}
 
-		Awaiter<RemoveFuncRequest> RemoveFunc(FuncType func)
+		Awaiter<RemoveFuncRequest> RemoveFunc(RemoveFuncRequest::Content paras)
 		{
-			auto requestPtr = _removeFuncRequestQueue.Add({ {}, move(func) });
+			auto requestPtr = _removeFuncRequestQueue.Add({ {}, move(paras) });
 			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
 			{
-				_funcLib.Remove(request->Func);
+				_funcLib.Remove(request->Paras.Func);
 			}));
 
 			return { requestPtr };
 		}
 
-		Awaiter<SearchFuncRequest> SearchFunc(string keyword)
+		Awaiter<SearchFuncRequest> SearchFunc(SearchFuncRequest::Content paras)
 		{
-			// {} 构造时，处于后面的有默认构造函数的可以省略，如下面的 Result
-			auto requestPtr = _searchFuncRequestQueue.Add({ {}, move(keyword) });
+			// {} 构造时，处于后面的有默认构造函数的可以省略，曾经如下面的 Result
+			auto requestPtr = _searchFuncRequestQueue.Add({ {}, move(paras) });
 			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
 			{
-				auto g = _funcLib.Search(request->Keyword);
+				auto g = _funcLib.Search(request->Paras.Keyword);
 				while (g.MoveNext())
 				{
 					request->Result.push_back(move(g.Current()));

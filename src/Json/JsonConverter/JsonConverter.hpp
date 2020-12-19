@@ -210,7 +210,7 @@ namespace Json::JsonConverter
 	// why can not write like this?
 
 	template <>
-	JsonObject Serialize<string>(string const& t);
+	JsonObject Serialize(string const& t);
 
 	template <>
 	JsonObject Serialize(int const& t);
@@ -220,6 +220,9 @@ namespace Json::JsonConverter
 
 	template <>
 	JsonObject Serialize(bool const& t);
+
+	template <>
+	JsonObject Serialize(JsonObject const& t);
 
 	template <typename T>
 	JsonObject Serialize(vector<T> const& t)

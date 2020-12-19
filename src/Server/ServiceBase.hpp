@@ -28,6 +28,7 @@ namespace Server
 		{ }
 	
 	protected:
+		// 使用这个函数的地方是不是要像下下面拿个函数那样使用异常处理？ TODO
 		template <typename Return>
 		Return ReceiveFromClient()
 		{
