@@ -47,7 +47,12 @@ namespace Server
 							auto current = move(data->Tasks.front());
 							data->Tasks.pop();
 							lock.unlock();
-							current();
+							try
+							{
+								current();
+							}
+							catch(...) { }
+
 							lock.lock();
 						}
 						else if (data->IsShutdown)
