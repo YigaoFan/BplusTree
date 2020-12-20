@@ -113,7 +113,19 @@ namespace Basic
 	template <typename R, typename... Args>
 	struct FuncTraits<R(Args...)>
 	{
-		// static const size_t nargs = sizeof...(Args);
+		static constexpr size_t ArgCount = sizeof...(Args);
+		// typedef R result_type;
+		template <size_t i>
+		struct Arg
+		{
+			using Type = typename std::tuple_element<i, std::tuple<Args...>>::type;
+		};
+	};
+
+	template <typename R, typename... Args>
+	struct FuncTraits<R (*)(Args...)> // 这种适用的是普通的函数，奇怪这种和上种在什么情况下会分别用到
+	{
+		static constexpr size_t ArgCount = sizeof...(Args);
 		// typedef R result_type;
 		template <size_t i>
 		struct Arg
@@ -125,6 +137,8 @@ namespace Basic
 	template <typename R, typename... Args>
 	struct FuncTraits<R(Args...) const>
 	{
+		static constexpr size_t ArgCount = sizeof...(Args);
+
 		template <size_t i>
 		struct Arg
 		{
