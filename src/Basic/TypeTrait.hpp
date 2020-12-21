@@ -122,35 +122,29 @@ namespace Basic
 		};
 	};
 
+	// 可以用继承简化这个的代码
+	// 这种适用的是普通的函数，奇怪这种和上种在什么情况下会分别用到
 	template <typename R, typename... Args>
-	struct FuncTraits<R (*)(Args...)> // 这种适用的是普通的函数，奇怪这种和上种在什么情况下会分别用到
+	struct FuncTraits<R (*)(Args...)> : public FuncTraits<R(Args...)> 
+	// 这里使用模板，是可以直接指定模板参数，还是也像外面使用一样可以使用偏特化。报错了，原来还是看依照最初声明的 108 行那块。
 	{
-		static constexpr size_t ArgCount = sizeof...(Args);
-		// typedef R result_type;
-		template <size_t i>
-		struct Arg
-		{
-			using Type = typename std::tuple_element<i, std::tuple<Args...>>::type;
-		};
+	};
+
+	template <typename R, typename C, typename... Args>
+	struct FuncTraits<R (C::*)(Args...)> : public FuncTraits<R(Args...)>
+	{
 	};
 
 	template <typename R, typename... Args>
-	struct FuncTraits<R(Args...) const>
+	struct FuncTraits<R(Args...) const> : public FuncTraits<R(Args...)> // 这里好像是省略了指针那个*
 	{
-		static constexpr size_t ArgCount = sizeof...(Args);
-
-		template <size_t i>
-		struct Arg
-		{
-			using Type = typename std::tuple_element<i, std::tuple<Args...>>::type;
-		};
 	};
 
 	template <typename T>
 	struct GetMemberFuncType;
 
 	template <typename R, typename T>
-	struct GetMemberFuncType<R T::*>// 这里的 R 为什么是 method 的类型呢？
+	struct GetMemberFuncType<R T::*> // 这里的 R 为什么是 method 的类型呢？这里好像是省略了参数类型，但这个 get 的却是 MemberFuncType
 	{
 		using Result = R;
 	};
