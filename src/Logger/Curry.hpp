@@ -1,6 +1,7 @@
+#pragma once
 #include "../Basic/TypeTrait.hpp"
 
-namespace Server
+namespace Log
 {
 	using Basic::FuncTraits;
 	using ::std::forward;
@@ -31,7 +32,7 @@ namespace Server
 		}
 		else if constexpr (CurrentArgIdx < FuncInfo::ArgCount)
 		{
-			return [move(func), ... previousArgs = forward<PreviousArgs>(previousArgs)]<typename Arg>(Arg&& arg) mutable
+			return [func = move(func), ... previousArgs = forward<PreviousArgs>(previousArgs)]<typename Arg>(Arg&& arg) mutable
 			{
 				return DoCurry<CurrentArgIdx + 1, IsObjectMethod, FuncInfo>(move(func), forward<PreviousArgs>(previousArgs)..., forward<Arg>(arg));
 			};
