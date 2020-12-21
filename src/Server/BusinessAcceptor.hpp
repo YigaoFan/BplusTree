@@ -5,6 +5,7 @@
 #include <asio.hpp>
 #include "../Json/Parser.hpp"
 #include "../Json/JsonConverter/JsonConverter.hpp"
+#include "../Logger/Logger.hpp"
 #include "BasicType.hpp"
 #include "ThreadPool.hpp"
 #include "FuncLibWorker.hpp"
@@ -50,6 +51,7 @@ namespace Json::JsonConverter
 
 namespace Server
 {
+	using Log::Logger;
 	using ::std::array;
 	using ::std::function;
 	using ::std::shared_ptr;
@@ -63,6 +65,7 @@ namespace Server
 		Responder _responder;
 		function<ClientService(shared_ptr<Socket>, Responder*)> _clientServiceFactory;
 		function<AdminService(shared_ptr<Socket>, Responder*)> _adminServiceFactory;
+		Logger _logger;
 
 	public:
 		BusinessAcceptor(Responder responder)
@@ -90,6 +93,19 @@ namespace Server
 
 		void HandleAccept(asio::error_code const& error, Socket peer)
 		{
+			// 这只是 access log，还要有其他日志，比如处理过程日志
+#define ACCESS_LOG_FORMAT STRING("%h %u %i %t %r %a %s")
+			// client ip: XXX.XXX
+			// username:
+			// request id
+			// timestamp
+			// request function 这里可以放请求的功能: -
+			// argument
+			// request result status: 这里可以放请求结果的状态，可以自定义一些状态码
+
+			auto thisRequestLogger = _logger.GenerateSubLogger(ACCESS_LOG_FORMAT);
+#undef ACCESS_LOG_FORMAT
+
 			if (not _startAccept)
 			{
 				return;
@@ -97,7 +113,9 @@ namespace Server
 
 			if (error)
 			{
-				
+				// TODO
+				// _logger.Error();
+				return;
 			}
 			
 			_threadPool->Execute([p=make_shared<Socket>(move(peer)), this] () mutable
@@ -119,6 +137,7 @@ namespace Server
 
 			try
 			{
+				// 下面的逻辑要重整下 TODO
 				// 会不会有多余的空格问题？这个两端发送的时候要统一好
 				if (string_view(buff.data(), size) == "hello server")
 				{

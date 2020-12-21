@@ -2,6 +2,7 @@
 #include <array>
 #include <tuple>
 #include <memory>
+#include <functional>
 #include <string_view>
 #include "BasicType.hpp"
 #include "FuncLibWorker.hpp"
@@ -10,6 +11,7 @@
 namespace Server
 {
 	using ::std::array;
+	using ::std::function;
 	using ::std::shared_ptr;
 	using ::std::string_view;
 	using ::std::tuple;
@@ -21,6 +23,7 @@ namespace Server
 		shared_ptr<Socket> _peer;
 		FuncLibWorker* _funcLibWorker;
 		Responder* _responder;
+		function<void(string)> _log;// 这个要是支持不定参数就好了
 
 	public:
 		ServiceBase(shared_ptr<Socket> peer, FuncLibWorker* funcLibWorker, Responder* responder)
@@ -28,6 +31,19 @@ namespace Server
 		{ }
 	
 	protected:
+		// void Log()
+		// {
+			// client ip: XXX.XXX
+			// rfc: -
+			// username:
+			// timestamp
+			// http request 这里可以放请求的功能: -
+			// http status code: -
+			// requested bytes size 这个在收 request 那里才有意义吧: 
+			// refer: 应该也是空 -
+			// user agent 应该也没有
+		// }
+		
 		// 使用这个函数的地方是不是要像下下面拿个函数那样使用异常处理？ TODO
 		template <typename Return>
 		Return ReceiveFromClient()
@@ -38,23 +54,33 @@ namespace Server
 
 			if (error)
 			{
+				// 抛异常不要紧，重要的是在抛之前把异常 log 下来
+				string message;
 				if (error == asio::error::eof)
 				{
-					// log client disconnect
+					message = string("Client disconnect: " + error.message());
 				}
 				else
 				{
-					// log message
+					message = string("Read from client error: " + error.message());
 				}
 
-				// TODO modify
-				throw string("Access end due to " + error.message());
+				_log(message);
+				throw ;
 			}
 			else
 			{
 				auto input = string_view(buff.data(), n);
-				auto jsonObj = Json::Parse(input);
-				return Json::JsonConverter::Deserialize<Return>(jsonObj);
+				try
+				{
+					auto jsonObj = Json::Parse(input);
+					return Json::JsonConverter::Deserialize<Return>(jsonObj);
+				}
+				catch (std::exception const& e)
+				{
+					// _log("Parse client content or deserialize error: ", e.what());
+					throw e;
+				}
 			}
 		}
 

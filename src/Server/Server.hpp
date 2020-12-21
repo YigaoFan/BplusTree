@@ -16,7 +16,6 @@ namespace Server
 	using ::std::move;
 	namespace fs = ::std::filesystem;
 
-	template <typename Logger>
 	class Server
 	{
 	private:
@@ -44,11 +43,6 @@ namespace Server
 						  std::placeholders::_1, std::placeholders::_2));
 		}
 
-		void Init()
-		{
-			// for future init
-		}
-
 		void StartRunBackground()
 		{
 			_businessAcceptor.StartAcceptBackground();
@@ -57,9 +51,9 @@ namespace Server
 		// terminate run? 有这个需求吗？
 	};
 
-#define LOG_FORMAT STRING("%h %l %u %t %r %s %b %i %i")
 	auto New(io_context& ioContext, int port)
 	{
+		using FuncLib::FunctionLibrary;
 		fs::path serverDir = R"(./server)";
 		if ((not fs::exists(serverDir)) or (not fs::is_directory(serverDir)))
 		{
@@ -70,12 +64,10 @@ namespace Server
 		ThreadPool threadPool(n);
 		Responder responder;
 		auto acceptor = BusinessAcceptor(move(responder));
-		using FuncLib::FunctionLibrary;
 		auto funcLib = FunctionLibrary::GetFrom(serverDir);
 		auto funcLibWorker = FuncLibWorker(move(funcLib));
-		auto logger = Log::MakeLoggerWith(LOG_FORMAT);
+		auto logger = Log::MakeLogger();
 		tcp::acceptor netAcceptor(ioContext, tcp::endpoint(tcp::v4(), port));
 		return Server(move(threadPool), move(netAcceptor), move(acceptor), move(funcLibWorker), move(logger));
 	}
-#undef LOG_FORMAT
 }
