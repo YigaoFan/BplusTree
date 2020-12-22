@@ -2,20 +2,23 @@
 #include <array>
 #include <tuple>
 #include <memory>
-#include <functional>
+#include <utility>
+#include <type_traits>
 #include <string_view>
 #include "BasicType.hpp"
 #include "FuncLibWorker.hpp"
 #include "Responder.hpp"
+#include "RequestId.hpp"
 
 namespace Server
 {
 	using ::std::array;
-	using ::std::function;
+	using ::std::is_same_v;
+	using ::std::pair;
 	using ::std::shared_ptr;
 	using ::std::string_view;
 	using ::std::tuple;
-	using std::tuple_size_v;
+	using ::std::tuple_size_v;
 
 	class ServiceBase
 	{
@@ -23,7 +26,6 @@ namespace Server
 		shared_ptr<Socket> _peer;
 		FuncLibWorker* _funcLibWorker;
 		Responder* _responder;
-		function<void(string)> _log;// 这个要是支持不定参数就好了
 
 	public:
 		ServiceBase(shared_ptr<Socket> peer, FuncLibWorker* funcLibWorker, Responder* responder)
@@ -31,22 +33,9 @@ namespace Server
 		{ }
 	
 	protected:
-		// void Log()
-		// {
-			// client ip: XXX.XXX
-			// rfc: -
-			// username:
-			// timestamp
-			// http request 这里可以放请求的功能: -
-			// http status code: -
-			// requested bytes size 这个在收 request 那里才有意义吧: 
-			// refer: 应该也是空 -
-			// user agent 应该也没有
-		// }
-		
-		// 使用这个函数的地方是不是要像下下面拿个函数那样使用异常处理？ TODO
-		template <typename Return>
-		Return ReceiveFromClient()
+		// 外面使用这个函数的地方是不是要像下下面拿个函数那样使用异常处理？ TODO
+		template <typename Return, bool ReturnRawByte = false, typename Logger>
+		auto ReceiveFromClient(Logger* logger)
 		{
 			array<char, 256> buff;
 			asio::error_code error;
@@ -65,8 +54,8 @@ namespace Server
 					message = string("Read from client error: " + error.message());
 				}
 
-				_log(message);
-				throw ;
+				logger->Error(message);
+				throw ;// TODO exception
 			}
 			else
 			{
@@ -74,11 +63,19 @@ namespace Server
 				try
 				{
 					auto jsonObj = Json::Parse(input);
-					return Json::JsonConverter::Deserialize<Return>(jsonObj);
+					auto ret = Json::JsonConverter::Deserialize<Return>(jsonObj);
+					if constexpr (ReturnRawByte)
+					{
+						return pair<Return, string>(move(ret), string(input));
+					}
+					else
+					{
+						return ret;
+					}
 				}
 				catch (std::exception const& e)
 				{
-					// _log("Parse client content or deserialize error: ", e.what());
+					logger->Error("Parse client content or deserialize error: ", e);
 					throw e;
 				}
 			}
@@ -96,26 +93,25 @@ namespace Server
 	}                                              \
 }()
 
-		template <typename Receive, typename Callback>
-		void LoopAcquire(Callback callback)
+		template <typename Callback>
+		void Loop(Callback callback)
 		{
 			// log and send and throw
 
 			while (true)
 			{
-				auto r = try_with_exception_handle(ReceiveFromClient<Receive>());
-				callback(move(r)); // 这一步要不要异常处理？
+				callback(); // 这一步要不要异常处理？
 			}
 		}
 
-		template <typename Receive, typename Dispatcher, typename... Handlers>
-		void LoopAcquireThenDispatch(Dispatcher dispatcher, Handlers... handlers)
+		template <typename Receive, typename UserLogger, typename Dispatcher, typename... Handlers>
+		void LoopAcquireThenDispatch(UserLogger userLogger, Dispatcher dispatcher, Handlers... handlers)
 		{
 			// 或许可以允许差量提供 handler？最后一个作为 default？
 			while (true)
 			{
 				tuple handlersTuple = { move(handlers)...};
-				auto r = try_with_exception_handle(ReceiveFromClient<Receive>());
+				auto r = try_with_exception_handle(ReceiveFromClient<Receive>(&userLogger));
 				auto d = dispatcher(move(r));
 
 				InvokeWhenEqualTo<0>(d, move(handlersTuple));
@@ -139,5 +135,28 @@ namespace Server
 			}
 		}
 #undef try_with_exception_handle
+
+#define nameof(VAR) #VAR
+
+#define ASYNC_HANDLER(NAME)                                                                            \
+	[this, idLogger = userLogger.BornNewWith(GenerateRequestId())]() mutable -> Void                   \
+	{                                                                                                  \
+		auto requestLogger = idLogger.BornNewWith(nameof(NAME));                                       \
+		auto [paras, rawStr] = ReceiveFromClient<CAT(NAME, Request)::Content, true>(&requestLogger);   \
+		auto argLogger = requestLogger.BornNewWith(move(rawStr));                                      \
+		string response;                                                                               \
+		if constexpr (not is_same_v<void, decltype(_funcLibWorker->NAME(move(paras)).await_resume())>) \
+		{                                                                                              \
+			auto result = co_await _funcLibWorker->NAME(move(paras));                                  \
+			response = Json::JsonConverter::Serialize(result).ToString();                              \
+		}                                                                                              \
+		else                                                                                           \
+		{                                                                                              \
+			co_await _funcLibWorker->NAME(move(paras));                                                \
+			response = nameof(NAME) " operate succeed(or TODO null)";                                  \
+		}                                                                                              \
+		_responder->RespondTo(_peer, response);                                                        \
+		argLogger.BornNewWith(ResultStatus::Complete);                                                 \
+	}
 	};
 }

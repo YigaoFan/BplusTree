@@ -5,7 +5,7 @@
 #include <asio.hpp>
 #include "../Json/Parser.hpp"
 #include "../Json/JsonConverter/JsonConverter.hpp"
-#include "../Logger/Logger.hpp"
+#include "../Log/Logger.hpp"
 #include "BasicType.hpp"
 #include "ThreadPool.hpp"
 #include "FuncLibWorker.hpp"
@@ -93,39 +93,45 @@ namespace Server
 
 		void HandleAccept(asio::error_code const& error, Socket peer)
 		{
-			// 这只是 access log，还要有其他日志，比如处理过程日志
-#define ACCESS_LOG_FORMAT STRING("%h %u %i %t %r %a %s")
-			// client ip: XXX.XXX
-			// username:
-			// request id
-			// timestamp
-			// request function 这里可以放请求的功能: -
-			// argument
-			// request result status: 这里可以放请求结果的状态，可以自定义一些状态码
-
-			auto thisRequestLogger = _logger.GenerateSubLogger(ACCESS_LOG_FORMAT);
-#undef ACCESS_LOG_FORMAT
-
 			if (not _startAccept)
 			{
 				return;
 			}
+			// 这只是 access log，还要有其他日志，比如处理过程日志
+#define ACCESS_LOG_FORMAT STRING("%h %u %i %r %a %s")
+			// client ip: XXX.XXX
+			// username:
+			// request id
+			// request function 这里可以放请求的功能: -
+			// argument
+			// request result status: 这里可以放请求结果的状态，可以自定义一些状态码
+			// timestamp 这个要不默认吧  %t
 
+			// 可能要允许 subLogger 复制，因为同一个 connect 可能有多个 request，而且都是异步的
+			auto subLogger = _logger.GenerateSubLogger(ACCESS_LOG_FORMAT);
+#undef ACCESS_LOG_FORMAT
+
+
+
+			// 对端可能中途意外关掉
 			if (error)
 			{
-				// TODO
-				// _logger.Error();
+				// 这里可能 connect 都没建立，所以不用 connectLogger
+				subLogger.Error("Wrong connect: " + error.message());
 				return;
 			}
 			
-			_threadPool->Execute([p=make_shared<Socket>(move(peer)), this] () mutable
+			auto ipAddr = peer.remote_endpoint().address().to_string();
+			auto connectLogger = subLogger.BornNewWith(ipAddr);
+			_threadPool->Execute([this, p = make_shared<Socket>(move(peer)), conLogger = move(connectLogger)] () mutable
 			{
-				CommunicateWith(move(p));
+				CommunicateWith(move(p), move(conLogger));
 			});
 		}
 
 		// peer 是连接中对端的意思
-		void CommunicateWith(shared_ptr<Socket> peer)
+		template <typename ConnectLogger>
+		void CommunicateWith(shared_ptr<Socket> peer, ConnectLogger connectLogger)
 		{
 			array<char, 128> buff;
 			auto size = peer->receive(asio::buffer(buff));
@@ -153,7 +159,8 @@ namespace Server
 				size = peer->receive(asio::buffer(buff));
 				auto loginInfoJObj = Json::Parse({ buff.data(), size });
 				auto loginInfo = JsonConverter::Deserialize<LoginInfo>(loginInfoJObj);
-				
+
+				auto userLogger = connectLogger.BornNewWith(loginInfo.Username);
 				{
 					// search account in account info file
 				}
@@ -163,13 +170,13 @@ namespace Server
 				{
 					send("server ok. welcome admin.");
 					auto s = _adminServiceFactory(move(peer), &_responder);
-					return s.Run();
+					return s.Run(move(userLogger));
 				}
 				else
 				{
 					send("server ok");
 					auto s = _clientServiceFactory(move(peer), &_responder);
-					return s.Run();
+					return s.Run(move(userLogger));
 				}
 			}
 			catch (...)

@@ -148,4 +148,19 @@ namespace Basic
 	{
 		using Result = R;
 	};
+
+	/// below code from: 
+	// https://stackoverflow.com/questions/42175294/how-get-the-class-object-type-from-pointer-to-method
+	// 这个回答说 function type 有 48 种（主要是这个，让人惊讶），下面这样写可以直接代替这 48 个
+	template <typename T>
+	struct ClassOf;
+
+	template <typename Return, typename Class>
+	struct ClassOf<Return(Class::*)>
+	{
+		using Type = Class;
+	};
+
+	template <typename T>
+	using ClassOf_T = typename ClassOf<T>::Type;
 }
