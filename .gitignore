@@ -20,7 +20,7 @@ x86/
 bld/
 [Bb]in/
 [Oo]bj/
-[Ll]og/
+# [Ll]og/
 [Bb]uild/
 
 # Visual Studio 2015 cache/options directory
@@ -265,3 +265,5 @@ src/Btree/.DS_Store
 
 #Apple File System File
 .DS_Store
+#other project file
+include/
