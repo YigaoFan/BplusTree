@@ -53,10 +53,17 @@ namespace Log
 		using To = string;
 	};
 
+	enum class ResultStatus
+	{
+		Undefine = -1,
+		Complete,
+		Failed,
+	};
+
 	/// Request status code after process
 	template <>
 	struct FormatMap<'s'>
 	{
-		using To = int;
+		using To = ResultStatus;
 	};
 }
