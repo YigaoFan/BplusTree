@@ -8,11 +8,21 @@
 #include "FormatMap.hpp"
 #include "FormatParser.hpp"
 
+namespace std
+{
+	string to_string(string s)
+	{
+		return s;
+	}
+}
+
 namespace Log
 {
 	using Basic::FuncTraits;
 	using ::std::forward;
+	using ::std::index_sequence;
 	using ::std::is_same_v;
+	using ::std::make_index_sequence;
 	using ::std::remove_reference_t;
 	using ::std::string;
 	using ::std::stringstream;
@@ -61,7 +71,7 @@ namespace Log
 		// below with some basic info
 		void Info(string message)
 		{
-
+			// _strStream << message << std::endl;
 		}
 
 		void Warn(string message)
@@ -165,24 +175,46 @@ namespace Log
 		
 		void Info(string message)
 		{
+			auto m = GetBasicInfoLogPrefix() + ' ' + message;
+			ParentLogger->Info(move(m));
 		}
 
 		void Warn(string message)
 		{
+			auto m = GetBasicInfoLogPrefix() + ' ' + message;
+			ParentLogger->Warn(move(m));
 		}
 
 		template <typename Exception>
 		void Warn(string message, Exception const& exception)
 		{
+			auto m = GetBasicInfoLogPrefix() + ' ' + message;
+			ParentLogger->Warn(move(m), exception);
 		}
 
 		void Error(string message)
 		{
+			auto m = GetBasicInfoLogPrefix() + ' ' + message;
+			ParentLogger->Warn(move(m));
 		}
 
 		template <typename Exception>
 		void Error(string message, Exception const& exception)
 		{
+			auto m = GetBasicInfoLogPrefix() + ' ' + message;
+			ParentLogger->Warn(move(m), exception);
+		}
+
+	private:
+		string GetBasicInfoLogPrefix() const
+		{
+			auto generate = [&]<size_t... Idxs>(index_sequence<Idxs...>)
+			{
+				return (string() + ... + std::to_string(get<Idxs>(BasicInfo)));
+			};
+
+			auto idxs = make_index_sequence<tuple_size_v<CurrentBasicInfoTuple>>();
+			return generate(idxs);
 		}
 	};
 
