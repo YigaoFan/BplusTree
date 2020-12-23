@@ -174,7 +174,7 @@ namespace Log
 					}
 					catch (std::exception const& e)
 					{
-						this->ParentLogger->Error("Access terminated:", e);
+						this->ParentLogger->Error(GetBasicInfoLogPrefix() + " Access terminated:", e);
 					}
 				}
 			}
@@ -224,7 +224,7 @@ namespace Log
 			ParentLogger->Warn(move(m), exception);
 		}
 
-	private:
+	protected:
 		string GetBasicInfoLogPrefix() const
 		{
 			auto generate = [&]<size_t... Idxs>(index_sequence<Idxs...>)
