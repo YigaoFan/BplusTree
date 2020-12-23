@@ -12,6 +12,7 @@
 #include "Responder.hpp"
 #include "ClientService.hpp"
 #include "AdminService.hpp"
+#include "Util.hpp"
 
 namespace Server
 {
@@ -53,6 +54,7 @@ namespace Server
 {
 	using Log::Logger;
 	using ::std::array;
+	using ::std::exception;
 	using ::std::function;
 	using ::std::shared_ptr;
 	using namespace Json;
@@ -97,26 +99,22 @@ namespace Server
 			{
 				return;
 			}
-			// 这只是 access log，还要有其他日志，比如处理过程日志
+
 #define ACCESS_LOG_FORMAT STRING("%h %u %i %r %a %s")
-			// client ip: XXX.XXX
-			// username:
-			// request id
-			// request function 这里可以放请求的功能: -
-			// argument
-			// request result status: 这里可以放请求结果的状态，可以自定义一些状态码
+			// h: client ip
+			// u: username:
+			// i: request id
+			// r: request function 这里可以放请求的功能: -
+			// a: argument
+			// s: request result status: 这里可以放请求结果的状态，可以自定义一些状态码
 			// timestamp 这个要不默认吧  %t
 
-			// 可能要允许 subLogger 复制，因为同一个 connect 可能有多个 request，而且都是异步的
 			auto subLogger = _logger.GenerateSubLogger(ACCESS_LOG_FORMAT);
 #undef ACCESS_LOG_FORMAT
-
-
 
 			// 对端可能中途意外关掉
 			if (error)
 			{
-				// 这里可能 connect 都没建立，所以不用 connectLogger
 				subLogger.Error("Wrong connect: " + error.message());
 				return;
 			}
@@ -129,60 +127,55 @@ namespace Server
 			});
 		}
 
+	private:
 		// peer 是连接中对端的意思
 		template <typename ConnectLogger>
 		void CommunicateWith(shared_ptr<Socket> peer, ConnectLogger connectLogger)
 		{
-			array<char, 128> buff;
-			auto size = peer->receive(asio::buffer(buff));
-
 			auto send = [&](string const& message)
 			{
 				_responder.RespondTo(peer, message);
 			};
 
-			try
-			{
-				// 下面的逻辑要重整下 TODO
+			// try
+			// {
 				// 会不会有多余的空格问题？这个两端发送的时候要统一好
-				if (string_view(buff.data(), size) == "hello server")
+				auto greet = Receive<string, false, ByteProcessWay::Raw>(peer.get());
+				if (greet == "hello server")
 				{
 					send("server ok");
 				}
 				else
 				{
-					// error
+					send("wrong greeting words.");
+					return;
 				}
+			// }
+			// catch (exception const& e)
+			// {
+			// 	connectLogger.Error("Exception happened at greeting", e);
+			// 	// client 那边应该会因为这边 socket 析构而收到中断异常或信息吧 TODO 测试下
+			// 	throw e;
+			// }
 
-				auto isAdmin = false;
-				// client send username and password 鉴权
-				size = peer->receive(asio::buffer(buff));
-				auto loginInfoJObj = Json::Parse({ buff.data(), size });
-				auto loginInfo = JsonConverter::Deserialize<LoginInfo>(loginInfoJObj);
+			auto loginInfo = Receive<LoginInfo, false, ByteProcessWay::ParseThenDeserial>(peer.get());
+			// client send username and password 鉴权
+			auto isAdmin = false;
+			// search account in account info file
+			auto userLogger = connectLogger.BornNewWith(loginInfo.Username);
 
-				auto userLogger = connectLogger.BornNewWith(loginInfo.Username);
-				{
-					// search account in account info file
-				}
-
-				// 可以 DRY 这种固定的问答模式吗？
-				if (isAdmin)
-				{
-					send("server ok. welcome admin.");
-					auto s = _adminServiceFactory(move(peer), &_responder);
-					return s.Run(move(userLogger));
-				}
-				else
-				{
-					send("server ok");
-					auto s = _clientServiceFactory(move(peer), &_responder);
-					return s.Run(move(userLogger));
-				}
-			}
-			catch (...)
+			// 可以 DRY 这种固定的问答模式吗？
+			if (isAdmin)
 			{
-				// get info from exception
-				send("Exception happend");
+				send("server ok. welcome admin.");
+				auto s = _adminServiceFactory(move(peer), &_responder);
+				return s.Run(move(userLogger));
+			}
+			else
+			{
+				send("server ok. hello client.");
+				auto s = _clientServiceFactory(move(peer), &_responder);
+				return s.Run(move(userLogger));
 			}
 		}
 	};
