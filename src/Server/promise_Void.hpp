@@ -3,6 +3,7 @@
 
 namespace Server
 {
+	using ::std::experimental::coroutine_handle;
 	using ::std::experimental::suspend_never;
 
 	struct Void
@@ -23,6 +24,9 @@ namespace Server
 			// 让函数自己处理好异常
 			void unhandled_exception()
 			{
+				using coro_handle = coroutine_handle<promise_type>;
+				auto handle = coro_handle::from_promise(*this);
+				handle.destroy();
 			}
 
 			Void get_return_object()
