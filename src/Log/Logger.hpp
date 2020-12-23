@@ -33,6 +33,7 @@ namespace Log
 
 	// 分离 hpp 和 cpp
 	// 每天存档前一日的 log 文件，触发 log 操作的时候检查下，或者能设置定时回调吗？设个定时任务
+	// 要加锁吗？
 	class Logger
 	{
 	private:
@@ -160,6 +161,24 @@ namespace Log
 		using Base::Info;
 		using Base::Warn;
 		using Base::Error;
+
+		~AccessLogSubLogger()
+		{
+			if (tuple_size_v<decltype(this->BasicInfo)> < BasicInfoLimitCount)
+			{
+				if (auto ePtr = std::current_exception(); ePtr != nullptr)
+				{
+					try
+					{
+						std::rethrow_exception(ePtr);
+					}
+					catch (std::exception const& e)
+					{
+						this->ParentLogger->Error("Access terminated:", e);
+					}
+				}
+			}
+		}
 	};
 
 	template <typename CurrentBasicInfoTuple>
