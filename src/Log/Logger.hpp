@@ -47,7 +47,7 @@ namespace Log
 
 		// 用前三个作为基础 log 内容
 		template <size_t BasicInfoLimitCount, typename CurryedAccessLogger, typename CurrentBasicInfoTuple>
-		struct SubLogger;
+		struct AccessLogSubLogger;
 		template <typename CurrentBasicInfoTuple>
 		struct NonAccessLogSubLogger;
 
@@ -102,20 +102,20 @@ namespace Log
 		template <size_t BasicInfoLimitCount, typename CurryedAccessLogger, typename CurrentBasicInfoTuple>
 		static auto MakeSubLogger(CurryedAccessLogger curryedAccessLog, Logger *parentLogger, CurrentBasicInfoTuple infos)
 		{
-			return SubLogger<BasicInfoLimitCount, CurryedAccessLogger, CurrentBasicInfoTuple>(
+			return AccessLogSubLogger<BasicInfoLimitCount, CurryedAccessLogger, CurrentBasicInfoTuple>(
 				move(curryedAccessLog), move(parentLogger), move(infos));
 		}
 	};
 
 	template <size_t BasicInfoLimitCount, typename CurryedAccessLogger, typename CurrentBasicInfoTuple>
-	struct Logger::SubLogger : private NonAccessLogSubLogger<CurrentBasicInfoTuple>
+	struct Logger::AccessLogSubLogger : private NonAccessLogSubLogger<CurrentBasicInfoTuple>
 	{
 		using Base = NonAccessLogSubLogger<CurrentBasicInfoTuple>;
 		CurryedAccessLogger CurryedAccessLog;
 
 		// 这里的构造函数推导要怎么用？可以直接用吗而不完全指定类型的模板参数，可见当时委员会的人也可能比较困惑
 		// 所以后来才支持这个特性
-		SubLogger(CurryedAccessLogger curryedAccessLog, Logger *parentLogger, CurrentBasicInfoTuple infos)
+		AccessLogSubLogger(CurryedAccessLogger curryedAccessLog, Logger *parentLogger, CurrentBasicInfoTuple infos)
 			: Base(move(infos), parentLogger), CurryedAccessLog(move(curryedAccessLog))
 		{ }
 		// move constructor and set ParentLogger to nullptr
@@ -132,12 +132,12 @@ namespace Log
 				if constexpr (tuple_size_v<decltype(this->BasicInfo)> < BasicInfoLimitCount)
 				{
 					auto newBasicInfo = tuple_cat(this->BasicInfo, tuple(remove_reference_t<NextInfo>(info)));
-					return SubLogger<BasicInfoLimitCount, decltype(newerAccessLog), decltype(newBasicInfo)>{
+					return AccessLogSubLogger<BasicInfoLimitCount, decltype(newerAccessLog), decltype(newBasicInfo)>{
 						move(newerAccessLog), parent, move(newBasicInfo) };
 				}
 				else
 				{
-					return SubLogger<BasicInfoLimitCount, decltype(newerAccessLog), CurrentBasicInfoTuple>{
+					return AccessLogSubLogger<BasicInfoLimitCount, decltype(newerAccessLog), CurrentBasicInfoTuple>{
 						move(newerAccessLog), parent, move(this->BasicInfo) };
 				}
 			}
