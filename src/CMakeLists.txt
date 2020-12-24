@@ -62,3 +62,6 @@ add_executable(RPC
 
         Server/Test/ServerTest.cpp
         )
+
+add_executable(cmd
+        Cmd/Main.cpp)
