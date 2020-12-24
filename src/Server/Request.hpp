@@ -24,17 +24,20 @@ namespace Server
 	{
 		Request() = default;
 
-		Request(Request &&that) noexcept : Mutex(), CondVar(), Continuation()
+		Request(Request &&that) noexcept : Mutex(), CondVar(), Success()
 		{
 			lock_guard<mutex> guard(that.Mutex);
 			Done = that.Done;
-			Continuation = move(that.Continuation);
+			Success = move(that.Success);
+			Fail = move(that.Fail);
 		}
 
 		mutable mutex Mutex;
 		mutable condition_variable CondVar;
 		bool Done = false;
-		function<void()> Continuation;
+		// Continuation
+		function<void()> Success;
+		function<void()> Fail;
 	};
 
 	struct InvokeFuncRequest : public Request

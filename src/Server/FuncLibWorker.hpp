@@ -12,6 +12,7 @@ namespace Server
 	using FuncLib::FunctionLibrary;
 	using FuncLib::FuncType;
 	using Json::JsonObject;
+	using ::std::exception;
 	using ::std::make_unique;
 	using ::std::move;
 	using ::std::string;
@@ -35,17 +36,38 @@ namespace Server
 			return [this, request = requestPtr, task = move(specificTask)]
 			{
 				unique_lock<mutex> lock(request->Mutex);
+				struct Guard
 				{
+					decltype(request) Request;
+					decltype(lock)* Lock;
+
+					~Guard()
+					{
+						if (std::current_exception() != nullptr)
+						{
+							Request->CondVar.wait(*Lock, [=]
+							{
+								return (bool)Request->Fail;
+							});
+							Request->Fail();
+						}
+						
+						// 这里对 fail 的情况要区分下应该 TODO 和 log 里的信息能不能统一起来
+						Request->Done = true;
+					}
+				};
+
+				{
+					Guard g{ request, &lock }; // 由于 C++ 逆序析构的原则，Guard 在 lock_guard 之先比较好
 					lock_guard<mutex> libGuard(this->_funcLibMutex);
 					task(request);
 				}
 
 				request->CondVar.wait(lock, [=]
 				{
-					return (bool)request->Continuation;
+					return (bool)request->Success;
 				});
-				request->Continuation();
-				request->Done = true;
+				request->Success();
 			};
 		}
 
@@ -79,12 +101,19 @@ namespace Server
 				{
 					lock_guard<mutex> lock(RequestPtr->Mutex);
 
-					RequestPtr->Continuation = [=]() mutable
+					RequestPtr->Success = [=]() mutable
 					{
 						handle.resume();
 						// outside co_routine should without final suspend, so the
 						// resource can be free？
-						// handle.destroy(); 看文章说要不要
+						// handle.destroy(); 看文章说要不要，以及异常情况下这个 handle 怎么释放
+					};
+
+					RequestPtr->Fail = [promise = &handle.promise()]
+					{
+						// 这里调用的时候，异常已被 catch，这个异常算 current_exception 吗？ TODO
+						// 看一下协程里的下面这个函数是在什么情况下调用的，看会不会影响 current_exception 的效果
+						promise->unhandled_exception();
 					};
 				}
 

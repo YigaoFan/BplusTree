@@ -174,7 +174,7 @@ namespace Log
 					}
 					catch (std::exception const& e)
 					{
-						this->ParentLogger->Error(GetBasicInfoLogPrefix() + " Access terminated:", e);
+						this->ParentLogger->Error(this->GetBasicInfoLogPrefix() + " Access terminated:", e);
 					}
 				}
 			}
