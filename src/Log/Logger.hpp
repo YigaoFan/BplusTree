@@ -1,7 +1,9 @@
 #pragma once
 #include <tuple>
+#include <chrono>
 #include <string>
 #include <sstream>
+#include <string_view>
 #include <type_traits>
 #include "../Basic/TypeTrait.hpp"
 #include "Curry.hpp"
@@ -14,6 +16,23 @@ namespace std
 	{
 		return s;
 	}
+
+	string to_string(Log::ResultStatus s)
+	{
+#define nameof(VAR) #VAR
+		switch (s)
+		{
+		case Log::ResultStatus::Complete:
+			return nameof(Complete);
+		
+		case Log::ResultStatus::Failed:
+			return nameof(Failed);
+
+		case Log::ResultStatus::Undefine:
+			return nameof(Undefine);
+		}
+#undef nameof
+	}
 }
 
 namespace Log
@@ -25,6 +44,7 @@ namespace Log
 	using ::std::make_index_sequence;
 	using ::std::remove_reference_t;
 	using ::std::string;
+	using ::std::string_view;
 	using ::std::stringstream;
 	using ::std::tie;
 	using ::std::tuple;
@@ -34,6 +54,7 @@ namespace Log
 	// 分离 hpp 和 cpp
 	// 每天存档前一日的 log 文件，触发 log 操作的时候检查下，或者能设置定时回调吗？设个定时任务
 	// 要加锁吗？
+	// 加时间戳
 	class Logger
 	{
 	private:
@@ -55,7 +76,7 @@ namespace Log
 		template <typename... Infos>
 		void WriteAccessLog(Infos... infos)
 		{
-			// TODO
+			WriteLine(move(std::to_string(infos))...);
 		}
 
 		template <char... FormatChars>
@@ -69,27 +90,26 @@ namespace Log
 			return MakeSubLogger<basicInfoLimitCount>(GetCurryedAccessLog(typeList, idxs), this, tuple());
 		}
 		
-		// below with some basic info
 		void Info(string message)
 		{
-			// _strStream << message << std::endl;
+			WriteLine(message);
 		}
 
 		void Warn(string message)
 		{
-
+			WriteLine(message);
 		}
 
 		template <typename Exception>
 		void Warn(string message, Exception const& exception)
 		{
-
+			WriteLine(message, exception.what());
 		}
 
 		template <typename Exception>
 		void Error(string message, Exception const& exception)
 		{
-			
+			WriteLine(message, exception.what());
 		}
 	
 	private:
@@ -105,6 +125,29 @@ namespace Log
 		{
 			return AccessLogSubLogger<BasicInfoLimitCount, CurryedAccessLogger, CurrentBasicInfoTuple>(
 				move(curryedAccessLog), move(parentLogger), move(infos));
+		}
+
+		/// Message is the type which is supported by stringstream operator<<
+		template <bool InnerCall = false, typename Message, typename... Messages>
+		void WriteLine(Message message, Messages... messages)
+		{
+			if constexpr (not InnerCall)
+			{
+				auto now = std::chrono::system_clock::now();
+				auto clock = std::chrono::system_clock::to_time_t(now);
+				_strStream << std::put_time(std::localtime(&clock), "%F %T") << ' ';
+			}
+
+			_strStream << message;
+			if constexpr (sizeof... (messages) > 0)
+			{
+				_strStream << ' ';
+				WriteLine<true>(forward<Messages>(messages)...);
+			}
+			else
+			{
+				_strStream << std::endl;
+			}
 		}
 	};
 
