@@ -54,7 +54,6 @@ namespace Log
 	// 分离 hpp 和 cpp
 	// 每天存档前一日的 log 文件，触发 log 操作的时候检查下，或者能设置定时回调吗？设个定时任务
 	// 要加锁吗？
-	// 加时间戳
 	class Logger
 	{
 	private:
@@ -67,7 +66,6 @@ namespace Log
 
 		}
 
-		// 用前三个作为基础 log 内容
 		template <size_t BasicInfoLimitCount, typename CurryedAccessLogger, typename CurrentBasicInfoTuple>
 		struct AccessLogSubLogger;
 		template <typename CurrentBasicInfoTuple>
@@ -86,6 +84,7 @@ namespace Log
 			using TypeList = decltype(typeList);
 			constexpr int size = Length<TypeList>::Result;
 			auto idxs = make_index_sequence<size>();
+			// 用前三个作为基础 log 内容
 			constexpr size_t basicInfoLimitCount = 3;
 			return MakeSubLogger<basicInfoLimitCount>(GetCurryedAccessLog(typeList, idxs), this, tuple());
 		}
@@ -162,7 +161,6 @@ namespace Log
 		AccessLogSubLogger(CurryedAccessLogger curryedAccessLog, Logger *parentLogger, CurrentBasicInfoTuple infos)
 			: Base(move(infos), parentLogger), CurryedAccessLog(move(curryedAccessLog))
 		{ }
-		// move constructor and set ParentLogger to nullptr
 
 		using NextInfo = typename FuncTraits<decltype(&CurryedAccessLogger::operator())>::template Arg<0>::Type;
 		auto BornNewWith(NextInfo info)
@@ -227,7 +225,7 @@ namespace Log
 	template <typename CurrentBasicInfoTuple>
 	struct Logger::NonAccessLogSubLogger
 	{
-		CurrentBasicInfoTuple BasicInfo; // 作为后来 log 的前缀
+		CurrentBasicInfoTuple BasicInfo;
 		Logger* ParentLogger;
 
 		// 原来构造函数的类模板参数推导可以这样用，结合调用的地方一起看
