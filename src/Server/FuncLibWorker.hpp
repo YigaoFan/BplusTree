@@ -1,5 +1,4 @@
 #pragma once
-#include <string>
 #include <memory>
 #include "Request.hpp"
 #include "ThreadPool.hpp"
@@ -8,14 +7,9 @@
 
 namespace Server
 {
-	using FuncLib::FuncDefTokenReader;
 	using FuncLib::FunctionLibrary;
-	using FuncLib::FuncType;
-	using Json::JsonObject;
-	using ::std::exception;
 	using ::std::make_unique;
 	using ::std::move;
-	using ::std::string;
 
 	class FuncLibWorker
 	{
