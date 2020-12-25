@@ -4,9 +4,10 @@
 #include <string>
 #include <functional>
 #include <condition_variable>
+#include "../Json/Json.hpp"
 #include "../FuncLib/Compile/FuncType.hpp"
 #include "../FuncLib/Compile/FuncDefTokenReader.hpp"
-#include "../Json/Json.hpp"
+#include "../Json/JsonConverter/JsonConverter.hpp"
 
 namespace Server
 {
@@ -111,6 +112,8 @@ namespace Json::JsonConverter
 #define nameof(VAR) #VAR
 	// Serialize 和 Deserialize 里的 item 名字需要一样
 
+
+	///---------- FuncType ----------
 	template <>
 	JsonObject Serialize(FuncType const &type)
 	{
