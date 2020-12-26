@@ -14,6 +14,7 @@ namespace Server
 	using ::std::string_view;
 	using ::std::vector;
 
+	// 这里的代码应该可以简化 TODO
 #define nameof(VAR) #VAR
 	/// Get admin command names
 	constexpr vector<string> GetCmdsName()
