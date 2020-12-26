@@ -182,7 +182,7 @@ namespace Server
 			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
 			{
 				auto& paras = request->Paras;
-				_funcLib.ModifyPackageOf(paras.Func, paras.Package);
+				_funcLib.ModifyPackageOf(paras.Func, paras.NewPackage);
 			}));
 
 			return { requestPtr };
