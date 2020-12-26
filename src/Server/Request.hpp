@@ -2,6 +2,7 @@
 #include <mutex>
 #include <vector>
 #include <string>
+#include <utility>
 #include <functional>
 #include <condition_variable>
 #include "../Json/Json.hpp"
@@ -18,6 +19,7 @@ namespace Server
 	using ::std::function;
 	using ::std::lock_guard;
 	using ::std::mutex;
+	using ::std::pair;
 	using ::std::string;
 	using ::std::vector;
 
@@ -92,7 +94,7 @@ namespace Server
 		struct Content
 		{
 			FuncType Func;
-			vector<string> Package;
+			vector<string> NewPackage;
 		};
 
 		Content Paras;
@@ -224,10 +226,10 @@ namespace Json::JsonConverter
 	template <>
 	JsonObject Serialize(ModifyFuncPackageRequest::Content const& content)
 	{
-		auto [func, package] = content;
+		auto [func, newPackage] = content;
 		JsonObject::_Object obj;
 		obj.insert({ nameof(func), Serialize(func) });
-		obj.insert({ nameof(package), Serialize(package) });
+		obj.insert({ nameof(newPackage), Serialize(newPackage) });
 
 		return JsonObject(move(obj));
 	}
@@ -236,9 +238,9 @@ namespace Json::JsonConverter
 	ModifyFuncPackageRequest::Content Deserialize(JsonObject const& jsonObj)
 	{
 		auto func = Deserialize<FuncType>(jsonObj[nameof(func)]);
-		auto package = Deserialize<vector<string>>(jsonObj[nameof(package)]);
-		
-		return { move(func), move(package) };
+		auto newPackage = Deserialize<vector<string>>(jsonObj[nameof(newPackage)]);
+
+		return { move(func), move(newPackage) };
 	}
 #undef nameof
 }
