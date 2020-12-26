@@ -2,21 +2,20 @@
 #include <array>
 #include <vector>
 #include <string>
-#include <fstream>
-#include <filesystem>
-#include "StringMatcher.hpp"
 #include <asio.hpp>
+#include "StringMatcher.hpp"
+#include "../Server/CmdMetadata.hpp"
 
 namespace Cmd
 {
+	using Server::GetCmdsName;
 	using ::std::array;
-	using ::std::ifstream;
 	using ::std::move;
 	using ::std::string;
 	using ::std::vector;
-	using ::std::filesystem::path;
 	using Socket = asio::ip::tcp::socket;
 
+	// 运行命令，出异常了不要让程序停止，其他情况异常要抛出去
 	class Cmder
 	{
 	private:
@@ -24,34 +23,9 @@ namespace Cmd
 		Socket _socket;
 
 	public:
-		static Cmder NewFrom(path const& cmdFilename, Socket connectedSocket)
+		static Cmder NewFrom(Socket connectedSocket)
 		{
-			using ::std::find_if_not;
-			using ::std::isspace;
-
-			ifstream fs(cmdFilename, ifstream::in);
-			vector<string> cmds;
-
-			string line;
-			while (std::getline(fs, line))
-			{
-				// # 为注释符号
-				if (not line.starts_with('#'))
-				{
-					// trim from start and end
-					line.erase(line.begin(), find_if_not(line.begin(), line.end(), [](char c)
-					{
-						return isspace(c);
-					}));
-					line.erase(find_if_not(line.rbegin(), line.rend(), [](char c)
-					{
-						return isspace(c);
-					}).base(), line.end());
-
-					cmds.push_back(move(line));
-				}
-			}
-
+			vector<string> cmds = GetCmdsName();
 			return Cmder(StringMatcher(move(cmds)), move(connectedSocket));
 		}
 
