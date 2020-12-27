@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <utility>
+#include <functional>
 #include <string_view>
 #include "Request.hpp"
 
@@ -13,8 +15,10 @@ namespace Server
 	using ::std::array;
 	using ::std::find_if_not;
 	using ::std::forward;
+	using ::std::function;
 	using ::std::isspace;
 	using ::std::move;
+	using ::std::pair;
 	using ::std::string;
 	using ::std::string_view;
 	using ::std::tuple;
@@ -74,51 +78,59 @@ namespace Server
 		return TrimStart(RemoveFirst(cmdName, TrimEnd(TrimStart(inputCmd))));
 	}
 
+	/// 调用者要保证 divider 确在，否则会抛异常
+	template <bool IsTrimRemainStart>
+	pair<string_view, string_view> ParseOut(string_view s, string_view divider)
+	{
+		auto dividerPos = s.find_first_of(divider);
+		auto content = s.substr(0, dividerPos);
+		auto remain = s.substr(dividerPos + divider.size());
+		if constexpr (IsTrimRemainStart)
+		{
+			remain = TrimStart(remain);
+		}
+		
+		return { content, remain };
+	}
+
 	/// Package divided with '.'
 	vector<string> GetPackageFrom(string_view packageInfo)
 	{
-		auto pointPos = packageInfo.find_first_of('.');
-		auto package = packageInfo.substr(0, pointPos);
-		auto remainPackage = GetPackageFrom(packageInfo.substr(pointPos + 1));
+		auto [package, remain] = ParseOut<true>(packageInfo, ".");
+		auto remainPackage = GetPackageFrom(remain);
 		remainPackage.insert(remainPackage.begin(), string(package));
 		return remainPackage;
 	}
 
 	// A.B::void A(argT1, argT2)
-	// TODO 简化下面的代码
 	FuncType GetFuncTypeFrom(string_view funcInfo)
 	{
-		auto dividerPos = funcInfo.find_first_of("::");
-		auto package = GetPackageFrom(funcInfo.substr(0, dividerPos));
-		auto remain = TrimStart(funcInfo.substr(dividerPos + 2)); // 可能 + 2 位置不对
+		auto [packageInfo, remain0] = ParseOut<true>(funcInfo, "::");
+		auto package = GetPackageFrom(packageInfo);
 
-		dividerPos = remain.find_first_of(' ');
-		auto returnType = string(remain.substr(0, dividerPos));
-		remain = TrimStart(remain.substr(dividerPos + 1));
+		auto [returnType, remain1] = ParseOut<true>(remain0, " ");
 
-		auto leftParenthesePos = remain.find_first_of('(');
-		auto rightParenthesePos = remain.find_first_of(')');
-		auto funcName = string(TrimEnd(remain.substr(0, leftParenthesePos)));
-		auto argTypeInfo = TrimEnd(TrimStart(remain.substr(leftParenthesePos + 1, rightParenthesePos)));
+		auto [funcName, remain2] = ParseOut<true>(remain1, "(");
+		funcName = TrimEnd(funcName);
 
-		vector<string> argTypes;
-		while (true)
+		auto [argTypeInfo, remain3] = ParseOut<true>(remain2, ")");
+		function<vector<string>(string_view)> GetArgTypesFrom = [&](string_view s) -> vector<string>
 		{
-			dividerPos = argTypeInfo.find_first_of(',');
-			if (dividerPos == string_view::npos)
-			{
-				break;
-			}
-			else
-			{
-				auto t = string(argTypeInfo.substr(0, dividerPos));
-				argTypes.push_back(move(t));
+			if (s.empty()) { return {}; }
 
-				argTypeInfo = TrimStart(argTypeInfo.substr(dividerPos + 1));
+			auto [type, remain] = ParseOut<true>(s, ",");
+			if (remain.empty())
+			{
+				return vector<string>{ string(type), };
 			}
-		}
 
-		return FuncType(move(returnType), move(funcName), move(argTypes), move(package));
+			auto remainTypes = GetArgTypesFrom(remain);
+			remainTypes.insert(remainTypes.begin(), string(type));
+			return remainTypes;
+		};
+		vector<string> argTypes = GetArgTypesFrom(argTypeInfo);
+
+		return FuncType(move(string(returnType)), move(string(funcName)), move(argTypes), move(package));
 	}
 
 	struct AddFuncCmd
@@ -128,8 +140,14 @@ namespace Server
 			using ::std::ifstream;
 			using ::std::istreambuf_iterator;
 			ifstream fs(filename, ifstream::in);
+			fs.seekg(0, ifstream::end);
+			auto n = fs.tellg();
+			string def;
+			def.resize(n);
+			fs.seekg(0); // restore read position
+			fs.read(def.data(), n);
 
-			return string(istreambuf_iterator<char>(fs), istreambuf_iterator<char>());
+			return def;
 		}
 
 		string GetSummaryFrom(string_view summaryPartOfCmd)
@@ -139,15 +157,8 @@ namespace Server
 
 		tuple<string_view, string_view, string_view> DivideInfo(string_view cmd)
 		{
-			auto dividerPos = cmd.find_first_of(' ');
-			auto packagePart = cmd.substr(0, dividerPos);
-			cmd = TrimStart(cmd.substr(dividerPos + 1));
-
-			dividerPos = cmd.find_first_of(' ');
-			auto filename = cmd.substr(0, dividerPos);
-			cmd = TrimStart(cmd.substr(dividerPos + 1));
-
-			auto summaryPart = cmd.substr(0, cmd.find_first_of(' '));
+			auto [packagePart, remain] = ParseOut<true>(cmd, " ");
+			auto [filename, summaryPart] = ParseOut<true>(remain, " ");
 
 			return { packagePart, filename, summaryPart };
 		}
@@ -192,6 +203,7 @@ namespace Server
 	{
 		tuple<string_view, string_view> DivideInfo(string_view cmd)
 		{
+			// 注意这里是 last_of
 			auto dividerPos = cmd.find_last_of(' ');
 			auto funcInfo = TrimEnd(cmd.substr(0, dividerPos));
 			auto newPackageInfo = cmd.substr(dividerPos + 1);
