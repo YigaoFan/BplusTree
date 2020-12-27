@@ -117,11 +117,8 @@ namespace FuncLib::Compile
 		binReader.clear();
 		binReader.seekg(0, ifstream::beg);
 
-		vector<char> bytes;
-		bytes.reserve(size);
-		bytes.insert(bytes.begin(),
-					 std::istream_iterator<char>(binReader),
-					 std::istream_iterator<char>());
+		vector<char> bytes(size);
+		binReader.read(reinterpret_cast<char*>(bytes.data()), size);
 
 		return bytes;
 	}

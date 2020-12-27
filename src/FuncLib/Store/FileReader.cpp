@@ -17,10 +17,7 @@ namespace FuncLib::Store
 
 		if (fs.is_open())
 		{
-			for (auto i = 0; i < size; ++i)
-			{
-				mem.push_back(static_cast<byte>(fs.get()));
-			}
+			fs.read(reinterpret_cast<char*>(mem.data()), size);
 		}
 
 		return mem;
