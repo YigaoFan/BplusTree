@@ -1,10 +1,10 @@
 #pragma once
-#include <array>
 #include <tuple>
 #include <vector>
 #include <string>
 #include <fstream>
 #include <utility>
+#include <stdexcept>
 #include <functional>
 #include <string_view>
 #include "Request.hpp"
@@ -12,10 +12,10 @@
 namespace Server
 {
 	using FuncLib::Compile::FuncType;
-	using ::std::array;
 	using ::std::find_if_not;
 	using ::std::forward;
 	using ::std::function;
+	using ::std::invalid_argument;
 	using ::std::isspace;
 	using ::std::move;
 	using ::std::pair;
@@ -133,8 +133,9 @@ namespace Server
 		return FuncType(move(string(returnType)), move(string(funcName)), move(argTypes), move(package));
 	}
 
-	struct AddFuncCmd
+	class AddFuncCmd
 	{
+	private:
 		string GetFuncsDefFrom(string_view filename)
 		{
 			using ::std::ifstream;
@@ -163,7 +164,7 @@ namespace Server
 			return { packagePart, filename, summaryPart };
 		}
 
-
+	public:
 		/// Process command to the content be sent to server
 		string Process(string cmd)
 		{
@@ -199,8 +200,9 @@ namespace Server
 	};
 
 	// Sample: ModifyFuncPackage A.B::void A(argT1, argT2) C.D
-	struct ModifyFuncPackageCmd
+	class ModifyFuncPackageCmd
 	{
+	private:
 		tuple<string_view, string_view> DivideInfo(string_view cmd)
 		{
 			// 注意这里是 last_of
@@ -211,6 +213,7 @@ namespace Server
 			return { funcInfo, newPackageInfo };
 		}
 
+	public:
 		string Process(string cmd)
 		{
 			auto [funcInfo, newPackageInfo] = DivideInfo(Preprocess(nameof(ModifyFuncPackage), cmd));
@@ -221,5 +224,27 @@ namespace Server
 			return Serial(CombineTo<ModifyFuncPackageRequest::Content>(move(func), move(newPackage)));
 		}
 	};
+
+	constexpr unsigned int StrToInt(char const* str, int h = 0)
+	{
+		return !str[h] ? 5381 : (StrToInt(str, h + 1) * 33) ^ str[h];
+	}
+
+	string GenerateSendBytes(string cmd)
+	{
+		auto [cmdName, unused] = ParseOut<false>(cmd, " ");
+		switch (StrToInt(cmd.c_str()))
+		{
+#define CASE_OF(NAME) case StrToInt(nameof(NAME)): return NAME##Cmd().Process(cmd)
+
+		CASE_OF(AddFunc);
+		CASE_OF(RemoveFunc);
+		CASE_OF(SearchFunc);
+		CASE_OF(ModifyFuncPackage);
+		default: throw invalid_argument(string("No handler of ") + cmd);
+
+#undef CASE_OF
+		}
+	}
 #undef nameof
 }

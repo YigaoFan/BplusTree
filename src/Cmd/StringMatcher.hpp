@@ -21,9 +21,37 @@ namespace Cmd
 		StringMatcher(vector<string> candidates) : _candidates(move(candidates))
 		{ }
 
+		// 为什么 Re 和 AddFunc 相近？，因为字符长度？如果是的话，要改下算法
+		// 还有这里也要测试
+
 		/// 应该是有可能返回空字符串的
-		vector<string> Match(string keyword)
+		vector<string> Match(string_view keyword)
 		{
+			using ::std::toupper;
+
+			if (keyword.empty())
+			{
+				return _candidates;
+			}
+
+			for (auto& c : _candidates)
+			{
+				if (c.starts_with(keyword))
+				{
+					return { string(c) };
+				}
+				else
+				{
+					auto upperVerKeyword = string(keyword);
+					upperVerKeyword[0] = toupper(upperVerKeyword[0]);
+					if (c.starts_with(upperVerKeyword))
+					{
+						return { string(c) };
+					}
+				}
+			}
+
+			// edit distance below
 			// 先考虑只有一个最小的情况，之后才考虑有多个的情况
 			int minDistance = INT_MAX;
 			int idxOfMinDistance = -1;

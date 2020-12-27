@@ -3,15 +3,18 @@
 #include <vector>
 #include <string>
 #include <asio.hpp>
+#include <string_view>
 #include "StringMatcher.hpp"
 #include "../Server/CmdMetadata.hpp"
 
 namespace Cmd
 {
+	using Server::GenerateSendBytes;
 	using Server::GetCmdsName;
 	using ::std::array;
 	using ::std::move;
 	using ::std::string;
+	using ::std::string_view;
 	using ::std::vector;
 	using Socket = asio::ip::tcp::socket;
 
@@ -32,24 +35,23 @@ namespace Cmd
 		Cmder(StringMatcher cmdMatcher, Socket connectedSocket)
 			: _cmdMatcher(move(cmdMatcher)), _socket(move(connectedSocket))
 		{ }
-
-		/// return is multiple lines
-		vector<string> Run(string cmd)
+		
+		/// return maybe multiple lines
+		string Run(string cmd)
 		{
 			// 这里可以从哪获取一点被调用接口的信息然后进行提示和检查
 			// 使用一些代码去生成
-			// process and dispatch cmd to different type struct then serialize to invokeInfo
-			string invokeInfo;
-			_socket.send(asio::buffer(invokeInfo));
+			string bytes = GenerateSendBytes(cmd);
+			_socket.send(asio::buffer(bytes));
 
 			array<char, 1024> buff;
 			auto n = _socket.receive(asio::buffer(buff));//如何设置 block 的时限呢？
-			auto output = string_view(buff.data(), n);
-			return { string(output) };
+			auto output = string(buff.data(), n);
+			return output;
 		}
 
 		/// return is multiple options
-		vector<string> Complete(string partKeyword)
+		vector<string> Complete(string_view partKeyword)
 		{
 			return _cmdMatcher.Match(partKeyword);
 		}
