@@ -70,7 +70,7 @@ namespace Cmd
 				_currentCmdLine.insert(_currentCmdLine.length() + _colOffset, 1, c);
 				for (auto& x : _actions)
 				{
-					if (_currentCmdLine.substr(0, _currentCmdLine.length() + _colOffset).ends_with(x.first))
+					if (string_view(_currentCmdLine).substr(0, _currentCmdLine.length() + _colOffset).ends_with(x.first))
 					{
 						auto eraseLen = x.first.length();
 						_currentCmdLine.erase(_currentCmdLine.length() + _colOffset - eraseLen, eraseLen);
