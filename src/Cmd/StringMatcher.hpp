@@ -34,11 +34,13 @@ namespace Cmd
 				return _candidates;
 			}
 
+			vector<string> matcheds;
+
 			for (auto& c : _candidates)
 			{
 				if (c.starts_with(keyword))
 				{
-					return { string(c) };
+					matcheds.push_back(string(c));
 				}
 				else
 				{
@@ -46,13 +48,19 @@ namespace Cmd
 					upperVerKeyword[0] = toupper(upperVerKeyword[0]);
 					if (c.starts_with(upperVerKeyword))
 					{
-						return { string(c) };
+						matcheds.push_back(string(c));
 					}
 				}
 			}
 
+			if (not matcheds.empty())
+			{
+				return matcheds;
+			}
+
 			// edit distance below
-			// 先考虑只有一个最小的情况，之后才考虑有多个的情况
+			// 选取多个的情况 TODO
+			// 开头应该占有相当大的比重
 			int minDistance = INT_MAX;
 			int idxOfMinDistance = -1;
 
