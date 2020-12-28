@@ -75,6 +75,6 @@ namespace Collections
 			template <typename... Ts>
 			using Type = unique_ptr<Ts...>;
 		};
-		};
+	};
 	
 }
