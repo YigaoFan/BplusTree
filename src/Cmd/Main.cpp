@@ -4,7 +4,7 @@
 #if IS_WINDOWS
 #include "Main_Win.hpp"
 #elif IS_UNIX
-#include "Main_Unix.hpp"
+#include "Main_macOS.hpp"
 #else
 #error No support platform
 #endif

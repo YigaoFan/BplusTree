@@ -20,9 +20,9 @@ namespace Cmd
 		string _title;
 		string _currentCmdLine;
 		string _hintLine;
+		int _colOffset = 0; // 相对于行尾来说的
 		// keyword,          add to history,     current cmd line, hint line
-		map<string, function<void(function<void(string)>, string*, string*)>> _actions;
-
+		map<string, function<void(function<void(string)>, string*, string*, int*)>> _actions;
 	public:
 		CmdUI(string title) : _title(move(title))
 		{
@@ -37,7 +37,7 @@ namespace Cmd
 			_terminated = false;
 		}
 
-		void RegisterAction(string key, function<void(function<void(string)>, string*, string*)> callback)
+		void RegisterAction(string key, function<void(function<void(string)>, string*, string*, int*)> callback)
 		{
 			_actions.insert({ move(key), move(callback) });
 		}
@@ -60,18 +60,22 @@ namespace Cmd
 			{
 
 			};
+
 			if (_actions.contains(key))
 			{
-				_actions[key](addToHistory, &_currentCmdLine, &_hintLine);
+				_actions[key](addToHistory, &_currentCmdLine, &_hintLine, &_colOffset);
 			}
 			else
 			{
-				_currentCmdLine.push_back(c);
+				_currentCmdLine.insert(_currentCmdLine.length() + _colOffset, 1, c);
 				for (auto& x : _actions)
 				{
-					if (_currentCmdLine.ends_with(x.first))
+					if (_currentCmdLine.substr(0, _currentCmdLine.length() + _colOffset).ends_with(x.first))
 					{
-						_actions[key](addToHistory, &_currentCmdLine, &_hintLine);
+						auto eraseLen = x.first.length();
+						_currentCmdLine.erase(_currentCmdLine.length() + _colOffset - eraseLen, eraseLen);
+						x.second(addToHistory, &_currentCmdLine, &_hintLine, &_colOffset);
+						break;
 					}
 				}
 			}
@@ -115,7 +119,18 @@ namespace Cmd
 			// Draw hint
 			wmove(stdscr, row + 1, 0);
 			printw("%s\n", _hintLine.c_str());
-			wmove(stdscr, r, c);
+			// printw("debug %d\n", _colOffset);
+
+			if (_colOffset < -static_cast<int>(_currentCmdLine.length()))
+			{
+				_colOffset = -_currentCmdLine.length();
+			}
+			else if (_colOffset > 0)
+			{
+				_colOffset = 0;
+			}
+			
+			wmove(stdscr, r, c + _colOffset);
 		}
 	};
 }
