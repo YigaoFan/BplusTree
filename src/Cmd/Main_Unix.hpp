@@ -14,6 +14,9 @@ int UI_Main()
 	using ::std::string;
 	using ::std::string_view;
 
+	// printf("r: %d", '\r');
+	// return 0;
+
 	asio::io_context io;
 	// tcp::resolver resolver(io);
 	// auto endPoints = resolver.resolve("localhost", "daytime");
@@ -23,6 +26,14 @@ int UI_Main()
 
 	auto cmd = Cmder::NewFrom(move(socket));
 	initscr();
+	struct Finalizer
+	{
+		~Finalizer()
+		{
+			endwin();
+		}
+	};
+	Finalizer f;
 
 	{
 		int row, col;
@@ -66,7 +77,7 @@ int UI_Main()
 				{
 					printw("%s ", op.c_str());
 				}
-				addstr("\n");
+				addstr("\n"); // 待测试：这个好像有假清行的功能，比如一行原来有字符，但你在第一个字符写\n，后面好像就不显示了
 				wmove(stdscr, row, col);
 
 				break;
@@ -79,15 +90,23 @@ int UI_Main()
 			addstr(">>");
 			addstr(currentCmdLine.c_str());
 			break;
+		case 10: // Enter key on Mac
+			if (currentCmdLine == "exit")
+			{
+				return 0;
+			}
+			else
+			{
+				// run cmd
+			}
+			break;
 
 		default:
 			currentCmdLine.push_back(c);
 			addch(c); // 这个用法是正确的吗
-			// printw("%d", c);
+			printw("num: %d ", c);
 		}
 		
 		// refresh(); 好像不用
 	}
-
-	endwin();
 }
