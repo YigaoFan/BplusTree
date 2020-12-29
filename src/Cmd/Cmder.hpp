@@ -29,6 +29,7 @@ namespace Cmd
 		static Cmder NewFrom(Socket connectedSocket)
 		{
 			vector<string> cmds = GetCmdsName();
+			cmds.push_back("exit"); // 这里稍有点不好，或许可以提供给外部注册进来
 			return Cmder(StringMatcher(move(cmds)), move(connectedSocket));
 		}
 

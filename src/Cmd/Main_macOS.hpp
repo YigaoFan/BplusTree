@@ -31,7 +31,8 @@ int UI_Main()
 	ui.RegisterAction("\t", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr)
 	{
 		// 只需要看光标之前的部分
-		auto searchRange = string_view(*currentCmdLine).substr(0, currentCmdLine->length() + *colOffsetPtr);
+		auto offset = *colOffsetPtr;
+		auto searchRange = string_view(*currentCmdLine).substr(0, currentCmdLine->length() + offset);
 		auto lastWordPos = searchRange.find_last_of(' ');
 		string_view lastWord;
 		if (lastWordPos == string::npos)
@@ -43,13 +44,22 @@ int UI_Main()
 			lastWord = searchRange.substr(lastWordPos + 1);
 		}
 
-		auto opts = cmd.Complete(lastWord);
 		hintLine->clear();
-
-		for (auto& op : opts)
+		auto opts = cmd.Complete(lastWord);
+		if (opts.size() == 1)
 		{
-			hintLine->append(move(op));
-			hintLine->push_back(' ');
+			// 这些字符串操作还是太麻烦了，看怎么简化下 TODO
+			auto eraseLen = lastWord.length();
+			currentCmdLine->erase(currentCmdLine->length() + offset - eraseLen, eraseLen);
+			currentCmdLine->insert(currentCmdLine->length() + offset, opts[0]);
+		}
+		else
+		{
+			for (auto& op : opts)
+			{
+				hintLine->append(move(op));
+				hintLine->push_back(' ');
+			}
 		}
 	});
 

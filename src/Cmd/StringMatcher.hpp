@@ -53,37 +53,34 @@ namespace Cmd
 				}
 			}
 
-			if (not matcheds.empty())
-			{
-				return matcheds;
-			}
+			return matcheds;
 
 			// edit distance below
 			// 选取多个的情况 TODO
 			// 开头应该占有相当大的比重
-			int minDistance = INT_MAX;
-			int idxOfMinDistance = -1;
+			// int minDistance = INT_MAX;
+			// int idxOfMinDistance = -1;
 
-			for (auto i = 0; auto& c : _candidates)
-			{
-				auto d = ComputeEditDistance(c, keyword);
-				if (d < minDistance)
-				{
-					minDistance = d;
-					idxOfMinDistance = i;
-				}
+			// for (auto i = 0; auto& c : _candidates)
+			// {
+			// 	auto d = ComputeEditDistance(c, keyword);
+			// 	if (d < minDistance)
+			// 	{
+			// 		minDistance = d;
+			// 		idxOfMinDistance = i;
+			// 	}
 
-				++i;
-			}
+			// 	++i;
+			// }
 
-			if (idxOfMinDistance == -1)
-			{
-				return {};
-			}
-			else
-			{
-				return { _candidates[idxOfMinDistance] };
-			}
+			// if (idxOfMinDistance == -1)
+			// {
+			// 	return {};
+			// }
+			// else
+			// {
+			// 	return { _candidates[idxOfMinDistance] };
+			// }
 		}
 
 	private:
