@@ -25,10 +25,10 @@ int UI_Main()
 
 	auto cmd = Cmder::NewFrom(move(socket));
 
-	auto title = "Welcome to use Fan's cmd to control server";
+	auto title = "Welcome to use Fan's cmd to control server(Press Up key can view history)";
 	auto ui = CmdUI(title);
 	ui.Init();
-	ui.RegisterAction("\t", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr)
+	ui.RegisterAction("\t", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
 	{
 		// 只需要看光标之前的部分
 		auto offset = *colOffsetPtr;
@@ -50,6 +50,8 @@ int UI_Main()
 		{
 			// 这些字符串操作还是太麻烦了，看怎么简化下 TODO
 			auto eraseLen = lastWord.length();
+			// 下面这个怎么运作的，因为长度发生了变化
+			// 因为光标相对行尾的 offset 是对的，所以插入进去也对了
 			currentCmdLine->erase(currentCmdLine->length() + offset - eraseLen, eraseLen);
 			currentCmdLine->insert(currentCmdLine->length() + offset, opts[0]);
 		}
@@ -64,24 +66,37 @@ int UI_Main()
 	});
 
 	// Enter key on Mac
-	ui.RegisterAction("\x0a", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr)
+	ui.RegisterAction("\x0a", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
 	{
-		if (*currentCmdLine == "exit")
+		auto& cmd = *currentCmdLine;
+
+		if (cmd.empty())
+		{
+			return;
+		}
+
+		if (cmd == "exit")
 		{
 			ui.TerminateOnNextRun(); // 改名，running 也改名
 		}
 		else
 		{
-			return;
-			auto result = cmd.Run(*currentCmdLine);
-			addToHistory(result);
+			addToHistory(string(">> ") + cmd);
 			currentCmdLine->clear();
 			hintLine->clear();
+			// upArrowCallback(addToHistory, currentCmdLine, hintLine, colOffsetPtr, startShowLineNumPtr);
+			++*startShowLineNumPtr;
+
+			return;
+			// auto result = cmd.Run(*currentCmdLine);
+			// addToHistory(result);
+			// currentCmdLine->clear();
+			// hintLine->clear();
 		}
 	});
 
 	// Delete key on Mac
-	ui.RegisterAction("\x7f", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr)
+	ui.RegisterAction("\x7f", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
 	{
 		if (not currentCmdLine->empty())
 		{
@@ -93,14 +108,28 @@ int UI_Main()
 		}
 	});
 	// Left arrow
-	ui.RegisterAction("\x1b\x5b\x44", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr)
+	ui.RegisterAction("\x1b\x5b\x44", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
 	{
 		--*colOffsetPtr;
 	});
 	// Right arrow
-	ui.RegisterAction("\x1b\x5b\x43", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr)
+	ui.RegisterAction("\x1b\x5b\x43", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
 	{
 		++*colOffsetPtr;
+	});
+	// Up arrow
+	ui.RegisterAction("\x1b\x5b\x41", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
+	{
+		auto& n = *startShowLineNumPtr;
+		if (n > 0)
+		{
+			--n;
+		}
+	});
+	// Down arrow
+	ui.RegisterAction("\x1b\x5b\x42", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
+	{
+		++*startShowLineNumPtr;
 	});
 	ui.Runloop();
 	return 0;
