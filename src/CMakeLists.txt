@@ -63,5 +63,34 @@ add_executable(RPC
         Server/Test/ServerTest.cpp
         )
 
+#add_library(JSON OBJECT 
+#        Json/Json.cpp
+#        Json/Parser.cpp
+#        Json/LocationInfo.cpp
+#        Json/ParseException.cpp
+#        
+#        Json/JsonConverter/SerialFunctionGenerator.cpp
+#        Json/JsonConverter/DeserialFunctionGenerator.cpp
+#        Json/JsonConverter/StructObject.cpp
+#        Json/JsonConverter/StructParser.cpp
+#        Json/JsonConverter/WordEnumerator.cpp
+#        Json/JsonConverter/JsonConverter.cpp)
+
 add_executable(cmd
-        Cmd/Main.cpp)
+        Cmd/Main.cpp
+        # duplicate compile between projects TODO remove
+        Basic/Debug.cpp
+
+        Basic/Exception.cpp
+
+        Json/Json.cpp
+        Json/Parser.cpp
+        Json/LocationInfo.cpp
+        Json/ParseException.cpp
+        
+        Json/JsonConverter/JsonConverter.cpp
+
+        FuncLib/Compile/FuncType.cpp
+        )
+#for *nix platform
+target_link_libraries(cmd ncurses)
