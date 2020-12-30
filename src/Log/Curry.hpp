@@ -15,6 +15,7 @@ namespace Log
 	template <typename Func, typename Object, typename... Args>
 	auto CallObjectMethod(Func func, Object object, Args... args)
 	{
+		// 可以使用 std::mem_fn 将成员方法转换为第一个参数为对象指针的函数
 		return (object->*func)(forward<Args>(args)...);
 	}
 
