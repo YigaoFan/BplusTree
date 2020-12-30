@@ -81,12 +81,63 @@ TESTCASE("Cmd Function Test")
 				auto &argTypes = func.ArgTypes;
 				ASSERT(argTypes.size() == 0);
 			}
+
+			{
+				auto func = GetFuncTypeFrom("B::void Func ()");
+
+				auto& package = func.PackageHierarchy;
+				ASSERT(package.size() == 1);
+				ASSERT(package[0] == "B");
+
+				ASSERT(func.ReturnType == "void");
+
+				ASSERT(func.FuncName == "Func");
+
+				auto &argTypes = func.ArgTypes;
+				ASSERT(argTypes.size() == 0);
+			}
+
+			{
+				auto func = GetFuncTypeFrom("::void Func ()");
+
+				auto &package = func.PackageHierarchy;
+				ASSERT(package.size() == 0);
+
+				ASSERT(func.ReturnType == "void");
+
+				ASSERT(func.FuncName == "Func");
+
+				auto &argTypes = func.ArgTypes;
+				ASSERT(argTypes.size() == 0);
+			}
+
+			{
+				auto func = GetFuncTypeFrom("AB.CD::void Func ()");
+
+				auto &package = func.PackageHierarchy;
+				ASSERT(package.size() == 2);
+				ASSERT(package[0] == "AB");
+				ASSERT(package[1] == "CD");
+
+				ASSERT(func.ReturnType == "void");
+
+				ASSERT(func.FuncName == "Func");
+
+				auto &argTypes = func.ArgTypes;
+				ASSERT(argTypes.size() == 0);
+			}
 		}
 
 		SECTION("Preprocess")
 		{
-			auto r = Preprocess("AddFunc", "AddFunc  a b");
-			ASSERT(r == "a b");
+			{
+				auto r = Preprocess("AddFunc", "AddFunc  a b");
+				ASSERT(r == "a b");
+			}
+
+			{
+				ASSERT_THROW(std::invalid_argument, Preprocess("AddFunc", "a b"));
+			}
 		}
 
 		SECTION("Read def")

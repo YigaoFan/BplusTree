@@ -67,9 +67,15 @@ namespace Server
 		return s.substr(0, find_if_not(s.rbegin(), s.rend(), isSpace).base() - s.begin());
 	}
 
+	/// keyword 要确定存在，否则会报错
 	string_view RemoveFirst(string_view keyword, string_view s)
 	{
-		return s.substr(s.find_first_of(keyword) + keyword.size());
+		if (auto p = s.find_first_of(keyword); p != string_view::npos)
+		{
+			return s.substr(p + keyword.size());
+		}
+
+		throw invalid_argument(string(s) + " no include " + string(keyword));
 	}
 
 	/// Remove first cmd name in inputCmd with trim start and trim end
@@ -93,7 +99,6 @@ namespace Server
 			{
 				remain = TrimStart(remain);
 			}
-
 		}
 		
 		return { content, remain };
@@ -103,7 +108,11 @@ namespace Server
 	vector<string> GetPackageFrom(string_view packageInfo)
 	{
 		packageInfo = TrimStart(TrimEnd(packageInfo));
-
+		if (packageInfo.empty())
+		{
+			return {};
+		}
+		
 		auto [package, remain] = ParseOut<true>(packageInfo, ".");
 		if (package.empty())
 		{
