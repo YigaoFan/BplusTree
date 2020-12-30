@@ -104,7 +104,7 @@ int UI_Main()
 		default:
 			currentCmdLine.push_back(c);
 			addch(c); // 这个用法是正确的吗
-			printw("num: %d ", c);
+			printw("16num: %x ", c);
 		}
 		
 		// refresh(); 好像不用
