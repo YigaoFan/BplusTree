@@ -69,7 +69,7 @@ namespace Server
 
 	string_view RemoveFirst(string_view keyword, string_view s)
 	{
-		return s.substr(s.find_first_of(keyword));
+		return s.substr(s.find_first_of(keyword) + keyword.size());
 	}
 
 	/// Remove first cmd name in inputCmd with trim start and trim end
@@ -84,10 +84,16 @@ namespace Server
 	{
 		auto dividerPos = s.find_first_of(divider);
 		auto content = s.substr(0, dividerPos);
-		auto remain = s.substr(dividerPos + divider.size());
-		if constexpr (IsTrimRemainStart)
+		string_view remain;
+
+		if (dividerPos != string_view::npos)
 		{
-			remain = TrimStart(remain);
+			remain = s.substr(dividerPos + divider.size());
+			if constexpr (IsTrimRemainStart)
+			{
+				remain = TrimStart(remain);
+			}
+
 		}
 		
 		return { content, remain };
@@ -96,7 +102,19 @@ namespace Server
 	/// Package divided with '.'
 	vector<string> GetPackageFrom(string_view packageInfo)
 	{
+		packageInfo = TrimStart(TrimEnd(packageInfo));
+
 		auto [package, remain] = ParseOut<true>(packageInfo, ".");
+		if (package.empty())
+		{
+			return {};
+		}
+
+		if (remain.empty())
+		{
+			return { string(package), };
+		}
+
 		auto remainPackage = GetPackageFrom(remain);
 		remainPackage.insert(remainPackage.begin(), string(package));
 		return remainPackage;
@@ -136,7 +154,7 @@ namespace Server
 	class AddFuncCmd
 	{
 	private:
-		string GetFuncsDefFrom(string_view filename)
+		static string GetFuncsDefFrom(string_view filename)
 		{
 			using ::std::ifstream;
 			using ::std::istreambuf_iterator;
@@ -185,7 +203,7 @@ namespace Server
 	{
 		string Process(string cmd)
 		{
-			auto funcInfo = TrimStart(Preprocess(nameof(RemoveFunc), cmd));
+			auto funcInfo = Preprocess(nameof(RemoveFunc), cmd);
 			return Serial(CombineTo<RemoveFuncRequest::Content>(GetFuncTypeFrom(funcInfo)));
 		}
 	};
@@ -205,11 +223,7 @@ namespace Server
 	private:
 		tuple<string_view, string_view> DivideInfo(string_view cmd)
 		{
-			// 注意这里是 last_of
-			auto dividerPos = cmd.find_last_of(' ');
-			auto funcInfo = TrimEnd(cmd.substr(0, dividerPos));
-			auto newPackageInfo = cmd.substr(dividerPos + 1);
-
+			auto [newPackageInfo, funcInfo] = ParseOut<true>(cmd, "::");
 			return { funcInfo, newPackageInfo };
 		}
 
