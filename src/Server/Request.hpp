@@ -7,17 +7,14 @@
 #include <condition_variable>
 #include "../Json/Json.hpp"
 #include "../FuncLib/Compile/FuncType.hpp"
-#include "../FuncLib/Compile/FuncDefTokenReader.hpp"
 #include "../Json/JsonConverter/JsonConverter.hpp"
 
 namespace Server
 {
-	using FuncLib::Compile::FuncDefTokenReader;
 	using FuncLib::Compile::FuncType;
 	using Json::JsonObject;
 	using ::std::condition_variable;
 	using ::std::function;
-	using ::std::lock_guard;
 	using ::std::mutex;
 	using ::std::pair;
 	using ::std::string;
@@ -25,22 +22,15 @@ namespace Server
 
 	struct Request
 	{
-		Request() = default;
-
-		Request(Request &&that) noexcept : Mutex(), CondVar(), Success()
-		{
-			lock_guard<mutex> guard(that.Mutex);
-			Done = that.Done;
-			Success = move(that.Success);
-			Fail = move(that.Fail);
-		}
-
 		mutable mutex Mutex;
 		mutable condition_variable CondVar;
 		bool Done = false;
 		// Continuation
 		function<void()> Success;
 		function<void()> Fail;
+
+		Request() = default;
+		Request(Request &&that) noexcept;
 	};
 
 	struct InvokeFuncRequest : public Request
@@ -109,138 +99,46 @@ namespace Json::JsonConverter
 	using Server::ModifyFuncPackageRequest;
 	using Server::RemoveFuncRequest;
 	using Server::SearchFuncRequest;
-	using ::std::move;
-
-#define nameof(VAR) #VAR
-	// Serialize 和 Deserialize 里的 item 名字需要一样
-
 
 	///---------- FuncType ----------
 	template <>
-	JsonObject Serialize(FuncType const &type)
-	{
-		auto [returnType, funcName, argTypes, package] = type;
-		JsonObject::_Object obj;
-		obj.insert({ nameof(returnType), Serialize(returnType) });
-		obj.insert({ nameof(funcName),   Serialize(funcName) });
-		obj.insert({ nameof(argTypes),   Serialize(argTypes) });
-		obj.insert({ nameof(package),    Serialize(package) });
-
-		return JsonObject(move(obj));
-	}
+	JsonObject Serialize(FuncType const &type);
 
 	template <>
-	FuncType Deserialize(JsonObject const& jsonObj)
-	{
-		auto returnType = Deserialize<string>(jsonObj[nameof(returnType)]);
-		auto funcName = Deserialize<string>(jsonObj[nameof(funcName)]);
-		auto argTypes = Deserialize<vector<string>>(jsonObj[nameof(argTypes)]);
-		auto package = Deserialize<vector<string>>(jsonObj[nameof(package)]);
-
-		return FuncType(returnType, funcName, argTypes, package);
-	}
+	FuncType Deserialize(JsonObject const& jsonObj);
 
 	///---------- InvokeFuncRequest ----------
 	template <>
-	JsonObject Serialize(InvokeFuncRequest::Content const& content)
-	{
-		auto [func, arg] = content;
-		JsonObject::_Object obj;
-		obj.insert({ nameof(func), Serialize(func) });
-		obj.insert({ nameof(arg),  arg });
-
-		return JsonObject(move(obj));
-	}
+	JsonObject Serialize(InvokeFuncRequest::Content const& content);
 
 	template <>
-	InvokeFuncRequest::Content Deserialize(JsonObject const& jsonObj)
-	{
-		auto func = Deserialize<FuncType>(jsonObj[nameof(func)]);
-		auto arg = jsonObj[nameof(arg)];
-		
-		return { move(func), move(arg) };
-	}
+	InvokeFuncRequest::Content Deserialize(JsonObject const& jsonObj);
 
 	///---------- AddFuncRequest ----------
 	template <>
-	JsonObject Serialize(AddFuncRequest::Content const& content)
-	{
-		auto [package, funcsDef, summary] = content;
-		JsonObject::_Object obj;
-		obj.insert({ nameof(package), Serialize(package) });
-		obj.insert({ nameof(funcsDef), Serialize(funcsDef) });
-		obj.insert({ nameof(summary), Serialize(summary) });
-
-		return JsonObject(move(obj));
-	}
+	JsonObject Serialize(AddFuncRequest::Content const& content);
 
 	template <>
-	AddFuncRequest::Content Deserialize(JsonObject const& jsonObj)
-	{
-		auto package = Deserialize<vector<string>>(jsonObj[nameof(package)]);
-		auto funcsDef = Deserialize<string>(jsonObj[nameof(funcsDef)]);
-		auto summary = Deserialize<string>(jsonObj[nameof(summary)]);
-		
-		return { move(package), move(funcsDef), move(summary) };
-	}
+	AddFuncRequest::Content Deserialize(JsonObject const& jsonObj);
 
 	///---------- RemoveFuncRequest ----------
 	template <>
-	JsonObject Serialize(RemoveFuncRequest::Content const& content)
-	{
-		auto [func] = content;
-		JsonObject::_Object obj;
-		obj.insert({ nameof(func), Serialize(func) });
-
-		return JsonObject(move(obj));
-	}
+	JsonObject Serialize(RemoveFuncRequest::Content const& content);
 
 	template <>
-	RemoveFuncRequest::Content Deserialize(JsonObject const& jsonObj)
-	{
-		auto func = Deserialize<FuncType>(jsonObj[nameof(func)]);
-		
-		return { move(func) };
-	}
+	RemoveFuncRequest::Content Deserialize(JsonObject const& jsonObj);
 
 	///---------- SearchFuncRequest ----------
 	template <>
-	JsonObject Serialize(SearchFuncRequest::Content const& content)
-	{
-		auto [keyword] = content;
-		JsonObject::_Object obj;
-		obj.insert({ nameof(keyword), Serialize(keyword) });
-
-		return JsonObject(move(obj));
-	}
+	JsonObject Serialize(SearchFuncRequest::Content const& content);
 
 	template <>
-	SearchFuncRequest::Content Deserialize(JsonObject const& jsonObj)
-	{
-		auto keyword = Deserialize<string>(jsonObj[nameof(keyword)]);
-		
-		return { move(keyword) };
-	}
+	SearchFuncRequest::Content Deserialize(JsonObject const& jsonObj);
 
 	///---------- ModifyFuncPackageRequest ----------
 	template <>
-	JsonObject Serialize(ModifyFuncPackageRequest::Content const& content)
-	{
-		auto [func, newPackage] = content;
-		JsonObject::_Object obj;
-		obj.insert({ nameof(func), Serialize(func) });
-		obj.insert({ nameof(newPackage), Serialize(newPackage) });
-
-		return JsonObject(move(obj));
-	}
+	JsonObject Serialize(ModifyFuncPackageRequest::Content const& content);
 
 	template <>
-	ModifyFuncPackageRequest::Content Deserialize(JsonObject const& jsonObj)
-	{
-		auto func = Deserialize<FuncType>(jsonObj[nameof(func)]);
-		auto newPackage = Deserialize<vector<string>>(jsonObj[nameof(newPackage)]);
-
-		return { move(func), move(newPackage) };
-	}
-#undef nameof
+	ModifyFuncPackageRequest::Content Deserialize(JsonObject const& jsonObj);
 }
