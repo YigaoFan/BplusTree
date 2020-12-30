@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 #include <string_view>
 #include <asio.hpp>
 #include "CmdUI.hpp"
@@ -13,6 +14,7 @@ int UI_Main()
 	using ::std::move;
 	using ::std::string;
 	using ::std::string_view;
+	using ::std::vector;
 
 	// printf("r: %d", '\r');
 	// return 0;
@@ -28,7 +30,7 @@ int UI_Main()
 	auto title = "Welcome to use Fan's cmd to control server(Press Up key can view history)";
 	auto ui = CmdUI(title);
 	ui.Init();
-	ui.RegisterAction("\t", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
+	ui.RegisterAction("\t", [&](vector<string>* history, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
 	{
 		// 只需要看光标之前的部分
 		auto offset = *colOffsetPtr;
@@ -66,7 +68,9 @@ int UI_Main()
 	});
 
 	// Enter key on Mac
-	ui.RegisterAction("\x0a", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
+	// lambda capture 里边可以指定类型吗？比如下面的 n
+	// TODO 弄清楚 history 不往下移的原因
+	ui.RegisterAction("\x0a", [&, n = 0](vector<string>* history, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr) mutable
 	{
 		auto& cmd = *currentCmdLine;
 
@@ -81,11 +85,14 @@ int UI_Main()
 		}
 		else
 		{
-			addToHistory(string(">> ") + cmd);
+			history->push_back(std::to_string(n++) + ": " + string(">> ") + cmd);
 			currentCmdLine->clear();
 			hintLine->clear();
-			// upArrowCallback(addToHistory, currentCmdLine, hintLine, colOffsetPtr, startShowLineNumPtr);
-			++*startShowLineNumPtr;
+			auto& showStart = *startShowLineNumPtr;
+			if ((history->size() - showStart) > ui.MaxUsableHeight())
+			{
+				showStart = history->size() - ui.MaxUsableHeight();
+			}
 
 			return;
 			// auto result = cmd.Run(*currentCmdLine);
@@ -96,7 +103,7 @@ int UI_Main()
 	});
 
 	// Delete key on Mac
-	ui.RegisterAction("\x7f", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
+	ui.RegisterAction("\x7f", [&](vector<string>* history, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
 	{
 		if (not currentCmdLine->empty())
 		{
@@ -108,17 +115,17 @@ int UI_Main()
 		}
 	});
 	// Left arrow
-	ui.RegisterAction("\x1b\x5b\x44", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
+	ui.RegisterAction("\x1b\x5b\x44", [&](vector<string>* history, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
 	{
 		--*colOffsetPtr;
 	});
 	// Right arrow
-	ui.RegisterAction("\x1b\x5b\x43", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
+	ui.RegisterAction("\x1b\x5b\x43", [&](vector<string>* history, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
 	{
 		++*colOffsetPtr;
 	});
 	// Up arrow
-	ui.RegisterAction("\x1b\x5b\x41", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
+	ui.RegisterAction("\x1b\x5b\x41", [&](vector<string>* history, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
 	{
 		auto& n = *startShowLineNumPtr;
 		if (n > 0)
@@ -127,7 +134,7 @@ int UI_Main()
 		}
 	});
 	// Down arrow
-	ui.RegisterAction("\x1b\x5b\x42", [&](auto addToHistory, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
+	ui.RegisterAction("\x1b\x5b\x42", [&](vector<string>* history, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr)
 	{
 		++*startShowLineNumPtr;
 	});

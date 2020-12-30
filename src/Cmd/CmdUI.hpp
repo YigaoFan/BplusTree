@@ -25,8 +25,8 @@ namespace Cmd
 		vector<string> _history;
 		int _colOffset = 0; // 相对于行尾来说的
 		size_t _startShowLineNum = 0;
-		// keyword,          add to history,     current cmd line, hint line
-		map<string, function<void(function<void(string)>, string*, string*, int*, size_t*)>> _actions;
+		// keyword,                     history,     current cmd line, hint line
+		map<string, function<void(vector<string>*, string*, string*, int*, size_t*)>> _actions;
 	public:
 		CmdUI(string title) : _title(move(title))
 		{
@@ -42,7 +42,7 @@ namespace Cmd
 			_terminated = false;
 		}
 
-		void RegisterAction(string key, function<void(function<void(string)>, string*, string*, int*, size_t*)> callback)
+		void RegisterAction(string key, function<void(vector<string>*, string*, string*, int*, size_t*)> callback)
 		{
 			_actions.insert({ move(key), move(callback) });
 		}
@@ -59,15 +59,10 @@ namespace Cmd
 
 			auto c = getch();
 			string key(1, c);
-
-			auto addToHistory = [this](string message)
-			{
-				_history.push_back(std::to_string(_history.size()) + ": " + move(message));
-			};
-
+			
 			if (_actions.contains(key))
 			{
-				_actions[key](addToHistory, &_currentCmdLine, &_hintLine, &_colOffset, &_startShowLineNum);
+				_actions[key](&_history, &_currentCmdLine, &_hintLine, &_colOffset, &_startShowLineNum);
 			}
 			else
 			{
@@ -80,7 +75,7 @@ namespace Cmd
 					{
 						auto eraseLen = x.first.length();
 						_currentCmdLine.erase(_currentCmdLine.length() + _colOffset - eraseLen, eraseLen);
-						x.second(addToHistory, &_currentCmdLine, &_hintLine, &_colOffset, &_startShowLineNum);
+						x.second(&_history, &_currentCmdLine, &_hintLine, &_colOffset, &_startShowLineNum);
 						break;
 					}
 				}
@@ -92,6 +87,11 @@ namespace Cmd
 		void TerminateOnNextRun()
 		{
 			_terminated = true;
+		}
+
+		size_t MaxUsableHeight() const
+		{
+			return static_cast<size_t>(getmaxy(stdscr)) - 3; // 3 is title, current cmd line, hint line
 		}
 
 		~CmdUI()
@@ -115,19 +115,18 @@ namespace Cmd
 			wmove(stdscr, row, 0);
 			clrtobot();
 
-			size_t maxRowCount = static_cast<size_t>(getmaxy(stdscr)) + 1;
-			size_t showHistoryCount = maxRowCount - 3; // 3 is title, current cmd line, hint line
 			if (_startShowLineNum > _history.size())
 			{
 				_startShowLineNum = _history.size();
 			}
 
-			for (size_t i = 0; auto const& h : _history)
+			// remainUsableLinesCount 用于限制 history item 显示数量
+			for (size_t i = 0, remainUsableLinesCount = MaxUsableHeight(); auto const &h : _history)
 			{
-				if (i >= _startShowLineNum and showHistoryCount > 0)
+				if (i >= _startShowLineNum and remainUsableLinesCount > 0)
 				{
 					printw("%s\n", h.c_str());
-					--showHistoryCount;
+					--remainUsableLinesCount;
 				}
 				++i;
 			}
@@ -139,6 +138,7 @@ namespace Cmd
 			printw("\n");
 			// Draw hint line
 			printw("%s\n", _hintLine.c_str());
+			// printw("Debug %d\n", _startShowLineNum);
 
 			// handle cursor position
 			if (_colOffset < -static_cast<int>(_currentCmdLine.length()))
