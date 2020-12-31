@@ -11,6 +11,6 @@ namespace FuncLib::Store
 		LabelTree();
 		LabelTree(LabelRelationNode root);
 		optional<LabelRelationNode> Take(pos_label label);
-		void AddSub(LabelRelationNode notUsedNode);
+		void AddSub(LabelRelationNode node);
 	};
 }

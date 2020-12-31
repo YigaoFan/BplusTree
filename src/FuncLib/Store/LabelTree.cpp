@@ -2,6 +2,8 @@
 
 namespace FuncLib::Store
 {
+	using ::std::move;
+
 	LabelTree::LabelTree() : _fileRoot(FileLabel) {}
 	LabelTree::LabelTree(LabelRelationNode root) : _fileRoot(move(root)) {}
 
@@ -11,8 +13,8 @@ namespace FuncLib::Store
 		return _fileRoot.TakeInside(label);
 	}
 
-	void LabelTree::AddSub(LabelRelationNode notUsedNode)
+	void LabelTree::AddSub(LabelRelationNode node)
 	{
-		_fileRoot.AddSub(move(notUsedNode));
+		_fileRoot.AddSub(move(node));
 	}
 }
