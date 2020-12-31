@@ -2,6 +2,8 @@
 
 namespace FuncLib::Store
 {
+	using ::std::move;
+
 	void WriteByte(ofstream* fs, pos_int start, char const* begin, size_t size)
 	{
 		fs->seekp(start);
@@ -9,22 +11,12 @@ namespace FuncLib::Store
 	}
 
 	ObjectBytes::ObjectBytes(pos_label label, WriteQueue* writeQueue, AllocateSpaceQueue* allocateQueue, ResizeSpaceQueue* resizeQueue)
-		: _label(label), ToWrites(writeQueue), ToAllocates(allocateQueue), ToResizes(resizeQueue)
+		: Base(label), ToWrites(writeQueue), ToAllocates(allocateQueue), ToResizes(resizeQueue)
 	{ }
 
 	void ObjectBytes::WriteIn(ofstream* fileStream, pos_int pos) const
 	{
 		DoWrite(fileStream, pos);
-	}
-
-	void ObjectBytes::AddSub(ObjectBytes subObjectBytes)
-	{
-		_subObjectBytes.push_back(move(subObjectBytes));
-	}
-
-	pos_label ObjectBytes::Label() const
-	{
-		return _label;
 	}
 
 	size_t ObjectBytes::Size() const
