@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include <utility>
-#include "LabelRelationNode.hpp"
+#include "LabelNode.hpp"
 #include "LabelTree.hpp"
 #include "FileReader.hpp"
 #include "ObjectBytes.hpp"
@@ -10,6 +10,7 @@
 
 namespace FuncLib::Store
 {
+	using ::std::move;
 	using ::std::pair;
 	using ::std::vector;
 
@@ -30,7 +31,7 @@ namespace FuncLib::Store
 				return _freeNodes.Take(label);				
 			};
 
-			auto collect = [&](LabelRelationNode node)
+			auto collect = [&](LabelNode node)
 			{
 				_freeNodes.AddSub(move(node));
 			};
@@ -55,14 +56,14 @@ namespace FuncLib::Store
 			// 最后以顶层位置加到旧的里
 
 			auto [take, collect] = MakeTakerAndCollector();
-			auto newTopLevelNode = LabelRelationNode::ConsNodeWith(topLevelNode);
+			auto newTopLevelNode = LabelNode::ConsNodeWith(topLevelNode);
 			Complete(&newTopLevelNode, take, collect);
 			this->AddSub(move(newTopLevelNode));
 		}
 
 		// 下面这两个函数，递归这种把多余的不同的提出来的方法很棒
 		template <typename NodeTaker, typename NodeCollector>
-		void Complete(LabelRelationNode* newNode, NodeTaker take, NodeCollector collect)
+		void Complete(LabelNode* newNode, NodeTaker take, NodeCollector collect)
 		{
 			if (auto r = take(newNode->Label()); r.has_value())
 			{
@@ -80,19 +81,19 @@ namespace FuncLib::Store
 		}
 
 		template <typename NodeTaker, typename NodeCollector>
-		void Complete(LabelRelationNode* newNode, LabelRelationNode oldNode, NodeTaker take, NodeCollector collect)
+		void Complete(LabelNode* newNode, LabelNode oldNode, NodeTaker take, NodeCollector collect)
 		{
 			// 说明指向的内容没读或者下面没有内容了
 			if (newNode->SubsEmpty())
 			{
-				newNode->Subs(oldNode.GiveSubs());
+				newNode->SetSubs(oldNode.GiveSubs());
 				return;
 			}
 
 			auto oldSubsVec = oldNode.GiveSubs();
 			auto oldSubs = CreateRefEnumerator(oldSubsVec);
 			auto newSubs = newNode->CreateSubNodeEnumerator();
-			vector<LabelRelationNode *> toCollects;
+			vector<LabelNode *> toCollects;
 
 			while (true)
 			{
@@ -184,7 +185,7 @@ namespace FuncLib::Store
 		void Free(PosLabelNode auto* topLevelNode)
 		{
 			auto [take, collect] = MakeTakerAndCollector();
-			auto newTopLevelNode = LabelRelationNode::ConsNodeWith(topLevelNode);
+			auto newTopLevelNode = LabelNode::ConsNodeWith(topLevelNode);
 			Complete(&newTopLevelNode, take, collect);
 			_freeNodes.AddSub(move(newTopLevelNode));
 		}

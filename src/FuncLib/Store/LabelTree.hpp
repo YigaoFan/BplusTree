@@ -1,16 +1,16 @@
 #pragma once
-#include "LabelRelationNode.hpp"
+#include "LabelNode.hpp"
 
 namespace FuncLib::Store
 {
 	class LabelTree
 	{
 	protected:
-		LabelRelationNode _fileRoot{ FileLabel };
+		LabelNode _fileRoot{ FileLabel };
 	public:
 		LabelTree();
-		LabelTree(LabelRelationNode root);
-		optional<LabelRelationNode> Take(pos_label label);
-		void AddSub(LabelRelationNode node);
+		LabelTree(LabelNode root);
+		optional<LabelNode> Take(pos_label label);
+		void AddSub(LabelNode node);
 	};
 }

@@ -35,7 +35,7 @@ namespace FuncLib::Store
 		}
 	}
 
-	vector<LabelRelationNode> ConsNodes(Generator<optional<vector<pos_label>>>* generator)
+	vector<LabelNode> ConsNodes(Generator<optional<vector<pos_label>>>* generator)
 	{
 		generator->MoveNext();
 
@@ -44,14 +44,14 @@ namespace FuncLib::Store
 			return {};
 		}
 
-		vector<LabelRelationNode> nodes;
+		vector<LabelNode> nodes;
 		// will be changed in below inner ConsNodes call, so need to save it
 		auto labels = generator->Current().value();
 		for (auto l : labels)
 		{
-			auto n = LabelRelationNode(l);
+			auto n = LabelNode(l);
 			auto subNodes = ConsNodes(generator);
-			n.Subs(move(subNodes));
+			n.SetSubs(move(subNodes));
 
 			nodes.push_back(move(n));
 		}
@@ -64,10 +64,10 @@ namespace FuncLib::Store
 		auto fileLabel = ByteConverter<pos_label>::ReadOut(reader);
 		auto gen = ReadLabels(reader);
 
-		return { LabelRelationNode(fileLabel, ConsNodes(&gen)) };
+		return { LabelNode(fileLabel, ConsNodes(&gen)) };
 	}
 
-	void WriteSubLabelOf(LabelRelationNode const* node, ObjectBytes* writer)
+	void WriteSubLabelOf(LabelNode const* node, ObjectBytes* writer)
 	{
 		auto e1 = node->CreateSubNodeEnumerator();
 		while (e1.MoveNext())

@@ -1,23 +1,23 @@
-#include "LabelRelationNode.hpp"
+#include "LabelNode.hpp"
 
 namespace FuncLib::Store
 {
 	using ::std::move;
 
-	LabelRelationNode::LabelRelationNode(pos_label label) : _label(label)
+	LabelNode::LabelNode(pos_label label) : _label(label)
 	{ }
 
-	LabelRelationNode::LabelRelationNode(pos_label label, vector<LabelRelationNode> subNodes)
+	LabelNode::LabelNode(pos_label label, vector<LabelNode> subNodes)
 		: _label(label), _subNodes(move(subNodes))
 	{ }
 
 	/// 这里要保证 subs 的 label 升序排列
-	void LabelRelationNode::SetSubs(vector<LabelRelationNode> subNodes)
+	void LabelNode::SetSubs(vector<LabelNode> subNodes)
 	{
 		_subNodes = move(subNodes);
 	}
 
-	void LabelRelationNode::AddSub(LabelRelationNode node)
+	void LabelNode::AddSub(LabelNode node)
 	{
 		for (auto it = _subNodes.begin(); it != _subNodes.end(); ++it)
 		{
@@ -31,22 +31,22 @@ namespace FuncLib::Store
 		_subNodes.push_back(move(node));
 	}
 
-	pos_label LabelRelationNode::Label() const
+	pos_label LabelNode::Label() const
 	{
 		return _label;
 	}
 
-	vector<LabelRelationNode> LabelRelationNode::GiveSubs()
+	vector<LabelNode> LabelNode::GiveSubs()
 	{
 		return move(_subNodes);
 	}
 
-	bool LabelRelationNode::SubsEmpty() const noexcept
+	bool LabelNode::SubsEmpty() const noexcept
 	{
 		return _subNodes.empty();
 	}
 
-	optional<LabelRelationNode> LabelRelationNode::TakeInside(pos_label label)
+	optional<LabelNode> LabelNode::TakeInside(pos_label label)
 	{
 		if (_subNodes.empty())
 		{

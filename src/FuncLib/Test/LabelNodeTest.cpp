@@ -1,12 +1,12 @@
 #include "../../TestFrame/FlyTest.hpp"
-#include "../Store/LabelRelationNode.hpp"
+#include "../Store/LabelNode.hpp"
 
 using namespace std;
 using namespace FuncLib::Store;
 
-TESTCASE("LabelRelationNode test")
+TESTCASE("LabelNode test")
 {
-	auto l = LabelRelationNode(0, { LabelRelationNode(1), LabelRelationNode(2), });
+	auto l = LabelNode(0, { LabelNode(1), LabelNode(2), });
 
 	SECTION("Enumerator")
 	{
@@ -49,7 +49,7 @@ TESTCASE("LabelRelationNode test")
 
 	SECTION("Add sub")
 	{
-		l.AddSub(LabelRelationNode(0));
+		l.AddSub(LabelNode(0));
 		auto e = l.CreateSubNodeEnumerator();
 		pos_label labels[3]
 		{
@@ -66,4 +66,4 @@ TESTCASE("LabelRelationNode test")
 	}
 }
 
-DEF_TEST_FUNC(TestLabelRelationNode)
+DEF_TEST_FUNC(TestLabelNode)

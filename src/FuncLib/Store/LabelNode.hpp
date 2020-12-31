@@ -11,16 +11,16 @@ namespace FuncLib::Store
 	using ::std::optional;
 	using ::std::vector;
 
-	class LabelRelationNode
+	class LabelNode
 	{
 	private:
 		pos_label _label;
-		vector<LabelRelationNode> _subNodes;
+		vector<LabelNode> _subNodes;
 
 	public:
-		static LabelRelationNode ConsNodeWith(PosLabelNode auto* labelNode)
+		static LabelNode ConsNodeWith(PosLabelNode auto* labelNode)
 		{
-			vector<LabelRelationNode> subNodes;
+			vector<LabelNode> subNodes;
 
 			auto e = labelNode->GetLabelSortedSubsEnumerator();
 			while (e.MoveNext())
@@ -28,19 +28,19 @@ namespace FuncLib::Store
 				subNodes.push_back(ConsNodeWith(&e.Current()));
 			}
 
-			return LabelRelationNode(labelNode->Label(), move(subNodes));
+			return LabelNode(labelNode->Label(), move(subNodes));
 		}
 
-		LabelRelationNode(pos_label label);
-		LabelRelationNode(pos_label label, vector<LabelRelationNode> subNodes);
+		LabelNode(pos_label label);
+		LabelNode(pos_label label, vector<LabelNode> subNodes);
 
 		pos_label Label() const;
-		void SetSubs(vector<LabelRelationNode> subNodes);
-		vector<LabelRelationNode> GiveSubs();
+		void SetSubs(vector<LabelNode> subNodes);
+		vector<LabelNode> GiveSubs();
 		bool SubsEmpty() const noexcept;
-		void AddSub(LabelRelationNode node);
+		void AddSub(LabelNode node);
 		/// 由于是 inside 的，所以不检查当前 node 的 label
-		optional<LabelRelationNode> TakeInside(pos_label label);
+		optional<LabelNode> TakeInside(pos_label label);
 		auto CreateSubNodeEnumerator() { return Collections::CreateRefEnumerator(_subNodes); }
 		auto CreateSubNodeEnumerator() const { return Collections::CreateRefEnumerator(_subNodes); }
 		// 这样哪些需要 release 是不是就不用那个 toDoDelete set 来记了？还需要，有的没 Store 就要 release
