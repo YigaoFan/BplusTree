@@ -8,7 +8,7 @@ namespace FuncLib::Store
 	optional<LabelRelationNode> LabelTree::Take(pos_label label)
 	{
 		// because label cannot equal to FileLabel, so take internal directly
-		return _fileRoot.TakeInternal(label);
+		return _fileRoot.TakeInside(label);
 	}
 
 	void LabelTree::AddSub(LabelRelationNode notUsedNode)

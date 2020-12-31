@@ -32,4 +32,38 @@ namespace FuncLib::Store
 	{
 		return _label;
 	}
+
+	vector<LabelRelationNode> LabelRelationNode::GiveSubs()
+	{
+		return move(_subNodes);
+	}
+
+	bool LabelRelationNode::SubsEmpty() const noexcept
+	{
+		return _subNodes.empty();
+	}
+
+	optional<LabelRelationNode> LabelRelationNode::TakeInside(pos_label label)
+	{
+		if (_subNodes.empty())
+		{
+			return {};
+		}
+
+		for (size_t i = 0; auto& n : _subNodes)
+		{
+			if (n.Label() == label)
+			{
+				auto des = move(n);
+				Erase(i, _subNodes);
+				return des;
+			}
+			else if (auto r = n.TakeInside(label); r.has_value())
+			{
+				return r;
+			}
+		}
+
+		return {};
+	}
 }
