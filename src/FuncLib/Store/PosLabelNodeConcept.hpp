@@ -1,5 +1,6 @@
 #pragma once
 #include "../../Basic/Concepts.hpp"
+#include "StaticConfig.hpp"
 
 namespace FuncLib::Store
 {
