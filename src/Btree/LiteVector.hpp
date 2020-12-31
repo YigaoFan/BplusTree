@@ -60,7 +60,7 @@ namespace Collections
 			that._count = 0;
 		}
 
-		virtual ~LiteVector()
+		~LiteVector()
 		{
 			while (_count != 0)
 			{
