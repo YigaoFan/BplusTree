@@ -46,6 +46,24 @@ TESTCASE("LabelRelationNode test")
 		l.ReleaseAll([](pos_label label) {});
 		ASSERT(l.SubsEmpty());
 	}
+
+	SECTION("Add sub")
+	{
+		l.AddSub(LabelRelationNode(0));
+		auto e = l.CreateSubNodeEnumerator();
+		pos_label labels[3]
+		{
+			0,
+			1,
+			2,
+		};
+		auto i = 0;
+
+		while (e.MoveNext())
+		{
+			ASSERT(e.Current().Label() == labels[i++]);
+		}
+	}
 }
 
 DEF_TEST_FUNC(TestLabelRelationNode)

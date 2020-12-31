@@ -24,6 +24,7 @@ namespace FuncLib::Store
 			if (node.Label() <= it->Label())
 			{
 				_subNodes.insert(it, move(node));
+				return;
 			}
 		}
 
