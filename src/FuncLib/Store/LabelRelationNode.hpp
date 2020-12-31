@@ -4,11 +4,10 @@
 #include "StaticConfig.hpp"
 #include "../../Btree/Enumerator.hpp"
 #include "VectorUtil.hpp"
-#include "PosLabelNode.hpp"
+#include "PosLabelNodeConcept.hpp"
 
 namespace FuncLib::Store
 {
-	using ::std::move;
 	using ::std::optional;
 	using ::std::vector;
 
@@ -34,13 +33,9 @@ namespace FuncLib::Store
 
 		LabelRelationNode(pos_label label);
 		LabelRelationNode(pos_label label, vector<LabelRelationNode> subNodes);
-		LabelRelationNode(LabelRelationNode const& that) = delete;
-		LabelRelationNode& operator= (LabelRelationNode const& that) = delete;
-		LabelRelationNode(LabelRelationNode&& that) noexcept = default;
-		LabelRelationNode& operator= (LabelRelationNode&& that) noexcept = default;
 
 		pos_label Label() const;
-		void Subs(vector<LabelRelationNode> subNodes);
+		void SetSubs(vector<LabelRelationNode> subNodes);
 		vector<LabelRelationNode> GiveSubs();
 		bool SubsEmpty() const noexcept;
 		void AddSub(LabelRelationNode node);

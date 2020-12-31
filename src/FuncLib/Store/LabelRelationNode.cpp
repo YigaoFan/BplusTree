@@ -2,6 +2,8 @@
 
 namespace FuncLib::Store
 {
+	using ::std::move;
+
 	LabelRelationNode::LabelRelationNode(pos_label label) : _label(label)
 	{ }
 
@@ -10,7 +12,7 @@ namespace FuncLib::Store
 	{ }
 
 	/// 这里要保证 subs 的 label 升序排列
-	void LabelRelationNode::Subs(vector<LabelRelationNode> subNodes)
+	void LabelRelationNode::SetSubs(vector<LabelRelationNode> subNodes)
 	{
 		_subNodes = move(subNodes);
 	}
