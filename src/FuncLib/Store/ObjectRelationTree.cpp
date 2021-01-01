@@ -69,7 +69,7 @@ namespace FuncLib::Store
 
 	void WriteSubLabelOf(LabelNode const* node, ObjectBytes* writer)
 	{
-		auto e1 = node->CreateSubNodeEnumerator();
+		auto e1 = node->CreateSortedSubNodeEnumerator();
 		while (e1.MoveNext())
 		{
 			auto l = e1.Current().Label();
@@ -78,7 +78,7 @@ namespace FuncLib::Store
 
 		ByteConverter<pos_label>::WriteDown(NonLabel, writer);
 
-		auto e2 = node->CreateSubNodeEnumerator();
+		auto e2 = node->CreateSortedSubNodeEnumerator();
 		while (e2.MoveNext())
 		{
 			WriteSubLabelOf(&e2.Current(), writer);

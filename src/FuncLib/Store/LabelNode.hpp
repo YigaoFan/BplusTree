@@ -22,7 +22,7 @@ namespace FuncLib::Store
 		{
 			vector<LabelNode> subNodes;
 
-			auto e = labelNode->GetLabelSortedSubsEnumerator();
+			auto e = labelNode->CreateSortedSubNodeEnumerator();
 			while (e.MoveNext())
 			{
 				subNodes.push_back(ConsNodeWith(&e.Current()));
@@ -35,7 +35,7 @@ namespace FuncLib::Store
 		LabelNode(pos_label label, vector<LabelNode> subNodes);
 
 		using Base::AddSub;
-		using Base::CreateSubNodeEnumerator;
+		using Base::CreateSortedSubNodeEnumerator;
 		using Base::Label;
 		void SetSubs(vector<LabelNode> subNodes);
 		vector<LabelNode> GiveSubs();

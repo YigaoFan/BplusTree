@@ -17,6 +17,6 @@ namespace FuncLib::Store
 	concept PosLabelNode = requires(T node)
 	{
 		{ node.Label() } -> IsSameTo<pos_label>;
-		{ node.GetLabelSortedSubsEnumerator() } -> Enumerator;
+		{ node.CreateSortedSubNodeEnumerator() } -> Enumerator;
 	};	
 }

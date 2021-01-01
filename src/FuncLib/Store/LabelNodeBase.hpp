@@ -25,8 +25,8 @@ namespace FuncLib::Store
 		}
 
 		pos_label Label() const noexcept { return _label; }
-		auto CreateSubNodeEnumerator()       { return Collections::CreateRefEnumerator(_subNodes); }
-		auto CreateSubNodeEnumerator() const { return Collections::CreateRefEnumerator(_subNodes); }
+		auto CreateSortedSubNodeEnumerator()       { return Collections::CreateRefEnumerator(_subNodes); }
+		auto CreateSortedSubNodeEnumerator() const { return Collections::CreateRefEnumerator(_subNodes); }
 
 		void AddSub(Derived node)
 		{

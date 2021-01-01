@@ -10,7 +10,7 @@ TESTCASE("LabelNode test")
 
 	SECTION("Enumerator")
 	{
-		auto e = l.CreateSubNodeEnumerator();
+		auto e = l.CreateSortedSubNodeEnumerator();
 		pos_label labels[2]
 		{
 			1,
@@ -50,7 +50,7 @@ TESTCASE("LabelNode test")
 	SECTION("Add sub")
 	{
 		l.AddSub(LabelNode(0));
-		auto e = l.CreateSubNodeEnumerator();
+		auto e = l.CreateSortedSubNodeEnumerator();
 		pos_label labels[3]
 		{
 			0,

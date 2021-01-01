@@ -72,7 +72,7 @@ namespace FuncLib::Store
 			}
 			else
 			{
-				auto e = newNode->CreateSubNodeEnumerator();
+				auto e = newNode->CreateSortedSubNodeEnumerator();
 				while (e.MoveNext())
 				{
 					Complete(&e.Current(), take, collect);
@@ -92,7 +92,7 @@ namespace FuncLib::Store
 
 			auto oldSubsVec = oldNode.GiveSubs();
 			auto oldSubs = CreateRefEnumerator(oldSubsVec);
-			auto newSubs = newNode->CreateSubNodeEnumerator();
+			auto newSubs = newNode->CreateSortedSubNodeEnumerator();
 			vector<LabelNode *> toCollects;
 
 			while (true)

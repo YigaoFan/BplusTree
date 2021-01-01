@@ -13,7 +13,7 @@
 #include "../Persistence/IWriterConcept.hpp"
 #include "ObjectRelationTree.hpp"
 #include "CacheSearchRoutine.hpp"
-#include "FakeWriter.hpp"
+#include "FakeObjectBytes.hpp"
 
 namespace FuncLib::Store
 {
@@ -129,9 +129,9 @@ namespace FuncLib::Store
 		}
 
 		template <typename T>
-		void StoreInner(pos_label posLabel, shared_ptr<T> const& object, FakeWriter* parentWriter)
+		void StoreInner(pos_label posLabel, shared_ptr<T> const& object, FakeObjectBytes* parentWriter)
 		{
-			auto writer = FakeWriter(posLabel);
+			auto writer = FakeObjectBytes(posLabel);
 			ProcessFakeStore(posLabel, object, &writer);
 			parentWriter->AddSub(move(writer));
 		}
@@ -139,7 +139,7 @@ namespace FuncLib::Store
 		template <typename T>
 		void Delete(pos_label posLabel, shared_ptr<T> object) // 这个模仿 delete 这个接口，但暂不处理 object
 		{
-			FakeWriter writer{ posLabel };
+			FakeObjectBytes writer{ posLabel };
 			ProcessFakeStore(posLabel, object, &writer);
 
 			_objRelationTree.Free(&writer);
@@ -236,7 +236,7 @@ namespace FuncLib::Store
 		static ofstream MakeOFileStream(shared_ptr<path> const& filename);
 
 		template <typename T>
-		void ProcessFakeStore(pos_label posLabel, shared_ptr<T> const& object, FakeWriter* writer)
+		void ProcessFakeStore(pos_label posLabel, shared_ptr<T> const& object, FakeObjectBytes* writer)
 		{
 			ByteConverter<T>::WriteDown(*object, writer);
 		}
