@@ -1,8 +1,8 @@
 // const log = console.log.bind(console)
 const log = function(s) {
     var text = document.querySelector('#id-log')
-    text.innerHTML += s
-    text.innerHTML += '\n'
+    text.value += s
+    text.value += '\n'
 }
 
 const Node = function(x, y, data) {
