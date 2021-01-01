@@ -11,8 +11,6 @@ namespace FuncLib::Store
 
 	public:
 		FakeObjectBytes(pos_label label);
-		FakeObjectBytes(FakeObjectBytes const& that) = delete;
-		FakeObjectBytes(FakeObjectBytes&& that) noexcept = default;
 
 		void Add(char const* begin, size_t size);
 		void AddBlank(size_t size);
