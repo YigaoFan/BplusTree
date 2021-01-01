@@ -4,12 +4,6 @@ const log = function(s) {
     text.innerHTML += s
     text.innerHTML += '\n'
 }
-var genColor = function () {
-    var genColorBit = function () {
-        return parseInt(Math.random() * 255)
-    }
-    return 'rgb(' + genColorBit() + ',' + genColorBit() + ',' + genColorBit() + ')'
-}
 
 const Node = function(x, y, data) {
     var o = {
