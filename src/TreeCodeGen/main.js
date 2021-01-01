@@ -1,11 +1,11 @@
-// const log = console.log.bind(console)
-const log = function(s) {
-    var text = document.querySelector('#id-log')
-    text.value += s
-    text.value += '\n'
-}
+const log = console.log.bind(console)
+// const log = function(s) {
+//     var text = document.querySelector('#id-log')
+//     text.value += s
+//     text.value += '\n'
+// }
 
-const Node = function(x, y, data) {
+const Node = function(x, y, data, parent = null) {
     var o = {
         x,
         y,
@@ -13,12 +13,13 @@ const Node = function(x, y, data) {
         height: 50,
         data,
         children: [],
+        parent,
     }
 
     o.bornChild = function() {
         var dx = Math.random() * 50 - 25
         var dy = Math.random() * 30 + 50
-        var c = Node(o.x, o.y, ++data)
+        var c = Node(o.x, o.y, ++data, o)
         // log('born new, ', o.x + o.width, o.y + o.height)
         o.children.push(c)
         return c
@@ -48,10 +49,13 @@ const Node = function(x, y, data) {
         context.fillStyle = 'green'
         context.fillRect(o.x, o.y, o.width, o.height)
         context.beginPath()
-        
+        context.fillStyle = 'black'
+        context.font = '20px Arial'
+        var p1 = o.getMiddlePoint()
+        context.fillText(o.data, p1.x - 4, p1.y + 4)
+
         o.children.forEach(c => {
             c.draw(context)
-            var p1 = o.getMiddlePoint()
             context.moveTo(p1.x, p1.y)
             context.fillStyle = 'black'
             var p2 = c.getMiddlePoint()
@@ -59,12 +63,14 @@ const Node = function(x, y, data) {
             context.stroke()
         })
     }
+
     o.getMiddlePoint = function() {
         return {
             x: (o.x + o.x + o.width) / 2, 
             y: (o.y + o.y + o.height) / 2,
         }
     }
+
     o.traverse = function(callbackOnLeaf, callbackOnMiddle) {
         if (o.children.length == 0) {
             return callbackOnLeaf(o.data)
@@ -79,14 +85,24 @@ const Node = function(x, y, data) {
         }
     }
 
+    o.remove = function(child) {
+        o.children = o.children.filter(e => {
+            return e != child
+        })
+        log("remove: ", child)
+        log('child count after remove: ', o.children.length)
+    }
+
     return o
 }
 
 const __main = function() {
     var canvas = document.querySelector('#id-canvas')
-    context = canvas.getContext('2d')
+    var context = canvas.getContext('2d')
     var root = Node(375, 20, 0)
 
+    var enableDeleteMode = false
+    var deletedNodes = []
     var opNode = null
     canvas.addEventListener('mousedown', function(event) {
         var x = event.offsetX
@@ -95,7 +111,14 @@ const __main = function() {
 
         var n = root.locateNode(x, y)
         if (n != null) {
-            opNode = n.bornChild()
+            if (enableDeleteMode) {
+                if (n != root) {
+                    n.parent.remove(n)
+                    deletedNodes.push(n)
+                }
+            } else {
+                opNode = n.bornChild()
+            }
         }
     })
     canvas.addEventListener('mouseup', function (event) {
@@ -124,6 +147,18 @@ const __main = function() {
             log(`auto ${name} = LabelNode(${data}, { ${subResults.join(', ')} });`)
             return name
         })
+    })
+    window.addEventListener('keydown', function(event) {
+        var k = event.key
+        if (k == 'd') {
+            enableDeleteMode = true
+        }
+    })
+    window.addEventListener('keyup', function (event) {
+        var k = event.key
+        if (k == 'd') {
+            enableDeleteMode = false
+        }
     })
     setInterval(function() {
         context.clearRect(0, 0, 800, 600)
