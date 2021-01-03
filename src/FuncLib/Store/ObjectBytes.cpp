@@ -48,12 +48,10 @@ namespace FuncLib::Store
 		{
 			WriteByte(stream, pos, &_bytes[0], size);
 		}
+	}
 
-		// pos += size;
-
-		// for (auto o : _subObjectBytes)
-		// {
-		// 	o->DoWrite(stream, pos);
-		// }
+	bool ObjectBytes::Written() const
+	{
+		return not _bytes.empty();
 	}
 }

@@ -13,18 +13,13 @@ namespace FuncLib::Persistence
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 		static constexpr size_t Size = Sum<GetSize, DataMemberType>::Result;
 
-		/// only write down DiskPos self, not write the object corresponding to the position
-		static void WriteDown(ThisType const& p, IWriter auto* writer)
+		static void WriteDown(ThisType const& p, IWriter auto* writer, shared_ptr<T> const& object = nullptr)
 		{
 			ByteConverter<DataMemberType>::WriteDown(p._label, writer);
-		}
-
-		static void WriteDown(ThisType const& p, IWriter auto* writer, shared_ptr<T> const& object)
-		{
-			WriteDown(p, writer);
+			auto subWriter = writer->ConstructSub(p._label);
 			if (object != nullptr)
 			{
-				p.WriteObject(object, writer);
+				p.WriteObject(object, subWriter);
 			}
 		}
 

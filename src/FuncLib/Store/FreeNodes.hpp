@@ -9,8 +9,7 @@ namespace FuncLib::Store
 		using LabelTree::AddSub;
 		using LabelTree::Take;
 
-		template <typename Releaser>
-		void ReleaseAll(Releaser const& releaser)
+		void ReleaseAll(auto const& releaser)
 		{
 			_fileRoot.ReleaseAll(releaser);
 		}

@@ -1,99 +1,115 @@
 #pragma once
+#include <set>
 #include <vector>
 #include <utility>
+#include <optional>
+#include <functional>
 #include "LabelNode.hpp"
 #include "LabelTree.hpp"
 #include "FileReader.hpp"
 #include "ObjectBytes.hpp"
 #include "../Persistence/FriendFuncLibDeclare.hpp"
 #include "FreeNodes.hpp"
+#include "ReadStateLabelNode.hpp"
 
 namespace FuncLib::Store
 {
+	using ::std::function;
 	using ::std::move;
+	using ::std::optional;
 	using ::std::pair;
+	using ::std::set;
 	using ::std::vector;
 
 	class ObjectRelationTree : private LabelTree
 	{
 	private:
+		using Base = LabelTree;
 		FreeNodes _freeNodes;
+		set<pos_label> _existLabels;
 
-		auto MakeTakerAndCollector()
-		{
-			auto take = [&](pos_label label)
-			{
-				if (auto r = this->Take(label); r.has_value())
-				{
-					return r;
-				}
-
-				return _freeNodes.Take(label);				
-			};
-
-			auto collect = [&](LabelNode node)
-			{
-				_freeNodes.AddSub(move(node));
-			};
-
-			return pair(move(take), move(collect));
-		}
 	public:
 		static ObjectRelationTree ReadObjRelationTreeFrom(FileReader* reader);
 		static void WriteObjRelationTree(ObjectRelationTree const& tree, ObjectBytes* writer);
+		static set<pos_label> GetLabelsFrom(LabelNode const& node)
+		{
+			set<pos_label> labels;
 
-		using LabelTree::LabelTree;
-		ObjectRelationTree() = default;
+			auto e = node.CreateSortedSubNodeEnumerator();
+			while (e.MoveNext())
+			{
+				labels.insert(e.Current().Label());
+			}
+
+			return labels;
+		}
+
+		ObjectRelationTree(LabelNode root, set<pos_label> existLabels);
 
 		void UpdateWith(PosLabelNode auto* topLevelNode)
 		{
-			// 上层的调用位置保证这里的 topLevelNode 一定是已经存在于磁盘中的 label
-			// 所以这里 label 一定在这里的 nodes(tree 和 free node) 之中
-			// 所以这里的每次的 update 就是要在 nodes 里找，然后继续向下 update
-			// 新增的要在 nodes 里查找，不在再创建新的，
-			// 删掉的就放到 FreeNode 里
-			// 从旧的里面抽取需要的，组成新的
-			// 最后以顶层位置加到旧的里
-
-			auto [take, collect] = MakeTakerAndCollector();
-			auto newTopLevelNode = LabelNode::ConsNodeWith(topLevelNode);
-			Complete(&newTopLevelNode, take, collect);
-			this->AddSub(move(newTopLevelNode));
+			// 这里构造的新节点的叶子节点就是读取的终点，没有读到的话，就代表被删掉了
+			auto newTopLevelNode = ReadStateLabelNode::ConsNodeWith(topLevelNode);
+			Complete(&newTopLevelNode);
+			Base::AddSub(newTopLevelNode.GenLabelNode());
 		}
 
-		// 下面这两个函数，递归这种把多余的不同的提出来的方法很棒
-		template <typename NodeTaker, typename NodeCollector>
-		void Complete(LabelNode* newNode, NodeTaker take, NodeCollector collect)
+		void Free(PosLabelNode auto* topLevelNode)
 		{
-			if (auto r = take(newNode->Label()); r.has_value())
+			auto newTopLevelNode = ReadStateLabelNode::ConsNodeWith(topLevelNode);
+			Complete(&newTopLevelNode);
+			_freeNodes.AddSub(newTopLevelNode.GenLabelNode());
+		}
+
+		/// releaser's arg type is pos_label
+		void ReleaseFreeNodes(auto const& releaser)
+		{
+			_freeNodes.ReleaseAll(releaser);
+		}
+
+	private:
+		/// complete the content from old tree to new
+		void Complete(ReadStateLabelNode* newNode)
+		{
+			if (auto r = Take(newNode->Label()); r.has_value())
 			{
 				auto oldNode = move(r.value());
-				Complete(newNode, move(oldNode), take, collect);
+				Complete(newNode, move(oldNode));
 			}
 			else
 			{
 				auto e = newNode->CreateSortedSubNodeEnumerator();
 				while (e.MoveNext())
 				{
-					Complete(&e.Current(), take, collect);
+					Complete(&e.Current());
 				}
 			}
 		}
 
-		template <typename NodeTaker, typename NodeCollector>
-		void Complete(LabelNode* newNode, LabelNode oldNode, NodeTaker take, NodeCollector collect)
+		/// Precondition: newNode->Label() == oldNode.Label()
+		void Complete(ReadStateLabelNode* newNode, LabelNode oldNode)
 		{
-			// 说明指向的内容没读或者下面没有内容了
+			if (oldNode.SubsEmpty()) { return; }
 			if (newNode->SubsEmpty())
 			{
-				newNode->SetSubs(oldNode.GiveSubs());
+				if (newNode->Read)
+				{
+					for (auto& n : oldNode.GiveSubs())
+					{
+						Collect(move(n));
+					}
+				}
+				else
+				{
+					newNode->SetSubs(oldNode.GiveSubs());
+				}
 				return;
 			}
 
-			auto oldSubsVec = oldNode.GiveSubs();
-			auto oldSubs = CreateRefEnumerator(oldSubsVec);
+			auto oldSubs = oldNode.CreateSortedSubNodeEnumerator();
 			auto newSubs = newNode->CreateSortedSubNodeEnumerator();
-			vector<LabelNode *> toCollects;
+			oldSubs.MoveNext();
+			newSubs.MoveNext();
 
 			while (true)
 			{
@@ -105,95 +121,71 @@ namespace FuncLib::Store
 
 				if (oldLabel < newLabel)
 				{
-					toCollects.push_back(&oldSub);
+					Collect(oldSub);
 
-					if (not oldSubs.MoveNext())
-					{
-						goto ProcessRemainNew;
-					}
+					if (not oldSubs.MoveNext()) { goto ProcessRemainNew; }
 				}
 				else if (oldLabel == newLabel)
 				{
-					// oldSub 被 move 后里面的 subs 就为空了，然后只有 toCollects 后续会 collect 掉
-					// 其他的说明已经在 newNode 里存在，不用处理，让它析构就行
-					Complete(&newSub, move(oldSub), take, collect);
+					Complete(&newSub, move(oldSub));
 
 					auto hasOld = oldSubs.MoveNext();
 					auto hasNew = newSubs.MoveNext();
 
 					if (hasOld)
 					{
-						if (hasNew)
-						{
-							continue;
-						}
-						else
-						{
-							goto ProcessRemainOld;
-						}
+						if (hasNew) { continue; }
+						else { goto ProcessRemainOld; }
 					}
 					else
 					{
-						if (hasNew)
-						{
-							goto ProcessRemainNew;
-						}
-						else
-						{
-							break;
-						}
+						if (hasNew) { goto ProcessRemainNew; }
+						else { break; }
 					}
 				}
-				else // oldLabel > newLabel 说明 newLabel 没遇到过
+				else // oldLabel > newLabel 说明 newLabel 没遇到过，但可能来自 ObjectRelationTree 的其他地方
 				{
-					Complete(&newSub, take, collect);
+					Complete(&newSub);
 
-					if (not newSubs.MoveNext())
-					{
-						goto ProcessRemainOld;
-					}
+					if (not newSubs.MoveNext()) { goto ProcessRemainOld; }
 				}
 			}
 
 		ProcessRemainOld:
 			do
 			{
-				toCollects.push_back(&oldSubs.Current());
+				Collect(oldSubs.Current());
 			} while (oldSubs.MoveNext());
-			goto CollectNotUsed;
 
 		ProcessRemainNew:
 			do
 			{
-				Complete(&newSubs.Current(), take, collect);
+				Complete(&newSubs.Current());
 			} while (newSubs.MoveNext());
-			goto CollectNotUsed;
-			
-		CollectNotUsed:
-			for (auto ptr : toCollects)
+		}
+
+		optional<LabelNode> Take(pos_label label)
+		{
+			if (not _existLabels.contains(label))
 			{
-				for (auto& n : oldSubsVec)
-				{
-					if (ptr == &n)
-					{
-						collect(move(n));
-					}
-				}
+				return {};
 			}
+			
+			if (auto r = Base::Take(label); r.has_value())
+			{
+				return r;
+			}
+
+			return _freeNodes.Take(label);
+			// 如果这个 Node 是已有的（因为 ObjectRelationTree 就是全局，所以可以直接搜索），就要在这里等
 		}
 
-		void Free(PosLabelNode auto* topLevelNode)
+		void Collect(LabelNode node)
 		{
-			auto [take, collect] = MakeTakerAndCollector();
-			auto newTopLevelNode = LabelNode::ConsNodeWith(topLevelNode);
-			Complete(&newTopLevelNode, take, collect);
-			_freeNodes.AddSub(move(newTopLevelNode));
-		}
-
-		template <typename Releaser>
-		void ReleaseAllFreeNode(Releaser const& releaser)
-		{
-			_freeNodes.ReleaseAll(releaser);
+			auto labels = GetLabelsFrom(node);
+			_existLabels.insert(labels.begin(), labels.end());
+			// 借还契约 TODO
+			_freeNodes.AddSub(move(node));
 		}
 	};
 }

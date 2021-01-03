@@ -42,7 +42,7 @@ namespace FuncLib::Store
 		_allocator.DeallocatePosLabels(_notStoredLabels);
 		ObjectBytes bytes{ 0 };
 		StorageAllocator::WriteAllocatedInfoTo(_allocator, &bytes);
-		_objRelationTree.ReleaseAllFreeNode([&](pos_label label)
+		_objRelationTree.ReleaseFreeNodes([&](pos_label label)
 		{
 			_allocator.DeallocatePosLabel(label);
 		});

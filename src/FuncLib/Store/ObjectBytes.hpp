@@ -29,10 +29,19 @@ namespace FuncLib::Store
 
 		ObjectBytes(pos_label label, WriteQueue* writeQueuen = nullptr, AllocateSpaceQueue* allocateQueue = nullptr, ResizeSpaceQueue* resizeQueue = nullptr);
 
-		using Base::AddSub;
+		ObjectBytes* ConstructSub(pos_label label)
+		{
+			auto sub = Base::ConstructSub(label);
+			sub->ToWrites = ToWrites;
+			sub->ToAllocates = ToAllocates;
+			sub->ToResizes = ToResizes;
+			return sub;
+		}
+
 		using Base::CreateSortedSubNodeEnumerator;
 		using Base::Label;
 
+		bool Written() const;
 		void WriteIn(ofstream* fileStream, pos_int pos) const;
 		size_t Size() const;
 		void Add(char const* begin, size_t size);

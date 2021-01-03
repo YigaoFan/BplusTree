@@ -49,9 +49,8 @@ namespace FuncLib::Store
 		auto labels = generator->Current().value();
 		for (auto l : labels)
 		{
-			auto n = LabelNode(l);
 			auto subNodes = ConsNodes(generator);
-			n.SetSubs(move(subNodes));
+			auto n = LabelNode(l, move(subNodes));
 
 			nodes.push_back(move(n));
 		}
@@ -63,9 +62,14 @@ namespace FuncLib::Store
 	{
 		auto fileLabel = ByteConverter<pos_label>::ReadOut(reader);
 		auto gen = ReadLabels(reader);
-
-		return { LabelNode(fileLabel, ConsNodes(&gen)) };
+		auto root = LabelNode(fileLabel, ConsNodes(&gen));
+		auto labels = GetLabelsFrom(root);
+		return { move(root), move(labels) };
 	}
+
+	ObjectRelationTree::ObjectRelationTree(LabelNode root, set<pos_label> existLabels)
+		: Base(move(root)), _existLabels(move(existLabels))
+	{ }
 
 	void WriteSubLabelOf(LabelNode const* node, ObjectBytes* writer)
 	{

@@ -18,5 +18,6 @@ namespace FuncLib::Store
 	{
 		{ node.Label() } -> IsSameTo<pos_label>;
 		{ node.CreateSortedSubNodeEnumerator() } -> Enumerator;
+		{ node.Written() } -> IsSameTo<bool>;
 	};	
 }

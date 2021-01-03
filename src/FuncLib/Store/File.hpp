@@ -116,24 +116,19 @@ namespace FuncLib::Store
 			_objRelationTree.UpdateWith(&bytes);
 		}
 
-		// 还有没有读的部分，在写入的时候要怎么处理
+		/// Precondition: object is not null
 		template <typename T>
-		void StoreInner(pos_label posLabel, shared_ptr<T> const& object, ObjectBytes* parentWriter)
+		void StoreInner(pos_label posLabel, shared_ptr<T> const& object, ObjectBytes* writer)
 		{
 			_notStoredLabels.erase(posLabel);
-
-			auto parent = parentWriter;
-			auto bytes = ObjectBytes(posLabel, parent->ToWrites, parent->ToAllocates, parent->ToResizes);
-			ProcessStore(posLabel, object, &bytes);
-			parentWriter->AddSub(move(bytes));
+			ProcessStore(posLabel, object, writer);
 		}
 
+		/// Precondition: object is not null
 		template <typename T>
-		void StoreInner(pos_label posLabel, shared_ptr<T> const& object, FakeObjectBytes* parentWriter)
+		void StoreInner(pos_label posLabel, shared_ptr<T> const& object, FakeObjectBytes* writer)
 		{
-			auto writer = FakeObjectBytes(posLabel);
-			ProcessFakeStore(posLabel, object, &writer);
-			parentWriter->AddSub(move(writer));
+			ProcessFakeStore(posLabel, object, writer);
 		}
 
 		template <typename T>

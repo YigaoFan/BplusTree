@@ -24,6 +24,7 @@ namespace FuncLib::Store
 		{
 		}
 
+		bool SubsEmpty() const { return _subNodes.empty(); }
 		pos_label Label() const noexcept { return _label; }
 		auto CreateSortedSubNodeEnumerator()       { return Collections::CreateRefEnumerator(_subNodes); }
 		auto CreateSortedSubNodeEnumerator() const { return Collections::CreateRefEnumerator(_subNodes); }
@@ -40,6 +41,20 @@ namespace FuncLib::Store
 			}
 
 			_subNodes.push_back(move(node));
+		}
+
+		Derived* ConstructSub(pos_label label)
+		{
+			for (auto it = _subNodes.begin(); it != _subNodes.end(); ++it)
+			{
+				if (label <= it->Label())
+				{
+					return &(*_subNodes.insert(it, Derived(label)));
+				}
+			}
+
+			_subNodes.push_back(Derived(label));
+			return &_subNodes.back();
 		}
 	};	
 }

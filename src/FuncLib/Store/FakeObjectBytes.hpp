@@ -8,14 +8,14 @@ namespace FuncLib::Store
 	{
 	private:
 		using Base = LabelNodeBase<FakeObjectBytes>;
+		bool _written = false;
 
 	public:
-		FakeObjectBytes(pos_label label);
-
+		using Base::Base;
+		bool Written() const;
 		void Add(char const* begin, size_t size);
 		void AddBlank(size_t size);
-
-		using Base::AddSub;
+		using Base::ConstructSub;
 		using Base::CreateSortedSubNodeEnumerator;
 		using Base::Label;
 	};
