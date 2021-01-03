@@ -28,6 +28,23 @@ namespace FuncLib::Store
 		FreeNodes _freeNodes;
 		set<pos_label> _existLabels;
 
+		auto MakeTakeCollectPairWith(set<pos_label>* takeRecords)
+		{
+			auto take = [=, this](pos_label label)
+			{
+				// 可能这样操作还是太粗了 TODO
+				takeRecords->insert(label);
+				return Take(label);
+			};
+			auto collect = [=, this](LabelNode node)
+			{
+				// 可能这样操作还是太粗了 TODO
+				takeRecords->erase(node.Label());
+				return Collect(move(node));
+			};
+
+			return pair(take, collect);
+		}
 	public:
 		static ObjectRelationTree ReadObjRelationTreeFrom(FileReader* reader);
 		static void WriteObjRelationTree(ObjectRelationTree const& tree, ObjectBytes* writer);
@@ -50,14 +67,27 @@ namespace FuncLib::Store
 		{
 			// 这里构造的新节点的叶子节点就是读取的终点，没有读到的话，就代表被删掉了
 			auto newTopLevelNode = ReadStateLabelNode::ConsNodeWith(topLevelNode);
-			Complete(&newTopLevelNode);
+			set<pos_label> takeRecords;
+			auto [take, collect] = MakeTakeCollectPairWith(&takeRecords);
+			Complete(&newTopLevelNode, take, collect);
+			// 目前要 take 只能在从 ObjectRelationTree 里拿
+			if (not takeRecords.empty())
+			{
+
+			}
 			Base::AddSub(newTopLevelNode.GenLabelNode());
 		}
 
 		void Free(PosLabelNode auto* topLevelNode)
 		{
 			auto newTopLevelNode = ReadStateLabelNode::ConsNodeWith(topLevelNode);
-			Complete(&newTopLevelNode);
+			set<pos_label> takeRecords;
+			auto [take, collect] = MakeTakeCollectPairWith(&takeRecords);
+			Complete(&newTopLevelNode, take, collect);
+			// 目前要 take 只能在从 ObjectRelationTree 里拿
+			if (not takeRecords.empty())
+			{
+			}
 			_freeNodes.AddSub(newTopLevelNode.GenLabelNode());
 		}
 
@@ -68,26 +98,28 @@ namespace FuncLib::Store
 		}
 
 	private:
+		using TakeFunc = optional<LabelNode> (*)(pos_label label);
+		using CollectFunc = void (*)(LabelNode node);
 		/// complete the content from old tree to new
-		void Complete(ReadStateLabelNode* newNode)
+		void Complete(ReadStateLabelNode* newNode, auto take, auto collect)
 		{
-			if (auto r = Take(newNode->Label()); r.has_value())
+			if (auto r = take(newNode->Label()); r.has_value())
 			{
 				auto oldNode = move(r.value());
-				Complete(newNode, move(oldNode));
+				Complete(newNode, move(oldNode), take, collect);
 			}
 			else
 			{
 				auto e = newNode->CreateSortedSubNodeEnumerator();
 				while (e.MoveNext())
 				{
-					Complete(&e.Current());
+					Complete(&e.Current(), take, collect);
 				}
 			}
 		}
 
 		/// Precondition: newNode->Label() == oldNode.Label()
-		void Complete(ReadStateLabelNode* newNode, LabelNode oldNode)
+		void Complete(ReadStateLabelNode* newNode, LabelNode oldNode, auto take, auto collect)
 		{
 			if (oldNode.SubsEmpty()) { return; }
 			if (newNode->SubsEmpty())
@@ -127,7 +159,7 @@ namespace FuncLib::Store
 				}
 				else if (oldLabel == newLabel)
 				{
-					Complete(&newSub, move(oldSub));
+					Complete(&newSub, move(oldSub), take, collect);
 
 					auto hasOld = oldSubs.MoveNext();
 					auto hasNew = newSubs.MoveNext();
@@ -145,7 +177,7 @@ namespace FuncLib::Store
 				}
 				else // oldLabel > newLabel 说明 newLabel 没遇到过，但可能来自 ObjectRelationTree 的其他地方
 				{
-					Complete(&newSub);
+					Complete(&newSub, take, collect);
 
 					if (not newSubs.MoveNext()) { goto ProcessRemainOld; }
 				}
@@ -160,7 +192,7 @@ namespace FuncLib::Store
 		ProcessRemainNew:
 			do
 			{
-				Complete(&newSubs.Current());
+				Complete(&newSubs.Current(), take, collect);
 			} while (newSubs.MoveNext());
 		}
 
@@ -177,7 +209,6 @@ namespace FuncLib::Store
 			}
 
 			return _freeNodes.Take(label);
-			// 如果这个 Node 是已有的（因为 ObjectRelationTree 就是全局，所以可以直接搜索），就要在这里等
 		}
 
 		void Collect(LabelNode node)
