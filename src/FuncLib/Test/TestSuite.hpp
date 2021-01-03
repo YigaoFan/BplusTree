@@ -7,6 +7,7 @@ extern void fileCacheTest(bool executed);
 extern void typeConverterTest(bool executed);
 extern void compileTest(bool executed);
 extern void TestLabelNode(bool executed);
+extern void TestObjectRelationTree(bool executed);
 
 namespace FuncLib::Test
 {
@@ -20,5 +21,6 @@ namespace FuncLib::Test
 		byteConverterTest(false);
 		compileTest(false);
 		TestLabelNode(executed);
+		TestObjectRelationTree(executed);
 	}
 }
