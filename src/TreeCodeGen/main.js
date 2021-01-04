@@ -1,165 +1,135 @@
 const log = console.log.bind(console)
-// const log = function(s) {
-//     var text = document.querySelector('#id-log')
-//     text.value += s
-//     text.value += '\n'
-// }
-
-const Node = function(x, y, data, parent = null) {
-    var o = {
-        x,
-        y,
-        width: 50,
-        height: 50,
-        data,
-        children: [],
-        parent,
-    }
-
-    o.bornChild = function() {
-        var dx = Math.random() * 50 - 25
-        var dy = Math.random() * 30 + 50
-        var c = Node(o.x, o.y, ++data, o)
-        // log('born new, ', o.x + o.width, o.y + o.height)
-        o.children.push(c)
-        return c
-    }
-
-    o.locateNode = function(x, y) {
-        if (x >= o.x && x <= o.x + o.width) {
-            if (y >= o.y && y <= o.y + o.height) {
-                return o
-            }
-        }
-
-        for (var i = 0; i < o.children.length; ++i) {
-            var c = o.children[i]
-            var n = c.locateNode(x, y)
-            if (n != null) {
-                return n
-            }
-        }
-
-        return null
-    }
-
-    o.draw = function(context) {
-        context.fillStyle = 'black'
-        context.strokeRect(o.x, o.y, o.width, o.height)
-        context.fillStyle = 'green'
-        context.fillRect(o.x, o.y, o.width, o.height)
-        context.beginPath()
-        context.fillStyle = 'black'
-        context.font = '20px Arial'
-        var p1 = o.getMiddlePoint()
-        context.fillText(o.data, p1.x - 4, p1.y + 4)
-
-        o.children.forEach(c => {
-            c.draw(context)
-            context.moveTo(p1.x, p1.y)
-            context.fillStyle = 'black'
-            var p2 = c.getMiddlePoint()
-            context.lineTo(p2.x, p2.y)
-            context.stroke()
-        })
-    }
-
-    o.getMiddlePoint = function() {
-        return {
-            x: (o.x + o.x + o.width) / 2, 
-            y: (o.y + o.y + o.height) / 2,
-        }
-    }
-
-    o.traverse = function(callbackOnLeaf, callbackOnMiddle) {
-        if (o.children.length == 0) {
-            return callbackOnLeaf(o.data)
-        } else {
-            var subResults = []
-            o.children.forEach(e => {
-                var r = e.traverse(callbackOnLeaf, callbackOnMiddle)
-                subResults.push(r)
-            })
-
-            return callbackOnMiddle(o.data, subResults)
-        }
-    }
-
-    o.remove = function(child) {
-        o.children = o.children.filter(e => {
-            return e != child
-        })
-        log("remove: ", child)
-        log('child count after remove: ', o.children.length)
-    }
-
-    return o
+var text = document.querySelector('#id-log')
+const printCode = function(s) {
+    text.value += s
+    text.value += '\n'
 }
 
 const __main = function() {
     var canvas = document.querySelector('#id-canvas')
     var context = canvas.getContext('2d')
-    var root = Node(375, 20, 0)
 
-    var enableDeleteMode = false
-    var deletedNodes = []
-    var opNode = null
+    var root = Node(0, 375, 20)
+    var freeNode = Node(0)
+
+    const normalMode = 0
+    const deleteMode = 1
+    const dragMode = 2
+    var mode = normalMode
+    
+    var operateNode = null
     canvas.addEventListener('mousedown', function(event) {
         var x = event.offsetX
         var y = event.offsetY
-        // log('pos: ', x, y)
 
         var n = root.locateNode(x, y)
         if (n != null) {
-            if (enableDeleteMode) {
+            if (mode == deleteMode) {
                 if (n != root) {
                     n.parent.remove(n)
-                    deletedNodes.push(n)
+                    freeNode.addChild(n)
                 }
-            } else {
-                opNode = n.bornChild()
+            } else if (mode == normalMode) {
+                mode = dragMode
+                operateNode = n.bornChild()
             }
         }
     })
     canvas.addEventListener('mouseup', function (event) {
-        opNode = null
-    })
-    canvas.addEventListener('mousemove', function (event) {
-        if (opNode != null) {
-            var x = event.offsetX
-            var y = event.offsetY
-            opNode.x = x
-            opNode.y = y
+        if (mode == dragMode && operateNode != null) {
+            if (operateNode.x == operateNode.parent.x) {
+                if (operateNode.y == operateNode.parent.y) {
+                    operateNode.parent.remove(operateNode)
+                }
+            }
+            operateNode = null
+            mode = normalMode
         }
     })
-    var b = document.querySelector('#id-generate-button')
-    b.addEventListener('click', function(event) {
-        var leafIdx = 0
-        var middleIdx = 0
-        root.traverse(function(data) {
-            var name = `leafNode${leafIdx++}`
-            log(`auto ${name} = LabelNode(${data});`)
-            return name
-        }, 
-        function(data, subResults) {
-            var name = `middleNode${middleIdx++}`
-            // var sub = subResults.concat()
-            log(`auto ${name} = LabelNode(${data}, { ${subResults.join(', ')} });`)
-            return name
-        })
+    canvas.addEventListener('mousemove', function (event) {
+        var x = event.offsetX
+        var y = event.offsetY
+        
+        if (mode == dragMode && operateNode != null) {
+            operateNode.x = x
+            operateNode.y = y
+        } else if (mode == normalMode) {
+            operateNode = root.locateNode(x, y)
+        }
     })
-    window.addEventListener('keydown', function(event) {
+    window.addEventListener('keydown', function (event) {
         var k = event.key
         if (k == 'd') {
-            enableDeleteMode = true
+            mode = deleteMode
+        } else if ('0123456789'.includes(k)) {
+            if (mode == normalMode && operateNode != null) {
+                operateNode.data = k
+            }
         }
     })
     window.addEventListener('keyup', function (event) {
         var k = event.key
         if (k == 'd') {
-            enableDeleteMode = false
+            mode = normalMode
         }
     })
+
+    var b = document.querySelector('#id-generate-button')
+    var printTreeCode = function(tree) {
+        var leafIdx = 0
+        var middleIdx = 0
+        tree.traverse(function (data) {
+            var name = `leafNode${leafIdx++}`
+            printCode(`auto ${name} = LabelNode(${data});`)
+            return name
+        },
+        function (data, subResults) {
+            var name = `middleNode${middleIdx++}`
+            printCode(`auto ${name} = LabelNode(${data}, { ${subResults.join(', ')} });`)
+            return name
+        })
+    }
+
+    var levels = [
+        {
+            name: 'Store original tree state',
+            handler : function (event) {
+                printCode("original:")
+                printTreeCode(root)
+            }
+        },
+        {
+            name: 'Generate tree code after change',
+            handler : function (event) {
+                printCode("after modify:")
+                printTreeCode(root)
+
+                printCode("delete nodes:")
+                printTreeCode(freeNode)
+            }
+        }
+    ]
+
+    var currentLevel = 0
+    b.innerText = levels[currentLevel].name
+
+    b.addEventListener('click', function(event) {
+        levels[currentLevel].handler(event)
+        ++currentLevel
+        if (!(currentLevel < levels.length)) {
+            currentLevel = 0
+            printCode('')
+            printCode('')
+        }
+
+        b.innerText = levels[currentLevel].name
+    })
+    var clearButton = document.querySelector('#id-clear-button')
+    clearButton.addEventListener('click', function (event) {
+        text.value = ''
+        freeNode.children = []
+    })
+
     setInterval(function() {
         context.clearRect(0, 0, 800, 600)
         root.draw(context)
