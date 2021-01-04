@@ -14,6 +14,7 @@
 #include "ObjectRelationTree.hpp"
 #include "CacheSearchRoutine.hpp"
 #include "FakeObjectBytes.hpp"
+#include "ReadStateLabelNode.hpp"
 
 namespace FuncLib::Store
 {
@@ -38,7 +39,7 @@ namespace FuncLib::Store
 	class File : public enable_shared_from_this<File>
 	{
 	private:
-		static set<File*> Files;
+		static inline set<File*> Files = {};
 
 		shared_ptr<path> _filename;
 		FileCache _cache;
@@ -113,7 +114,8 @@ namespace FuncLib::Store
 			toAllocates | allocate | write;
 			toWrites | write;
 
-			_objRelationTree.UpdateWith(&bytes);
+			auto readStateNode = ReadStateLabelNode::ConsNodeWith(&bytes);
+			_objRelationTree.UpdateWith(move(readStateNode));
 		}
 
 		/// Precondition: object is not null
@@ -137,7 +139,8 @@ namespace FuncLib::Store
 			FakeObjectBytes writer{ posLabel };
 			ProcessFakeStore(posLabel, object, &writer);
 
-			_objRelationTree.Free(&writer);
+			auto readStateNode = ReadStateLabelNode::ConsNodeWith(&writer);
+			_objRelationTree.Free(move(readStateNode));
 			_cache.Remove<T>(posLabel);
 		}
 

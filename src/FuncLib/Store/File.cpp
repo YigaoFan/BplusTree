@@ -2,8 +2,7 @@
 
 namespace FuncLib::Store
 {
-	set<File*> File::Files = {};
-	constexpr pos_int MetaDataSize = 2048; // Byte
+	constexpr pos_int MetadataSize = 2048; // Byte
 	constexpr pos_int MetaDataStart = 0;
 
 	shared_ptr<File> File::GetFile(path const& filename)
@@ -42,13 +41,13 @@ namespace FuncLib::Store
 		_allocator.DeallocatePosLabels(_notStoredLabels);
 		ObjectBytes bytes{ 0 };
 		StorageAllocator::WriteAllocatedInfoTo(_allocator, &bytes);
-		_objRelationTree.ReleaseFreeNodes([&](pos_label label)
+		_objRelationTree.ReleaseFreeNodes([this](pos_label label)
 		{
 			_allocator.DeallocatePosLabel(label);
 		});
 		ObjectRelationTree::WriteObjRelationTree(_objRelationTree, &bytes);
 
-		if (bytes.Size() > MetaDataSize)
+		if (bytes.Size() > MetadataSize)
 		{
 			// throw exception()
 			// adjust the size
