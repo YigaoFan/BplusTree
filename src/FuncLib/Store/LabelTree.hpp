@@ -12,5 +12,6 @@ namespace FuncLib::Store
 		LabelTree(LabelNode root);
 		optional<LabelNode> Take(pos_label label);
 		void AddSub(LabelNode node);
+		bool EqualTo(LabelTree const& that) const;
 	};
 }

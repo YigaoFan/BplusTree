@@ -17,4 +17,9 @@ namespace FuncLib::Store
 	{
 		_fileRoot.AddSub(move(node));
 	}
+
+	bool LabelTree::EqualTo(LabelTree const& that) const
+	{
+		return _fileRoot.EqualTo(that._fileRoot);
+	}
 }

@@ -32,4 +32,24 @@ namespace FuncLib::Store
 
 		return {};
 	}
+
+	bool LabelNode::EqualTo(LabelNode const& that) const
+	{
+		if (_label == that._label)
+		{
+			if (_subNodes.size() == that._subNodes.size())
+			{
+				for (size_t i = 0; i < _subNodes.size(); ++i)
+				{
+					if (not _subNodes[i].EqualTo(that._subNodes[i]))
+					{
+						return false;
+					}
+				}
+				return true;
+			}
+		}
+
+		return false;
+	}
 }

@@ -23,6 +23,7 @@ namespace FuncLib::Store
 		using Base::Label;
 		using Base::SubsEmpty;
 
+		bool EqualTo(LabelNode const& that) const;
 		vector<LabelNode> GiveSubs();
 		/// 由于是 inside 的，所以不检查当前 node 的 label
 		optional<LabelNode> TakeInside(pos_label label);
@@ -39,5 +40,6 @@ namespace FuncLib::Store
 
 			_subNodes.clear();
 		}
+
 	};	
 }
