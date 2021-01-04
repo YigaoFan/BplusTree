@@ -63,13 +63,8 @@ namespace FuncLib::Store
 		auto fileLabel = ByteConverter<pos_label>::ReadOut(reader);
 		auto gen = ReadLabels(reader);
 		auto root = LabelNode(fileLabel, ConsNodes(&gen));
-		auto labels = GetLabelsFrom(root);
-		return { move(root), move(labels) };
+		return { move(root) };
 	}
-
-	ObjectRelationTree::ObjectRelationTree(LabelNode root, set<pos_label> existLabels)
-		: Base(move(root)), _existLabels(move(existLabels))
-	{ }
 
 	void WriteSubLabelOf(LabelNode const* node, ObjectBytes* writer)
 	{
