@@ -1,14 +1,15 @@
+#include <vector>
 #include "ObjectRelationTree.hpp"
-#include "ObjectBytes.hpp"
 #include "../Persistence/ByteConverter.hpp"
 #include "../../Btree/Generator.hpp"
-#include <optional>
 
 namespace FuncLib::Store
 {
 	using Collections::Generator;
-	using ::std::optional;
+	using ::std::move;
+	using ::std::vector;
 
+	// 但 FileLabel 是 0... TODO
 	constexpr pos_label NonLabel = 0;// 树中不能出现 0
 
 	Generator<optional<vector<pos_label>>> ReadLabels(FileReader* reader)
@@ -84,9 +85,156 @@ namespace FuncLib::Store
 		}
 	}
 
+	ObjectRelationTree::ObjectRelationTree(LabelTree tree, FreeNodes freeNodes)
+		: Base(move(tree)), _freeNodes(move(freeNodes))
+	{ }
+
 	void ObjectRelationTree::WriteObjRelationTree(ObjectRelationTree const& tree, ObjectBytes* writer)
 	{
 		ByteConverter<pos_label>::WriteDown(tree._fileRoot.Label(), writer);
 		WriteSubLabelOf(&tree._fileRoot, writer);
+	}
+
+	void ObjectRelationTree::UpdateWith(ReadStateLabelNode topNode)
+	{
+		Complete(&topNode);
+		Base::AddSub(topNode.GenLabelNode());
+	}
+
+	void ObjectRelationTree::Free(ReadStateLabelNode topNode)
+	{
+		Complete(&topNode);
+		_freeNodes.AddSub(topNode.GenLabelNode());
+	}
+
+	void ObjectRelationTree::Complete(ReadStateLabelNode *newNode)
+	{
+		if (auto r = Take(newNode->Label()); r.has_value())
+		{
+			auto oldNode = move(r.value());
+			Complete(newNode, move(oldNode));
+		}
+		else
+		{
+			auto e = newNode->CreateSortedSubNodeEnumerator();
+			while (e.MoveNext())
+			{
+				Complete(&e.Current());
+			}
+		}
+	}
+
+	void ObjectRelationTree::Complete(ReadStateLabelNode *newNode, LabelNode oldNode)
+	{
+		if (oldNode.SubsEmpty())
+		{
+			return;
+		}
+		if (newNode->SubsEmpty())
+		{
+			if (newNode->Read)
+			{
+				for (auto &n : oldNode.GiveSubs())
+				{
+					Collect(move(n));
+				}
+			}
+			else
+			{
+				newNode->SetSubs(oldNode.GiveSubs());
+			}
+			return;
+		}
+
+		auto oldSubs = oldNode.CreateSortedSubNodeEnumerator();
+		auto newSubs = newNode->CreateSortedSubNodeEnumerator();
+		oldSubs.MoveNext();
+		newSubs.MoveNext();
+
+		while (true)
+		{
+			auto &oldSub = oldSubs.Current();
+			auto oldLabel = oldSub.Label();
+
+			auto &newSub = newSubs.Current();
+			auto newLabel = newSub.Label();
+
+			if (oldLabel < newLabel)
+			{
+				Collect(oldSub);
+
+				if (not oldSubs.MoveNext())
+				{
+					goto ProcessRemainNew;
+				}
+			}
+			else if (oldLabel == newLabel)
+			{
+				Complete(&newSub, move(oldSub));
+
+				auto hasOld = oldSubs.MoveNext();
+				auto hasNew = newSubs.MoveNext();
+
+				if (hasOld)
+				{
+					if (hasNew)
+					{
+						continue;
+					}
+					else
+					{
+						goto ProcessRemainOld;
+					}
+				}
+				else
+				{
+					if (hasNew)
+					{
+						goto ProcessRemainNew;
+					}
+					else
+					{
+						break;
+					}
+				}
+			}
+			else // oldLabel > newLabel 说明 newLabel 没遇到过，但可能来自 ObjectRelationTree 的其他地方
+			{
+				Complete(&newSub);
+
+				if (not newSubs.MoveNext())
+				{
+					goto ProcessRemainOld;
+				}
+			}
+		}
+
+	ProcessRemainOld:
+		do
+		{
+			Collect(oldSubs.Current());
+		} while (oldSubs.MoveNext());
+		return;
+
+	ProcessRemainNew:
+		do
+		{
+			Complete(&newSubs.Current());
+		} while (newSubs.MoveNext());
+	}
+
+	optional<LabelNode> ObjectRelationTree::Take(pos_label label)
+	{
+		if (auto r = Base::Take(label); r.has_value())
+		{
+			return r;
+		}
+
+		return _freeNodes.Take(label);
+	}
+
+	void ObjectRelationTree::Collect(LabelNode node)
+	{
+		_freeNodes.AddSub(move(node));
 	}
 }
