@@ -14,6 +14,7 @@ namespace FuncLib
 
 	// Below code to ToTuple inspire from Chris Ohk
 	// https://gist.github.com/utilForever/1a058050b8af3ef46b58bcfa01d5375d
+	// related: https://www.reddit.com/r/cpp/comments/4yp7fv/c17_structured_bindings_convert_struct_to_a_tuple/
 	template <typename T, typename... Args>
 	decltype(void(T{declval<Args>()...}), true_type())
 	TestBracesConstructible(int);
