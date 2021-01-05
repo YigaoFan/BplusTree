@@ -12,6 +12,7 @@ const Node = function (data, x = null, y = null, parent = null) {
     o.bornChild = function () {
         var c = Node(++data, o.x, o.y, o)
         o.children.push(c)
+        o.children.sort((a, b) => a.data - b.data)
         return c
     }
 
@@ -62,18 +63,14 @@ const Node = function (data, x = null, y = null, parent = null) {
         }
     }
 
-    o.traverse = function (callbackOnLeaf, callbackOnMiddle) {
-        if (o.children.length == 0) {
-            return callbackOnLeaf(o.data)
-        } else {
-            var subResults = []
-            o.children.forEach(e => {
-                var r = e.traverse(callbackOnLeaf, callbackOnMiddle)
-                subResults.push(r)
-            })
+    o.traverse = function (callback) {
+        var subResults = []
+        o.children.forEach(e => {
+            var r = e.traverse(callback)
+            subResults.push(r)
+        })
 
-            return callbackOnMiddle(o.data, subResults)
-        }
+        return callback(o.data, subResults)
     }
 
     o.remove = function (child) {

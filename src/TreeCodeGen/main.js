@@ -1,5 +1,5 @@
 const log = console.log.bind(console)
-var text = document.querySelector('#id-log')
+const text = document.querySelector('#id-log')
 const printCode = function(s) {
     text.value += s
     text.value += '\n'
@@ -78,14 +78,15 @@ const __main = function() {
     var printTreeCode = function(tree) {
         var leafIdx = 0
         var middleIdx = 0
-        tree.traverse(function (data) {
-            var name = `leafNode${leafIdx++}`
-            printCode(`auto ${name} = LabelNode(${data});`)
-            return name
-        },
-        function (data, subResults) {
-            var name = `middleNode${middleIdx++}`
-            printCode(`auto ${name} = LabelNode(${data}, { ${subResults.join(', ')} });`)
+        tree.traverse(function (data, subNodeNames) {
+            var name = null
+            if (subNodeNames.length == 0) {
+                name = `leafNode${leafIdx++}`
+                printCode(`auto ${name} = LabelNode(${data});`)
+            } else {
+                name = `middleNode${middleIdx++}`
+                printCode(`auto ${name} = LabelNode(${data}, { ${subNodeNames.join(', ')} });`)
+            }
             return name
         })
     }
@@ -133,7 +134,7 @@ const __main = function() {
     setInterval(function() {
         context.clearRect(0, 0, 800, 600)
         root.draw(context)
-    }, 1000/30);
+    }, 1000/30)
 }
 
 __main()
