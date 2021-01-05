@@ -1,4 +1,24 @@
-const Node = function (data, x = null, y = null, parent = null) {
+const distance = function(x1, y1, x2, y2) {
+    return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2))
+}
+/// point is { x, y }
+/// line is [point1, point2]
+const distanceToLine = function(point, line) {
+    var p1 = point
+    var p2 = line[0]
+    var p3 = line[1]
+    var A = distance(p1.x, p1.y, p2.x, p2.y)
+    var B = distance(p1.x, p1.y, p3.x, p3.y)
+    var C = distance(p2.x, p2.y, p3.x, p3.y)
+    // 利用海伦公式计算三角形面积
+    var P = (A + B + C) / 2
+    var area = Math.sqrt(P * (P - A) * (P - B) * (P - C))
+
+    var dis = (2 * area) / C
+    return dis
+}
+
+const Node = function(data, x = null, y = null, parent = null) {
     var o = {
         x,
         y,
@@ -9,14 +29,14 @@ const Node = function (data, x = null, y = null, parent = null) {
         parent,
     }
 
-    o.bornChild = function () {
-        var c = Node(++data, o.x, o.y, o)
+    o.bornChild = function() {
+        var c = Node(getData(), o.x, o.y, o)
         o.children.push(c)
         o.children.sort((a, b) => a.data - b.data)
         return c
     }
 
-    o.locateNode = function (x, y) {
+    o.locateNode = function(x, y) {
         if (x >= o.x && x <= o.x + o.width) {
             if (y >= o.y && y <= o.y + o.height) {
                 return o
@@ -34,7 +54,25 @@ const Node = function (data, x = null, y = null, parent = null) {
         return null
     }
 
-    o.draw = function (context) {
+    o.locateRelation = function(x, y) {
+        var distanceLimit = 5
+        var p1 = o.getMiddlePoint()
+        for (const c of o.children) {
+            var p2 = c.getMiddlePoint()
+            if (distanceToLine({ x, y, }, [p1, p2, ]) < distanceLimit) {
+                return c
+            }
+
+            var n = c.locateRelation(x, y)
+            if (n != null) {
+                return n
+            }
+        }
+
+        return null
+    }
+
+    o.draw = function(context) {
         context.fillStyle = 'black'
         context.strokeRect(o.x, o.y, o.width, o.height)
         context.fillStyle = 'green'
@@ -56,14 +94,14 @@ const Node = function (data, x = null, y = null, parent = null) {
         })
     }
 
-    o.getMiddlePoint = function () {
+    o.getMiddlePoint = function() {
         return {
             x: (o.x + o.x + o.width) / 2,
             y: (o.y + o.y + o.height) / 2,
         }
     }
 
-    o.traverse = function (callback) {
+    o.traverse = function(callback) {
         var subResults = []
         o.children.forEach(e => {
             var r = e.traverse(callback)
@@ -73,7 +111,7 @@ const Node = function (data, x = null, y = null, parent = null) {
         return callback(o.data, subResults)
     }
 
-    o.remove = function (child) {
+    o.remove = function(child) {
         o.children = o.children.filter(e => {
             return e != child
         })
@@ -82,8 +120,38 @@ const Node = function (data, x = null, y = null, parent = null) {
     }
 
     o.addChild = function(node) {
+        node.parent = o
         o.children.push(node)
         o.children.sort((a, b) => a.data - b.data)
+    }
+
+    o.insertParent = function(node) {
+        o.parent.remove(o)
+        o.parent.addChild(node)
+        node.addChild(o)
+    }
+
+    o.giveChildren = function() {
+        var c = o.children
+        o.children = []
+        return c
+    }
+
+    o.searchClosestNode = function(x, y) {
+        var p = o.getMiddlePoint()
+        var minDistanceNode = o
+        var minDistance = distance(x, y, p.x, p.y)
+
+        for (let c of o.children) {
+            var n = c.searchClosestNode(x, y)
+            var d = distance(n.x, n.y, x, y)
+            if (d < minDistance) {
+                minDistance = d
+                minDistanceNode = n
+            }
+        }
+
+        return minDistanceNode
     }
 
     return o
