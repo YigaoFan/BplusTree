@@ -38,7 +38,7 @@ const __main = function() {
     root = new Node(0, 275, 20)
     var freeNode = new Node(0)
     var partEdit = new PartEdit(partWindow)
-    var mainEdit = EditMode(mainWindow, root, freeNode, partEdit)
+    var mainEdit = new EntireEdit(mainWindow, root, freeNode, partEdit)
 
     window.addEventListener('keydown', function (event) {
         var k = event.key
