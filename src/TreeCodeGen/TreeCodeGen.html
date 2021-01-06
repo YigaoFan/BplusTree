@@ -10,7 +10,8 @@
     </style>
 </head>
 <body>
-    <canvas id="id-canvas" width="800" height="600"></canvas>
+    <canvas id="id-canvas" width="600" height="600"></canvas>
+    <canvas id="id-part-canvas" width="600" height="600"></canvas>
     <hr>
     <button id="id-generate-button" type="button"></button>
     <button id="id-clear-button" type="button">Clear</button>
@@ -18,10 +19,12 @@
     <input type="checkbox" id="id-default-checkbox">default</input>
     <input type="checkbox" id="id-delete-checkbox">delete</input>
     <input type="checkbox" id="id-move-checkbox">move</input>
+    <input type="checkbox" id="id-part-checkbox">part</input>
     <hr>
-    <textarea name="log" id="id-log" cols="800" rows="600"></textarea>
+    <textarea name="log" id="id-log" cols="150" rows="600"></textarea>
     <script src="node.js"></script>
     <script src="edit_mode.js"></script>
+    <script src="part_edit.js"></script>
     <script src="main.js"></script>
 </body>
 </html>

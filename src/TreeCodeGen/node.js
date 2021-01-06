@@ -27,6 +27,8 @@ const Node = function(data, x = null, y = null, parent = null) {
         data,
         children: [],
         parent,
+        read: null,
+        deleted: null,
     }
 
     o.bornChild = function() {
@@ -82,7 +84,15 @@ const Node = function(data, x = null, y = null, parent = null) {
         context.font = '20px Arial'
         context.textAlign = "center"
         var p1 = o.getMiddlePoint()
-        context.fillText(o.data, p1.x, p1.y)
+
+        var s = data.toString()
+        if (o.deleted == true) {
+            s += ' d'
+        }
+        if (o.read == true) {
+            s += ' r'
+        }
+        context.fillText(s, p1.x, p1.y)
 
         o.children.forEach(c => {
             c.draw(context)
@@ -115,8 +125,6 @@ const Node = function(data, x = null, y = null, parent = null) {
         o.children = o.children.filter(e => {
             return e != child
         })
-        log("remove: ", child)
-        log('child count after remove: ', o.children.length)
     }
 
     o.addChild = function(node) {
@@ -152,6 +160,15 @@ const Node = function(data, x = null, y = null, parent = null) {
         }
 
         return minDistanceNode
+    }
+
+    o.clone = function() {
+        var children = []
+        o.children.forEach(x => children.push(x.clone()))
+
+        var n = Node(o.data, o.x, o.y)
+        n.children = children
+        return  n
     }
 
     return o

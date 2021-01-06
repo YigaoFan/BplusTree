@@ -23,37 +23,44 @@ const getData = function() {
     getData.n = getData.n ? getData.n + 1 : 1;
     return getData.n
 }
+const getWindow = function(id) {
+    var canvas = document.querySelector(id)
+    var context = canvas.getContext('2d')
+    return {
+        canvas,
+        context,
+    }
+}
 
 const __main = function() {
-    var canvas = document.querySelector('#id-canvas')
-    var context = canvas.getContext('2d')
-    var showNodes = []
+    var mainWindow = getWindow('#id-canvas')
+    partWindow = getWindow('#id-part-canvas')
     
-    var root = Node(0, 375, 20)
-    showNodes.push(root)
+    root = Node(0, 275, 20)
     var freeNode = Node(0)
-    var mode = EditMode(root, freeNode, showNodes)
+    var partEdit = PartEdit(partWindow)
+    var mainEdit = EditMode(root, freeNode, partEdit)
     
-    canvas.addEventListener('mousedown', function(event) {
+    mainWindow.canvas.addEventListener('mousedown', function(event) {
         var x = event.offsetX
         var y = event.offsetY
-        mode.onMouseDown(x, y)
+        mainEdit.onMouseDown(x, y)
     })
-    canvas.addEventListener('mouseup', function (event) {
-        mode.onMouseUp()
+    mainWindow.canvas.addEventListener('mouseup', function (event) {
+        mainEdit.onMouseUp()
     })
-    canvas.addEventListener('mousemove', function (event) {
+    mainWindow.canvas.addEventListener('mousemove', function (event) {
         var x = event.offsetX
         var y = event.offsetY
-        mode.onMouseMove(x, y)
+        mainEdit.onMouseMove(x, y)
     })
     window.addEventListener('keydown', function (event) {
         var k = event.key
-        mode.onKeyDown(k)
+        mainEdit.onKeyDown(k)
     })
     window.addEventListener('keyup', function (event) {
         var k = event.key
-        mode.onKeyUp(k)
+        mainEdit.onKeyUp(k)
     })
 
     var generateButton = document.querySelector('#id-generate-button')
@@ -98,8 +105,8 @@ const __main = function() {
     })
 
     setInterval(function() {
-        context.clearRect(0, 0, 800, 600)
-        showNodes.forEach(e => e.draw(context))
+        mainEdit.draw(mainWindow.context)
+        partEdit.draw()
     }, 1000/30)
 }
 

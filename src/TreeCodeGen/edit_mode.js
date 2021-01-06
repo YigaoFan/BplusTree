@@ -1,13 +1,15 @@
-const EditMode = function(root, freeNode, showNodes) {
+const EditMode = function(root, freeNode, partEdit) {
     const defaultMode = 0 // 加节点和修改节点数据的
     const deleteMode = 1
     const dragMode = 2
     const moveMode = 3
+    const partMode = 4
     // externalModes 和 ids 是一一对应的
     const externalModes = [
         defaultMode,
         deleteMode,
         moveMode,
+        partMode,
     ]
     var o = {
         currentMode: defaultMode,
@@ -19,6 +21,7 @@ const EditMode = function(root, freeNode, showNodes) {
         '#id-default-checkbox',
         '#id-delete-checkbox',
         '#id-move-checkbox',
+        '#id-part-checkbox',
     ]
     for (const id of ids) {
         var e = document.querySelector(id)
@@ -27,6 +30,7 @@ const EditMode = function(root, freeNode, showNodes) {
     var defaultCheckbox = o.checkboxes[0]
     var deleteCheckbox = o.checkboxes[1]
     var moveCheckbox = o.checkboxes[2]
+    var partCheckbox = o.checkboxes[3]
 
     for (let box of o.checkboxes) {
         box.addEventListener('change', function (event) {
@@ -43,6 +47,7 @@ const EditMode = function(root, freeNode, showNodes) {
     }
 
     defaultCheckbox.click()
+    
 
     o.onMouseMove = function(x, y) {
         if (o.currentMode == dragMode && o.operateNode != null) {
@@ -69,7 +74,6 @@ const EditMode = function(root, freeNode, showNodes) {
         var n = root.locateNode(x, y)
         if (n != null) {
             if (o.currentMode == deleteMode) {
-                // log('delete on node', n.data)
                 // delete on node，只删这点
                 if (n.parent != null) {
                     n.parent.remove(n)
@@ -80,19 +84,17 @@ const EditMode = function(root, freeNode, showNodes) {
             } else if (o.currentMode == defaultMode) {
                 o.currentMode = dragMode
                 o.operateNode = n.bornChild()
-            } else if (o.currentMode == moveMode) {                
-                // showNodes.push(n)
-                // TODO remove showNodes
+            } else if (o.currentMode == moveMode) {
                 o.operateNode = n
+            } else if (o.currentMode == partMode) {
+                partEdit.copyAsPartNode(n)
             }
         } else {
             var subNode = root.locateRelation(x, y)
             if (subNode != null) {
                 if (o.currentMode == deleteMode) {
                     // delete on line，都删
-                    // log('delete on line, sub node', subNode.data)
                     if (subNode.parent != null) {
-                        log('delete on line, its parent not null', subNode.data)
                         subNode.parent.remove(subNode)
                         freeNode.addChild(subNode)
                     }
@@ -130,20 +132,24 @@ const EditMode = function(root, freeNode, showNodes) {
     o.onKeyDown = function(key) {
         log('key', key)
         var k = key
-        if (k == 'd' && !deleteCheckbox.checked) {
-            deleteCheckbox.click()
-        } if (k == 'e' && !moveCheckbox.checked) {
-            moveCheckbox.click()
-        } else if (o.currentMode == defaultMode && o.operateNode != null) {
-            if ('0123456789'.includes(k)) {
-                o.operateNode.data += k
-            } else {
-                switch (k) {
-                    case 'Backspace':
-                        o.operateNode.data = o.operateNode.data.slice(0, -1)
-                        break;
-                    case 'e':
-                        break;
+        if (o.currentMode == partMode) {
+            partEdit.onKeyDown(k)
+        } else {
+            if (k == 'd' && !deleteCheckbox.checked) {
+                deleteCheckbox.click()
+            } if (k == 'e' && !moveCheckbox.checked) {
+                moveCheckbox.click()
+            } else if (o.currentMode == defaultMode && o.operateNode != null) {
+                if ('0123456789'.includes(k)) {
+                    o.operateNode.data += k
+                } else {
+                    switch (k) {
+                        case 'Backspace':
+                            o.operateNode.data = o.operateNode.data.slice(0, -1)
+                            break;
+                        case 'e':
+                            break;
+                    }
                 }
             }
         }
@@ -156,6 +162,11 @@ const EditMode = function(root, freeNode, showNodes) {
         } else if (k == 'e' && moveCheckbox.checked) {
             moveCheckbox.click()
         }
+    }
+
+    o.draw = function(context) {
+        context.clearRect(0, 0, 600, 600)
+        root.draw(context)
     }
 
     return o
