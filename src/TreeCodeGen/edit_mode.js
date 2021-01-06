@@ -100,7 +100,7 @@ const EditMode = function(window, root, freeNode, partEdit) {
             } else if (o.currentMode == moveMode) {
                 o.operateNode = n
             } else if (o.currentMode == partMode) {
-                partEdit.copyAsPartNode(n)
+                partEdit.setNode(n)
             }
         } else {
             var subNode = root.locateRelation(x, y)
@@ -125,20 +125,22 @@ const EditMode = function(window, root, freeNode, partEdit) {
     }
 
     o.onMouseUp = function() {
-        if (o.operateNode != null) {
-            if (o.currentMode == dragMode) {
-                if (o.operateNode.x == o.operateNode.parent.x) {
-                    if (o.operateNode.y == o.operateNode.parent.y) {
-                        o.operateNode.parent.remove(o.operateNode)
-                    }
+        if (o.operateNode == null) {
+            return
+        }
+
+        if (o.currentMode == dragMode) {
+            if (o.operateNode.x == o.operateNode.parent.x) {
+                if (o.operateNode.y == o.operateNode.parent.y) {
+                    o.operateNode.parent.remove(o.operateNode)
                 }
-                o.operateNode = null
-                o.currentMode = defaultMode
-            } else if (o.currentMode == moveMode) {
-                o.operateNode = null
-                // move mode 的状态变化是由 checkbox 控制的，所以不用这里控制，和 deleteMode 一样
-                // o.currentMode = defaultMode
             }
+            o.operateNode = null
+            o.currentMode = defaultMode
+        } else if (o.currentMode == moveMode) {
+            o.operateNode = null
+            // move mode 的状态变化是由 checkbox 控制的，所以不用这里控制，和 deleteMode 一样
+            // o.currentMode = defaultMode
         }
     }
 

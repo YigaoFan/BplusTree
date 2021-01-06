@@ -1,46 +1,35 @@
-const PartEdit = function(window) {
-    var o = {
-        node: null,
-        operateNode: null,
+class PartEdit extends EditBase {
+    constructor(window) {
+        super(window, null)
+        this.currentOperateNode = null
     }
 
-    window.canvas.addEventListener('mousemove', function(event) {
-        var x = event.offsetX
-        var y = event.offsetY
-        var node = o.node
-        if (node != null) {
-            var n = node.locateNode(x, y)
-            if (n != null) {
-                var m = n.getMiddlePoint()
-            }
-            o.operateNode = n
+    onMouseMove = (x, y) => {
+        // 如果不用箭头函数，下面这行就读 showNode 就是 undefined，奇怪，那为什么 setNode 就可以设置成功呢
+        if (this.showNode == null) {
+            return
         }
-    })
 
-    o.copyAsPartNode = function(node) {
-        o.node = node.clone()
+        var n = this.showNode.locateNode(x, y)
+        this.currentOperateNode = n
     }
 
-    o.onKeyDown = function(key) {
+    /// deep copy node
+    setNode(node) {
+        this.showNode = node.clone()
+    }
+
+    onKeyDown(key) {
+        if (this.currentOperateNode == null) {
+            return
+        }
+        
         var k = key
-        var n = o.operateNode
-        if (n != null) {
-            log('part edit', n.data)
-            if (k == 'r') {
-                n.read = n.read == null ? true : !n.read
-            } else if (k == 'd') {
-                n.deleted = n.deleted == null ? true : !n.deleted
-            }
+        var n = this.currentOperateNode
+        if (k == 'r') {
+            n.read = n.read == null ? true : !n.read
+        } else if (k == 'd') {
+            n.deleted = n.deleted == null ? true : !n.deleted
         }
     }
-
-    o.draw = function() {
-        var context = window.context
-        context.clearRect(0, 0, 600, 600)
-        if (o.node != null) {
-            o.node.draw(context)
-        }
-    }
-
-    return o
 }
