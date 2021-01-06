@@ -1,4 +1,3 @@
-const log = console.log.bind(console)
 const text = document.querySelector('#id-log')
 const printCode = function(s) {
     text.value += s
@@ -36,24 +35,11 @@ const __main = function() {
     var mainWindow = getWindow('#id-canvas')
     partWindow = getWindow('#id-part-canvas')
     
-    root = Node(0, 275, 20)
-    var freeNode = Node(0)
+    root = new Node(0, 275, 20)
+    var freeNode = new Node(0)
     var partEdit = PartEdit(partWindow)
-    var mainEdit = EditMode(root, freeNode, partEdit)
-    
-    mainWindow.canvas.addEventListener('mousedown', function(event) {
-        var x = event.offsetX
-        var y = event.offsetY
-        mainEdit.onMouseDown(x, y)
-    })
-    mainWindow.canvas.addEventListener('mouseup', function (event) {
-        mainEdit.onMouseUp()
-    })
-    mainWindow.canvas.addEventListener('mousemove', function (event) {
-        var x = event.offsetX
-        var y = event.offsetY
-        mainEdit.onMouseMove(x, y)
-    })
+    var mainEdit = EditMode(mainWindow, root, freeNode, partEdit)
+
     window.addEventListener('keydown', function (event) {
         var k = event.key
         mainEdit.onKeyDown(k)
@@ -105,7 +91,7 @@ const __main = function() {
     })
 
     setInterval(function() {
-        mainEdit.draw(mainWindow.context)
+        mainEdit.draw()
         partEdit.draw()
     }, 1000/30)
 }

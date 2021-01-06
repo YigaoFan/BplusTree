@@ -1,44 +1,24 @@
-const distance = function(x1, y1, x2, y2) {
-    return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2))
-}
-/// point is { x, y }
-/// line is [point1, point2]
-const distanceToLine = function(point, line) {
-    var p1 = point
-    var p2 = line[0]
-    var p3 = line[1]
-    var A = distance(p1.x, p1.y, p2.x, p2.y)
-    var B = distance(p1.x, p1.y, p3.x, p3.y)
-    var C = distance(p2.x, p2.y, p3.x, p3.y)
-    // 利用海伦公式计算三角形面积
-    var P = (A + B + C) / 2
-    var area = Math.sqrt(P * (P - A) * (P - B) * (P - C))
+class Node {
+    constructor(data, x = null, y = null, parent = null) {
+        this.data = data
+        this.x = x
+        this.y = y
+        this.parent = parent
 
-    var dis = (2 * area) / C
-    return dis
-}
-
-const Node = function(data, x = null, y = null, parent = null) {
-    var o = {
-        x,
-        y,
-        width: 50,
-        height: 50,
-        data,
-        children: [],
-        parent,
-        read: null,
-        deleted: null,
+        this.width = 50
+        this.height = 50
+        this.children = []
     }
 
-    o.bornChild = function() {
-        var c = Node(getData(), o.x, o.y, o)
-        o.children.push(c)
-        o.children.sort((a, b) => a.data - b.data)
-        return c
+    bornChild() {
+        var n = new Node(getData(), this.x, this.y, this)
+        this.children.push(n)
+        this.children.sort((a, b) => a.data - b.data)
+        return n
     }
 
-    o.locateNode = function(x, y) {
+    locateNode(x, y) {
+        var o = this
         if (x >= o.x && x <= o.x + o.width) {
             if (y >= o.y && y <= o.y + o.height) {
                 return o
@@ -56,12 +36,13 @@ const Node = function(data, x = null, y = null, parent = null) {
         return null
     }
 
-    o.locateRelation = function(x, y) {
+    locateRelation(x, y) {
+        var o = this
         var distanceLimit = 5
         var p1 = o.getMiddlePoint()
         for (const c of o.children) {
             var p2 = c.getMiddlePoint()
-            if (distanceToLine({ x, y, }, [p1, p2, ]) < distanceLimit) {
+            if (distanceToLine({ x, y, }, [p1, p2,]) < distanceLimit) {
                 return c
             }
 
@@ -74,7 +55,8 @@ const Node = function(data, x = null, y = null, parent = null) {
         return null
     }
 
-    o.draw = function(context) {
+    draw(context) {
+        var o = this
         context.fillStyle = 'black'
         context.strokeRect(o.x, o.y, o.width, o.height)
         context.fillStyle = 'green'
@@ -85,7 +67,7 @@ const Node = function(data, x = null, y = null, parent = null) {
         context.textAlign = "center"
         var p1 = o.getMiddlePoint()
 
-        var s = data.toString()
+        var s = o.data.toString()
         if (o.deleted == true) {
             s += ' d'
         }
@@ -104,14 +86,16 @@ const Node = function(data, x = null, y = null, parent = null) {
         })
     }
 
-    o.getMiddlePoint = function() {
+    getMiddlePoint() {
+        var o = this
         return {
             x: (o.x + o.x + o.width) / 2,
             y: (o.y + o.y + o.height) / 2,
         }
     }
 
-    o.traverse = function(callback) {
+    traverse(callback) {
+        var o = this
         var subResults = []
         o.children.forEach(e => {
             var r = e.traverse(callback)
@@ -121,31 +105,36 @@ const Node = function(data, x = null, y = null, parent = null) {
         return callback(o.data, subResults)
     }
 
-    o.remove = function(child) {
+    remove(child) {
+        var o = this
         o.children = o.children.filter(e => {
             return e != child
         })
     }
 
-    o.addChild = function(node) {
+    addChild(node) {
+        var o = this
         node.parent = o
         o.children.push(node)
         o.children.sort((a, b) => a.data - b.data)
     }
 
-    o.insertParent = function(node) {
+    insertParent(node) {
+        var o = this
         o.parent.remove(o)
         o.parent.addChild(node)
         node.addChild(o)
     }
 
-    o.giveChildren = function() {
+    giveChildren() {
+        var o = this
         var c = o.children
         o.children = []
         return c
     }
 
-    o.searchClosestNode = function(x, y) {
+    searchClosestNode(x, y) {
+        var o = this
         var p = o.getMiddlePoint()
         var minDistanceNode = o
         var minDistance = distance(x, y, p.x, p.y)
@@ -162,14 +151,13 @@ const Node = function(data, x = null, y = null, parent = null) {
         return minDistanceNode
     }
 
-    o.clone = function() {
+    clone() {
+        var o = this
         var children = []
         o.children.forEach(x => children.push(x.clone()))
 
-        var n = Node(o.data, o.x, o.y)
+        var n = new Node(o.data, o.x, o.y)
         n.children = children
-        return  n
+        return n
     }
-
-    return o
 }

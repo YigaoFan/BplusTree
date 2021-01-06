@@ -1,4 +1,4 @@
-const EditMode = function(root, freeNode, partEdit) {
+const EditMode = function(window, root, freeNode, partEdit) {
     const defaultMode = 0 // 加节点和修改节点数据的
     const deleteMode = 1
     const dragMode = 2
@@ -47,7 +47,20 @@ const EditMode = function(root, freeNode, partEdit) {
     }
 
     defaultCheckbox.click()
-    
+
+    window.canvas.addEventListener('mousedown', function (event) {
+        var x = event.offsetX
+        var y = event.offsetY
+        o.onMouseDown(x, y)
+    })
+    window.canvas.addEventListener('mouseup', function (event) {
+        o.onMouseUp()
+    })
+    window.canvas.addEventListener('mousemove', function (event) {
+        var x = event.offsetX
+        var y = event.offsetY
+        o.onMouseMove(x, y)
+    })
 
     o.onMouseMove = function(x, y) {
         if (o.currentMode == dragMode && o.operateNode != null) {
@@ -101,7 +114,7 @@ const EditMode = function(root, freeNode, partEdit) {
                 } else if (o.currentMode == defaultMode) {
                     var parent = subNode.parent
                     if (parent != null) {
-                        var n = Node(getData(), x, y)
+                        var n = new Node(getData(), x, y)
                         o.operateNode = n
                         subNode.insertParent(n)
                         o.currentMode = dragMode
@@ -164,9 +177,9 @@ const EditMode = function(root, freeNode, partEdit) {
         }
     }
 
-    o.draw = function(context) {
-        context.clearRect(0, 0, 600, 600)
-        root.draw(context)
+    o.draw = function() {
+        window.context.clearRect(0, 0, 600, 600)
+        root.draw(window.context)
     }
 
     return o
