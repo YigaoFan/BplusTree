@@ -13,20 +13,28 @@
     <canvas id="id-canvas" width="600" height="600"></canvas>
     <canvas id="id-part-canvas" width="600" height="600"></canvas>
     <hr>
+    <p>Entire
+        <input type="checkbox" id="id-entire-default-checkbox">default</input>
+        <input type="checkbox" id="id-entire-delete-checkbox">delete</input>
+        <input type="checkbox" id="id-entire-move-checkbox">move</input>
+        <input type="checkbox" id="id-entire-part-checkbox">part</input>
+    </p>
+    <hr>
+    <p>Part&nbsp;&nbsp;&nbsp;
+        <input type="checkbox" id="id-part-default-checkbox">default</input>
+        <input type="checkbox" id="id-part-delete-checkbox">delete</input>
+        <input type="checkbox" id="id-part-move-checkbox">move</input>
+    </p>
+    <hr>
     <button id="id-generate-button" type="button"></button>
     <button id="id-clear-button" type="button">Clear</button>
-    <hr>
-    <input type="checkbox" id="id-default-checkbox">default</input>
-    <input type="checkbox" id="id-delete-checkbox">delete</input>
-    <input type="checkbox" id="id-move-checkbox">move</input>
-    <input type="checkbox" id="id-part-checkbox">part</input>
     <hr>
     <textarea name="log" id="id-log" cols="150" rows="600"></textarea>
     <script src="util.js"></script>
     <script src="node.js"></script>
     <script src="edit_base.js"></script>
-    <script src="entire_edit.js"></script>
     <script src="part_edit.js"></script>
+    <script src="entire_edit.js"></script>
     <script src="main.js"></script>
 </body>
 </html>

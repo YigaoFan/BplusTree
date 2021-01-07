@@ -37,8 +37,19 @@ const __main = function() {
     
     root = new Node(0, 275, 20)
     var freeNode = new Node(0)
-    var partEdit = new PartEdit(partWindow)
-    var mainEdit = new EntireEdit(mainWindow, root, freeNode, partEdit)
+    var partControlIds = [
+        '#id-part-default-checkbox',
+        '#id-part-delete-checkbox',
+        '#id-part-move-checkbox',
+    ]
+    var entireControlIds = [
+        '#id-entire-default-checkbox',
+        '#id-entire-delete-checkbox',
+        '#id-entire-move-checkbox',
+        '#id-entire-part-checkbox',
+    ]
+    var partEdit = new PartEdit(partWindow, partControlIds)
+    var mainEdit = new EntireEdit(mainWindow, root, freeNode, partEdit, entireControlIds)
 
     window.addEventListener('keydown', function (event) {
         var k = event.key

@@ -9,7 +9,7 @@ class EditBase {
     initListener() {
         var window = this.window
         var o = this
-        var callWhenExist = function(method, ...arg) {
+        var callWhenExist = (method, ...arg) => {
             if (method != null) {
                 method(...arg)
             }

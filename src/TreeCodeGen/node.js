@@ -157,7 +157,10 @@ class Node {
         o.children.forEach(x => children.push(x.clone()))
 
         var n = new Node(o.data, o.x, o.y)
-        n.children = children
+        for (let c of children) {
+            n.addChild(c)
+        }
+        
         return n
     }
 }
