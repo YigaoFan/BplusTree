@@ -11,7 +11,6 @@
 </head>
 <body>
     <canvas id="id-canvas" width="600" height="600"></canvas>
-    <canvas id="id-part-canvas" width="600" height="600"></canvas>
     <hr>
     <p>Entire
         <input type="checkbox" id="id-entire-default-checkbox">default</input>
@@ -20,21 +19,16 @@
         <input type="checkbox" id="id-entire-part-checkbox">part</input>
     </p>
     <hr>
-    <p>Part&nbsp;&nbsp;&nbsp;
-        <input type="checkbox" id="id-part-default-checkbox">default</input>
-        <input type="checkbox" id="id-part-delete-checkbox">delete</input>
-        <input type="checkbox" id="id-part-move-checkbox">move</input>
-    </p>
-    <hr>
-    <button id="id-generate-button" type="button"></button>
-    <button id="id-clear-button" type="button">Clear</button>
+    <button id="id-generate-tree-button" type="button">Generate tree code</button>
+    <button id="id-generate-part-tree-button" type="button">Generate part tree code</button>
+    <button id="id-generate-free-node-button" type="button">Generate free node code</button>
+    <button id="id-clear-button" type="button">Clear text</button>
     <hr>
     <textarea name="log" id="id-log" cols="100" rows="60"></textarea>
     <script src="util.js"></script>
     <script src="node.js"></script>
     <script src="edit_base.js"></script>
-    <script src="part_edit.js"></script>
-    <script src="entire_edit.js"></script>
+    <script src="tree_edit_ui.js"></script>
     <script src="main.js"></script>
 </body>
 </html>

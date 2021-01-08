@@ -46,24 +46,16 @@ const getWindow = function(id) {
 
 const __main = function() {
     var mainWindow = getWindow('#id-canvas')
-    var partWindow = getWindow('#id-part-canvas')
-    
-    var root = new Node(0, 275, 20)
-    var freeNode = new Node(0)
-    var partControlIds = [
-        '#id-part-default-checkbox',
-        '#id-part-delete-checkbox',
-        '#id-part-move-checkbox',
-    ]
     var entireControlIds = [
         '#id-entire-default-checkbox',
         '#id-entire-delete-checkbox',
         '#id-entire-move-checkbox',
         '#id-entire-part-checkbox',
     ]
-    // var partEdit = null
-    var partEdit = new PartEdit(partWindow, partControlIds)
-    var mainEdit = new EntireEdit(mainWindow, root, freeNode, partEdit, entireControlIds)
+    
+    var root = new Node(0, 275, 20)
+    var freeNode = new Node(0)
+    mainEdit = new TreeEditUI(mainWindow, entireControlIds, root, freeNode)
 
     window.addEventListener('keydown', function (event) {
         var k = event.key
@@ -74,50 +66,40 @@ const __main = function() {
         mainEdit.onKeyUp(k)
     })
 
-    var generateButton = document.querySelector('#id-generate-button')
+    var genTreeButton = document.querySelector('#id-generate-tree-button')
+    var genPartTreeButton = document.querySelector('#id-generate-part-tree-button')
+    var genFreeNodeButton = document.querySelector('#id-generate-free-node-button')
 
-    var levels = [
-        {
-            name: 'Store original tree state',
-            handler : function (event) {
-                printCode("original:")
-                printTreeCode(root)
-            }
-        },
-        {
-            name: 'Generate tree code after change',
-            handler : function (event) {
-                printCode("after modify:")
-                printTreeCode(root)
-
-                printCode("delete nodes:")
-                printTreeCode(freeNode)
-            }
-        }
-    ]
-
-    var currentLevel = 0
-    generateButton.innerText = levels[currentLevel].name
-    generateButton.addEventListener('click', function(event) {
-        levels[currentLevel].handler(event)
-        ++currentLevel
-        if (!(currentLevel < levels.length)) {
-            currentLevel = 0
+    genTreeButton.addEventListener('click', function(event) {
+        printCode('-------------root-------------')
+        printTreeCode(root)
+        printCode('')
+        printCode('')
+    })
+    genPartTreeButton.addEventListener('click', function (event) {
+        var partTree = mainEdit.getPartTree()
+        if (partTree == null) {
+            alert('please check part mode option, then select root of the part tree')
+        } else {
+            printCode('-------------part tree-------------')
+            printReadStateNodeCode(partTree)
             printCode('')
             printCode('')
         }
-
-        generateButton.innerText = levels[currentLevel].name
+    })
+    genFreeNodeButton.addEventListener('click', function (event) {
+        printCode('-------------free node-------------')
+        printTreeCode(freeNode)
+        printCode('')
+        printCode('')
     })
     var clearButton = document.querySelector('#id-clear-button')
     clearButton.addEventListener('click', function (event) {
         text.value = ''
-        freeNode.children = []
     })
 
     setInterval(function() {
         mainEdit.draw()
-        // partEdit.draw()
     }, 1000/30)
 }
 

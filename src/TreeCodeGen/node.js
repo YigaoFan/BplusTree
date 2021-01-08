@@ -68,9 +68,6 @@ class Node {
         var p1 = o.getMiddlePoint()
 
         var s = o.data.toString()
-        if (o.deleted == true) {
-            s += ' d'
-        }
         if (o.read == true) {
             s += ' r'
         }

@@ -33,6 +33,6 @@ class EditBase {
     draw() {
         var window = this.window
         window.context.clearRect(0, 0, 600, 600)
-        this.showNode?.draw(window.context)
+        this.showNode.draw(window.context)
     }
 }
