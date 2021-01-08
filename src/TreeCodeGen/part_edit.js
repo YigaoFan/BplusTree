@@ -19,6 +19,7 @@ class PartEdit extends EditBase {
         PartEdit.moveMode,
     ]
 
+    // 感觉 PartEdit 也需要 freeNode
     constructor(window, modeControlIds, showNode = null) {
         super(window, showNode)
 
@@ -60,21 +61,19 @@ class PartEdit extends EditBase {
         this.showNode = node.clone()
     }
 
-    // 可以增删移、修改是否读（指的状态）
     onMouseMove = (x, y) => {
         var o = this
-        if (o.currentMode == EntireEdit.dragMode && o.operateNode != null) {
-            o.operateNode.x = x
-            o.operateNode.y = y
+        if (o.currentMode == EntireEdit.dragMode && o.currentOperateNode != null) {
+            o.currentOperateNode.x = x
+            o.currentOperateNode.y = y
         } else if (o.currentMode == EntireEdit.defaultMode) {
             // for edit operate data
-            o.operateNode = this.showNode?.locateNode(x, y)
+            o.currentOperateNode = this.showNode?.locateNode(x, y)
         } else if (o.currentMode == EntireEdit.moveMode) {
-            var n = o.operateNode
+            var n = o.currentOperateNode
             if (n != null) {
                 n.x = x
                 n.y = y
-                log('move node', n)
                 if (n.parent != null) {
                     n.parent.remove(n)
                     var newParent = this.showNode?.searchClosestNode(x, y)
@@ -98,9 +97,9 @@ class PartEdit extends EditBase {
                 }
             } else if (o.currentMode == EntireEdit.defaultMode) {
                 o.currentMode = EntireEdit.dragMode
-                o.operateNode = n.bornChild()
+                o.currentOperateNode = n.bornChild()
             } else if (o.currentMode == EntireEdit.moveMode) {
-                o.operateNode = n
+                o.currentOperateNode = n
             } else if (o.currentMode == EntireEdit.partMode) {
                 o.partEdit.setNode(n)
             }
@@ -112,8 +111,8 @@ class PartEdit extends EditBase {
                     relationSubNode.parent.remove(relationSubNode)
                     o.freeNode?.addChild(relationSubNode)
                 } else if (o.currentMode == EntireEdit.defaultMode) {
-                    var n = new Node(getData(), x, y)
-                    o.operateNode = n
+                    var n = new Node(getDataStr(), x, y)
+                    o.currentOperateNode = n
                     relationSubNode.insertParent(n)
                     o.currentMode = EntireEdit.dragMode
                 }
@@ -124,36 +123,37 @@ class PartEdit extends EditBase {
     onMouseUp = () => {
         var o = this
 
-        if (o.operateNode == null) {
+        if (o.currentOperateNode == null) {
             return
         }
 
         if (o.currentMode == EntireEdit.dragMode) {
-            if (o.operateNode.x == o.operateNode.parent.x) {
-                if (o.operateNode.y == o.operateNode.parent.y) {
-                    o.operateNode.parent.remove(o.operateNode)
+            if (o.currentOperateNode.x == o.currentOperateNode.parent.x) {
+                if (o.currentOperateNode.y == o.currentOperateNode.parent.y) {
+                    o.currentOperateNode.parent.remove(o.currentOperateNode)
                 }
             }
-            o.operateNode = null
+            o.currentOperateNode = null
             o.currentMode = EntireEdit.defaultMode
         } else if (o.currentMode == EntireEdit.moveMode) {
-            o.operateNode = null
+            o.currentOperateNode = null
             // move mode 的状态变化是由 checkbox 控制的，所以不用这里控制，和 EntireEdit.deleteMode 一样
             // o.currentMode = EntireEdit.defaultMode
         }
     }
 
+    draw() {
+        super.draw()
+        var s = 'mode: ' + this.currentMode.toString()
+        if (this.currentOperateNode != null) {
+            s += (' node: ' + this.currentOperateNode.data.toString())
+        }
+        this.window.context.textAlign = "left"
+        this.window.context.font = '20px Arial'
+        this.window.context.fillText(s, 8, 20)
+    }
 
-
-
-
-
-
-
-
-
-
-    onKeyDown(key) {
+    partEditOnKeyDown = key => {
         if (this.currentOperateNode == null) {
             return
         }
@@ -162,9 +162,50 @@ class PartEdit extends EditBase {
         var n = this.currentOperateNode
         if (k == 'r') {
             n.read = n.read == null ? true : !n.read
-        } else if (k == 'd') {
-            // 这里可以不要了 TODO
-            n.deleted = n.deleted == null ? true : !n.deleted
+        } else {
+            this.onKeyDown(k)
+        }
+    }
+
+    onKeyDown = key => {
+        var o = this
+
+        log('key', key)
+        var k = key
+        if (o.currentMode == EntireEdit.partMode) {
+            o.partEdit.partEditOnKeyDown(k)
+        } else {
+            if (k == 'd' && !o.deleteCheckbox.checked) {
+                o.deleteCheckbox.click()
+            } if (k == 'e' && !o.moveCheckbox.checked) {
+                o.moveCheckbox.click()
+            } else if (o.currentMode == EntireEdit.defaultMode && o.currentOperateNode != null) {
+                if ('0123456789'.includes(k)) {
+                    o.currentOperateNode.data += k
+                } else {
+                    switch (k) {
+                        case 'Backspace':
+                            log()
+                            o.currentOperateNode.data = o.currentOperateNode.data.slice(0, -1)
+                            break;
+                        case 'e':
+                            break;
+                    }
+                }
+            }
+        }
+    }
+
+    onKeyUp = key => {
+        var o = this
+        var k = key
+
+        if (o.currentMode == EntireEdit.partMode) {
+            o.partEdit.onKeyUp(k)
+        } else if (k == 'd' && o.deleteCheckbox.checked) {
+            o.deleteCheckbox.click()
+        } else if (k == 'e' && o.moveCheckbox.checked) {
+            o.moveCheckbox.click()
         }
     }
 }

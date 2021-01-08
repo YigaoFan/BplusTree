@@ -20,3 +20,8 @@ const distanceToLine = function(point, line) {
     var dis = (2 * area) / C
     return dis
 }
+
+const getDataStr = function () {
+    getDataStr.n = getDataStr.n ? getDataStr.n + 1 : 1;
+    return getDataStr.n.toString()
+}

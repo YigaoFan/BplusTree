@@ -11,7 +11,7 @@ class Node {
     }
 
     bornChild() {
-        var n = new Node(getData(), this.x, this.y, this)
+        var n = new Node(getDataStr(), this.x, this.y, this)
         this.children.push(n)
         this.children.sort((a, b) => a.data - b.data)
         return n
@@ -105,6 +105,19 @@ class Node {
         return callback(o.data, subResults)
     }
 
+    /// 边界上的点仍会遍历
+    traverseSubIf(cond, callback) {
+        var subResults = []
+        if (cond(this)) {
+            for (const c of this.children) {
+                var r = c.traverseSubIf(cond, callback)
+                subResults.push(r)
+            }
+        }
+
+        return callback(this, subResults)
+    }
+
     remove(child) {
         var o = this
         o.children = o.children.filter(e => {
@@ -153,14 +166,9 @@ class Node {
 
     clone() {
         var o = this
-        var children = []
-        o.children.forEach(x => children.push(x.clone()))
-
         var n = new Node(o.data, o.x, o.y)
-        for (let c of children) {
-            n.addChild(c)
-        }
-        
+        o.children.forEach(x => n.addChild(x.clone()))
+
         return n
     }
 }

@@ -3,25 +3,38 @@ const printCode = function(s) {
     text.value += s
     text.value += '\n'
 }
-const printTreeCode = function (root) {
+const printTreeCode = function(root) {
     var leafIdx = 0
     var middleIdx = 0
     root.traverse(function (data, subNodeNames) {
         var name = null
         if (subNodeNames.length == 0) {
             name = `leafNode${leafIdx++}`
-            printCode(`auto ${name} = LabelNode(${data});`)
         } else {
             name = `middleNode${middleIdx++}`
-            printCode(`auto ${name} = LabelNode(${data}, { ${subNodeNames.join(', ')} });`)
         }
+        printCode(`auto ${name} = LabelNode(${data}, { ${subNodeNames.join(', ')} });`)
         return name
     })
 }
-const getData = function() {
-    getData.n = getData.n ? getData.n + 1 : 1;
-    return getData.n
+const printReadStateNodeCode = function(root) {
+    var leafIdx = 0
+    var middleIdx = 0
+    root.traverseSubIf(n => n.read,
+        function(node, subNodeNames) {
+            var name = null
+            var read = node.read || false
+            if (subNodeNames.length == 0) {
+                name = `leafNode${leafIdx++}`
+            } else {
+                name = `middleNode${middleIdx++}`
+            }
+            printCode(`auto ${name} = ReadStateLabelNode(${node.data}, { ${subNodeNames.join(', ')} },  ${read});`)
+            return name
+        })
+
 }
+
 const getWindow = function(id) {
     var canvas = document.querySelector(id)
     var context = canvas.getContext('2d')
@@ -33,9 +46,9 @@ const getWindow = function(id) {
 
 const __main = function() {
     var mainWindow = getWindow('#id-canvas')
-    partWindow = getWindow('#id-part-canvas')
+    var partWindow = getWindow('#id-part-canvas')
     
-    root = new Node(0, 275, 20)
+    var root = new Node(0, 275, 20)
     var freeNode = new Node(0)
     var partControlIds = [
         '#id-part-default-checkbox',
@@ -48,6 +61,7 @@ const __main = function() {
         '#id-entire-move-checkbox',
         '#id-entire-part-checkbox',
     ]
+    // var partEdit = null
     var partEdit = new PartEdit(partWindow, partControlIds)
     var mainEdit = new EntireEdit(mainWindow, root, freeNode, partEdit, entireControlIds)
 
@@ -103,7 +117,7 @@ const __main = function() {
 
     setInterval(function() {
         mainEdit.draw()
-        partEdit.draw()
+        // partEdit.draw()
     }, 1000/30)
 }
 
