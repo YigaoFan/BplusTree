@@ -32,7 +32,8 @@ class EditBase {
 
     draw() {
         var window = this.window
-        window.context.clearRect(0, 0, 600, 600)
+        var canvas = window.canvas
+        window.context.clearRect(0, 0, canvas.width, canvas.height)
         this.showNode.draw(window.context)
     }
 }

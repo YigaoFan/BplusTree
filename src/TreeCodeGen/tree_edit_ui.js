@@ -40,6 +40,22 @@ class TreeEditUI extends EditBase {
         return null
     }
 
+    storeTrees() {
+        this.nodesCopy = {
+            showNode: this.showNode.clone(),
+            freeNode: this.freeNode.clone(),
+        }
+        log('trees stored')
+    }
+
+    restoreTrees() {
+        if (this.nodesCopy != null) {
+            this.showNode = this.nodesCopy.showNode
+            this.freeNode = this.nodesCopy.freeNode
+            log('trees restored')
+        }
+    }
+
     initCheckbox(ids) {
         var o = this
         this.checkboxes = []
@@ -181,7 +197,6 @@ class TreeEditUI extends EditBase {
             } else {
                 switch (k) {
                     case 'Backspace':
-                        log()
                         o.currentOperateNode.data = o.currentOperateNode.data.slice(0, -1)
                         break;
                     case 'e':

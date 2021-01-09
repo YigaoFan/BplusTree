@@ -53,7 +53,7 @@ const __main = function() {
         '#id-entire-part-checkbox',
     ]
     
-    var root = new Node(0, 275, 20)
+    var root = new Node(0, 375, 20)
     var freeNode = new Node(0)
     mainEdit = new TreeEditUI(mainWindow, entireControlIds, root, freeNode)
 
@@ -64,6 +64,15 @@ const __main = function() {
     window.addEventListener('keyup', function (event) {
         var k = event.key
         mainEdit.onKeyUp(k)
+    })
+
+    var storeButton = document.querySelector('#id-store-tree-button')
+    storeButton.addEventListener('click', function (event) {
+        mainEdit.storeTrees()
+    })
+    var restoreButton = document.querySelector('#id-restore-tree-button')
+    restoreButton.addEventListener('click', function (event) {
+        mainEdit.restoreTrees()
     })
 
     var genTreeButton = document.querySelector('#id-generate-tree-button')
