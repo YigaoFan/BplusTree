@@ -81,7 +81,8 @@ const __main = function() {
 
     genTreeButton.addEventListener('click', function(event) {
         printCode('-------------root-------------')
-        printTreeCode(root)
+        var n = mainEdit.getShowNode()
+        printTreeCode(n)
         printCode('')
         printCode('')
     })
@@ -98,7 +99,8 @@ const __main = function() {
     })
     genFreeNodeButton.addEventListener('click', function (event) {
         printCode('-------------free node-------------')
-        printTreeCode(freeNode)
+        var n = mainEdit.getFreeNode()
+        printTreeCode(n)
         printCode('')
         printCode('')
     })

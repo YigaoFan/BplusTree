@@ -40,6 +40,14 @@ class TreeEditUI extends EditBase {
         return null
     }
 
+    getShowNode = () => {
+        return this.showNode
+    }
+
+    getFreeNode = () => {
+        return this.freeNode
+    }
+
     storeTrees() {
         this.nodesCopy = {
             showNode: this.showNode.clone(),
