@@ -5,9 +5,12 @@ namespace FuncLib::Store
 {
 	class FreeNodes : private LabelTree
 	{
+	private:
+		using Base = LabelTree;
 	public:
-		using LabelTree::AddSub;
-		using LabelTree::Take;
+		using Base::Base;
+		using Base::AddSub;
+		using Base::Take;
 
 		void ReleaseAll(auto const& releaser)
 		{
