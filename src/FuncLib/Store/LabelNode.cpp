@@ -11,11 +11,6 @@ namespace FuncLib::Store
 
 	optional<LabelNode> LabelNode::TakeInside(pos_label label)
 	{
-		if (_subNodes.empty())
-		{
-			return {};
-		}
-
 		for (size_t i = 0; auto& n : _subNodes)
 		{
 			if (n.Label() == label)
@@ -28,6 +23,7 @@ namespace FuncLib::Store
 			{
 				return r;
 			}
+			++i;
 		}
 
 		return {};

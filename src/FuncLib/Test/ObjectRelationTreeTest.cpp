@@ -1,4 +1,5 @@
 #include "../../TestFrame/FlyTest.hpp"
+#define private public
 #include "../Store/ObjectRelationTree.hpp"
 
 using namespace std;
@@ -11,41 +12,122 @@ LabelNode GenNew()
 	return middleNode0;
 }
 
+ObjectRelationTree GetInitTree()
+{
+	auto leafNode0 = LabelNode(10, {});
+	auto middleNode0 = LabelNode(9, {leafNode0});
+	auto leafNode1 = LabelNode(12, {});
+	auto middleNode1 = LabelNode(11, {leafNode1});
+	auto middleNode2 = LabelNode(8, {middleNode0, middleNode1});
+	auto middleNode3 = LabelNode(2, {middleNode2});
+	auto leafNode2 = LabelNode(7, {});
+	auto leafNode3 = LabelNode(17, {});
+	auto middleNode4 = LabelNode(1, {middleNode3, leafNode2, leafNode3});
+	auto leafNode4 = LabelNode(5, {});
+	auto leafNode5 = LabelNode(16, {});
+	auto middleNode5 = LabelNode(15, {leafNode5});
+	auto middleNode6 = LabelNode(14, {middleNode5});
+	auto middleNode7 = LabelNode(6, {middleNode6});
+	auto middleNode8 = LabelNode(3, {leafNode4, middleNode7});
+	auto leafNode6 = LabelNode(13, {});
+	auto middleNode9 = LabelNode(4, {leafNode6});
+	auto middleNode10 = LabelNode(0, {middleNode4, middleNode8, middleNode9});
+	return ObjectRelationTree(move(middleNode10));
+}
+
 TESTCASE("ObjectRelationTree test")
 {
-	auto l = LabelNode(0, { LabelNode(1), LabelNode(2), });
-	auto leafNode0 = LabelNode(6);
-	auto leafNode1 = LabelNode(7);
-	auto middleNode0 = LabelNode(5, {leafNode0, leafNode1});
-	auto leafNode2 = LabelNode(7);
-	auto leafNode3 = LabelNode(8);
-	auto middleNode1 = LabelNode(6, {leafNode2, leafNode3});
-	auto middleNode2 = LabelNode(4, {middleNode0, middleNode1});
-	auto middleNode3 = LabelNode(3, {middleNode2});
-	auto leafNode4 = LabelNode(4);
-	auto middleNode4 = LabelNode(2, {middleNode3, leafNode4});
-	auto leafNode5 = LabelNode(3);
-	auto middleNode5 = LabelNode(1, {middleNode4, leafNode5});
-	auto leafNode6 = LabelNode(6);
-	auto leafNode7 = LabelNode(8);
-	auto middleNode6 = LabelNode(7, {leafNode7});
-	auto middleNode7 = LabelNode(5, {leafNode6, middleNode6});
-	auto middleNode8 = LabelNode(4, {middleNode7});
-	auto middleNode9 = LabelNode(3, {middleNode8});
-	auto middleNode10 = LabelNode(2, {middleNode9});
-	auto leafNode8 = LabelNode(6);
-	auto middleNode11 = LabelNode(5, {leafNode8});
-	auto middleNode12 = LabelNode(4, {middleNode11});
-	auto middleNode13 = LabelNode(3, {middleNode12});
+	auto tree = GetInitTree();
 
-	auto middleNode14 = LabelNode(0, {middleNode5, middleNode10, middleNode13});
+	SECTION("Pure Add")
+	{
+		// update part
+		{
+			auto leafNode0 = ReadStateLabelNode(21, {}, true);
+			auto middleNode0 = ReadStateLabelNode(19, {leafNode0}, true);
+			auto leafNode1 = ReadStateLabelNode(20, {}, true);
+			auto middleNode1 = ReadStateLabelNode(18, {middleNode0, leafNode1}, true);
+			tree.UpdateWith(middleNode1);
+		}
+	
+		// assert tree part
+		{
+			auto leafNode0 = LabelNode(10, {});
+			auto middleNode0 = LabelNode(9, {leafNode0});
+			auto leafNode1 = LabelNode(12, {});
+			auto middleNode1 = LabelNode(11, {leafNode1});
+			auto middleNode2 = LabelNode(8, {middleNode0, middleNode1});
+			auto middleNode3 = LabelNode(2, {middleNode2});
+			auto leafNode2 = LabelNode(7, {});
+			auto leafNode3 = LabelNode(17, {});
+			auto middleNode4 = LabelNode(1, {middleNode3, leafNode2, leafNode3});
+			auto leafNode4 = LabelNode(5, {});
+			auto leafNode5 = LabelNode(16, {});
+			auto middleNode5 = LabelNode(15, {leafNode5});
+			auto middleNode6 = LabelNode(14, {middleNode5});
+			auto middleNode7 = LabelNode(6, {middleNode6});
+			auto middleNode8 = LabelNode(3, {leafNode4, middleNode7});
+			auto leafNode6 = LabelNode(13, {});
+			auto middleNode9 = LabelNode(4, {leafNode6});
+			auto leafNode7 = LabelNode(21, {});
+			auto middleNode10 = LabelNode(19, {leafNode7});
+			auto leafNode8 = LabelNode(20, {});
+			auto middleNode11 = LabelNode(18, {middleNode10, leafNode8});
+			auto middleNode12 = LabelNode(0, {middleNode4, middleNode8, middleNode9, middleNode11});
 
-	// auto tree = ObjectRelationTree(middleNode14);
-	auto newObjRelation = GenNew();
-	// tree.UpdateWith(&newObjRelation);
-	// 如何把运行后的结果表示出来 TODO
-	// 先把那边的代码看一遍吧
-	// 或者 ASSERT 验证代码也生成出来
+			auto destTree = ObjectRelationTree(move(middleNode12));
+			ASSERT(tree.EqualTo(destTree));
+		}
+
+		// assert free node part
+		{
+			auto leafNode0 = LabelNode(0, {});
+			auto destFreeNodes = FreeNodes(move(leafNode0));
+			ASSERT(tree._freeNodes.EqualTo(destFreeNodes));
+		}
+	}
+
+	SECTION("Pure delete")
+	{
+		// update part
+		{
+			auto leafNode0 = ReadStateLabelNode(4, {}, false);
+			tree.Free(leafNode0);
+		}
+
+		// assert tree part
+		{
+			auto leafNode0 = LabelNode(10, {});
+			auto middleNode0 = LabelNode(9, {leafNode0});
+			auto leafNode1 = LabelNode(12, {});
+			auto middleNode1 = LabelNode(11, {leafNode1});
+			auto middleNode2 = LabelNode(8, {middleNode0, middleNode1});
+			auto middleNode3 = LabelNode(2, {middleNode2});
+			auto leafNode2 = LabelNode(7, {});
+			auto leafNode3 = LabelNode(17, {});
+			auto middleNode4 = LabelNode(1, {middleNode3, leafNode2, leafNode3});
+			auto leafNode4 = LabelNode(5, {});
+			auto leafNode5 = LabelNode(16, {});
+			auto middleNode5 = LabelNode(15, {leafNode5});
+			auto middleNode6 = LabelNode(14, {middleNode5});
+			auto middleNode7 = LabelNode(6, {middleNode6});
+			auto middleNode8 = LabelNode(3, {leafNode4, middleNode7});
+			auto middleNode9 = LabelNode(0, {middleNode4, middleNode8});
+
+			auto destTree = ObjectRelationTree(move(middleNode9));
+			ASSERT(tree.EqualTo(destTree));
+		}
+
+		// assert free node part
+		{
+			auto leafNode0 = LabelNode(13, {});
+			auto middleNode0 = LabelNode(4, {leafNode0});
+			auto middleNode1 = LabelNode(0, {middleNode0});
+
+			auto destFreeNodes = FreeNodes(move(middleNode1));
+			ASSERT(tree._freeNodes.EqualTo(destFreeNodes));
+		}
+	}
 }
 
 DEF_TEST_FUNC(TestObjectRelationTree)
