@@ -128,6 +128,49 @@ TESTCASE("ObjectRelationTree test")
 			ASSERT(tree._freeNodes.EqualTo(destFreeNodes));
 		}
 	}
+
+	SECTION("Move")
+	{
+		// update part
+		{
+			auto leafNode0 = ReadStateLabelNode(14, {}, false);
+			auto middleNode0 = ReadStateLabelNode(13, {leafNode0}, true);
+			auto middleNode1 = ReadStateLabelNode(4, {middleNode0}, true);
+			tree.UpdateWith(middleNode1);
+		}
+
+		// assert tree part
+		{
+			auto leafNode0 = LabelNode(10, {});
+			auto middleNode0 = LabelNode(9, {leafNode0});
+			auto leafNode1 = LabelNode(12, {});
+			auto middleNode1 = LabelNode(11, {leafNode1});
+			auto middleNode2 = LabelNode(8, {middleNode0, middleNode1});
+			auto middleNode3 = LabelNode(2, {middleNode2});
+			auto leafNode2 = LabelNode(7, {});
+			auto leafNode3 = LabelNode(17, {});
+			auto middleNode4 = LabelNode(1, {middleNode3, leafNode2, leafNode3});
+			auto leafNode4 = LabelNode(5, {});
+			auto leafNode5 = LabelNode(6, {});
+			auto middleNode5 = LabelNode(3, {leafNode4, leafNode5});
+			auto leafNode6 = LabelNode(16, {});
+			auto middleNode6 = LabelNode(15, {leafNode6});
+			auto middleNode7 = LabelNode(14, {middleNode6});
+			auto middleNode8 = LabelNode(13, {middleNode7});
+			auto middleNode9 = LabelNode(4, {middleNode8});
+			auto middleNode10 = LabelNode(0, {middleNode4, middleNode5, middleNode9});
+
+			auto destTree = ObjectRelationTree(move(middleNode10));
+			ASSERT(tree.EqualTo(destTree));
+		}
+
+		// assert free node part
+		{
+			auto leafNode0 = LabelNode(0, {});
+			auto destFreeNodes = FreeNodes(move(leafNode0));
+			ASSERT(tree._freeNodes.EqualTo(destFreeNodes));
+		}
+	}
 }
 
 DEF_TEST_FUNC(TestObjectRelationTree)

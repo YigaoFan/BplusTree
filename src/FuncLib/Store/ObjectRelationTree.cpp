@@ -128,8 +128,14 @@ namespace FuncLib::Store
 	{
 		if (oldNode.SubsEmpty())
 		{
+			auto newSubs = newNode->CreateSortedSubNodeEnumerator();
+			while (newSubs.MoveNext())
+			{
+				Complete(&newSubs.Current());
+			}
 			return;
 		}
+
 		if (newNode->SubsEmpty())
 		{
 			if (newNode->Read)
