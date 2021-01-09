@@ -24,6 +24,11 @@ namespace FuncLib::Store
 		{
 		}
 
+		LabelNodeBase(LabelNodeBase const& that) = default;
+		LabelNodeBase(LabelNodeBase&& that) noexcept = default;
+		LabelNodeBase& operator= (LabelNodeBase const& that) = default;
+		LabelNodeBase& operator= (LabelNodeBase&& that) noexcept = default;
+
 		bool SubsEmpty() const { return _subNodes.empty(); }
 		pos_label Label() const noexcept { return _label; }
 		auto CreateSortedSubNodeEnumerator()       { return Collections::CreateRefEnumerator(_subNodes); }
