@@ -194,7 +194,7 @@ namespace FuncLib::Store
 					}
 					else
 					{
-						break;
+						return;
 					}
 				}
 			}
