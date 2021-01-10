@@ -44,14 +44,6 @@ namespace FuncLib::Store::ObjectRelation
 				}
 				return true;
 			}
-			else
-			{
-				printf("node%d node%d size not same, %zu, %zu", _label, that._label, this->_subNodes.size(), that._subNodes.size());
-			}
-		}
-		else
-		{
-			printf("node%d node%d label not same", _label, that._label);
 		}
 
 		return false;
