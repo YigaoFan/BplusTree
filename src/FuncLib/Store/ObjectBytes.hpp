@@ -5,10 +5,11 @@
 #include "StaticConfig.hpp"
 #include "../../Btree/Enumerator.hpp"
 #include "ObjectBytesQueue.hpp"
-#include "LabelNodeBase.hpp"
+#include "ObjectRelation/LabelNodeBase.hpp"
 
 namespace FuncLib::Store
 {
+	using namespace FuncLib::Store::ObjectRelation;
 	using Collections::CreateRefEnumerator;
 	using ::std::ofstream;
 	using ::std::size_t;

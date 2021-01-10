@@ -2,7 +2,7 @@
 #include <cstddef>
 #include <vector>
 
-namespace FuncLib::Store
+namespace FuncLib::Store::ObjectRelation
 {
 	using ::std::vector;
 

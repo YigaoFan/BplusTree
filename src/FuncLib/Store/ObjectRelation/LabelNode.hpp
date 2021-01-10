@@ -1,12 +1,12 @@
 #pragma once
 #include <vector>
 #include <optional>
-#include "StaticConfig.hpp"
-#include "../../Btree/Enumerator.hpp"
+#include "../StaticConfig.hpp"
+#include "../../../Btree/Enumerator.hpp"
 #include "VectorUtil.hpp"
 #include "LabelNodeBase.hpp"
 
-namespace FuncLib::Store
+namespace FuncLib::Store::ObjectRelation
 {
 	using ::std::optional;
 	using ::std::vector;

@@ -1,10 +1,10 @@
 #include <vector>
 #include <exception>
 #include "ObjectRelationTree.hpp"
-#include "../Persistence/ByteConverter.hpp"
-#include "../../Btree/Generator.hpp"
+#include "../../Persistence/ByteConverter.hpp"
+#include "../../../Btree/Generator.hpp"
 
-namespace FuncLib::Store
+namespace FuncLib::Store::ObjectRelation
 {
 	using Collections::Generator;
 	using ::std::move;

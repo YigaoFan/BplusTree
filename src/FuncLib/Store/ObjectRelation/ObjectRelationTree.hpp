@@ -3,12 +3,12 @@
 #include <optional>
 #include "LabelNode.hpp"
 #include "LabelTree.hpp"
-#include "FileReader.hpp"
-#include "ObjectBytes.hpp"
+#include "../FileReader.hpp"
+#include "../ObjectBytes.hpp"
 #include "FreeNodes.hpp"
 #include "ReadStateLabelNode.hpp"
 
-namespace FuncLib::Store
+namespace FuncLib::Store::ObjectRelation
 {
 	using ::std::optional;
 	using ::std::pair;

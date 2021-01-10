@@ -1,8 +1,8 @@
 #pragma once
-#include "../../Basic/Concepts.hpp"
-#include "StaticConfig.hpp"
+#include "../../../Basic/Concepts.hpp"
+#include "../StaticConfig.hpp"
 
-namespace FuncLib::Store
+namespace FuncLib::Store::ObjectRelation
 {
 	using Basic::IsSameTo;
 

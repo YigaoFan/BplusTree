@@ -1,8 +1,9 @@
 #include "../../TestFrame/FlyTest.hpp"
-#include "../Store/LabelNode.hpp"
+#include "../Store/ObjectRelation/LabelNode.hpp"
 
 using namespace std;
 using namespace FuncLib::Store;
+using namespace FuncLib::Store::ObjectRelation;
 
 TESTCASE("LabelNode test")
 {

@@ -1,7 +1,7 @@
 #pragma once
 #include "LabelTree.hpp"
 
-namespace FuncLib::Store
+namespace FuncLib::Store::ObjectRelation
 {
 	class FreeNodes : private LabelTree
 	{

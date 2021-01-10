@@ -1,6 +1,6 @@
 #include "LabelTree.hpp"
 
-namespace FuncLib::Store
+namespace FuncLib::Store::ObjectRelation
 {
 	using ::std::move;
 

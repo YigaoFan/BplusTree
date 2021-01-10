@@ -3,7 +3,7 @@
 #include "LabelNode.hpp"
 #include "PosLabelNodeConcept.hpp"
 
-namespace FuncLib::Store
+namespace FuncLib::Store::ObjectRelation
 {
 	using ::std::move;
 

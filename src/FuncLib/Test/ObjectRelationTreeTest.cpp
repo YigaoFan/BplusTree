@@ -1,9 +1,9 @@
 #include "../../TestFrame/FlyTest.hpp"
 #define private public
-#include "../Store/ObjectRelationTree.hpp"
+#include "../Store/ObjectRelation/ObjectRelationTree.hpp"
 
 using namespace std;
-using namespace FuncLib::Store;
+using namespace FuncLib::Store::ObjectRelation;
 
 LabelNode GenNew()
 {

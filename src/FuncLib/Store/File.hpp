@@ -11,13 +11,14 @@
 #include "StorageAllocator.hpp"
 #include "../Persistence/FriendFuncLibDeclare.hpp" // 因为 DiskPos 里面有功能依赖 File，所以这里只能 ByteConverter 的声明
 #include "../Persistence/IWriterConcept.hpp"
-#include "ObjectRelationTree.hpp"
+#include "ObjectRelation/ObjectRelationTree.hpp"
 #include "CacheSearchRoutine.hpp"
 #include "FakeObjectBytes.hpp"
-#include "ReadStateLabelNode.hpp"
+#include "ObjectRelation/ReadStateLabelNode.hpp"
 
 namespace FuncLib::Store
 {
+	using namespace FuncLib::Store::ObjectRelation;
 	using FuncLib::Persistence::ByteConverter;
 	using FuncLib::Persistence::DiskPos;
 	using FuncLib::Persistence::Switch;

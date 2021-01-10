@@ -1,9 +1,9 @@
 #pragma once
 #include <vector>
-#include "StaticConfig.hpp"
-#include "../../Btree/Enumerator.hpp"
+#include "../StaticConfig.hpp"
+#include "../../../Btree/Enumerator.hpp"
 
-namespace FuncLib::Store
+namespace FuncLib::Store::ObjectRelation
 {
 	using ::std::vector;
 

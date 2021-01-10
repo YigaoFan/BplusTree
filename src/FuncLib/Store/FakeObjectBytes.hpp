@@ -1,9 +1,11 @@
 #pragma once
 #include "StaticConfig.hpp"
-#include "LabelNodeBase.hpp"
+#include "ObjectRelation/LabelNodeBase.hpp"
 
 namespace FuncLib::Store
 {
+	using namespace FuncLib::Store::ObjectRelation;
+
 	class FakeObjectBytes : private LabelNodeBase<FakeObjectBytes>
 	{
 	private:
