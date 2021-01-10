@@ -69,7 +69,6 @@ int UI_Main()
 
 	// Enter key on Mac
 	// lambda capture 里边可以指定类型吗？比如下面的 n
-	// TODO 弄清楚 history 不往下移的原因
 	ui.RegisterAction("\x0a", [&, n = 0](vector<string>* history, string* currentCmdLine, string* hintLine, int* colOffsetPtr, size_t* startShowLineNumPtr) mutable
 	{
 		auto& cmd = *currentCmdLine;
@@ -95,10 +94,18 @@ int UI_Main()
 			}
 
 			return;
-			// auto result = cmd.Run(*currentCmdLine);
-			// addToHistory(result);
-			// currentCmdLine->clear();
-			// hintLine->clear();
+			currentCmdLine->clear();
+			hintLine->clear();
+			
+			try
+			{
+				// auto result = cmd.Run(*currentCmdLine);
+				// addToHistory(result);
+			}
+			catch (std::exception const& e)
+			{
+			}
+			
 		}
 	});
 
