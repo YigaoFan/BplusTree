@@ -29,16 +29,8 @@ namespace FuncLib::Store
 		ResizeSpaceQueue* ToResizes;
 
 		ObjectBytes(pos_label label, WriteQueue* writeQueuen = nullptr, AllocateSpaceQueue* allocateQueue = nullptr, ResizeSpaceQueue* resizeQueue = nullptr);
-
-		ObjectBytes* ConstructSub(pos_label label)
-		{
-			auto sub = Base::ConstructSub(label);
-			sub->ToWrites = ToWrites;
-			sub->ToAllocates = ToAllocates;
-			sub->ToResizes = ToResizes;
-			return sub;
-		}
-
+		
+		ObjectBytes* ConstructSub(pos_label label);
 		using Base::CreateSortedSubNodeEnumerator;
 		using Base::Label;
 
@@ -47,7 +39,5 @@ namespace FuncLib::Store
 		size_t Size() const;
 		void Add(char const* begin, size_t size);
 		void AddBlank(size_t count);
-	private:
-		void DoWrite(ofstream* filename, pos_int& pos) const;
 	};
 }

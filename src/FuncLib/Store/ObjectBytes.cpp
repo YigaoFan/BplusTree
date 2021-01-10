@@ -16,7 +16,11 @@ namespace FuncLib::Store
 
 	void ObjectBytes::WriteIn(ofstream* fileStream, pos_int pos) const
 	{
-		DoWrite(fileStream, pos);
+		if (not _bytes.empty())
+		{
+			auto size = _bytes.size();
+			WriteByte(fileStream, pos, &_bytes[0], size);
+		}
 	}
 
 	size_t ObjectBytes::Size() const
@@ -40,18 +44,17 @@ namespace FuncLib::Store
 		}
 	}
 
-	void ObjectBytes::DoWrite(ofstream* stream, pos_int& pos) const
-	{
-		auto size = _bytes.size();
-
-		if (not _bytes.empty())
-		{
-			WriteByte(stream, pos, &_bytes[0], size);
-		}
-	}
-
 	bool ObjectBytes::Written() const
 	{
 		return not _bytes.empty();
+	}
+
+	ObjectBytes* ObjectBytes::ConstructSub(pos_label label)
+	{
+		auto sub = Base::ConstructSub(label);
+		sub->ToWrites = ToWrites;
+		sub->ToAllocates = ToAllocates;
+		sub->ToResizes = ToResizes;
+		return sub;
 	}
 }

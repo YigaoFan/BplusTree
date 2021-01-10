@@ -5,13 +5,6 @@
 using namespace std;
 using namespace FuncLib::Store::ObjectRelation;
 
-LabelNode GenNew()
-{
-	auto leafNode0 = LabelNode(1);
-	auto middleNode0 = LabelNode(0, {leafNode0});
-	return middleNode0;
-}
-
 ObjectRelationTree GetInitTree()
 {
 	auto leafNode0 = LabelNode(10, {});
