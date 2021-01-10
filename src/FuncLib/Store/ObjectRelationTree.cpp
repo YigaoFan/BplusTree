@@ -1,4 +1,5 @@
 #include <vector>
+#include <exception>
 #include "ObjectRelationTree.hpp"
 #include "../Persistence/ByteConverter.hpp"
 #include "../../Btree/Generator.hpp"
@@ -7,6 +8,7 @@ namespace FuncLib::Store
 {
 	using Collections::Generator;
 	using ::std::move;
+	using ::std::out_of_range;
 	using ::std::vector;
 
 	// 但 FileLabel 是 0... TODO
@@ -126,107 +128,98 @@ namespace FuncLib::Store
 
 	void ObjectRelationTree::Complete(ReadStateLabelNode *newNode, LabelNode oldNode)
 	{
-		if (oldNode.SubsEmpty())
-		{
-			auto newSubs = newNode->CreateSortedSubNodeEnumerator();
-			while (newSubs.MoveNext())
-			{
-				Complete(&newSubs.Current());
-			}
-			return;
-		}
-
 		if (newNode->SubsEmpty())
 		{
-			if (newNode->Read)
-			{
-				for (auto &n : oldNode.GiveSubs())
-				{
-					Collect(move(n));
-				}
-			}
-			else
+			if (not newNode->Read)
 			{
 				newNode->SetSubs(oldNode.GiveSubs());
+				return;
 			}
-			return;
 		}
 
 		auto oldSubs = oldNode.CreateSortedSubNodeEnumerator();
 		auto newSubs = newNode->CreateSortedSubNodeEnumerator();
-		oldSubs.MoveNext();
-		newSubs.MoveNext();
+		unsigned char state = 0;
+		constexpr unsigned char newCurrentValidFlag = 0b0000'0001;
+		constexpr unsigned char oldCurrentValidFlag = 0b0000'0010;
+
+		auto setOldCurrent = [&state](bool moved)
+		{
+			if (moved)
+			{
+				state |= oldCurrentValidFlag;
+			}
+			else
+			{
+				state &= ~oldCurrentValidFlag;
+			}
+		};
+		auto setNewCurrent = [&state](bool moved)
+		{
+			if (moved)
+			{
+				state |= newCurrentValidFlag;
+			}
+			else
+			{
+				state &= ~newCurrentValidFlag;
+			}
+		};
+		setOldCurrent(oldSubs.MoveNext());
+		setNewCurrent(newSubs.MoveNext());
 
 		while (true)
 		{
-			auto &oldSub = oldSubs.Current();
-			auto oldLabel = oldSub.Label();
-
-			auto &newSub = newSubs.Current();
-			auto newLabel = newSub.Label();
-
-			if (oldLabel < newLabel)
+			switch (state)
 			{
-				Collect(oldSub);
+			case 0:
+				return;
 
-				if (not oldSubs.MoveNext())
+			case 1:
+				do
 				{
-					goto ProcessRemainNew;
-				}
-			}
-			else if (oldLabel == newLabel)
-			{
-				Complete(&newSub, move(oldSub));
+					Complete(&newSubs.Current());
+				} while (newSubs.MoveNext());
+				return;
 
-				auto hasOld = oldSubs.MoveNext();
-				auto hasNew = newSubs.MoveNext();
+			case 2:
+				do
+				{
+					Collect(oldSubs.Current());
+				} while (oldSubs.MoveNext());
+				return;
 
-				if (hasOld)
+			case 3:
 				{
-					if (hasNew)
-					{
-						continue;
-					}
-					else
-					{
-						goto ProcessRemainOld;
-					}
-				}
-				else
-				{
-					if (hasNew)
-					{
-						goto ProcessRemainNew;
-					}
-					else
-					{
-						return;
-					}
-				}
-			}
-			else // oldLabel > newLabel 说明 newLabel 没遇到过，但可能来自 ObjectRelationTree 的其他地方
-			{
-				Complete(&newSub);
+					auto &oldSub = oldSubs.Current();
+					auto oldLabel = oldSub.Label();
 
-				if (not newSubs.MoveNext())
-				{
-					goto ProcessRemainOld;
+					auto &newSub = newSubs.Current();
+					auto newLabel = newSub.Label();
+
+					if (oldLabel < newLabel)
+					{
+						Collect(oldSub);
+						setOldCurrent(oldSubs.MoveNext());
+					}
+					else if (oldLabel == newLabel)
+					{
+						Complete(&newSub, move(oldSub));
+						setOldCurrent(oldSubs.MoveNext());
+						setNewCurrent(newSubs.MoveNext());
+					}
+					else // oldLabel > newLabel 说明 newLabel 没遇到过，可能来自 ObjectRelationTree 的其他地方或者是新加的
+					{
+						Complete(&newSub);
+						setNewCurrent(newSubs.MoveNext());
+					}
 				}
+				break;
+
+			default:
+				throw out_of_range("state out of range");
 			}
 		}
-
-	ProcessRemainOld:
-		do
-		{
-			Collect(oldSubs.Current());
-		} while (oldSubs.MoveNext());
-		return;
-
-	ProcessRemainNew:
-		do
-		{
-			Complete(&newSubs.Current());
-		} while (newSubs.MoveNext());
 	}
 
 	optional<LabelNode> ObjectRelationTree::Take(pos_label label)
