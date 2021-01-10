@@ -16,7 +16,7 @@ namespace FuncLib::Store
 		}
 
 		auto namePtr = make_shared<path>(filename);
-		FileReader reader{ namePtr, 0 };
+		FileReader reader = FileReader::MakeReader(nullptr, filename, 0 );
 		auto relationTree = ObjectRelationTree::ReadObjRelationTreeFrom(&reader);
 		auto allocator = StorageAllocator::ReadAllocatedInfoFrom(&reader);
 		auto f = make_shared<File>(Files.size(), namePtr, move(allocator), move(relationTree));

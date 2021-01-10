@@ -171,7 +171,7 @@ namespace FuncLib::Store
 		{
 			// 触发 读 的唯一一个地方
 			auto start = _allocator.GetConcretePos(posLabel);
-			auto reader = FileReader(this, _filename, start);
+			auto reader = FileReader::MakeReader(this, *_filename, start);
 			return ByteConverter<T>::ReadOut(&reader);
 		}
 

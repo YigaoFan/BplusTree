@@ -10,7 +10,7 @@ using namespace FuncLib::Test;
 TESTCASE("StorageAllocator test")
 {
     auto filename = "storageAllocatorTest";
-    FileReader reader{ MakeFilePath(filename), 0 };
+    auto reader  = FileReader::MakeReader(nullptr, MakeFilePath(filename), 0 );
     auto alloca = StorageAllocator::ReadAllocatedInfoFrom(&reader);
     auto label = alloca.AllocatePosLabel();
     ASSERT(!alloca.Ready(label));

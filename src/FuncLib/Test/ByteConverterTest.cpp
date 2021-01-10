@@ -18,7 +18,7 @@ TESTCASE("Byte converter test")
 	auto path = MakeFilePath(filename);
 	{
 		auto writer = ObjectBytes(0);// TODO pos_label
-		auto reader = FileReader(path, 0);
+		auto reader = FileReader::MakeReader(nullptr, path, 0);
 
 		SECTION("Basic type")
 		{

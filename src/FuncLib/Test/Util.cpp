@@ -2,10 +2,8 @@
 
 namespace FuncLib::Test
 {
-	using ::std::make_shared;
-
-	shared_ptr<path> MakeFilePath(string filename)
+	path MakeFilePath(string filename)
 	{
-		return make_shared<path>(filename);
+		return path(filename);
 	}
 }

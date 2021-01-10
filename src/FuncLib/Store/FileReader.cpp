@@ -2,40 +2,42 @@
 
 namespace FuncLib::Store
 {
-	vector<byte> ReadByte(path const& filename, pos_int start, size_t size)
+	using ::std::ifstream;
+
+	vector<byte> ReadByte(istream* readStream, pos_int start, size_t size)
 	{
 		if (size == 0)
 		{
 			return { };
 		}
 
-		ifstream fs(filename, ifstream::in | ifstream::binary);
 		// fs.unsetf(ifstream::skipws); // Stop eating new lines in binary mode
-		fs.seekg(start);
-
+		readStream->seekg(start);
 		vector<byte> mem(size);
-
-		if (fs.is_open())
-		{
-			fs.read(reinterpret_cast<char*>(mem.data()), size);
-		}
+		readStream->read(reinterpret_cast<char*>(mem.data()), size);
 
 		return mem;
 	}
 
-	FileReader::FileReader(shared_ptr<path> filename, pos_int startPos)
-		: FileReader(nullptr, move(filename), startPos)
+	FileReader FileReader::MakeReader(File* file, path const& filename, pos_int pos)
+	{
+		ifstream fs(filename, ifstream::in | ifstream::binary);
+		return FileReader(file, std::make_unique<ifstream>(move(fs)), pos);
+	}
+
+	FileReader::FileReader(unique_ptr<istream> readStream, pos_int startPos)
+		: FileReader(nullptr, move(readStream), startPos)
 	{ }
 
-	FileReader::FileReader(File* file, shared_ptr<path> filename, pos_int startPos)
-		: _file(file), _filename(filename), _pos(startPos)
+	FileReader::FileReader(File *file, unique_ptr<istream> readStream, pos_int startPos)
+		: _file(file), _readStream(move(readStream)), _pos(startPos)
 	{ }
 
 	vector<byte> FileReader::Read(size_t size)
 	{
 		auto pos = _pos;
 		_pos += size;
-		return ReadByte(*_filename, pos, size);
+		return ReadByte(_readStream.get(), pos, size);
 	}
 
 	File* FileReader::GetLessOwnershipFile() const
