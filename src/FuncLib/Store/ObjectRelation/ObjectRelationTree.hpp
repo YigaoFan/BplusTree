@@ -20,6 +20,7 @@ namespace FuncLib::Store::ObjectRelation
 		FreeNodes _freeNodes;
 
 	public:
+		/// Not write free nodes
 		static ObjectRelationTree ReadObjRelationTreeFrom(FileReader* reader);
 		static void WriteObjRelationTree(ObjectRelationTree const& tree, ObjectBytes* writer);
 
