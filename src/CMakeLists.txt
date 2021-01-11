@@ -34,13 +34,13 @@ add_executable(RPC
         FuncLib/FuncBinaryLib.cpp
         FuncLib/Store/File.cpp
         FuncLib/Store/FileCache.cpp
-        FuncLib/Store/FileResource.cpp
         FuncLib/Store/FileReader.cpp
-        FuncLib/Store/LabelRelationNode.cpp
+        FuncLib/Store/ObjectRelation/LabelNode.cpp
+        FuncLib/Store/ObjectRelation/LabelTree.cpp
+        FuncLib/Store/ObjectRelation/ObjectRelationTree.cpp
+        FuncLib/Store/StoreInfoPersistence.cpp
         FuncLib/Store/ObjectBytes.cpp
-        FuncLib/Store/FakeWriter.cpp
-        FuncLib/Store/LabelTree.cpp
-        FuncLib/Store/ObjectRelationTree.cpp
+        FuncLib/Store/FakeObjectBytes.cpp
         FuncLib/Store/ObjectBytesQueue.cpp
         FuncLib/Store/StorageAllocator.cpp
         FuncLib/Compile/ParseFunc.cpp
@@ -51,14 +51,15 @@ add_executable(RPC
         FuncLib/Compile/CompileProcess.cpp
         FuncLib/Test/Util.cpp
         FuncLib/Test/FileTest.cpp
-        #FuncLib/Test/DiskBtreeTest.cpp
         FuncLib/Test/ByteConverterTest.cpp
-        FuncLib/Test/ByteConvereterTest_Gen.cpp
+        #FuncLib/Test/ByteConvereterTest_Gen.cpp
         FuncLib/Test/FileReader&ObjectWriterTest.cpp
         FuncLib/Test/StorageAllocatorTest.cpp
         FuncLib/Test/FileCacheTest.cpp
         FuncLib/Test/TypeConverterTest.cpp
         FuncLib/Test/CompileTest.cpp
+        FuncLib/Test/LabelNodeTest.cpp
+        FuncLib/Test/ObjectRelationTreeTest.cpp
 
         Server/Request.cpp
         Server/Test/ServerTest.cpp
