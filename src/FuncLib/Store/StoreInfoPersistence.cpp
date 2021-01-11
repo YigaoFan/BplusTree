@@ -48,4 +48,9 @@ namespace FuncLib::Store
 		ByteConverter<pos_label>::WriteDown(tree._fileRoot.Label(), writer);
 		WriteSubLabelsOf(&tree._fileRoot, writer);
 	}
+
+	void WriteAllocatedInfoTo(StorageAllocator const &allocator, ObjectBytes *bytes)
+	{
+		ByteConverter<StorageAllocator>::WriteDown(allocator, bytes);
+	}
 }

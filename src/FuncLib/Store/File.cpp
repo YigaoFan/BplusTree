@@ -19,7 +19,7 @@ namespace FuncLib::Store
 		auto namePtr = make_shared<path>(filename);
 		FileReader reader = FileReader::MakeReader(nullptr, filename, 0 );
 		auto relationTree = ReadObjRelationTreeFrom(&reader);
-		auto allocator = StorageAllocator::ReadAllocatedInfoFrom(&reader);
+		auto allocator = ReadAllocatedInfoFrom(&reader);
 		auto f = make_shared<File>(Files.size(), namePtr, move(allocator), move(relationTree));
 		Files.insert(f.get());
 
@@ -41,7 +41,7 @@ namespace FuncLib::Store
 	{
 		_allocator.DeallocatePosLabels(_notStoredLabels);
 		ObjectBytes bytes{ 0 };
-		StorageAllocator::WriteAllocatedInfoTo(_allocator, &bytes);
+		WriteAllocatedInfoTo(_allocator, &bytes);
 		_objRelationTree.ReleaseFreeNodes([this](pos_label label)
 		{
 			_allocator.DeallocatePosLabel(label);

@@ -4,12 +4,13 @@
 #include <filesystem>
 #include <map>
 #include "StaticConfig.hpp"
-#include "FileReader.hpp"
 #include "ObjectBytes.hpp"
 #include "../Persistence/FriendFuncLibDeclare.hpp"
+#include "../Persistence/IWriterIReaderConcept.hpp"
 
 namespace FuncLib::Store
 {
+	using Persistence::IReader;
 	using ::std::map;
 	using ::std::pair;
 	using ::std::set;
@@ -20,14 +21,14 @@ namespace FuncLib::Store
 	{
 	private:
 		friend struct Persistence::ByteConverter<StorageAllocator, false>;
+		friend StorageAllocator ReadAllocatedInfoFrom(IReader auto* reader);
+		friend void WriteAllocatedInfoTo(StorageAllocator const& allocator, ObjectBytes* bytes);
 		pos_int _currentPos;
 		// 实际上这里相当于是偏移，最后在 OutDiskPtr 里面可以加一个基础地址
 		// 分配的也是偏移
 		map<pos_label, pair<pos_int, size_t>> _usingLabelTable;
 		map<pos_label, pair<pos_int, size_t>> _deletedLabelTable; // 优先从这里分配
 	public:
-		static StorageAllocator ReadAllocatedInfoFrom(FileReader* reader);
-		static void WriteAllocatedInfoTo(StorageAllocator const& allocator, ObjectBytes* bytes);
 
 		pos_label AllocatePosLabel();
 		bool Ready(pos_label posLabel) const;

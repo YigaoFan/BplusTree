@@ -3,6 +3,37 @@
 #include "../Persistence/ByteConverter.hpp"
 #include "../../Btree/Generator.hpp"
 
+/// 其他类支持 ByteConverter 的样板
+namespace FuncLib::Persistence
+{
+	using FuncLib::Store::StorageAllocator;
+
+	template <>
+	struct ByteConverter<StorageAllocator, false>
+	{
+		using ThisType = StorageAllocator;
+		using DataMember0 = decltype(declval<ThisType>()._currentPos);
+		using DataMember1 = decltype(declval<ThisType>()._usingLabelTable);
+		using DataMember2 = decltype(declval<ThisType>()._deletedLabelTable);
+		static constexpr bool SizeStable = All<GetSizeStable, DataMember0, DataMember1, DataMember2>::Result;
+
+		static void WriteDown(ThisType const &p, IWriter auto *writer)
+		{
+			ByteConverter<DataMember0>::WriteDown(p._currentPos, writer);
+			ByteConverter<DataMember1>::WriteDown(p._usingLabelTable, writer);
+			ByteConverter<DataMember2>::WriteDown(p._deletedLabelTable, writer);
+		}
+
+		static ThisType ReadOut(FileReader *reader)
+		{
+			return {
+				ByteConverter<DataMember0>::ReadOut(reader),
+				ByteConverter<DataMember1>::ReadOut(reader),
+				ByteConverter<DataMember2>::ReadOut(reader)};
+		}
+	};
+}
+
 namespace FuncLib::Store
 {
 	using namespace Persistence;
@@ -48,4 +79,11 @@ namespace FuncLib::Store
 	}
 
 	void WriteObjRelationTree(ObjectRelationTree const& tree, ObjectBytes* writer);
+
+	StorageAllocator ReadAllocatedInfoFrom(IReader auto* reader)
+	{
+		return ByteConverter<StorageAllocator>::ReadOut(reader);
+	}
+
+	void WriteAllocatedInfoTo(StorageAllocator const &allocator, ObjectBytes *bytes);
 }
