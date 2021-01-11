@@ -15,7 +15,7 @@ namespace FuncLib::Persistence
 			ByteConverter<DataMemberType>::WriteDown(t._ptr, writer);
 		}
 
-		static ThisType ReadOut(FileReader* reader)
+		static ThisType ReadOut(IReader auto* reader)
 		{
 			return ByteConverter<DataMemberType>::ReadOut(reader);
 		}
@@ -34,7 +34,7 @@ namespace FuncLib::Persistence
 			ByteConverter<DataMemberType>::WriteDown(t._ptr, writer);
 		}
 
-		static ThisType ReadOut(FileReader* reader)
+		static ThisType ReadOut(IReader auto* reader)
 		{
 			return ByteConverter<DataMemberType>::ReadOut(reader);
 		}

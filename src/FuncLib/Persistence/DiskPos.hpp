@@ -2,7 +2,7 @@
 #include <memory>
 #include <utility>
 #include "../Store/File.hpp"
-#include "IWriterConcept.hpp"
+#include "IWriterIReaderConcept.hpp"
 
 namespace FuncLib::Persistence
 {

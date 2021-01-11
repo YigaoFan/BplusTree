@@ -4,7 +4,7 @@ namespace FuncLib::Store
 {
 	using ::std::ifstream;
 
-	vector<byte> ReadByte(istream* readStream, pos_int start, size_t size)
+	vector<byte> ReadByte(ifstream* readStream, pos_int start, size_t size)
 	{
 		if (size == 0)
 		{
@@ -22,14 +22,14 @@ namespace FuncLib::Store
 	FileReader FileReader::MakeReader(File* file, path const& filename, pos_int pos)
 	{
 		ifstream fs(filename, ifstream::in | ifstream::binary);
-		return FileReader(file, std::make_unique<ifstream>(move(fs)), pos);
+		return FileReader(file, move(fs), pos);
 	}
 
-	FileReader::FileReader(unique_ptr<istream> readStream, pos_int startPos)
+	FileReader::FileReader(ifstream readStream, pos_int startPos)
 		: FileReader(nullptr, move(readStream), startPos)
 	{ }
 
-	FileReader::FileReader(File *file, unique_ptr<istream> readStream, pos_int startPos)
+	FileReader::FileReader(File *file, ifstream readStream, pos_int startPos)
 		: _file(file), _readStream(move(readStream)), _pos(startPos)
 	{ }
 
@@ -37,7 +37,7 @@ namespace FuncLib::Store
 	{
 		auto pos = _pos;
 		_pos += size;
-		return ReadByte(_readStream.get(), pos, size);
+		return ReadByte(&_readStream, pos, size);
 	}
 
 	File* FileReader::GetLessOwnershipFile() const

@@ -33,7 +33,7 @@ namespace FuncLib::Persistence
 			ByteConverter<DataMemberType>::WriteDown(p._pos, writer, p._tPtr);
 		}
 
-		static ThisType ReadOut(FileReader* reader)
+		static ThisType ReadOut(IReader auto* reader)
 		{
 			return ByteConverter<DataMemberType>::ReadOut(reader);
 		}
@@ -52,7 +52,7 @@ namespace FuncLib::Persistence
 			ByteConverter<DataMemberType>::WriteDown(p._pos, writer);
 		}
 
-		static ThisType ReadOut(FileReader* reader)
+		static ThisType ReadOut(IReader auto* reader)
 		{
 			return ByteConverter<DataMemberType>::ReadOut(reader);
 		}
@@ -73,7 +73,7 @@ namespace FuncLib::Persistence
 			ByteConverter<DataMemberType1>::WriteDown(t._root, writer);
 		}
 
-		static ThisType ReadOut(FileReader* reader)
+		static ThisType ReadOut(IReaderWithFile auto* reader)
 		{
 			auto member0 = ByteConverter<DataMemberType0>::ReadOut(reader);
 			auto member1 = ByteConverter<DataMemberType1>::ReadOut(reader);
@@ -95,7 +95,7 @@ namespace FuncLib::Persistence
 			ByteConverter<DataMemberType>::WriteDown(t._elements, writer);
 		}
 
-		static ThisType ReadOut(FileReader* reader)
+		static ThisType ReadOut(IReader auto* reader)
 		{
 			auto elements = ByteConverter<DataMemberType>::ReadOut(reader);
 			return { move(elements) };
@@ -120,7 +120,7 @@ namespace FuncLib::Persistence
 			ByteConverter<DataMemberType2>::WriteDown(t._next, writer);
 		}
 
-		static ThisType ReadOut(FileReader* reader)
+		static ThisType ReadOut(IReader auto* reader)
 		{
 			auto elements = ByteConverter<DataMemberType0>::ReadOut(reader);
 			auto preivous = ByteConverter<DataMemberType1>::ReadOut(reader);
@@ -153,7 +153,7 @@ namespace FuncLib::Persistence
 			}
 		}
 
-		static shared_ptr<ThisType> ReadOut(FileReader* reader)
+		static shared_ptr<ThisType> ReadOut(IReader auto* reader)
 		{
 			auto middle = ByteConverter<bool>::ReadOut(reader);
 

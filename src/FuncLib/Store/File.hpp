@@ -11,7 +11,6 @@
 #include "StorageAllocator.hpp"
 // 这里用到 ByteConverter，但因为 DiskPos 里面有功能依赖 File，所以这里只能声明 ByteConverter
 #include "../Persistence/FriendFuncLibDeclare.hpp"
-#include "../Persistence/IWriterConcept.hpp"
 #include "ObjectRelation/ObjectRelationTree.hpp"
 #include "ObjectRelation/ReadStateLabelNode.hpp"
 #include "CacheSearchRoutine.hpp"

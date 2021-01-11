@@ -1,13 +1,22 @@
 #pragma once
+#include <vector>
 #include <cstddef>
 #include "../../Basic/Concepts.hpp"
 #include "../Store/StaticConfig.hpp"
 
+namespace FuncLib::Store
+{
+	class File;
+}
+
 namespace FuncLib::Persistence
 {
 	using Basic::IsSameTo;
+	using FuncLib::Store::File;
 	using ::std::add_pointer_t;
+	using ::std::byte;
 	using ::std::size_t;
+	using ::std::vector;
 	using Store::pos_label;
 
 	template <typename T>
@@ -33,4 +42,17 @@ namespace FuncLib::Persistence
 	concept IWriter = Writer_Write<T> and 
 					  Writer_WriteBlank<T> and
 					  Writer_ConstructSub<T>;
+
+	template <typename T>
+	concept IReader = requires(T t, size_t size)
+	{
+		t.template Read<1>(); // 1 is just a sample
+		{ t.Read(size) } -> IsSameTo<vector<byte>>;
+	};
+
+	template <typename T>
+	concept IReaderWithFile = IReader<T> and requires(T t)
+	{
+		{ t.GetLessOwnershipFile() } -> IsSameTo<add_pointer_t<File>>;
+	};
 }

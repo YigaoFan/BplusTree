@@ -13,7 +13,7 @@
 #include "../../Btree/Basic.hpp"
 #include "../../Basic/TypeTrait.hpp"
 #include "../Store/FileReader.hpp"
-#include "IWriterConcept.hpp"
+#include "IWriterIReaderConcept.hpp"
 #include "StructToTuple.hpp"
 
 namespace FuncLib::Persistence
@@ -74,9 +74,9 @@ namespace FuncLib::Persistence
 			writer->Add(start, sizeof(T));
 		}
 
-		static T ReadOut(FileReader* reader)
+		static T ReadOut(IReader auto* reader)
 		{
-			auto bytes = reader->Read<sizeof(T)>();
+			auto bytes = reader->template Read<sizeof(T)>();
 			T* p = reinterpret_cast<T*>(&bytes[0]);
 			return *p;
 		}
@@ -127,7 +127,7 @@ namespace FuncLib::Persistence
 			return { converter.template operator ()<Is>()... };
 		}
 
-		static T ReadOut(FileReader* reader)
+		static T ReadOut(IReader auto* reader)
 		{
 			auto converter = [&]<auto Index>()
 			{
@@ -156,7 +156,7 @@ namespace FuncLib::Persistence
 			writer->Add(t.c_str(), n);
 		}
 
-		static T ReadOut(FileReader* reader)
+		static T ReadOut(IReader auto* reader)
 		{
 			size_t charCount = ByteConverter<size_t>::ReadOut(reader);
 			auto bytes = reader->Read(charCount);
@@ -190,7 +190,7 @@ namespace FuncLib::Persistence
 			}
 		}
 
-		static ThisType ReadOut(FileReader* reader)
+		static ThisType ReadOut(IReader auto* reader)
 		{
 			auto n = ByteConverter<size_int>::ReadOut(reader);
 			ThisType vec;
@@ -216,7 +216,7 @@ namespace FuncLib::Persistence
 			ByteConverter<Value>::WriteDown(t.second, writer);
 		}
 
-		static ThisType ReadOut(FileReader* reader)
+		static ThisType ReadOut(IReader auto* reader)
 		{
 			auto k = ByteConverter<Key>::ReadOut(reader);
 			auto v = ByteConverter<Value>::ReadOut(reader);
@@ -237,7 +237,7 @@ namespace FuncLib::Persistence
 			ByteConverter<BaseType>::WriteDown(t, writer);
 		}
 
-		static ThisType ReadOut(FileReader* reader)
+		static ThisType ReadOut(IReader auto* reader)
 		{
 			// Each type should have a constructor of all data member to easy set
 			// Like Elements have a constructor which has LiteVector as arg
@@ -262,7 +262,7 @@ namespace FuncLib::Persistence
 			}
 		}
 
-		static ThisType ReadOut(FileReader* reader)
+		static ThisType ReadOut(IReader auto* reader)
 		{
 			size_t size = ByteConverter<size_t>::ReadOut(reader);
 			ThisType t;

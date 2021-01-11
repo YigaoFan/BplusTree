@@ -23,7 +23,7 @@ namespace FuncLib::Persistence
 			}
 		}
 
-		static ThisType ReadOut(FileReader* reader)
+		static ThisType ReadOut(IReaderWithFile auto* reader)
 		{
 			auto p = ByteConverter<DataMemberType>::ReadOut(reader);
 			auto file = reader->GetLessOwnershipFile();
