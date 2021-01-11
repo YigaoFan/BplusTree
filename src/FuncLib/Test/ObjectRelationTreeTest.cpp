@@ -1,9 +1,14 @@
 #include "../../TestFrame/FlyTest.hpp"
+#include "StringReader.hpp"
 #define private public
+#include "../Store/ObjectBytes.hpp"
+#include "../Store/StoreInfoPersistence.hpp"
 #include "../Store/ObjectRelation/ObjectRelationTree.hpp"
 
 using namespace std;
+using namespace FuncLib::Store;
 using namespace FuncLib::Store::ObjectRelation;
+using namespace FuncLib::Test;
 
 ObjectRelationTree GetInitTree()
 {
@@ -31,6 +36,19 @@ ObjectRelationTree GetInitTree()
 TESTCASE("ObjectRelationTree test")
 {
 	auto tree = GetInitTree();
+	SECTION("Store on disk and read from disk")
+	{
+		ObjectBytes writer(0);
+		string bs;
+		WriteObjRelationTree(tree, &writer);
+		writer.WriteIn([&bs](vector<char> const* bytes)
+		{
+			bs.append(bytes->begin(), bytes->end());
+		});
+		StringReader reader(move(bs));
+		auto t = ReadObjRelationTreeFrom(&reader);
+		ASSERT(t.EqualTo(tree));
+	}
 
 	SECTION("Pure Add")
 	{

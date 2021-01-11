@@ -36,6 +36,10 @@ namespace FuncLib::Store
 
 		bool Written() const;
 		void WriteIn(ofstream* fileStream, pos_int pos) const;
+		void WriteIn(auto const& writer) const
+		{
+			writer(&_bytes);
+		}
 		size_t Size() const;
 		void Add(char const* begin, size_t size);
 		void AddBlank(size_t count);
