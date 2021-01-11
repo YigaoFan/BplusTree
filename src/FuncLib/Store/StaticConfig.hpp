@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <climits>
 
 namespace FuncLib::Store
 {
@@ -9,4 +10,5 @@ namespace FuncLib::Store
 	using pos_int = size_t;
 	using pos_label = int;
 	constexpr pos_label FileLabel = 0;
+	constexpr pos_label NonLabel = INT_MAX;
 }

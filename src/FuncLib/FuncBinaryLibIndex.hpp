@@ -7,8 +7,8 @@
 #include "Store/StaticConfig.hpp"
 #include "Compile/FuncObj.hpp"
 #include "Store/File.hpp"
-#include "Persistence/ByteConverter.hpp"
-#include "Persistence/TypeConverter.hpp" // 这是因为 TypeSelector 里面用到了 TypeConverter，不优雅，想办法解决下
+// 这是因为 Btree 里 TypeSelector 里面用到了 TypeConverter
+#include "Persistence/TypeConverter.hpp"
 #include "../Btree/Btree.hpp"
 #include "../Btree/Generator.hpp"
 

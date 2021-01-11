@@ -1,9 +1,10 @@
 #include "File.hpp"
+#include "StoreInfoPersistence.hpp"
 
 namespace FuncLib::Store
 {
 	constexpr pos_int MetadataSize = 2048; // Byte
-	constexpr pos_int MetaDataStart = 0;
+	constexpr pos_int MetadataStart = 0;
 
 	shared_ptr<File> File::GetFile(path const& filename)
 	{
@@ -17,7 +18,7 @@ namespace FuncLib::Store
 
 		auto namePtr = make_shared<path>(filename);
 		FileReader reader = FileReader::MakeReader(nullptr, filename, 0 );
-		auto relationTree = ObjectRelationTree::ReadObjRelationTreeFrom(&reader);
+		auto relationTree = ReadObjRelationTreeFrom(&reader);
 		auto allocator = StorageAllocator::ReadAllocatedInfoFrom(&reader);
 		auto f = make_shared<File>(Files.size(), namePtr, move(allocator), move(relationTree));
 		Files.insert(f.get());
@@ -45,7 +46,7 @@ namespace FuncLib::Store
 		{
 			_allocator.DeallocatePosLabel(label);
 		});
-		ObjectRelationTree::WriteObjRelationTree(_objRelationTree, &bytes);
+		WriteObjRelationTree(_objRelationTree, &bytes);
 
 		if (bytes.Size() > MetadataSize)
 		{
@@ -55,7 +56,7 @@ namespace FuncLib::Store
 		else
 		{
 			ofstream fs = MakeOFileStream(_filename);
-			bytes.WriteIn(&fs, MetaDataStart);
+			bytes.WriteIn(&fs, MetadataStart);
 		}
 		
 		Files.erase(this);
