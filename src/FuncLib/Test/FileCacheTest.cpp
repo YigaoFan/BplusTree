@@ -23,4 +23,4 @@ TESTCASE("FileCache test")
 	ASSERT(!cache.Cached<T>(posLabel));
 }
 
-DEF_TEST_FUNC(fileCacheTest)
+DEF_TEST_FUNC(TestFileCache)

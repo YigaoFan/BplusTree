@@ -24,7 +24,6 @@ namespace FuncLib::Persistence
 		template <typename T1>
 		friend bool operator== (DiskPtrBase<T1> const &lhs, nullptr_t rhs);
 
-		mutable shared_ptr<vector<function<void(T *)>>> _setters;
 		DiskPos<T> _pos;
 		mutable shared_ptr<T> _tPtr;
 
@@ -36,12 +35,12 @@ namespace FuncLib::Persistence
 		{ }
 
 		DiskPtrBase(DiskPtrBase&& that) noexcept
-			: _tPtr(that._tPtr), _setters(move(that._setters)), _pos(move(that._pos))
+			: _tPtr(that._tPtr), _pos(move(that._pos))
 		{
 			that._tPtr = nullptr;
 		}
 
-		DiskPtrBase(DiskPtrBase const& that) : _tPtr(that._tPtr), _setters(that._setters), _pos(that._pos)
+		DiskPtrBase(DiskPtrBase const& that) : _tPtr(that._tPtr), _pos(that._pos)
 		{ }
 
 		// below two constructor is for static_cast convert
@@ -56,15 +55,11 @@ namespace FuncLib::Persistence
 		{ }
 
 // setter 为空说明 object 处于最新状态，clear setter 保证这个
-#define CLEAR_SETTER                    \
-	if (!this->_setters->empty())       \
-	{                                   \
-		if (this->_tPtr == nullptr)     \
-		{                               \
-			this->ReadObjectFromDisk(); \
-		}                               \
-                                        \
-		this->SetDone();                \
+// TODO 这个宏可能要改
+#define CLEAR_SETTER                \
+	if (this->_tPtr == nullptr)     \
+	{                               \
+		this->ReadObjectFromDisk(); \
 	}
 
 		~DiskPtrBase()
@@ -77,7 +72,6 @@ namespace FuncLib::Persistence
 			CLEAR_SETTER;
 
 			this->_tPtr = that._tPtr;
-			this->_setters = that._setters;
 			this->_pos = that._pos;
 
 			return *this;
@@ -88,7 +82,6 @@ namespace FuncLib::Persistence
 			CLEAR_SETTER;
 
 			this->_tPtr = move(that._tPtr);
-			this->_setters = move(that._setters);
 			this->_pos = move(that._pos);
 			return *this;
 		}
@@ -102,7 +95,7 @@ namespace FuncLib::Persistence
 				// 这里的 setter 这样存下来后，各地的 DiskPtr 从不同内存位置开始读的时候会不会有问题
 				// 好像没有这个问题。obj 本身是缓存在 Cache 里的，且是共享的，那么有最新的状态，别人一定可以及时获知
 				// 是考虑 Btree 的情况，还是考虑之后的所有情况？
-				_setters->push_back(move(setter));
+				_pos.RegisterSetter(move(setter));
 			}
 			else
 			{
@@ -118,8 +111,6 @@ namespace FuncLib::Persistence
 		{                               \
 			this->ReadObjectFromDisk(); \
 		}                               \
-                                        \
-		this->SetDone();                \
 	} while (0)
 		// 下面这些符号如果在实际的上层代码中能尽量不用就不用，因为涉及到读取
 		T& operator* ()
@@ -160,16 +151,6 @@ namespace FuncLib::Persistence
 		void ReadObjectFromDisk() const
 		{
 			_tPtr = _pos.ReadObject();
-		}
-
-		void SetDone() const
-		{
-			for (auto& f : *_setters)
-			{
-				f(_tPtr.get());
-			}
-
-			_setters->clear();
 		}
 	};
 

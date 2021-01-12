@@ -37,7 +37,7 @@ namespace FuncLib::Store
 		public:
 			static void WriteObjRelationTree(ObjectRelationTree const &tree, ObjectBytes *writer);
 
-			ObjectRelationTree(LabelTree tree, FreeNodes freeNodes = {});
+			ObjectRelationTree(LabelTree tree = {}, FreeNodes freeNodes = {});
 			void UpdateWith(ReadStateLabelNode topNode);
 			void Free(ReadStateLabelNode topNode);
 			/// releaser's arg is pos_label

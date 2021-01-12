@@ -184,8 +184,6 @@ namespace Collections
 			SetSubNode();
 		}
 
-		
-
 		RAW_PTR(Base) MinSon() const { return _elements[0].second.get(); }
 		RAW_PTR(Base) MaxSon() const { return _elements[_elements.Count() - 1].second.get(); }
 

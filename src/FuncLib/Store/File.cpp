@@ -16,14 +16,23 @@ namespace FuncLib::Store
 			}
 		}
 
-		auto namePtr = make_shared<path>(filename);
-		FileReader reader = FileReader::MakeReader(nullptr, filename, 0 );
-		auto relationTree = ReadObjRelationTreeFrom(&reader);
-		auto allocator = ReadAllocatedInfoFrom(&reader);
-		auto f = make_shared<File>(Files.size(), namePtr, move(allocator), move(relationTree));
-		Files.insert(f.get());
-
-		return f;
+		if (auto namePtr = make_shared<path>(filename); exists(filename))
+		{
+			auto reader = FileReader::MakeReader(nullptr, filename, 0);
+			auto t = ReadObjRelationTreeFrom(&reader);
+			auto a = ReadAllocatedInfoFrom(&reader);
+			auto f = make_shared<File>(Files.size(), namePtr, move(a), move(t));
+			Files.insert(f.get());
+			return f;
+		}
+		else
+		{
+			auto t = ObjectRelationTree();
+			auto a = StorageAllocator();
+			auto f = make_shared<File>(Files.size(), namePtr, move(a), move(t));
+			Files.insert(f.get());
+			return f;
+		}
 	}
 
 	File::File(unsigned int fileId, shared_ptr<path> filename, StorageAllocator allocator, ObjectRelationTree relationTree)
@@ -55,14 +64,15 @@ namespace FuncLib::Store
 		}
 		else
 		{
-			ofstream fs = MakeOFileStream(_filename);
+			ofstream fs = MakeOFileStream(_filename.get());
 			bytes.WriteIn(&fs, MetadataStart);
 		}
 		
 		Files.erase(this);
 	}
 
-	ofstream File::MakeOFileStream(shared_ptr<path> const& filename)
+	// 注意：这个不能创建文件
+	ofstream File::MakeOFileStream(path const* filename)
 	{
 		constexpr ofstream::openmode openmode = ofstream::binary | ofstream::in | ofstream::out;
 		return ofstream{ *filename, openmode };

@@ -99,7 +99,6 @@ namespace FuncLib::Persistence
 		{
 			auto elements = ByteConverter<DataMemberType>::ReadOut(reader);
 			return { move(elements) };
-			// TODO provide LeafNode previous, next and callback inner 这里回调设置的事情还没有弄
 		}
 	};
 

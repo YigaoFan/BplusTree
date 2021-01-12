@@ -3,7 +3,7 @@ extern void fileTest(bool executed);
 extern void TestFileReaderObjectBytes(bool executed);
 extern void byteConverterTest(bool executed);
 extern void TestStorageAllocator(bool executed);
-extern void fileCacheTest(bool executed);
+extern void TestFileCache(bool executed);
 extern void typeConverterTest(bool executed);
 extern void compileTest(bool executed);
 extern void TestLabelNode(bool executed);
@@ -18,7 +18,7 @@ namespace FuncLib::Test
 		TestStorageAllocator(executed);
 		TestFileReaderObjectBytes(executed);
 		fileTest(false);
-		fileCacheTest(false);
+		TestFileCache(false);
 		typeConverterTest(false);
 		byteConverterTest(false);
 		compileTest(false);

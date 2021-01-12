@@ -53,6 +53,11 @@ namespace FuncLib::Persistence
 		{
 			return _file;
 		}
+
+		void RegisterSetter(function<void(T*)> setter) const
+		{
+			_file->RegisterSetter(_label, move(setter));
+		}
 	};
 
 	template <typename T1, typename T2>

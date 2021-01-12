@@ -83,7 +83,7 @@ namespace FuncLib::Store
 		{
 			_notStoredLabels.erase(posLabel);
 
-			ofstream fs = MakeOFileStream(_filename);
+			ofstream fs = MakeOFileStream(_filename.get());
 			auto allocate = [&](ObjectBytes* bytes)
 			{
 				auto size = bytes->Size();
@@ -143,6 +143,12 @@ namespace FuncLib::Store
 			auto readStateNode = ReadStateLabelNode::ConsNodeWith(&writer);
 			_objRelationTree.Free(move(readStateNode));
 			_cache.Remove<T>(posLabel);
+		}
+
+		template <typename T>
+		void RegisterSetter(pos_label posLable, function<void(T*)> setter)
+		{
+			_cache.RegisterSetter(posLable, move(setter));
 		}
 
 	private:
@@ -232,7 +238,7 @@ namespace FuncLib::Store
 			}
 		}
 
-		static ofstream MakeOFileStream(shared_ptr<path> const& filename);
+		static ofstream MakeOFileStream(path const* filename);
 
 		template <typename T>
 		void ProcessFakeStore(pos_label posLabel, shared_ptr<T> const& object, FakeObjectBytes* writer)
