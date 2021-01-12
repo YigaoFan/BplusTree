@@ -24,7 +24,7 @@ namespace FuncLib::Persistence
 			ByteConverter<DataMember2>::WriteDown(p._deletedLabelTable, writer);
 		}
 
-		static ThisType ReadOut(IReader auto*reader)
+		static ThisType ReadOut(IReader auto* reader)
 		{
 			return
 			{
