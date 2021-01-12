@@ -53,7 +53,7 @@ add_executable(RPC
         FuncLib/Test/FileTest.cpp
         FuncLib/Test/ByteConverterTest.cpp
         #FuncLib/Test/ByteConvereterTest_Gen.cpp
-        FuncLib/Test/FileReader&ObjectWriterTest.cpp
+        FuncLib/Test/FileReaderObjectBytesTest.cpp
         FuncLib/Test/StorageAllocatorTest.cpp
         FuncLib/Test/FileCacheTest.cpp
         FuncLib/Test/TypeConverterTest.cpp

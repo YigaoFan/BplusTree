@@ -46,5 +46,5 @@ TESTCASE("StorageAllocator test")
 
 }
 
-DEF_TEST_FUNC(storageAllocatorTest)
+DEF_TEST_FUNC(TestStorageAllocator)
 

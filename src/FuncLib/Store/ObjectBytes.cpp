@@ -19,7 +19,7 @@ namespace FuncLib::Store
 		if (not _bytes.empty())
 		{
 			auto size = _bytes.size();
-			WriteByte(fileStream, pos, &_bytes[0], size);
+			WriteByte(fileStream, pos, _bytes.data(), size);
 		}
 	}
 
