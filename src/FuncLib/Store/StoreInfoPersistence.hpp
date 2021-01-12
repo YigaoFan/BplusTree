@@ -24,12 +24,14 @@ namespace FuncLib::Persistence
 			ByteConverter<DataMember2>::WriteDown(p._deletedLabelTable, writer);
 		}
 
-		static ThisType ReadOut(FileReader *reader)
+		static ThisType ReadOut(IReader auto*reader)
 		{
-			return {
+			return
+			{
 				ByteConverter<DataMember0>::ReadOut(reader),
 				ByteConverter<DataMember1>::ReadOut(reader),
-				ByteConverter<DataMember2>::ReadOut(reader)};
+				ByteConverter<DataMember2>::ReadOut(reader),
+			};
 		}
 	};
 }

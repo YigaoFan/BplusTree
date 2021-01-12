@@ -16,7 +16,6 @@ namespace FuncLib::Store
 	using ::std::set;
 	using ::std::filesystem::path;
 
-	// 分配信息需要保存到硬盘上
 	class StorageAllocator
 	{
 	private:
@@ -29,6 +28,7 @@ namespace FuncLib::Store
 		map<pos_label, pair<pos_int, size_t>> _usingLabelTable;
 		map<pos_label, pair<pos_int, size_t>> _deletedLabelTable; // 优先从这里分配
 	public:
+		StorageAllocator() = default;
 
 		pos_label AllocatePosLabel();
 		bool Ready(pos_label posLabel) const;
