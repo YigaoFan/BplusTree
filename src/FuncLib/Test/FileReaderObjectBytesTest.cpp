@@ -22,13 +22,6 @@ TESTCASE("FileReaderObjectBytes test")
 		writer.WriteIn(&of, 0);
 	}
 
-	struct Cleaner
-	{
-		~Cleaner()
-		{
-			remove(path);
-		}
-	};
 	SECTION("FileReader")
 	{
 		auto reader = FileReader::MakeReader(nullptr, MakeFilePath(path), 0);
@@ -44,7 +37,7 @@ TESTCASE("FileReaderObjectBytes test")
 
 		auto zeroBytes = reader.Read<0>();
 		static_assert(zeroBytes.size() == 0);
-		Cleaner c;
+		Cleaner c(path);
 	}
 }
 
