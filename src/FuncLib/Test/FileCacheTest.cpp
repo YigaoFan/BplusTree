@@ -15,12 +15,22 @@ TESTCASE("FileCache test")
 	auto fileId = 1;
 	auto cache = FileCache(fileId);
 
-	ASSERT(!cache.Cached<T>(posLabel));
+	ASSERT(not cache.Cached<T>(posLabel));
+	cache.RegisterSetter<T>(posLabel, [](T* n) -> void
+	{
+		*n = 10;
+	});
+	cache.RegisterSetter<T>(posLabel, [](T* n) -> void
+	{
+		*n = 20;
+	});
+	ASSERT(1 == *obj);
 	cache.Add(posLabel, obj);
 	ASSERT(cache.Cached<T>(posLabel));
 	ASSERT(obj == cache.Read<T>(posLabel));
+	ASSERT(20 == *cache.Read<T>(posLabel));
 	cache.Remove<T>(posLabel);
-	ASSERT(!cache.Cached<T>(posLabel));
+	ASSERT(not cache.Cached<T>(posLabel));
 }
 
 DEF_TEST_FUNC(TestFileCache)

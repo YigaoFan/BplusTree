@@ -45,18 +45,15 @@ namespace FuncLib::Store
 		}
 
 		template <typename T>
-		void RegisterSetter(pos_label posLable, function<void(T*)> setter)
+		void RegisterSetter(pos_label posLabel, function<void(T*)> setter)
 		{
-			// 这里的各级情况要细分 TODO
-
-			Cache<T>.insert({ _fileId,
+			if (holds_alternative<SettersOf<T>>(Cache<T>[_fileId][posLabel]))
 			{
-				{ posLable, SettersOf<T>{ move(setter), } },
-			}});
-			
-			if (holds_alternative<shared_ptr<T>>(Cache<T>[_fileId][posLable]))
+				get<SettersOf<T>>(Cache<T>[_fileId][posLabel]).push_back(move(setter));
+			}
+			else
 			{
-				auto& obj =get<shared_ptr<T>>(Cache<T>[_fileId][posLable]);
+				auto& obj = get<shared_ptr<T>>(Cache<T>[_fileId][posLabel]);
 				setter(obj.get());
 			}
 		}
@@ -64,7 +61,6 @@ namespace FuncLib::Store
 		template <typename T>
 		void Add(pos_label posLabel, shared_ptr<T> object)
 		{
-			// 这里的各级情况要细分 TODO
 			if (not Cache<T>.contains(_fileId))
 			{
 				_unloader = [fileId = _fileId, previousUnloader = move(_unloader)]()
@@ -72,14 +68,9 @@ namespace FuncLib::Store
 					previousUnloader();
 					Cache<T>.erase(fileId);
 				};
-				Cache<T>.insert({ _fileId,
-				{ 
-					{ posLabel, object },
-				}});
 			}
-
-			// 代表存在 setters
-			if (Cache<T>[_fileId].contains(posLabel))
+			
+			if (holds_alternative<SettersOf<T>>(Cache<T>[_fileId][posLabel]))
 			{
 				auto& v = Cache<T>[_fileId][posLabel];
 				auto& setters = std::get<SettersOf<T>>(v);
@@ -87,16 +78,9 @@ namespace FuncLib::Store
 				{
 					s(object.get());
 				}
+			}
 
-				v = object;
-			}
-			else
-			{
-				Cache<T>.insert({ _fileId,
-				{ 
-					{ posLabel, object },
-				}});
-			}
+			Cache<T>[_fileId][posLabel] = object;
 		}
 
 		template <typename T>

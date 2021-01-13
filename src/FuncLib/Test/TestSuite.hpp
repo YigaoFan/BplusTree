@@ -17,8 +17,8 @@ namespace FuncLib::Test
 		TestObjectRelationTree(executed);
 		TestStorageAllocator(executed);
 		TestFileReaderObjectBytes(executed);
+		TestFileCache(executed);
 		fileTest(false);
-		TestFileCache(false);
 		typeConverterTest(false);
 		byteConverterTest(false);
 		compileTest(false);
