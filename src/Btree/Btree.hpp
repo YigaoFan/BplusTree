@@ -270,15 +270,26 @@ namespace Collections
 			SET_PROPERTY(_root, ->LessThanPredicate(_lessThanPtr));
 		}
 
+		void LessThanPredicate(shared_ptr<_LessThan> lessThanPtr)
+		{
+			_lessThanPtr = lessThanPtr;
+			SET_PROPERTY(_root, ->LessThanPredicate(_lessThanPtr));
+		}
+
 		RecursiveGenerator<pair<StoredKey, StoredValue>*> GetStoredPairEnumerator()
 		{
 			return _root->GetStoredPairEnumerator();
 		}
 
 	private:
-		Btree(key_int keyCount, Ptr<Node> root, File* file) : Base(file), _root(move(root)), _keyCount(keyCount)
+		Btree(key_int keyCount, Ptr<Node> root, File* file, shared_ptr<_LessThan> lessThanPtr = nullptr) : Base(file), _root(move(root)), _keyCount(keyCount)
 		{
 			static_assert(Place == StorePlace::Disk, "Only Btree on disk can call this method");
+			if (lessThanPtr != nullptr)
+			{
+				LessThanPredicate(move(lessThanPtr));
+			}
+			
 			this->SetRootCallbacks();
 		}
 

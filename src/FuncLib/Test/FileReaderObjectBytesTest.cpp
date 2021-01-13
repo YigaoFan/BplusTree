@@ -18,7 +18,7 @@ TESTCASE("FileReaderObjectBytes test")
 		auto writer = ObjectBytes(0);
 		writer.Add(s.c_str(), s.size());
 		ASSERT(writer.Written());
-		ofstream of{ path };
+		fstream of{ path };
 		writer.WriteIn(&of, 0);
 	}
 

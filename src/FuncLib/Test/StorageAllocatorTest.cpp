@@ -17,12 +17,10 @@ TESTCASE("StorageAllocator test")
         auto label = alloca.AllocatePosLabel();
         ASSERT(!alloca.Ready(label));
         auto size = 1;
-        auto pos = alloca.GiveSpaceTo(label, size);
-        ASSERT(pos == alloca.GetConcretePos(label));
+        alloca.GiveSpaceTo(label, size);
         ASSERT(size == alloca.GetAllocatedSize(label));
         auto newSize = size + 1;
-        auto newPos = alloca.ResizeSpaceTo(label, newSize);
-        ASSERT(newPos == alloca.GetConcretePos(label));
+        alloca.ResizeSpaceTo(label, newSize);
         ASSERT(newSize == alloca.GetAllocatedSize(label));
 
         // alloca.DeallocatePosLabel(label);

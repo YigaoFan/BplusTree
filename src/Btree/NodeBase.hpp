@@ -17,6 +17,7 @@ namespace Collections
 {
 	using ::Basic::IsSpecialization;
 	using ::FuncLib::Persistence::UniqueDiskPtr;
+	using ::FuncLib::Persistence::MakeUnique;
 	using ::std::function;
 	using ::std::move;
 	using ::std::pair;
@@ -122,7 +123,7 @@ namespace Collections
 			if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)
 			{
 				auto f = thisPtr->GetLessOwnershipFile();
-				return UniqueDiskPtr<NodeType>::MakeUnique(*thisPtr, f);
+				return MakeUnique(*thisPtr, f);
 			}
 			else
 			{
@@ -138,7 +139,7 @@ namespace Collections
 			{
 				auto f = thisPtr->GetLessOwnershipFile();
 				auto n = NodeType(lessThanPred);
-				return UniqueDiskPtr<NodeType>::MakeUnique(move(n), f);
+				return MakeUnique(move(n), f);
 			}
 			else
 			{
@@ -146,10 +147,4 @@ namespace Collections
 			}
 		}
 	};
-}
-
-#define DEF_LESS_THAN_SETTER \
-void LessThanPredicate(shared_ptr<LessThan<Key>> lessThan) override\
-{\
-	_elements.LessThanPtr = lessThan;\
 }

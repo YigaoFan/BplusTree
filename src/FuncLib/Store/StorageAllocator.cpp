@@ -46,17 +46,16 @@ namespace FuncLib::Store
 		throw InvalidAccessException("Apply space for deleted label, it means have wrong code logic."); \
 	}
 	/// for first use
-	pos_int StorageAllocator::GiveSpaceTo(pos_label posLabel, size_t size)
+	void StorageAllocator::GiveSpaceTo(pos_label posLabel, size_t size)
 	{
 		VALID_CHECK;
 		
 		// 这里是个粗糙的内存分配算法实现
 		_usingLabelTable.insert({ posLabel, { _currentPos, size }});
 		_currentPos += size;
-		return _currentPos - size;
 	}
 
-	pos_int StorageAllocator::ResizeSpaceTo(pos_label posLabel, size_t biggerSize)
+	void StorageAllocator::ResizeSpaceTo(pos_label posLabel, size_t biggerSize)
 	{
 		VALID_CHECK;
 
@@ -65,7 +64,6 @@ namespace FuncLib::Store
 		_deletedLabelTable.insert({ FileLabel, allocateInfoIter->second });
 		allocateInfoIter->second = make_pair(_currentPos, biggerSize);
 		_currentPos += biggerSize;
-		return _currentPos - biggerSize;
 	}
 #undef VALID_CHECK
 

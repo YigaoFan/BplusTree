@@ -1,5 +1,5 @@
 #pragma once
-extern void fileTest(bool executed);
+extern void TestFile(bool executed);
 extern void TestFileReaderObjectBytes(bool executed);
 extern void byteConverterTest(bool executed);
 extern void TestStorageAllocator(bool executed);
@@ -13,12 +13,15 @@ namespace FuncLib::Test
 {
 	void AllTest(bool executed)
 	{
-		TestLabelNode(executed);
-		TestObjectRelationTree(executed);
-		TestStorageAllocator(executed);
-		TestFileReaderObjectBytes(executed);
-		TestFileCache(executed);
-		fileTest(false);
+		if (false)
+		{
+			TestLabelNode(executed);
+			TestObjectRelationTree(executed);
+			TestStorageAllocator(executed);
+			TestFileReaderObjectBytes(executed);
+			TestFileCache(executed);
+		}
+		TestFile(executed);
 		typeConverterTest(false);
 		byteConverterTest(false);
 		compileTest(false);

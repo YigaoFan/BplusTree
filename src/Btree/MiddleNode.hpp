@@ -83,7 +83,14 @@ namespace Collections
 			return this->CopyNode(this);
 		}
 
-		DEF_LESS_THAN_SETTER
+		void LessThanPredicate(shared_ptr<LessThan<Key>> lessThan) override
+		{
+			_elements.LessThanPtr = lessThan;
+			for (auto& x : _elements)
+			{
+				x.second->LessThanPredicate(lessThan);
+			}
+		}
 
 		void SetShallowCallbackPointer(typename Base::ShallowTreeCallback* shallowTreeCallbackPtr) override
 		{

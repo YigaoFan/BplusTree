@@ -33,11 +33,11 @@ namespace FuncLib::Store
 		pos_label AllocatePosLabel();
 		bool Ready(pos_label posLabel) const;
 		/// below for first use
-		pos_int GiveSpaceTo(pos_label posLabel, size_t size);
+		void GiveSpaceTo(pos_label posLabel, size_t size);
 		/// 下面两个函数都是在 GiveSpaceTo 做好预备后调用，否则无效
 		pos_int GetConcretePos(pos_label posLabel) const;
 		size_t GetAllocatedSize(pos_label posLabel) const;
-		pos_int ResizeSpaceTo(pos_label posLabel, size_t biggerSize);
+		void ResizeSpaceTo(pos_label posLabel, size_t biggerSize);
 		void DeallocatePosLabel(pos_label posLabel);
 		void DeallocatePosLabels(set<pos_label> const& posLabels);
 	private:

@@ -56,6 +56,7 @@ namespace FuncLib::Store
 				auto& obj = get<shared_ptr<T>>(Cache<T>[_fileId][posLabel]);
 				setter(obj.get());
 			}
+			// 如果析构的时候仍有 setters，那就需要读一下，读一下，以及设置下就有个顺序的问题，采用队列吧 TODO
 		}
 
 		template <typename T>
@@ -69,7 +70,7 @@ namespace FuncLib::Store
 					Cache<T>.erase(fileId);
 				};
 			}
-			
+
 			if (holds_alternative<SettersOf<T>>(Cache<T>[_fileId][posLabel]))
 			{
 				auto& v = Cache<T>[_fileId][posLabel];

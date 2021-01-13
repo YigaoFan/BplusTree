@@ -63,7 +63,10 @@ namespace Collections
 			return this->CopyNode(this);
 		}
 
-		DEF_LESS_THAN_SETTER
+		void LessThanPredicate(shared_ptr<LessThan<Key>> lessThan) override
+		{
+			_elements.LessThanPtr = lessThan;
+		}
 
 		vector<Key> Keys() const override
 		{

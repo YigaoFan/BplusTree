@@ -11,7 +11,7 @@ namespace FuncLib::Store
 {
 	using namespace FuncLib::Store::ObjectRelation;
 	using Collections::CreateRefEnumerator;
-	using ::std::ofstream;
+	using ::std::fstream;
 	using ::std::size_t;
 	using ::std::vector;
 
@@ -35,7 +35,7 @@ namespace FuncLib::Store
 		using Base::Label;
 
 		bool Written() const;
-		void WriteIn(ofstream* fileStream, pos_int pos) const;
+		void WriteIn(fstream* fileStream, pos_int pos) const;
 		void WriteIn(auto const& writer) const
 		{
 			writer(&_bytes);

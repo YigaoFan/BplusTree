@@ -6,7 +6,7 @@
 		using Type = decay_t<decltype(PTR)>;                        \
 		if constexpr (IsSpecialization<Type, UniqueDiskPtr>::value) \
 		{                                                           \
-			PTR.RegisterSetter([&](auto ptr) { ptr SET_OP; });      \
+			PTR.RegisterSetter([=](auto ptr) { ptr SET_OP; });      \
 		}                                                           \
 		else                                                        \
 		{                                                           \

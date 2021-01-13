@@ -126,21 +126,24 @@ namespace FuncLib::Persistence
 	struct TypeConverter<NodeBase<Key, Value, Count, StorePlace::Memory>>
 	{
 		using From = NodeBase<Key, Value, Count, StorePlace::Memory>;
-		using To = shared_ptr<NodeBase<Key, Value, Count, StorePlace::Disk>>;
+		using To = UniqueDiskPtr<NodeBase<Key, Value, Count, StorePlace::Disk>>;
 
 		static To ConvertFrom(From const& from, File* file)
 		{
 			if (from.Middle())
 			{
 				using FromMidNode = MiddleNode<Key, Value, Count, StorePlace::Memory>;
-				using ToMidNode = MiddleNode<Key, Value, Count, StorePlace::Disk>;
-				return make_shared<ToMidNode>(TypeConverter<FromMidNode>::ConvertFrom(static_cast<FromMidNode const&>(from), file));
+				// using ToMidNode = MiddleNode<Key, Value, Count, StorePlace::Disk>;
+				// 这里直接 MakeUnique 是为了让 File::New 可以直接接触到原始的类型，然后检测到继承了 TakeWithDiskPos
+				// 然后 SetDiskPos
+				// 如果这里变成了 shared_ptr<NodeBase>，File 接触到的 NodeBase 并没有继承 TakeWithDiskPos
+				return MakeUnique(TypeConverter<FromMidNode>::ConvertFrom(static_cast<FromMidNode const&>(from), file), file);
 			}
 			else
 			{
 				using FromLeafNode = LeafNode<Key, Value, Count, StorePlace::Memory>;
-				using ToLeafNode = LeafNode<Key, Value, Count, StorePlace::Disk>;
-				return make_shared<ToLeafNode>(TypeConverter<FromLeafNode>::ConvertFrom(static_cast<FromLeafNode const&>(from), file));
+				// using ToLeafNode = LeafNode<Key, Value, Count, StorePlace::Disk>;
+				return MakeUnique(TypeConverter<FromLeafNode>::ConvertFrom(static_cast<FromLeafNode const&>(from), file), file);
 			}
 		}
 	};
@@ -158,17 +161,14 @@ namespace FuncLib::Persistence
 			using ConvertedType = decltype(c);
 			using ::Basic::IsSpecialization;
 			// 这里的 MakeUnique 的参数类型会有问题
-			if constexpr (IsSpecialization<ConvertedType, shared_ptr>::value)
+			// 下面这两个分支应该可以合为一个，因为 MakeUnique 不依赖 UniqueDiskPtr<T> 了
+			if constexpr (IsSpecialization<ConvertedType, UniqueDiskPtr>::value)
 			{
-				return UniqueDiskPtr<typename ConvertedType::element_type>::MakeUnique(c, file);
+				return c;
 			}
-			// else if constexpr (IsSpecialization<ConvertedType, UniqueDiskPtr>::value)
-			// {
-			// 	return c;
-			// }
 			else
 			{
-				return UniqueDiskPtr<ConvertedType>::MakeUnique(make_shared<ConvertedType>(move(c)), file);
+				return MakeUnique(move(c), file);
 			}
 		}
 
@@ -187,7 +187,8 @@ namespace FuncLib::Persistence
 			{ 
 				from._keyCount, 
 				TypeConverter<unique_ptr<NodeBase<Key, Value, Count, StorePlace::Memory>>>::ConvertFrom(from._root, file),
-				file
+				file,
+				from._lessThanPtr,
 			};
 		}
 	};
@@ -201,7 +202,7 @@ namespace FuncLib::Persistence
 
 		static To ConvertFrom(From const& from, File* file)
 		{
-			return { UniqueDiskPtr<string>::MakeUnique(from, file) };
+			return { MakeUnique(from, file) };
 		}
 	};
 
@@ -265,7 +266,7 @@ namespace FuncLib::Persistence
 
 		static To ConvertFrom(From const& from, File* file)
 		{
-			auto ptr = UniqueDiskPtr<SubType>::MakeUnique({}, file);
+			auto ptr = MakeUnique(SubType(), file);
 
 			for (auto& x : from)
 			{

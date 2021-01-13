@@ -55,12 +55,12 @@ namespace Collections
 			if constexpr (IsSpecialization<T, UniqueDiskPtr>::value)
 			{
 				auto node = Middle(enumerator, lessThan);
-				return UniqueDiskPtr<Middle>::MakeUnique(move(node), file);
+				return MakeUnique(move(node), file);
 			}
 			else
 			{
 				auto node = Leaf(enumerator, lessThan);
-				return UniqueDiskPtr<Leaf>::MakeUnique(move(node), file);
+				return MakeUnique(move(node), file);
 			}
 		}
 

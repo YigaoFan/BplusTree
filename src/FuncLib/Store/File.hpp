@@ -24,9 +24,11 @@ namespace FuncLib::Store
 	using FuncLib::Persistence::Switch;
 	using FuncLib::Persistence::TakeWithDiskPos;
 	using ::std::enable_shared_from_this;
+	using ::std::fstream;
 	using ::std::is_base_of_v;
 	using ::std::make_shared;
 	using ::std::move;
+	using ::std::ofstream;
 	using ::std::pair;
 	using ::std::set;
 	using ::std::shared_ptr;
@@ -40,7 +42,8 @@ namespace FuncLib::Store
 	class File : public enable_shared_from_this<File>
 	{
 	private:
-		static inline set<File*> Files = {};
+		static inline unsigned int FileCount = 0;
+		static constexpr pos_int MetadataSize = 2048; // Byte，这个应该属于 data member，因为后期会改
 
 		shared_ptr<path> _filename;
 		FileCache _cache;
@@ -83,22 +86,22 @@ namespace FuncLib::Store
 		{
 			_notStoredLabels.erase(posLabel);
 
-			ofstream fs = MakeOFileStream(_filename.get());
+			auto fs = MakeFileStream(_filename.get());
 			auto allocate = [&](ObjectBytes* bytes)
 			{
 				auto size = bytes->Size();
-				auto start = _allocator.GiveSpaceTo(bytes->Label(), size);// 不用返回 start 了
+				_allocator.GiveSpaceTo(bytes->Label(), size);
 			};
 
 			auto resize = [&](ObjectBytes* bytes)
 			{
-				auto start = _allocator.ResizeSpaceTo(bytes->Label(), bytes->Size()); // 不用返回 start 了
+				_allocator.ResizeSpaceTo(bytes->Label(), bytes->Size());
 			};
 
 			auto write = [&](ObjectBytes* bytes)
 			{
 				auto start = _allocator.GetConcretePos(bytes->Label());
-				bytes->WriteIn(&fs, start);
+				bytes->WriteIn(&fs, start + MetadataSize);
 			};
 
 			// 这里的 SizeStable 不考虑指针指向的对象，牵涉到 ByteConverter<DiskPtr> 和这下面的 if
@@ -181,30 +184,29 @@ namespace FuncLib::Store
 		}
 
 		template <typename T>
-		void SetDiskPosIfEnable(shared_ptr<T>& obj, pos_label lable)
+		void SetDiskPosIfEnable(T* obj, pos_label label)
 		{
 			if constexpr (is_base_of_v<TakeWithDiskPos<T, Switch::Enable>, T>)
 			{
-				DiskPos<T> pos(this, lable);
+				DiskPos<T> pos(this, label);
 				TakeWithDiskPos<T, Switch::Enable>::SetDiskPos(obj, move(pos));
 			}
 		}
 
 		// 还有 DiskPos 依赖也不是 File 的所有功能，所以可以考虑剥离一部分功能出来形成一个类，来让 DiskPos 依赖
+		// 或者让 DiskPos 中依赖 File 的部分作为友元
 		template <typename T>
 		shared_ptr<T> SetItUp(T t, pos_label posLabel)
 		{
 			shared_ptr<T> obj = make_shared<T>(move(t));
-			_cache.Add<T>(posLabel, obj);
-			SetDiskPosIfEnable(obj, posLabel);
-			return obj;
+			return SetItUp(obj, posLabel);
 		}
 
 		template <typename T>
 		shared_ptr<T> SetItUp(shared_ptr<T> obj, pos_label posLabel)
 		{
 			_cache.Add<T>(posLabel, obj);
-			SetDiskPosIfEnable(obj, posLabel);
+			SetDiskPosIfEnable(obj.get(), posLabel);
 			return obj;
 		}
 
@@ -238,7 +240,7 @@ namespace FuncLib::Store
 			}
 		}
 
-		static ofstream MakeOFileStream(path const* filename);
+		static fstream MakeFileStream(path const* filename);
 
 		template <typename T>
 		void ProcessFakeStore(pos_label posLabel, shared_ptr<T> const& object, FakeObjectBytes* writer)

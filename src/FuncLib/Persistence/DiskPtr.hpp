@@ -54,23 +54,8 @@ namespace FuncLib::Persistence
 			: _tPtr(static_pointer_cast<T>(derivedOne._tPtr)), _pos(derivedOne._pos)
 		{ }
 
-// setter 为空说明 object 处于最新状态，clear setter 保证这个
-// TODO 这个宏可能要改
-#define CLEAR_SETTER                \
-	if (this->_tPtr == nullptr)     \
-	{                               \
-		this->ReadObjectFromDisk(); \
-	}
-
-		~DiskPtrBase()
-		{
-			CLEAR_SETTER;
-		}
-
 		DiskPtrBase& operator= (DiskPtrBase const& that)
 		{
-			CLEAR_SETTER;
-
 			this->_tPtr = that._tPtr;
 			this->_pos = that._pos;
 
@@ -79,14 +64,10 @@ namespace FuncLib::Persistence
 
 		DiskPtrBase& operator= (DiskPtrBase&& that) noexcept
 		{
-			CLEAR_SETTER;
-
 			this->_tPtr = move(that._tPtr);
 			this->_pos = move(that._pos);
 			return *this;
 		}
-
-#undef CLEAR_SETTER
 
 		void RegisterSetter(function<void(T*)> setter)
 		{
@@ -189,14 +170,6 @@ namespace FuncLib::Persistence
 	public:
 		using Base::Base;
 
-		template <typename T1>
-		static UniqueDiskPtr<T> MakeUnique(T1&& t, File* file)
-		{
-			// 硬存使用的出发点只有这里
-			auto [label, obj] = file->New(forward<T1>(t));
-			UniqueDiskPtr<T> ptr{ { file, label }, obj };
-			return ptr;
-		}
 
 		UniqueDiskPtr(UniqueDiskPtr const&) = delete;
 
@@ -228,4 +201,16 @@ namespace FuncLib::Persistence
 			return OwnerLessDiskPtr<T>(this->_pos, this->_tPtr);
 		}
 	};
+
+	using ::std::decay_t;
+
+	template <typename T1>
+	static auto MakeUnique(T1 &&t, File *file) -> UniqueDiskPtr<typename decltype(make_shared<decay_t<T1>>(t))::element_type>
+	{
+		// 硬存使用的出发点只有这里
+		auto [label, obj] = file->New(forward<T1>(t));
+		using T = typename decltype(obj)::element_type;
+		UniqueDiskPtr<T> ptr{{file, label}, obj};
+		return ptr;
+	}
 }

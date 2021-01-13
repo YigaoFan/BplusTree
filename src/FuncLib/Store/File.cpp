@@ -1,36 +1,29 @@
+#include <fstream>
+#include <exception>
 #include "File.hpp"
 #include "StoreInfoPersistence.hpp"
 
 namespace FuncLib::Store
 {
-	constexpr pos_int MetadataSize = 2048; // Byte
 	constexpr pos_int MetadataStart = 0;
+	constexpr char const slogan[11] = "Hello File";
 
 	shared_ptr<File> File::GetFile(path const& filename)
 	{
-		for (auto f : Files)
+		if (auto pathPtr = make_shared<path>(filename); exists(filename))
 		{
-			if (*(f->_filename) == filename)
-			{
-				return f->shared_from_this();
-			}
-		}
-
-		if (auto namePtr = make_shared<path>(filename); exists(filename))
-		{
-			auto reader = FileReader::MakeReader(nullptr, filename, 0);
+			auto reader = FileReader::MakeReader(nullptr, filename, sizeof(slogan));
+			// 以下这两个东西不允许出现内 disk ptr
 			auto t = ReadObjRelationTreeFrom(&reader);
 			auto a = ReadAllocatedInfoFrom(&reader);
-			auto f = make_shared<File>(Files.size(), namePtr, move(a), move(t));
-			Files.insert(f.get());
+			auto f = make_shared<File>(FileCount++, pathPtr, move(a), move(t));
 			return f;
 		}
 		else
 		{
 			auto t = ObjectRelationTree();
 			auto a = StorageAllocator();
-			auto f = make_shared<File>(Files.size(), namePtr, move(a), move(t));
-			Files.insert(f.get());
+			auto f = make_shared<File>(FileCount++, pathPtr, move(a), move(t));
 			return f;
 		}
 	}
@@ -50,6 +43,8 @@ namespace FuncLib::Store
 	{
 		_allocator.DeallocatePosLabels(_notStoredLabels);
 		ObjectBytes bytes{ 0 };
+		bytes.Add(slogan, sizeof(slogan));
+
 		WriteAllocatedInfoTo(_allocator, &bytes);
 		_objRelationTree.ReleaseFreeNodes([this](pos_label label)
 		{
@@ -59,22 +54,23 @@ namespace FuncLib::Store
 
 		if (bytes.Size() > MetadataSize)
 		{
-			// throw exception()
+			printf("File metadata size too big, please handle it");
+			// throw std::overflow_error("File metadata size too big, please handle it");
 			// adjust the size
 		}
 		else
 		{
-			ofstream fs = MakeOFileStream(_filename.get());
+			printf("byte size %zu\n", bytes.Size());
+			auto fs = MakeFileStream(_filename.get());
 			bytes.WriteIn(&fs, MetadataStart);
 		}
-		
-		Files.erase(this);
 	}
 
-	// 注意：这个不能创建文件
-	ofstream File::MakeOFileStream(path const* filename)
+	fstream File::MakeFileStream(path const* filename)
 	{
-		constexpr ofstream::openmode openmode = ofstream::binary | ofstream::in | ofstream::out;
-		return ofstream{ *filename, openmode };
+		// 原位修改
+		// 不存在则创建文件
+		constexpr fstream::openmode openmode = fstream::binary | fstream::in | fstream::out;
+		return fstream{ *filename };
 	}
 }

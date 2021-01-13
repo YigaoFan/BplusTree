@@ -1,7 +1,13 @@
 #pragma once
 #include <type_traits>
+#include <memory>
 #include "Switch.hpp"
 #include "OwnerState.hpp"
+
+namespace FuncLib::Store
+{
+	class File;
+}
 
 namespace FuncLib::Persistence
 {
@@ -34,4 +40,10 @@ namespace FuncLib::Persistence
 	template <typename T>
 	class TakeWithDiskPos<T, Switch::Disable>
 	{ };
+
+	using ::std::decay_t;
+	using ::std::make_shared;
+	using Store::File;
+	template <typename T1>
+	static auto MakeUnique(T1 &&t, File *file) -> UniqueDiskPtr<typename decltype(make_shared<decay_t<T1>>(t))::element_type>;
 }
