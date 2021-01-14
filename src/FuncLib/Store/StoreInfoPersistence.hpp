@@ -50,8 +50,6 @@ namespace FuncLib::Store
 		for (vector<pos_label> labels;;)
 		{
 			auto label = ByteConverter<pos_label>::ReadOut(reader);
-			printf("read label %d\n", label);
-			// 读写的逻辑错了 TODO
 			if (NonLabel == label)
 			{
 				if (labels.empty())

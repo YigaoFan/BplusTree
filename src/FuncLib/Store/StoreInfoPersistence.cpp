@@ -13,7 +13,7 @@ namespace FuncLib::Store
 
 		vector<LabelNode> nodes;
 		// will be changed in below inner ReadOutSubNodes call, so need to save it
-		auto labels = generator->Current().value();
+		auto labels = move(generator->Current().value());
 		for (auto l : labels)
 		{
 			auto subNodes = ReadOutSubNodes(generator);
@@ -25,7 +25,7 @@ namespace FuncLib::Store
 		return nodes;
 	}
 
-	void WriteSubLabelsOf(LabelNode const *node, ObjectBytes *writer)
+	void WriteSubLabelsOf(LabelNode const* node, ObjectBytes* writer)
 	{
 		auto e1 = node->CreateSortedSubNodeEnumerator();
 		while (e1.MoveNext())
@@ -49,7 +49,7 @@ namespace FuncLib::Store
 		WriteSubLabelsOf(&tree._fileRoot, writer);
 	}
 
-	void WriteAllocatedInfoTo(StorageAllocator const &allocator, ObjectBytes *bytes)
+	void WriteAllocatedInfoTo(StorageAllocator const& allocator, ObjectBytes* bytes)
 	{
 		ByteConverter<StorageAllocator>::WriteDown(allocator, bytes);
 	}
