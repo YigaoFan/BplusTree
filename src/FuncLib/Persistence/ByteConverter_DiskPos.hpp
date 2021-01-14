@@ -13,7 +13,8 @@ namespace FuncLib::Persistence
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 		static constexpr size_t Size = Sum<GetSize, DataMemberType>::Result;
 
-		static void WriteDown(ThisType const& p, IWriter auto* writer, shared_ptr<T> const& object = nullptr)
+		/// Write pos and pointing object
+		static void WriteDown(ThisType const& p, IWriter auto* writer, shared_ptr<T> const& object)
 		{
 			ByteConverter<DataMemberType>::WriteDown(p._label, writer);
 			auto subWriter = writer->ConstructSub(p._label);
@@ -21,6 +22,12 @@ namespace FuncLib::Persistence
 			{
 				p.WriteObject(object, subWriter);
 			}
+		}
+
+		/// Just write pos, such as OwnerLessDiskPtr need
+		static void WriteDown(ThisType const& p, IWriter auto* writer)
+		{
+			ByteConverter<DataMemberType>::WriteDown(p._label, writer);
 		}
 
 		static ThisType ReadOut(IReaderWithFile auto* reader)
