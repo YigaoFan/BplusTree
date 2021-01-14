@@ -6,16 +6,21 @@
 namespace FuncLib::Store
 {
 	constexpr pos_int MetadataStart = 0;
-	constexpr char const slogan[11] = "Hello File";
+	constexpr char const slogan[] = "Hello File";// 留作有效性校验
 
 	shared_ptr<File> File::GetFile(path const& filename)
 	{
 		if (auto pathPtr = make_shared<path>(filename); exists(filename))
 		{
-			auto reader = FileReader::MakeReader(nullptr, filename, sizeof(slogan));
+			auto reader = FileReader::MakeReader(nullptr, filename, 0);
+			reader.Read<sizeof(slogan)>();
 			// 以下这两个东西不允许出现内 disk ptr
-			auto t = ReadObjRelationTreeFrom(&reader);
+			printf("start read allocator info");
 			auto a = ReadAllocatedInfoFrom(&reader);
+			printf("start read relation tree");
+			auto t = ReadObjRelationTreeFrom(&reader);
+			printf("read all done");
+
 			auto f = make_shared<File>(FileCount++, pathPtr, move(a), move(t));
 			return f;
 		}
@@ -62,6 +67,7 @@ namespace FuncLib::Store
 		{
 			printf("byte size %zu\n", bytes.Size());
 			auto fs = MakeFileStream(_filename.get());
+			// 这里要保证文件肯定存在
 			bytes.WriteIn(&fs, MetadataStart);
 		}
 	}
@@ -69,7 +75,7 @@ namespace FuncLib::Store
 	fstream File::MakeFileStream(path const* filename)
 	{
 		// 原位修改
-		// 不存在则创建文件
+		// 不存在不会创建文件
 		constexpr fstream::openmode openmode = fstream::binary | fstream::in | fstream::out;
 		return fstream{ *filename };
 	}
