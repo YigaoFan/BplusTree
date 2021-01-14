@@ -37,6 +37,7 @@ TESTCASE("StorageAllocator test")
             StringReader reader(move(bs));
             auto copyAllocator = ReadAllocatedInfoFrom(&reader);
             ASSERT(copyAllocator._currentPos == alloca._currentPos);
+            ASSERT(copyAllocator._currentLabel == alloca._currentLabel);
             ASSERT(copyAllocator._deletedLabelTable == alloca._deletedLabelTable);
             ASSERT(copyAllocator._usingLabelTable == alloca._usingLabelTable);
         }
