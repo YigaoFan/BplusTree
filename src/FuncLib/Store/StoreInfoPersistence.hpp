@@ -13,15 +13,17 @@ namespace FuncLib::Persistence
 	{
 		using ThisType = StorageAllocator;
 		using DataMember0 = decltype(declval<ThisType>()._currentPos);
-		using DataMember1 = decltype(declval<ThisType>()._usingLabelTable);
-		using DataMember2 = decltype(declval<ThisType>()._deletedLabelTable);
-		static constexpr bool SizeStable = All<GetSizeStable, DataMember0, DataMember1, DataMember2>::Result;
+		using DataMember1 = decltype(declval<ThisType>()._currentLabel);
+		using DataMember2 = decltype(declval<ThisType>()._usingLabelTable);
+		using DataMember3 = decltype(declval<ThisType>()._deletedLabelTable);
+		static constexpr bool SizeStable = All<GetSizeStable, DataMember0, DataMember1, DataMember2, DataMember3>::Result;
 
 		static void WriteDown(ThisType const &p, IWriter auto *writer)
 		{
 			ByteConverter<DataMember0>::WriteDown(p._currentPos, writer);
-			ByteConverter<DataMember1>::WriteDown(p._usingLabelTable, writer);
-			ByteConverter<DataMember2>::WriteDown(p._deletedLabelTable, writer);
+			ByteConverter<DataMember1>::WriteDown(p._currentLabel, writer);
+			ByteConverter<DataMember2>::WriteDown(p._usingLabelTable, writer);
+			ByteConverter<DataMember3>::WriteDown(p._deletedLabelTable, writer);
 		}
 
 		static ThisType ReadOut(IReader auto* reader)
@@ -31,6 +33,7 @@ namespace FuncLib::Persistence
 				ByteConverter<DataMember0>::ReadOut(reader),
 				ByteConverter<DataMember1>::ReadOut(reader),
 				ByteConverter<DataMember2>::ReadOut(reader),
+				ByteConverter<DataMember3>::ReadOut(reader),
 			};
 		}
 	};
@@ -47,6 +50,8 @@ namespace FuncLib::Store
 		for (vector<pos_label> labels;;)
 		{
 			auto label = ByteConverter<pos_label>::ReadOut(reader);
+			printf("read label %d\n", label);
+			// 读写的逻辑错了 TODO
 			if (NonLabel == label)
 			{
 				if (labels.empty())

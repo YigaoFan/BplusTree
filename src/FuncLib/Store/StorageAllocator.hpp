@@ -23,6 +23,7 @@ namespace FuncLib::Store
 		friend StorageAllocator ReadAllocatedInfoFrom(IReader auto* reader);
 		friend void WriteAllocatedInfoTo(StorageAllocator const& allocator, ObjectBytes* bytes);
 		pos_int _currentPos;
+		pos_label _currentLabel;
 		// 实际上这里相当于是偏移，最后在 OutDiskPtr 里面可以加一个基础地址
 		// 分配的也是偏移
 		map<pos_label, pair<pos_int, size_t>> _usingLabelTable;
@@ -41,6 +42,6 @@ namespace FuncLib::Store
 		void DeallocatePosLabel(pos_label posLabel);
 		void DeallocatePosLabels(set<pos_label> const& posLabels);
 	private:
-		StorageAllocator(pos_int currentPos, map<pos_label, pair<pos_int, size_t>> posLabelTable, map<pos_label, pair<pos_int, size_t>> deletedLabels);
+		StorageAllocator(pos_int currentPos, pos_label currentLabel, map<pos_label, pair<pos_int, size_t>> posLabelTable, map<pos_label, pair<pos_int, size_t>> deletedLabels);
 	};
 }

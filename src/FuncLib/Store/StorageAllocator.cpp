@@ -3,9 +3,11 @@
 
 namespace FuncLib::Store
 {
-	StorageAllocator::StorageAllocator(pos_int currentPos, map<pos_label, pair<pos_int, size_t>> usingLabelTable, map<pos_label, pair<pos_int, size_t>> deletedLabelTable)
-		: _currentPos(currentPos), _usingLabelTable(move(usingLabelTable)), _deletedLabelTable(move(deletedLabelTable))
-	{ }
+	StorageAllocator::StorageAllocator(pos_int currentPos, pos_label currentLabel, map<pos_label, pair<pos_int, size_t>> usingLabelTable, map<pos_label, pair<pos_int, size_t>> deletedLabelTable)
+		: _currentPos(currentPos), _currentLabel(currentLabel),
+		  _usingLabelTable(move(usingLabelTable)), _deletedLabelTable(move(deletedLabelTable))
+	{
+	}
 
 	bool StorageAllocator::Ready(pos_label posLabel) const
 	{
@@ -25,7 +27,7 @@ namespace FuncLib::Store
 	pos_label StorageAllocator::AllocatePosLabel()
 	{
 		/// 0 represents File, so from 1
-		return _usingLabelTable.size() + 1;
+		return ++_currentLabel;
 	}
 
 	void StorageAllocator::DeallocatePosLabel(pos_label posLabel)
