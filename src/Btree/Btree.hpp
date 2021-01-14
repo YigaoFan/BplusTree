@@ -121,9 +121,9 @@ namespace Collections
 		using StoredKey = typename Node::StoredKey;
 		using StoredValue = typename Node::StoredValue;
 		using NodeFactoryType = NodeFactory<Key, Value, BtreeOrder, Place>;
-		typename Node::UpNodeAddSubNodeCallback _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
-		typename Node::UpNodeDeleteSubNodeCallback _deleteRootCallback = bind(&Btree::DeleteRootCallback, this, _1);
-		typename Node::MinKeyChangeCallback _minKeyChangeCallback = bind(&Btree::RootMinKeyChangeCallback, this, _1, _2);
+		typename Node::UpNodeAddSubNodeCallback const _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
+		typename Node::UpNodeDeleteSubNodeCallback const _deleteRootCallback = bind(&Btree::DeleteRootCallback, this, _1);
+		typename Node::MinKeyChangeCallback const _minKeyChangeCallback = bind(&Btree::RootMinKeyChangeCallback, this, _1, _2);
 		typename Node::ShallowTreeCallback _shallowTreeCallback = bind(&Btree::ShallowRootCallback, this);
 		shared_ptr<_LessThan> _lessThanPtr;
 		key_int              _keyCount{ 0 };
@@ -267,13 +267,13 @@ namespace Collections
 		void LessThanPredicate(_LessThan lessThan)
 		{
 			_lessThanPtr = make_shared<_LessThan>(lessThan);
-			SET_PROPERTY(_root, ->LessThanPredicate(_lessThanPtr));
+			SET_PROPERTY(_root, &, ->LessThanPredicate(_lessThanPtr));
 		}
 
 		void LessThanPredicate(shared_ptr<_LessThan> lessThanPtr)
 		{
 			_lessThanPtr = lessThanPtr;
-			SET_PROPERTY(_root, ->LessThanPredicate(_lessThanPtr));
+			SET_PROPERTY(_root, &, ->LessThanPredicate(_lessThanPtr));
 		}
 
 		RecursiveGenerator<pair<StoredKey, StoredValue>*> GetStoredPairEnumerator()
@@ -377,8 +377,8 @@ namespace Collections
 
 		void SetRootCallbacks()
 		{
-			SET_PROPERTY(_root, ->SetUpNodeCallback(&_addRootCallback, &_deleteRootCallback, &_minKeyChangeCallback));
-			SET_PROPERTY(_root, ->SetShallowCallbackPointer(&_shallowTreeCallback));
+			SET_PROPERTY(_root, &, ->SetUpNodeCallback(&_addRootCallback, &_deleteRootCallback, &_minKeyChangeCallback));
+			SET_PROPERTY(_root, &, ->SetShallowCallbackPointer(&_shallowTreeCallback));
 		}
 
 		// Below methods for root call

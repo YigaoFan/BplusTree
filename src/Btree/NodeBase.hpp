@@ -47,10 +47,9 @@ namespace Collections
 		virtual typename TypeSelector<Place, Refable::Yes, Key>::Result MinKey() const = 0;
 
 	public:
-		// 下面这些 NodeBase 指针应该不需要成为特殊的硬盘指针 TODO
-		using UpNodeAddSubNodeCallback = function<void(NodeBase*, Ptr<NodeBase>)>;
-		using UpNodeDeleteSubNodeCallback = function<void(NodeBase*)>;
-		using MinKeyChangeCallback = function<void(result_of_t<decltype(&NodeBase::MinKey)(NodeBase)>, NodeBase*)>;
+		using UpNodeAddSubNodeCallback = function<void(NodeBase*, Ptr<NodeBase>)> const;
+		using UpNodeDeleteSubNodeCallback = function<void(NodeBase*)> const;
+		using MinKeyChangeCallback = function<void(result_of_t<decltype(&NodeBase::MinKey)(NodeBase)>, NodeBase*)> const;
 		using ShallowTreeCallback = function<void()>;
 		template <typename T>
 		using OwnerLessPtr = typename TypeSelector<Place, Refable::No, T*>::Result;

@@ -42,9 +42,9 @@ namespace Collections
 		using Base = NodeBase<Key, Value, BtreeOrder, Place>;
 		using Leaf = LeafNode<Key, Value, BtreeOrder, Place>;
 		// TODO maybe below two item could be pointer, then entity stored in its' parent like Btree do
-		typename Base::UpNodeAddSubNodeCallback _addSubNodeCallback = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
-		typename Base::UpNodeDeleteSubNodeCallback _deleteSubNodeCallback = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
-		typename Base::MinKeyChangeCallback _minKeyChangeCallback = bind(&MiddleNode::SubNodeMinKeyChangeCallback, this, _1, _2);
+		typename Base::UpNodeAddSubNodeCallback const _addSubNodeCallback = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
+		typename Base::UpNodeDeleteSubNodeCallback const _deleteSubNodeCallback = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
+		typename Base::MinKeyChangeCallback const _minKeyChangeCallback = bind(&MiddleNode::SubNodeMinKeyChangeCallback, this, _1, _2);
 		typename Base::ShallowTreeCallback* _shallowTreeCallbackPtr = nullptr;
 		function<RAW_PTR(MiddleNode)(MiddleNode const*)> _queryPrevious = [](auto) { return nullptr; };
 		function<RAW_PTR(MiddleNode)(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
@@ -143,7 +143,6 @@ namespace Collections
 		{
 			SELECT_BRANCH(p.first);
 			_elements[i].second->Add(move(p));
-			// TODO why up code prefer global []
 		}
 
 		void Remove(ARG_TYPE_IN_BASE(Remove, 0) key) override
@@ -323,8 +322,8 @@ namespace Collections
 					{
 						auto nowMin = midNode->MinLeafInMyRange();
 						auto lastMax = lastMidNode->MaxLeafInMyRange();
-						SET_PROPERTY(lastMax, ->Next(nowMin));// TODO newNextNode should also set in MiddleNode? not in itself
-						SET_PROPERTY(nowMin, ->Previous(lastMax));
+						SET_PROPERTY(lastMax, =, ->Next(nowMin));// TODO newNextNode should also set in MiddleNode? not in itself
+						SET_PROPERTY(nowMin, =, ->Previous(lastMax));
 					}
 
 					lastMidNode = midNode;
@@ -336,8 +335,8 @@ namespace Collections
 					if (lastLeaf != nullptr)
 					{
 						auto last = lastLeaf;// 直接用显式声明类型的 lastLeaf 不行，疑似是 clang 的 bug。
-						SET_PROPERTY(nowLeaf, ->Previous(lastLeaf));// TODO newNextNode should also set in MiddleNode? not in itself
-						SET_PROPERTY(last, ->Next(nowLeaf));
+						SET_PROPERTY(nowLeaf, =, ->Previous(lastLeaf));// TODO newNextNode should also set in MiddleNode? not in itself
+						SET_PROPERTY(last, =, ->Next(nowLeaf));
 					}
 
 					lastLeaf = nowLeaf;
@@ -347,17 +346,18 @@ namespace Collections
 
 		void SetSubNodeCallback(bool middle, Ptr<Base>& node)
 		{
-			SET_PROPERTY(node, ->SetUpNodeCallback(&_addSubNodeCallback, &_deleteSubNodeCallback, &_minKeyChangeCallback));
+			SET_PROPERTY(node, &, ->SetUpNodeCallback(&_addSubNodeCallback, &_deleteSubNodeCallback, &_minKeyChangeCallback));
 
 			if (middle)
 			{
 				auto midNode = MID_CAST(node.get());// 这个 get 可以去掉，直接 cast 吗？
-				SET_PROPERTY(midNode, ->_queryPrevious = bind(&MiddleNode::QuerySubNodePreviousCallback, this, _1));
-				SET_PROPERTY(midNode, ->_queryNext = bind(&MiddleNode::QuerySubNodeNextCallback, this, _1));
+				SET_PROPERTY(midNode, this, ->_queryPrevious = bind(&MiddleNode::QuerySubNodePreviousCallback, this, _1));
+				SET_PROPERTY(midNode, this, ->_queryNext = bind(&MiddleNode::QuerySubNodeNextCallback, this, _1));
 			}
 		}
 #undef MID_CAST		
 #undef LEF_CAST
+		// 这里的参数类型可以改一下，不直接用裸指针
 		order_int IndexOfSubNode(Base const* node) const
 		{
 			auto e = _elements.GetEnumerator();

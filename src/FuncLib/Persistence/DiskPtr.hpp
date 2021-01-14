@@ -205,7 +205,7 @@ namespace FuncLib::Persistence
 	using ::std::decay_t;
 
 	template <typename T1>
-	static auto MakeUnique(T1 &&t, File *file) -> UniqueDiskPtr<typename decltype(make_shared<decay_t<T1>>(t))::element_type>
+	static auto MakeUnique(T1 &&t, File *file) -> UniqueDiskPtr<typename GetMakeUniqueReturnType<decay_t<T1>>::Result>
 	{
 		// 硬存使用的出发点只有这里
 		auto [label, obj] = file->New(forward<T1>(t));

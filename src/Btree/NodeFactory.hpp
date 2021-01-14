@@ -14,6 +14,7 @@ namespace Collections
 	using Basic::IsSpecialization;
 	using FuncLib::Store::File;
 	using ::std::function;
+	using ::std::make_shared;
 	using ::std::make_unique;
 	using ::std::move;
 	using ::std::remove_reference_t;
@@ -52,15 +53,16 @@ namespace Collections
 		{
 			using T = remove_reference_t<ValueTypeOf<Enumerator<Ts...>>>;
 
+			// 使用 make_shared 是希望原位构造，只构造一次，
+			// 不调用 move，copy 构造函数，这会破坏原来构造好的对象里的指针有效性
+			// 可以利用栈来弄吗，反正关系在栈里是对的
 			if constexpr (IsSpecialization<T, UniqueDiskPtr>::value)
 			{
-				auto node = Middle(enumerator, lessThan);
-				return MakeUnique(move(node), file);
+				return MakeUnique(make_shared<Middle>(enumerator, lessThan), file);
 			}
 			else
 			{
-				auto node = Leaf(enumerator, lessThan);
-				return MakeUnique(move(node), file);
+				return MakeUnique(make_shared<Leaf>(enumerator, lessThan), file);
 			}
 		}
 

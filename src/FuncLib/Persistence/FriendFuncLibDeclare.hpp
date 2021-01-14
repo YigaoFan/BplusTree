@@ -41,9 +41,21 @@ namespace FuncLib::Persistence
 	class TakeWithDiskPos<T, Switch::Disable>
 	{ };
 
+	template <typename T>
+	struct GetMakeUniqueReturnType
+	{
+		using Result = T;
+	};
+
+	using ::std::shared_ptr;
+	template <typename T>
+	struct GetMakeUniqueReturnType<shared_ptr<T>>
+	{
+		using Result = T;
+	};
+
 	using ::std::decay_t;
-	using ::std::make_shared;
 	using Store::File;
 	template <typename T1>
-	static auto MakeUnique(T1 &&t, File *file) -> UniqueDiskPtr<typename decltype(make_shared<decay_t<T1>>(t))::element_type>;
+	static auto MakeUnique(T1 &&t, File *file) -> UniqueDiskPtr<typename GetMakeUniqueReturnType<decay_t<T1>>::Result>;
 }

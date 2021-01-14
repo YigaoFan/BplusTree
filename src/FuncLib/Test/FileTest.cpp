@@ -41,7 +41,8 @@ TESTCASE("File test")
 		using Tree = Btree<4, int, int>; // 之后用 string 作为 key，value
 		auto lessThan = [](int a, int b) { return a < b; };
 		Tree b(lessThan);
-		auto n = 100;
+		auto n = 4;
+		auto dn = 100;
 		for (auto i = 0; i < n; ++i)
 		{
 			b.Add({ i, i });
@@ -54,14 +55,19 @@ TESTCASE("File test")
 			ASSERT(t.ContainsKey(i));
 		}
 
-		for (auto i = n; i < n + 100; ++i)
+		for (auto i = n; i < n + dn; ++i)
 		{
 			t.Add({ i, i });
 			ASSERT(t.ContainsKey(i));
 		}
 
-		// auto [label, treeObj] = file->New(move(t));
+		for (auto i = 0; i < n + dn; ++i)
+		{
+			t.Remove(i);
+			ASSERT(not t.ContainsKey(i));
+		}
 
+		// auto [label, treeObj] = file->New(move(t));
 		// file->Store(label, treeObj);
 	}
 
