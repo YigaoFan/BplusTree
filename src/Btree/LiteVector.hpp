@@ -76,7 +76,7 @@ namespace Collections
 
 		void RemoveAt(size_int i)
 		{
-			MoveLeft(i);
+			MoveLeftOnePlaceFrom(i + 1);
 			--_count;
 		}
 
@@ -107,16 +107,22 @@ namespace Collections
 		T FrontPopOut()
 		{
 			auto p = move(_ptr[0]);
-			MoveLeft(0);
-			--_count;
+			RemoveAt(0);
 			return move(p);
 		}
 
 		/// Emplace on back is wrong behavior
-		void Emplace(size_int i, T t)
+		void Emplace(size_int index, T t)
 		{
-			MoveRight(i);
-			_ptr[i] = move(t);
+			new (_ptr + _count) T(move(_ptr[_count - 1]));
+
+			// i is move to place
+			for (auto i = _count - 1; i > index; --i)
+			{
+				_ptr[i] = move(_ptr[i - 1]);
+			}
+
+			_ptr[index] = move(t);
 			++_count;
 		}
 
@@ -151,30 +157,17 @@ namespace Collections
 			}
 		}
 
-		/// i item will be covered
-		void MoveLeft(size_int i)
+		/// Tail position will be destructed
+		void MoveLeftOnePlaceFrom(size_int index)
 		{
-			remove_const_t<decltype(_ptr)> start = begin() + i;
-			for (; start != (this->end() - 1); ++start)
+			// i is move to place
+			auto i = index - 1;
+
+			for (; i < _count - 1; ++i)
 			{
-				*(start) = move(*(start + 1));
+				_ptr[i] = move(_ptr[i + 1]);
 			}
-
-			start->~T();
-		}
-
-		void MoveRight(size_int index)
-		{
-			decltype(_ptr) start = begin() + index;
-			auto rbegin = this->end() - 1;
-			new (rbegin + 1)T(move(*rbegin));
-			--rbegin;
-			for (; rbegin != (start - 1); --rbegin)
-			{
-				*(rbegin + 1) = move(*rbegin);
-			}
-
-			start->~T();
+			_ptr[i].~T();
 		}
 	};
 }
