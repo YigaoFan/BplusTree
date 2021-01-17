@@ -32,9 +32,7 @@ namespace Collections
 		// if (not CheckCompliance<Key, Value, Order, Place>(node))
 		{
 			// cout << "Something wrong in tree:" << endl;
-			auto deepNodes = vector<decltype(node)>{
-				node,
-			};
+			auto deepNodes = vector<decltype(node)>{ node, };
 			do
 			{
 				for (auto n : deepNodes)
