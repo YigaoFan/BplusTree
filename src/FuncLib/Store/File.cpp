@@ -15,33 +15,20 @@ namespace FuncLib::Store
 			auto reader = FileReader::MakeReader(nullptr, filename, 0);
 			reader.Read<sizeof(slogan)>();
 			// 以下这两个东西不允许出现内 disk ptr
-			printf("start read allocator info");
+			// 下面的读和 File 析构函数里的写，顺序要保持一致
 			auto a = ReadAllocatedInfoFrom(&reader);
-			printf("start read relation tree");
 			auto t = ReadObjRelationTreeFrom(&reader);
-			printf("read all done");
 
-			auto f = make_shared<File>(FileCount++, pathPtr, move(a), move(t));
+			auto f = make_shared<File>(FileCache(FileCount++), pathPtr, move(a), move(t));
 			return f;
 		}
 		else
 		{
 			auto t = ObjectRelationTree();
 			auto a = StorageAllocator();
-			auto f = make_shared<File>(FileCount++, pathPtr, move(a), move(t));
+			auto f = make_shared<File>(FileCache(FileCount++), pathPtr, move(a), move(t));
 			return f;
 		}
-	}
-
-	File::File(unsigned int fileId, shared_ptr<path> filename, StorageAllocator allocator, ObjectRelationTree relationTree)
-		: _filename(move(filename)),
-		  _cache(fileId), _allocator(move(allocator)),
-		  _objRelationTree(move(relationTree))
-	{ }
-
-	shared_ptr<path> File::Path() const
-	{
-		return _filename;
 	}
 
 	File::~File()
@@ -66,11 +53,22 @@ namespace FuncLib::Store
 		else
 		{
 			printf("byte size %zu\n", bytes.Size());
+			CreateIfNotExist(_filename.get());
 			auto fs = MakeFileStream(_filename.get());
-			// 这里要保证文件肯定存在
 			bytes.WriteIn(&fs, MetadataStart);
 		}
 	}
+
+	File::File(FileCache cache, shared_ptr<path> filename, StorageAllocator allocator, ObjectRelationTree relationTree)
+		: _filename(move(filename)), _cache(move(cache)), _allocator(move(allocator)),
+		  _objRelationTree(move(relationTree))
+	{ }
+
+	shared_ptr<path> File::Path() const
+	{
+		return _filename;
+	}
+
 
 	fstream File::MakeFileStream(path const* filename)
 	{
@@ -78,5 +76,16 @@ namespace FuncLib::Store
 		// 不存在不会创建文件
 		constexpr fstream::openmode openmode = fstream::binary | fstream::in | fstream::out;
 		return fstream{ *filename };
+	}
+
+	void File::CreateIfNotExist(path const* filename)
+	{
+		using ::std::ofstream;
+		using ::std::filesystem::exists;
+
+		if (not exists(*filename))
+		{
+			ofstream f(*filename);
+		}
 	}
 }

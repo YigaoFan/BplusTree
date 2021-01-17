@@ -17,8 +17,10 @@ namespace FuncLib::Persistence
 		friend struct ByteConverter<DiskPos, false>;
 		template <typename>
 		friend class DiskPos;
-		template <typename T2>
-		friend bool operator== (DiskPos const& lhs, DiskPos<T2> const& rhs);
+		// template <typename T2>
+		// friend bool operator== (DiskPos const& lhs, DiskPos<T2> const& rhs);
+		template <typename T1, typename T2>
+		friend bool operator== (DiskPos<T1> const& lhs, DiskPos<T2> const& rhs);
 
 		File* _file;
 		pos_label _label;
@@ -29,9 +31,34 @@ namespace FuncLib::Persistence
 		DiskPos(File* file, pos_label label) : _file(file), _label(label)
 		{ }
 
+		DiskPos(DiskPos&& that) noexcept
+			: _file(that._file), _label(that._label)
+		{
+			that._file = nullptr;
+			that._label = 0;
+		}
+
+		DiskPos(DiskPos const& that) = default;
+		DiskPos& operator= (DiskPos&& that) noexcept
+		{
+			this->_file = that._file;
+			this->_label = that._label;
+			that._file = nullptr;
+			that._label = 0;
+			return *this;
+		}
+		DiskPos& operator= (DiskPos const& that) noexcept = default;
+
 		template <typename Derived>
 		DiskPos(DiskPos<Derived> const& that) : _file(that._file), _label(that._label)
 		{ }
+
+		template <typename Derived>
+		DiskPos(DiskPos<Derived>&& that) : _file(that._file), _label(that._label)
+		{
+			that._file = nullptr;
+			that._label = 0;
+		}
 
 		shared_ptr<T> ReadObject() const
 		{
@@ -43,12 +70,6 @@ namespace FuncLib::Persistence
 			_file->StoreInner(_label, obj, writer);
 		}
 
-		pair<DiskPos, shared_ptr<T>> Clone(shared_ptr<T> const& obj) const
-		{
-			auto [label, clonedObj] = _file->New(*obj);
-			return { DiskPos(_file, label), clonedObj };
-		}
-
 		File* GetLessOwnershipFile() const
 		{
 			return _file;
@@ -57,6 +78,11 @@ namespace FuncLib::Persistence
 		void RegisterSetter(function<void(T*)> setter) const
 		{
 			_file->RegisterSetter(_label, move(setter));
+		}
+
+		bool HasRead() const
+		{
+			return _file->HasRead<T>(_label);
 		}
 	};
 

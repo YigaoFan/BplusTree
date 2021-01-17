@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include <functional>
 #include <vector>
 #include <memory>
 #include <utility>
@@ -16,7 +15,6 @@ namespace Collections
 	using ::Basic::InvalidOperationException;
 	using ::Basic::KeyNotFoundException;
 	using ::std::array;
-	using ::std::function;
 	using ::std::is_convertible;
 	using ::std::move;
 	using ::std::pair;
@@ -95,21 +93,8 @@ namespace Collections
 
 			return false;
 		}
-		
-		vector<Key> Keys() const
-		{
-			vector<Key> keys;
-			keys.reserve(this->Count());
-			auto enumerator = GetEnumerator();
-			while (enumerator.MoveNext())
-			{
-				keys.push_back(enumerator.Current().first);
-			}
 
-			return keys;
-		}
-
-		void Add(Item p, function<void()> changeMinCallback = [](){})
+		void Add(Item p, auto const& changeMinCallback)
 		{
 			if (this->Empty())
 			{
@@ -122,7 +107,24 @@ namespace Collections
 			}
 			else
 			{
-				return Insert(move(p), move(changeMinCallback));
+				return Insert(move(p), changeMinCallback);
+			}
+		}
+
+		void Add(Item p)
+		{
+			if (this->Empty())
+			{
+				return Append(move(p));
+			}
+
+			if ((*LessThanPtr)(this->operator[](this->Count() - 1).first, p.first))
+			{
+				return Append(move(p));
+			}
+			else
+			{
+				return Insert(move(p), []{});
 			}
 		}
 
@@ -205,7 +207,7 @@ namespace Collections
 
 		template <typename T>
 		requires MatchLessThanArgType<T, LessThan>
-		order_int SelectBranch(T key) const
+		order_int SelectBranch(T const& key) const // TODO why here should add const&
 		{
 			for (decltype(this->Count()) i = 1; i < this->Count(); ++i)
 			{
@@ -225,15 +227,8 @@ namespace Collections
 		Elements(LiteVector<pair<Key, Value>, order_int, BtreeOrder> base) : Base(move(base))
 		{ }
 
-		Elements() : Base() { }
-
-		void LessThanPredicate(shared_ptr<LessThan> lessThanPtr)
-		{
-			LessThanPtr = lessThanPtr;
-		}
-		// TODO check template args
 		template <bool WithCheck=true>
-		void Insert(Item p, function<void()> changeMinCallback)
+		void Insert(Item p, auto const& changeMinCallback)
 		{
 			for (decltype(this->Count()) i = 0; i < this->Count(); ++i)
 			{

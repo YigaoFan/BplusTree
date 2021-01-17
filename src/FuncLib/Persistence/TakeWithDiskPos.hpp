@@ -24,7 +24,14 @@ namespace FuncLib::Persistence
 
 		OwnerLessDiskPtr<T> GetOwnerLessDiskPtr() const
 		{
-			return { _pos };
+			if (_pos.HasRead())
+			{
+				return { _pos, _pos.ReadObject() };
+			}
+			else
+			{
+				return { _pos };
+			}
 		}
 
 		File* GetLessOwnershipFile() const

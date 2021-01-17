@@ -1,8 +1,6 @@
 #pragma once
 #include <memory>
-#include <vector>
 #include <functional>
-#include <cstddef>
 
 namespace FuncLib::Persistence
 {
@@ -11,7 +9,6 @@ namespace FuncLib::Persistence
 	using ::std::nullptr_t;
 	using ::std::shared_ptr;
 	using ::std::static_pointer_cast;
-	using ::std::vector;
 
 	template <typename T>
 	class DiskPtrBase
@@ -31,14 +28,12 @@ namespace FuncLib::Persistence
 		DiskPtrBase() : _pos(), _tPtr(nullptr)
 		{ }
 		
-		DiskPtrBase(DiskPos<T> pos, shared_ptr<T> object) : _pos(pos), _tPtr(object)
+		DiskPtrBase(DiskPos<T> pos, shared_ptr<T> object) : _pos(move(pos)), _tPtr(move(object))
 		{ }
 
 		DiskPtrBase(DiskPtrBase&& that) noexcept
-			: _tPtr(that._tPtr), _pos(move(that._pos))
-		{
-			that._tPtr = nullptr;
-		}
+			: _tPtr(move(that._tPtr)), _pos(move(that._pos))
+		{ }
 
 		DiskPtrBase(DiskPtrBase const& that) : _tPtr(that._tPtr), _pos(that._pos)
 		{ }
@@ -46,7 +41,7 @@ namespace FuncLib::Persistence
 		// below two constructor is for static_cast convert
 		template <typename Derived>
 		DiskPtrBase(DiskPtrBase<Derived>&& derivedOne)
-			: _tPtr(static_pointer_cast<T>(derivedOne._tPtr)), _pos(derivedOne._pos)
+			: _tPtr(move(static_pointer_cast<T>(derivedOne._tPtr))), _pos(move(derivedOne._pos))
 		{ }
 
 		template <typename Derived>
@@ -56,16 +51,16 @@ namespace FuncLib::Persistence
 
 		DiskPtrBase& operator= (DiskPtrBase const& that)
 		{
-			this->_tPtr = that._tPtr;
+			// 不知道 default 合成的情况下，mutable 怎么处理的
 			this->_pos = that._pos;
-
+			this->_tPtr = that._tPtr;
 			return *this;
 		}
 
 		DiskPtrBase& operator= (DiskPtrBase&& that) noexcept
 		{
-			this->_tPtr = move(that._tPtr);
 			this->_pos = move(that._pos);
+			this->_tPtr = move(that._tPtr);
 			return *this;
 		}
 
@@ -144,7 +139,7 @@ namespace FuncLib::Persistence
 	template <typename T>
 	bool operator== (DiskPtrBase<T> const& lhs, nullptr_t rhs)
 	{
-		return lhs._tPtr == rhs;
+		return lhs._pos == DiskPos<T>();
 	}
 
 	template <typename T>
@@ -170,7 +165,6 @@ namespace FuncLib::Persistence
 	public:
 		using Base::Base;
 
-
 		UniqueDiskPtr(UniqueDiskPtr const&) = delete;
 
 		UniqueDiskPtr& operator= (UniqueDiskPtr const& that) = delete;
@@ -182,12 +176,6 @@ namespace FuncLib::Persistence
 		}
 
 		UniqueDiskPtr(UniqueDiskPtr&& that) : Base(move(that)) { }
-
-		UniqueDiskPtr Clone() const
-		{
-			auto [pos, obj] = this->_pos.Clone(this->_tPtr);
-			return UniqueDiskPtr(pos, obj);
-		}
 
 		// 在 MiddleNode 中多处调用，至少可以消除部分
 		OwnerLessDiskPtr<T> get() const
@@ -204,6 +192,7 @@ namespace FuncLib::Persistence
 
 	using ::std::decay_t;
 
+	// 要不要加个 T，使得这样使用 MakeUnique<T>(...)
 	template <typename T1>
 	static auto MakeUnique(T1 &&t, File *file) -> UniqueDiskPtr<typename GetMakeUniqueReturnType<decay_t<T1>>::Result>
 	{

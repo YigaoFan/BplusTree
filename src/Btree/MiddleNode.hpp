@@ -10,6 +10,7 @@
 #include "Elements.hpp"
 #include "NodeBase.hpp"
 #include "LeafNode.hpp"
+#include "ClonerDeclare.hpp"
 #include "../FuncLib/Persistence/FriendFuncLibDeclare.hpp"
 #include "../FuncLib/Persistence/PtrSetter.hpp"
 #include "NodeAddRemoveCommon.hpp"
@@ -39,43 +40,48 @@ namespace Collections
 		friend struct FuncLib::Persistence::ByteConverter<MiddleNode, false>;
 		friend struct FuncLib::Persistence::TypeConverter<MiddleNode<Key, Value, BtreeOrder, StorePlace::Memory>>;
 		friend class NodeFactory<Key, Value, BtreeOrder, Place>;
-		using Base = NodeBase<Key, Value, BtreeOrder, Place>;
+		using Base1 = NodeBase<Key, Value, BtreeOrder, Place>;
+		using Base2 = TakeWithDiskPos<MiddleNode<Key, Value, BtreeOrder, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>;
 		using Leaf = LeafNode<Key, Value, BtreeOrder, Place>;
 		// TODO maybe below two item could be pointer, then entity stored in its' parent like Btree do
-		typename Base::UpNodeAddSubNodeCallback const _addSubNodeCallback = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
-		typename Base::UpNodeDeleteSubNodeCallback const _deleteSubNodeCallback = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
-		typename Base::MinKeyChangeCallback const _minKeyChangeCallback = bind(&MiddleNode::SubNodeMinKeyChangeCallback, this, _1, _2);
-		typename Base::ShallowTreeCallback* _shallowTreeCallbackPtr = nullptr;
+		typename Base1::UpNodeAddSubNodeCallback const _addSubNodeCallback = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
+		typename Base1::UpNodeDeleteSubNodeCallback const _deleteSubNodeCallback = bind(&MiddleNode::DeleteSubNodeCallback, this, _1);
+		typename Base1::MinKeyChangeCallback const _minKeyChangeCallback = bind(&MiddleNode::SubNodeMinKeyChangeCallback, this, _1, _2);
+		typename Base1::ShallowTreeCallback* _shallowTreeCallbackPtr = nullptr;
 		function<RAW_PTR(MiddleNode)(MiddleNode const*)> _queryPrevious = [](auto) { return nullptr; };
 		function<RAW_PTR(MiddleNode)(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
 		using _LessThan = LessThan<Key>;
-		using StoredKey = result_of_t<decltype(&Base::MinKey)(Base)>;
-		using StoredValue = typename TypeSelector<Place, Refable::No, Ptr<Base>>::Result;
+		using StoredKey = result_of_t<decltype(&Base1::MinKey)(Base1)>;
+		using StoredValue = typename TypeSelector<Place, Refable::No, Ptr<Base1>>::Result;
 		Elements<StoredKey, StoredValue, BtreeOrder, _LessThan> _elements;
 
 	public:
 		bool Middle() const override { return true; }
 
-		MiddleNode(shared_ptr<_LessThan> lessThanPtr) : Base(), _elements(lessThanPtr)
+		MiddleNode(shared_ptr<_LessThan> lessThanPtr) : Base1(), _elements(lessThanPtr)
 		{ }	
 
-		MiddleNode(IEnumerator<Ptr<Base>> auto enumerator, shared_ptr<_LessThan> lessThanPtr)
-			: Base(), _elements(EnumeratorPipeline<Ptr<Base>, typename decltype(_elements)::Item, decltype(enumerator)>(enumerator, bind(&MiddleNode::ConvertPtrToKeyPtrPair, _1)), lessThanPtr)
+		MiddleNode(IEnumerator<Ptr<Base1>> auto enumerator, shared_ptr<_LessThan> lessThanPtr)
+			: Base1(), _elements(EnumeratorPipeline<Ptr<Base1>, typename decltype(_elements)::Item, decltype(enumerator)>(enumerator, bind(&MiddleNode::ConvertPtrToKeyPtrPair, _1)), lessThanPtr)
 		{
 			SetSubNode();
 		}
 
+		/// Not set query next, previous and shallow tree callbacks
 		MiddleNode(MiddleNode const& that)
-			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, Ptr<Base>, decltype(that._elements.GetEnumerator())>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
+			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, Ptr<Base1>, decltype(that._elements.GetEnumerator())>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
 		{ }
 
 		MiddleNode(MiddleNode&& that) noexcept
-			: Base(move(that)), _elements(move(that._elements)), 
-			_queryNext(move(that._queryNext)), _queryPrevious(move(that._queryPrevious)),
-			_shallowTreeCallbackPtr(that._shallowTreeCallbackPtr)
-		{ }
+			: Base1(move(that)), Base2(move(that)),
+			  _elements(move(that._elements)),
+			  _queryNext(move(that._queryNext)), _queryPrevious(move(that._queryPrevious)),
+			  _shallowTreeCallbackPtr(that._shallowTreeCallbackPtr)
+		{
+			SetSubNode(); 
+		}
 
-		Ptr<Base> Clone() const override
+		Ptr<Base1> Clone() const
 		{
 			// If mark copy constructor private, this method cannot compile pass
 			// In make_unique internal will call MiddleNode copy constructor,
@@ -92,7 +98,7 @@ namespace Collections
 			}
 		}
 
-		void SetShallowCallbackPointer(typename Base::ShallowTreeCallback* shallowTreeCallbackPtr) override
+		void SetShallowCallbackPointer(typename Base1::ShallowTreeCallback* shallowTreeCallbackPtr) override
 		{
 			_shallowTreeCallbackPtr = shallowTreeCallbackPtr;
 		}
@@ -108,18 +114,18 @@ namespace Collections
 			return MinSon()->Keys();
 		}
 
-		Ptr<Base> HandleOverOnlySon()
+		Ptr<Base1> HandleOverOnlySon()
 		{
 			Assert(_elements.Count() == 1);
 			return _elements.PopOut().second;
 		}
 
-		result_of_t<decltype(&Base::MinKey)(Base)> MinKey() const override
+		result_of_t<decltype(&Base1::MinKey)(Base1)> MinKey() const override
 		{
 			return _elements[0].first;
 		}
 
-#define ARG_TYPE_IN_BASE(METHOD, IDX) typename FuncTraits<typename GetMemberFuncType<decltype(&Base::METHOD)>::Result>::template Arg<IDX>::Type
+#define ARG_TYPE_IN_BASE(METHOD, IDX) typename FuncTraits<typename GetMemberFuncType<decltype(&Base1::METHOD)>::Result>::template Arg<IDX>::Type
 #define SELECT_BRANCH(KEY) auto i = _elements.SelectBranch(KEY)
 		bool ContainsKey(ARG_TYPE_IN_BASE(ContainsKey, 0) key) const override
 		{
@@ -127,7 +133,7 @@ namespace Collections
 			return _elements[i].second->ContainsKey(key);
 		}
 
-		typename Base::StoredValue& GetValue(ARG_TYPE_IN_BASE(GetValue, 0) key) override
+		typename Base1::StoredValue& GetValue(ARG_TYPE_IN_BASE(GetValue, 0) key) override
 		{
 			SELECT_BRANCH(key);
 			return _elements[i].second->GetValue(key);
@@ -153,21 +159,14 @@ namespace Collections
 #undef SELECT_BRANCH
 #undef ARG_TYPE_IN_BASE
 
-		vector<Key> SubNodeMinKeys() const override
+		vector<Key> KeysInThisNode() const override
 		{
-			vector<Key> ks;
-			ks.reserve(_elements.Count());
-			for (auto k : _elements.Keys())
-			{
-				ks.push_back(k);
-			}
-
-			return ks;
+			return this->GetKeysFrom(_elements);
 		}
 
-		result_of_t<decltype (&Base::SubNodes)(Base)> SubNodes() const override
+		result_of_t<decltype (&Base1::SubNodes)(Base1)> SubNodes() const override
 		{
-			vector<RAW_PTR(Base)> subs;
+			vector<RAW_PTR(Base1)> subs;
 			subs.reserve(_elements.Count());
 			for (auto& e : _elements)
 			{
@@ -177,7 +176,7 @@ namespace Collections
 			return subs;
 		}
 
-		RecursiveGenerator<pair<typename Base::StoredKey, typename Base::StoredValue>*> GetStoredPairEnumerator() override
+		RecursiveGenerator<pair<typename Base1::StoredKey, typename Base1::StoredValue>*> GetStoredPairEnumerator() override
 		{
 			for (auto& e : _elements)
 			{
@@ -185,13 +184,13 @@ namespace Collections
 			}
 		}
 	private:
-		MiddleNode(decltype(_elements) elements) : Base(), _elements(move(elements))
+		MiddleNode(decltype(_elements) elements) : Base1(), _elements(move(elements))
 		{
 			SetSubNode();
 		}
 
-		RAW_PTR(Base) MinSon() const { return _elements[0].second.get(); }
-		RAW_PTR(Base) MaxSon() const { return _elements[_elements.Count() - 1].second.get(); }
+		RAW_PTR(Base1) MinSon() const { return _elements[0].second.get(); }
+		RAW_PTR(Base1) MaxSon() const { return _elements[_elements.Count() - 1].second.get(); }
 
 #define MID_CAST(NODE) static_cast<RAW_PTR(MiddleNode)> (NODE)
 #define LEF_CAST(NODE) static_cast<RAW_PTR(Leaf)>(NODE)
@@ -219,7 +218,7 @@ namespace Collections
 			}
 		}
 
-		void AddSubNodeCallback(Base* srcNode, Ptr<Base> newNextNode)
+		void AddSubNodeCallback(Base1* srcNode, Ptr<Base1> newNextNode)
 		{
 			// newNextNode must not be MinSon
 			if (not _elements.Full())
@@ -233,7 +232,7 @@ namespace Collections
 			ADD_COMMON(false);
 		}
 
-		void DeleteSubNodeCallback(Base* node)
+		void DeleteSubNodeCallback(Base1* node)
 		{
 			// node has no key
 			auto i = IndexOfSubNode(node);
@@ -243,7 +242,7 @@ namespace Collections
 				(*this->_minKeyChangeCallbackPtr)(MinKey(), this);
 			}
 
-			constexpr auto lowBound = Base::LowBound;
+			constexpr auto lowBound = Base1::LowBound;
 			if (_elements.Count() < lowBound)
 			{
 				// Below two variables is to macro
@@ -259,7 +258,7 @@ namespace Collections
 			}
 		}
 
-		void SubNodeMinKeyChangeCallback(result_of_t<decltype(&Base::MinKey)(Base)> newMinKeyOfSubNode, Base* subNode)
+		void SubNodeMinKeyChangeCallback(result_of_t<decltype(&Base1::MinKey)(Base1)> newMinKeyOfSubNode, Base1* subNode)
 		{
 			auto i = IndexOfSubNode(subNode);
 			_elements[i].first = StoredKey(newMinKeyOfSubNode);
@@ -306,6 +305,11 @@ namespace Collections
 
 		void SetSubNode()
 		{
+			if (_elements.Empty())
+			{
+				return;
+			}
+
 			RAW_PTR(Leaf) lastLeaf = nullptr;
 			MiddleNode* lastMidNode = nullptr;
 			bool subIsMiddle = MinSon()->Middle();
@@ -344,7 +348,7 @@ namespace Collections
 			}
 		}
 
-		void SetSubNodeCallback(bool middle, Ptr<Base>& node)
+		void SetSubNodeCallback(bool middle, Ptr<Base1>& node)
 		{
 			SET_PROPERTY(node, &, ->SetUpNodeCallback(&_addSubNodeCallback, &_deleteSubNodeCallback, &_minKeyChangeCallback));
 
@@ -358,7 +362,7 @@ namespace Collections
 #undef MID_CAST		
 #undef LEF_CAST
 		// 这里的参数类型可以改一下，不直接用裸指针
-		order_int IndexOfSubNode(Base const* node) const
+		order_int IndexOfSubNode(Base1 const* node) const
 		{
 			auto e = _elements.GetEnumerator();
 			while (e.MoveNext())
@@ -419,21 +423,21 @@ namespace Collections
 			return _elements.ExchangeMax(move(item));
 		}
 
-		static typename decltype(_elements)::Item ConvertRefPtrToKeyPtrPair(Ptr<Base>& node)
+		static typename decltype(_elements)::Item ConvertRefPtrToKeyPtrPair(Ptr<Base1>& node)
 		{
 			using pairType = typename decltype(_elements)::Item;
 			return make_pair<typename pairType::first_type, typename pairType::second_type>(StoredKey(node->MinKey()), move(node));
 		}
 
-		static typename decltype(_elements)::Item ConvertPtrToKeyPtrPair(Ptr<Base> node)
+		static typename decltype(_elements)::Item ConvertPtrToKeyPtrPair(Ptr<Base1> node)
 		{
 			using pairType = typename decltype(_elements)::Item;
 			return make_pair<typename pairType::first_type, typename pairType::second_type>(StoredKey(node->MinKey()), move(node));
 		}
 
-		static Ptr<Base> CloneSubNode(typename decltype(_elements)::Item const& item)
+		static Ptr<Base1> CloneSubNode(typename decltype(_elements)::Item const& item)
 		{
-			return item.second->Clone();
+			return Collections::Clone(item.second.get());
 		}
 	};
 }

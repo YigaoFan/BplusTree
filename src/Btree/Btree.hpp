@@ -13,6 +13,7 @@
 #include "../Basic/TypeTrait.hpp"
 #include "Enumerator.hpp"
 #include "Generator.hpp"
+#include "Cloner.hpp"
 #include "NodeFactory.hpp"
 #include "TreeInspector.hpp"
 #include "../Basic/Exception.hpp"
@@ -124,7 +125,7 @@ namespace Collections
 		typename Node::UpNodeAddSubNodeCallback const _addRootCallback = bind(&Btree::AddRootCallback, this, _1, _2);
 		typename Node::UpNodeDeleteSubNodeCallback const _deleteRootCallback = bind(&Btree::DeleteRootCallback, this, _1);
 		typename Node::MinKeyChangeCallback const _minKeyChangeCallback = bind(&Btree::RootMinKeyChangeCallback, this, _1, _2);
-		typename Node::ShallowTreeCallback _shallowTreeCallback = bind(&Btree::ShallowRootCallback, this);
+		typename Node::ShallowTreeCallback const _shallowTreeCallback = bind(&Btree::ShallowRootCallback, this);
 		shared_ptr<_LessThan> _lessThanPtr;
 		key_int              _keyCount{ 0 };
 		Ptr<Node>            _root;
@@ -163,7 +164,7 @@ namespace Collections
 		}
 
 		Btree(Btree const& that)
-			: _keyCount(that._keyCount), _root(that._root->Clone()), _lessThanPtr(that._lessThanPtr)
+			: _keyCount(that._keyCount), _root(Clone(that._root.get())), _lessThanPtr(that._lessThanPtr)
 		{
 			this->SetRootCallbacks();
 		}
@@ -177,7 +178,7 @@ namespace Collections
 
 		Btree& operator= (Btree const& that)
 		{
-			this->_root.reset(that._root->Clone());// TODO reset is unique_ptr
+			this->_root.reset(Clone(that._root.get()));// TODO reset is unique_ptr
 			this->SetRootCallbacks();
 			this->_keyCount = that._keyCount;
 			this->_lessThanPtr = that._lessThanPtr;
@@ -196,10 +197,9 @@ namespace Collections
 			return *this;
 		}
 
-		void PrintTree()
+		void CheckTree()
 		{
-			// TODO this arg can be anything which like cout
-			InspectNodeKeys(_root.get());
+			InspectNodeKeys<Key, Value, BtreeOrder, Place>(_root.get());
 		}
 
 #define ARG_TYPE_IN_NODE(METHOD, IDX) typename FuncTraits<typename GetMemberFuncType<decltype(&Node::METHOD)>::Result>::template Arg<IDX>::Type
@@ -381,7 +381,7 @@ namespace Collections
 			SET_PROPERTY(_root, &, ->SetShallowCallbackPointer(&_shallowTreeCallback));
 		}
 
-		// Below methods for root call
+		// Below methods for root callback
 		void AddRootCallback(Node* srcNode, Ptr<Node> newNextNode)
 		{
 			// TODO Assert the srcNode == _root when debug

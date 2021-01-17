@@ -1,8 +1,9 @@
 #pragma once
-#include <filesystem>
-#include <memory>
 #include <set>
+#include <memory>
 #include <utility>
+#include <filesystem>
+#include <type_traits>
 #include "../../Basic/TypeTrait.hpp"
 #include "StaticConfig.hpp"
 #include "FileCache.hpp"
@@ -28,11 +29,11 @@ namespace FuncLib::Store
 	using ::std::is_base_of_v;
 	using ::std::make_shared;
 	using ::std::move;
-	using ::std::ofstream;
 	using ::std::pair;
+	using ::std::remove_const_t;
+	using ::std::remove_reference_t;
 	using ::std::set;
 	using ::std::shared_ptr;
-	using ::std::filesystem::exists;
 	using ::std::filesystem::path;
 
 	/// 一个路径仅有一个 File 对象，这里的功能大部分是提供给模块外部使用的
@@ -53,12 +54,18 @@ namespace FuncLib::Store
 	public:
 		static shared_ptr<File> GetFile(path const& filename);
 		/// below for make_shared use in File class only
-		File(unsigned int fileId, shared_ptr<path> filename, StorageAllocator allocator, ObjectRelationTree relationTree);
+		File(FileCache cache, shared_ptr<path> filename, StorageAllocator allocator, ObjectRelationTree relationTree);
 		File(File&& that) noexcept = delete;
 		File(File const& that) = delete;
 
 		shared_ptr<path> Path() const;
 		~File();
+
+		template <typename T>
+		bool HasRead(pos_label label) const
+		{
+			return _cache.Cached<T>(label);
+		}
 
 		template <typename T>
 		shared_ptr<T> Read(pos_label posLabel)
@@ -70,12 +77,12 @@ namespace FuncLib::Store
 
 		/// New 的时候要用本来的类型，而不要用动态类型
 		template <typename T>
-		auto New(T t)
+		auto New(T&& t)
 		{
 			auto label = _allocator.AllocatePosLabel();
 			_notStoredLabels.insert(label);
 			// SetItUp 针对 shared_ptr 有个特化，要注意下
-			auto obj = SetItUp(move(t), label);
+			auto obj = SetItUp(forward<T>(t), label);
 
 			return pair{ label, obj };
 		}
@@ -111,9 +118,7 @@ namespace FuncLib::Store
 			ObjectBytes bytes{ posLabel, &toWrites, &toAllocates, &toResize };
 			ProcessStore(posLabel, object, &bytes);
 
-			// Ensure file exist before write
-			if (!exists(*_filename)) { ofstream f(*_filename); }
-
+			CreateIfNotExist(_filename.get());
 			toResize | resize | write; // Resize first, then allocate. Below allocates can reuse place.
 			toAllocates | allocate | write;
 			toWrites | write;
@@ -145,7 +150,7 @@ namespace FuncLib::Store
 
 			auto readStateNode = ReadStateLabelNode::ConsNodeWith(&writer);
 			_objRelationTree.Free(move(readStateNode));
-			_cache.Remove<T>(posLabel);
+			_cache.Remove<T>(posLabel);// 这里的 remove 不全，树里的 label 都要 remove 掉，或者不要处理 cache 了
 		}
 
 		template <typename T>
@@ -196,9 +201,10 @@ namespace FuncLib::Store
 		// 还有 DiskPos 依赖也不是 File 的所有功能，所以可以考虑剥离一部分功能出来形成一个类，来让 DiskPos 依赖
 		// 或者让 DiskPos 中依赖 File 的部分作为友元
 		template <typename T>
-		shared_ptr<T> SetItUp(T t, pos_label posLabel)
+		auto SetItUp(T&& t, pos_label posLabel) -> shared_ptr<remove_const_t<remove_reference_t<T>>>
 		{
-			shared_ptr<T> obj = make_shared<T>(move(t));
+			using ElementType = remove_const_t<remove_reference_t<T>>;// 顶层 const 和底层 const 的问题？
+			auto obj = make_shared<ElementType>(forward<T>(t));
 			return SetItUp(obj, posLabel);
 		}
 
@@ -241,7 +247,7 @@ namespace FuncLib::Store
 		}
 
 		static fstream MakeFileStream(path const* filename);
-
+		static void CreateIfNotExist(path const* filename);
 		template <typename T>
 		void ProcessFakeStore(pos_label posLabel, shared_ptr<T> const& object, FakeObjectBytes* writer)
 		{

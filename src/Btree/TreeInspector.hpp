@@ -11,8 +11,8 @@ namespace Collections
 	using ::std::cout;
 	using ::std::endl;
 
-	template <typename Key, typename Value, order_int BtreeOrder>
-	auto MoveDeep(vector<NodeBase<Key, Value, BtreeOrder>*> deepNodes) -> decltype(deepNodes)
+	template <typename Key, typename Value, order_int Order, StorePlace Place>
+	auto MoveDeep(vector<typename NodeBase<Key, Value, Order, Place>::template OwnerLessPtr<NodeBase<Key, Value, Order, Place>>> deepNodes) -> decltype(deepNodes)
 	{
 		auto deepers = decltype(deepNodes)();
 		for (auto n : deepNodes)
@@ -26,25 +26,50 @@ namespace Collections
 		return deepers;
 	}
 
-	template <typename Key, typename Value, order_int BtreeOrder>
-	void InspectNodeKeys(NodeBase<Key, Value, BtreeOrder>* node)
+	template <typename Key, typename Value, order_int Order, StorePlace Place>
+	void InspectNodeKeys(typename NodeBase<Key, Value, Order, Place>::template OwnerLessPtr<NodeBase<Key, Value, Order, Place>> node)
 	{
-		auto deep = 0;
-		auto deepNodes = vector<decltype(node)>{ node, };
-		do
+		// if (not CheckCompliance<Key, Value, Order, Place>(node))
 		{
-			for (auto n : deepNodes)
+			// cout << "Something wrong in tree:" << endl;
+			auto deepNodes = vector<decltype(node)>{
+				node,
+			};
+			do
 			{
-				for (auto& k : n->SubNodeMinKeys())
+				for (auto n : deepNodes)
 				{
-					cout << k << " ";
+					for (auto &k : n->KeysInThisNode())
+					{
+						cout << k << " ";
+					}
+
+					cout << "  ";
 				}
 
-				cout << "  ";
-			}
+				cout << endl;
+				deepNodes = MoveDeep<Key, Value, Order, Place>(deepNodes);
+			} while (deepNodes.size() != 0);
+		}
+	}
 
-			cout << endl;
-			deepNodes = MoveDeep(deepNodes);
-		} while (deepNodes.size() != 0);
+	template <typename Key, typename Value, order_int Order, StorePlace Place>
+	bool CheckCompliance(typename NodeBase<Key, Value, Order, Place>::template OwnerLessPtr<NodeBase<Key, Value, Order, Place>> node)
+	{
+		auto ks = node->KeysInThisNode();
+		if (ks.size() < node->LowBound and ks.size() > Order)
+		{
+			return false;
+		}
+
+		for (auto n : node->SubNodes())
+		{
+			if (not CheckCompliance<Key, Value, Order, Place>(n))
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 }

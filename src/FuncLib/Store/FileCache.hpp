@@ -37,7 +37,7 @@ namespace FuncLib::Store
 		~FileCache();
 
 		template <typename T>
-		bool Cached(pos_label posLabel)
+		bool Cached(pos_label posLabel) const
 		{
 			return Cache<T>.contains(_fileId) 
 				and Cache<T>[_fileId].contains(posLabel)

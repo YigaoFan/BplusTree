@@ -75,7 +75,7 @@ namespace FuncLib::Persistence
 
 		static To ConvertFrom(From const& from, File* file)
 		{
-			To to;
+			To to(from.LessThanPtr);
 			for (auto& e : from)
 			{
 				to.Append({
@@ -133,7 +133,6 @@ namespace FuncLib::Persistence
 			if (from.Middle())
 			{
 				using FromMidNode = MiddleNode<Key, Value, Count, StorePlace::Memory>;
-				// using ToMidNode = MiddleNode<Key, Value, Count, StorePlace::Disk>;
 				// 这里直接 MakeUnique 是为了让 File::New 可以直接接触到原始的类型，然后检测到继承了 TakeWithDiskPos
 				// 然后 SetDiskPos
 				// 如果这里变成了 shared_ptr<NodeBase>，File 接触到的 NodeBase 并没有继承 TakeWithDiskPos
@@ -142,7 +141,6 @@ namespace FuncLib::Persistence
 			else
 			{
 				using FromLeafNode = LeafNode<Key, Value, Count, StorePlace::Memory>;
-				// using ToLeafNode = LeafNode<Key, Value, Count, StorePlace::Disk>;
 				return MakeUnique(TypeConverter<FromLeafNode>::ConvertFrom(static_cast<FromLeafNode const&>(from), file), file);
 			}
 		}
@@ -160,8 +158,7 @@ namespace FuncLib::Persistence
 
 			using ConvertedType = decltype(c);
 			using ::Basic::IsSpecialization;
-			// 这里的 MakeUnique 的参数类型会有问题
-			// 下面这两个分支应该可以合为一个，因为 MakeUnique 不依赖 UniqueDiskPtr<T> 了
+
 			if constexpr (IsSpecialization<ConvertedType, UniqueDiskPtr>::value)
 			{
 				return c;

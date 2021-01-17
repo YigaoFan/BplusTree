@@ -50,17 +50,17 @@ namespace Collections
 		using UpNodeAddSubNodeCallback = function<void(NodeBase*, Ptr<NodeBase>)> const;
 		using UpNodeDeleteSubNodeCallback = function<void(NodeBase*)> const;
 		using MinKeyChangeCallback = function<void(result_of_t<decltype(&NodeBase::MinKey)(NodeBase)>, NodeBase*)> const;
-		using ShallowTreeCallback = function<void()>;
+		using ShallowTreeCallback = function<void()> const;
 		template <typename T>
 		using OwnerLessPtr = typename TypeSelector<Place, Refable::No, T*>::Result;
 
 	protected:
-		static constexpr order_int LowBound = 1 + ((BtreeOrder - 1) / 2);
 		UpNodeAddSubNodeCallback* _upNodeAddSubNodeCallbackPtr = nullptr;
 		UpNodeDeleteSubNodeCallback* _upNodeDeleteSubNodeCallbackPtr = nullptr;
 		MinKeyChangeCallback* _minKeyChangeCallbackPtr = nullptr;
 
 	public:
+		static constexpr order_int LowBound = 1 + ((BtreeOrder - 1) / 2);
 		void SetUpNodeCallback(UpNodeAddSubNodeCallback* addSubNodeCallbackPtr,
 			UpNodeDeleteSubNodeCallback* deleteSubNodeCallbackPtr,
 			MinKeyChangeCallback* minKeyChangeCallbackPtr)
@@ -75,7 +75,6 @@ namespace Collections
 		virtual void ResetShallowCallbackPointer()
 		{ }
 		virtual void LessThanPredicate(shared_ptr<LessThan<Key>>) = 0;
-		virtual Ptr<NodeBase> Clone() const = 0;
 		virtual ~NodeBase() = default;
 		virtual bool Middle() const = 0;
 		virtual vector<Key> Keys() const = 0;
@@ -92,7 +91,7 @@ namespace Collections
 		virtual void Remove(Key const& key) = 0;
 #undef VALUE_T
 #undef KEY_T
-		virtual vector<Key> SubNodeMinKeys() const = 0;
+		virtual vector<Key> KeysInThisNode() const = 0;
 		virtual vector<OwnerLessPtr<NodeBase>> SubNodes() const = 0;
 		virtual RecursiveGenerator<pair<StoredKey, StoredValue>*> GetStoredPairEnumerator() = 0;
 
@@ -138,12 +137,28 @@ namespace Collections
 			{
 				auto f = thisPtr->GetLessOwnershipFile();
 				auto n = NodeType(lessThanPred);
+				// 或许 MakeUnique 可以实现成原位构造那样？ TODO
 				return MakeUnique(move(n), f);
 			}
 			else
 			{
 				return make_unique<NodeType>(lessThanPred);
 			}
+		}
+
+		/// Will convert StoredKey to Key
+		template <typename Elements>
+		static vector<Key> GetKeysFrom(Elements const& elements)
+		{
+			vector<Key> ks;
+			ks.reserve(elements.Count());
+
+			for (auto& x : elements)
+			{
+				ks.push_back(x.first);
+			}
+
+			return ks;
 		}
 	};
 }

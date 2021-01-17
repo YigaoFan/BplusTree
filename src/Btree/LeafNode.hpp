@@ -1,6 +1,7 @@
 #pragma once
 #include <utility>
 #include <iterator>
+#include <exception>
 #include <type_traits>
 #include "../Basic/Exception.hpp"
 #include "Basic.hpp"
@@ -19,6 +20,7 @@ namespace Collections
 	using ::std::is_same_v;
 	using ::std::make_unique;
 	using ::std::move;
+	using ::std::out_of_range;
 	using ::std::result_of_t;
 	using ::std::unique_ptr;
 
@@ -32,10 +34,11 @@ namespace Collections
 		friend struct FuncLib::Persistence::ByteConverter<LeafNode, false>;
 		friend struct FuncLib::Persistence::TypeConverter<LeafNode<Key, Value, BtreeOrder, StorePlace::Memory>>;
 		using _LessThan = LessThan<Key>;
-		using Base = NodeBase<Key, Value, BtreeOrder, Place>;
-#define RAW_PTR(TYPE) typename Base::template OwnerLessPtr<TYPE>
-		using StoredKey = typename Base::StoredKey;
-		using StoredValue = typename Base::StoredValue;
+		using Base1 = NodeBase<Key, Value, BtreeOrder, Place>;
+		using Base2 = TakeWithDiskPos<LeafNode<Key, Value, BtreeOrder, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>;
+#define RAW_PTR(TYPE) typename Base1::template OwnerLessPtr<TYPE>
+		using StoredKey = typename Base1::StoredKey;
+		using StoredValue = typename Base1::StoredValue;
 		Elements<StoredKey, StoredValue, BtreeOrder, _LessThan> _elements;
 		RAW_PTR(LeafNode) _next{nullptr};
 		RAW_PTR(LeafNode) _previous{nullptr};
@@ -43,22 +46,23 @@ namespace Collections
 	public:
 		bool Middle() const override { return false; }
 
-		LeafNode(shared_ptr<_LessThan> lessThan) : Base(), _elements(lessThan)
+		LeafNode(shared_ptr<_LessThan> lessThan) : Base1(), _elements(lessThan)
 		{ }
 
 		LeafNode(IEnumerator<pair<StoredKey, StoredValue>> auto enumerator, shared_ptr<_LessThan> lessThan)
-			: Base(), _elements(enumerator, lessThan)
+			: Base1(), _elements(enumerator, lessThan)
 		{ }
 
-		LeafNode(LeafNode const& that) : Base(that), _elements(that._elements)
+		LeafNode(LeafNode const& that) : Base1(that), Base2(that), _elements(that._elements)
 		{ }
 
 		LeafNode(LeafNode&& that) noexcept
-			: Base(move(that)), _elements(move(that._elements)),
-			 _next(that._next), _previous(that._previous)
+			: Base1(move(that)), Base2(move(that)),
+			  _elements(move(that._elements)),
+			  _next(that._next), _previous(that._previous)
 		{ }
 
-		Ptr<Base> Clone() const override 
+		Ptr<Base1> Clone() const
 		{
 			return this->CopyNode(this);
 		}
@@ -73,12 +77,12 @@ namespace Collections
 			return CollectKeys();
 		}
 
-		result_of_t<decltype(&Base::MinKey)(Base)> MinKey() const override
+		result_of_t<decltype(&Base1::MinKey)(Base1)> MinKey() const override
 		{
 			return _elements[0].first;
 		}
 
-#define ARG_TYPE_IN_BASE(METHOD, IDX) typename FuncTraits<typename GetMemberFuncType<decltype(&Base::METHOD)>::Result>::template Arg<IDX>::Type
+#define ARG_TYPE_IN_BASE(METHOD, IDX) typename FuncTraits<typename GetMemberFuncType<decltype(&Base1::METHOD)>::Result>::template Arg<IDX>::Type
 		bool ContainsKey(ARG_TYPE_IN_BASE(ContainsKey, 0) key) const override
 		{
 			return _elements.ContainsKey(move(key));
@@ -118,7 +122,7 @@ namespace Collections
 				(*this->_minKeyChangeCallbackPtr)(MinKey(), this);
 			}
 
-			constexpr auto lowBound = Base::LowBound;
+			constexpr auto lowBound = Base1::LowBound;
 			if (_elements.Count() < lowBound)
 			{
 				auto next = _next;
@@ -130,34 +134,19 @@ namespace Collections
 		}
 #undef ARG_TYPE_IN_BASE
 
-		vector<Key> SubNodeMinKeys() const override
+		vector<Key> KeysInThisNode() const override
 		{
-			if constexpr (is_same_v<StoredKey, Key>)
-			{
-				return _elements.Keys();
-			}
-			else
-			{
-				auto storedKeys = _elements.Keys();
-				vector<Key> ks;
-				ks.reserve(_elements.Count());
-				for (auto& x : storedKeys)
-				{
-					ks.push_back(x);
-				}
-
-				return ks;
-			}
+			return this->GetKeysFrom(_elements);
 		}
 
-		result_of_t<decltype (&Base::SubNodes)(Base)> SubNodes() const override
+		result_of_t<decltype (&Base1::SubNodes)(Base1)> SubNodes() const override
 		{
 			return {};
 		}
 
 		RecursiveGenerator<pair<StoredKey, StoredValue>*> GetStoredPairEnumerator() override
 		{
-			for (auto e : _elements)
+			for (auto& e : _elements)
 			{
 				co_yield &e;
 			}
@@ -170,12 +159,12 @@ namespace Collections
 	private:
 		LeafNode(decltype(_elements) elements, 
 			RAW_PTR(LeafNode) previous, RAW_PTR(LeafNode) next)
-		 : Base(), _elements(move(elements)), _previous(move(previous)), _next(move(next))
+		 : Base1(), _elements(move(elements)), _previous(move(previous)), _next(move(next))
 		{ }
 
 		vector<Key> CollectKeys(vector<Key> previousNodesKeys = {}) const
 		{
-			auto ks = _elements.Keys();
+			auto ks = this->GetKeysFrom(_elements);
 			previousNodesKeys.reserve(previousNodesKeys.size() + ks.size());
 			move(ks.begin(), ks.end(), back_inserter(previousNodesKeys));
 			return this->Next() == nullptr ? 
@@ -231,7 +220,7 @@ namespace Collections
 			}
 			else
 			{
-				// not support
+				throw out_of_range("Type not support GetRawPtr");
 			}
 		}
 

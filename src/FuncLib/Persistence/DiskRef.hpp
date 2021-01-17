@@ -15,15 +15,10 @@ namespace FuncLib::Persistence
 
 		UniqueDiskRef(UniqueDiskRef&& that) noexcept : _ptr(move(that._ptr)) { }
 
-		// TODO 下面这个现在还会用到吗？
-		UniqueDiskRef(UniqueDiskRef const& that) : _ptr(that._ptr.Clone())
-		{ }
-
 		UniqueDiskRef& operator= (UniqueDiskRef const& that) = delete;
 
 		UniqueDiskRef& operator= (UniqueDiskRef&& that) noexcept
 		{
-			// 这里支持右值赋值，但是原来 this 保存的对象还没有处理 TODO
 			this->_ptr = move(that._ptr);
 			return *this;
 		}
