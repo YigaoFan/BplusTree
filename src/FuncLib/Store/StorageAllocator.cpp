@@ -1,3 +1,4 @@
+#include <string>
 #include "../../Basic/Exception.hpp"
 #include "StorageAllocator.hpp"
 
@@ -24,10 +25,40 @@ namespace FuncLib::Store
 		return _usingLabelTable.find(posLabel)->second.second;
 	}
 
+	void StorageAllocator::AllocateSpecifiedLabel(pos_label posLabel)
+	{
+		using ::std::invalid_argument;
+		using ::std::to_string;
+
+		// 下面是简单的检测 posLabel 是否合法
+		if (_usingLabelTable.contains(posLabel))
+		{
+			throw invalid_argument("label is in using: " + to_string(posLabel));
+		}
+		
+		// _allocatedLables 感觉可以把外面那个 not store set 给合并了 TODO
+		if (_allocatedLables.contains(posLabel))
+		{
+			throw invalid_argument("label is allocated, but not give space: " + to_string(posLabel));
+		}
+
+		_allocatedLables.insert(posLabel);
+	}
+
 	pos_label StorageAllocator::AllocatePosLabel()
 	{
 		/// 0 represents File, so from 1
-		return ++_currentLabel;
+		++_currentLabel;
+		if (not _allocatedLables.contains(_currentLabel))
+		{
+			if (not _usingLabelTable.contains(_currentLabel))
+			{
+				_allocatedLables.insert(_currentLabel);
+				return _currentLabel;
+			}
+		}
+
+		return AllocatePosLabel();
 	}
 
 	void StorageAllocator::DeallocatePosLabel(pos_label posLabel)
@@ -54,6 +85,7 @@ namespace FuncLib::Store
 		
 		// 这里是个粗糙的内存分配算法实现
 		_usingLabelTable.insert({ posLabel, { _currentPos, size }});
+		_allocatedLables.erase(posLabel);
 		_currentPos += size;
 	}
 

@@ -87,6 +87,18 @@ namespace FuncLib::Store
 			return pair{ label, obj };
 		}
 
+		/// New with specified pos_label. If this posLabel is used, exception will be thrown
+		template <typename T>
+		auto New(pos_label posLabel, T&& t)
+		{
+			_allocator.AllocateSpecifiedLabel(posLabel);
+			_notStoredLabels.insert(posLabel);
+			// SetItUp 针对 shared_ptr 有个特化，要注意下
+			auto obj = SetItUp(forward<T>(t), posLabel);
+
+			return pair{ posLabel, obj };
+		}
+
 		/// 使用这个方法进行存储只能是最外层的对象，比如用在 OuterDiskPtr 这样
 		template <typename T>
 		void Store(pos_label posLabel, shared_ptr<T> const& object)

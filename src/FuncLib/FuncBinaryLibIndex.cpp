@@ -6,7 +6,7 @@ namespace FuncLib
 	using ::std::move;
 	using ::std::filesystem::exists;
 
-	constexpr pos_label DiskTreeLable = 1;
+	constexpr pos_label DiskTreeLable = 100;
 
 	FuncBinaryLibIndex::FuncBinaryLibIndex(shared_ptr<File> file, shared_ptr<DiskBtree> diskBtree)
 		: _file(move(file)), _diskBtree(move(diskBtree))
@@ -30,8 +30,7 @@ namespace FuncLib
 
 		if (firstSetup)
 		{
-			auto [l, tree] = file->New(DiskBtree(move(pred), file.get()));
-			assert(l == DiskTreeLable); // l should be 1
+			auto [l, tree] = file->New(DiskTreeLable, DiskBtree(move(pred), file.get()));
 		}
 		else
 		{
@@ -56,15 +55,11 @@ namespace FuncLib
 			return combined;
 		};
 
-		_diskBtree->Add({
-			STR_TO_DISK_REF_STR(funcObj.Type.ToKey()),
-			{
-				label,
-				{
-					STR_TO_DISK_REF_STR(funcObj.Summary),
+		_diskBtree->Add(pair(STR_TO_DISK_REF_STR(funcObj.Type.ToKey()),
+			pair(label,
+				pair(STR_TO_DISK_REF_STR(funcObj.Summary),
 					STR_TO_DISK_REF_STR(combineStrWithSpace(funcObj.ParaNames))
-				}
-			}});
+				))));
 	}
 
 	pos_label FuncBinaryLibIndex::GetStoreLabel(FuncType const& type) const

@@ -26,12 +26,14 @@ namespace FuncLib::Store
 		pos_label _currentLabel;
 		// 实际上这里相当于是偏移，最后在 OutDiskPtr 里面可以加一个基础地址
 		// 分配的也是偏移
+		set<pos_label> _allocatedLables;
 		map<pos_label, pair<pos_int, size_t>> _usingLabelTable;
 		map<pos_label, pair<pos_int, size_t>> _deletedLabelTable; // 优先从这里分配
 	public:
 		StorageAllocator() = default;
 
 		pos_label AllocatePosLabel();
+		void AllocateSpecifiedLabel(pos_label posLabel);
 		bool Ready(pos_label posLabel) const;
 		/// below for first use
 		void GiveSpaceTo(pos_label posLabel, size_t size);
