@@ -41,8 +41,20 @@ TESTCASE("StorageAllocator test")
             ASSERT(copyAllocator._deletedLabelTable == alloca._deletedLabelTable);
             ASSERT(copyAllocator._usingLabelTable == alloca._usingLabelTable);
         }
-    }
 
+        SECTION("Allocate Specified Label")
+        {
+            pos_label label = 10;
+            alloca.AllocateSpecifiedLabel(label);
+            ASSERT(alloca._allocatedLables.contains(label));
+
+            for (auto i = 0; i < 100; ++i)
+            {
+                auto l = alloca.AllocatePosLabel();
+                ASSERT(l != label);
+            }
+        }
+    }
 }
 
 DEF_TEST_FUNC(TestStorageAllocator)

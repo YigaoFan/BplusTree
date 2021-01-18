@@ -18,12 +18,13 @@ TESTCASE("FileReaderObjectBytes test")
 		auto writer = ObjectBytes(0);
 		writer.Add(s.c_str(), s.size());
 		ASSERT(writer.Written());
-		fstream of{ path };
+		fstream of(path, fstream::out | fstream::binary);
 		writer.WriteIn(&of, 0);
 	}
 
 	SECTION("FileReader")
 	{
+		Cleaner c(path);
 		auto reader = FileReader::MakeReader(nullptr, MakeFilePath(path), 0);
 		ASSERT(reader.GetLessOwnershipFile() == nullptr);
 
@@ -37,7 +38,6 @@ TESTCASE("FileReaderObjectBytes test")
 
 		auto zeroBytes = reader.Read<0>();
 		static_assert(zeroBytes.size() == 0);
-		Cleaner c(path);
 	}
 }
 
