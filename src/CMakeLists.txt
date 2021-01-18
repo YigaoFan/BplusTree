@@ -9,6 +9,7 @@ add_executable(RPC
 
         Basic/Debug.cpp
         Basic/Exception.cpp
+        Basic/StringViewUtil.cpp
 
         Btree/Test/BtreeTest.cpp
         Btree/Test/LiteVectorTest.cpp
@@ -61,9 +62,9 @@ add_executable(RPC
         FuncLib/Test/LabelNodeTest.cpp
         FuncLib/Test/ObjectRelationTreeTest.cpp
 
-        Server/Request.cpp
-        Server/Test/ServerTest.cpp
-        Server/Test/CmdFunctionTest.cpp
+        #Server/Request.cpp
+        #Server/Test/ServerTest.cpp
+        #Server/Test/CmdFunctionTest.cpp
         )
 
 add_executable(cmd
@@ -72,6 +73,7 @@ add_executable(cmd
         Basic/Debug.cpp
 
         Basic/Exception.cpp
+        Basic/StringViewUtil.cpp
 
         Json/Json.cpp
         Json/Parser.cpp
