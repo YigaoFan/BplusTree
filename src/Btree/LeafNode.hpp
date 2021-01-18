@@ -72,7 +72,7 @@ namespace Collections
 			_elements.LessThanPtr = lessThan;
 		}
 
-		vector<Key> Keys() const override
+		vector<Key> LetMinLeafCollectKeys() const override
 		{
 			return CollectKeys();
 		}

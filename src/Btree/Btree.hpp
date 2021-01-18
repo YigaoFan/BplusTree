@@ -221,7 +221,7 @@ namespace Collections
 
 		vector<Key> Keys() const
 		{
-			return _root->Keys();
+			return _root->LetMinLeafCollectKeys();
 		}
 
 #define EMPTY_CHECK if (Empty()) { throw KeyNotFoundException("The B+ tree is empty"); }

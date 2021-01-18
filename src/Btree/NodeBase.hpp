@@ -77,7 +77,7 @@ namespace Collections
 		virtual void LessThanPredicate(shared_ptr<LessThan<Key>>) = 0;
 		virtual ~NodeBase() = default;
 		virtual bool Middle() const = 0;
-		virtual vector<Key> Keys() const = 0;
+		virtual vector<Key> LetMinLeafCollectKeys() const = 0;
 		/// same as in LeafNode
 		using StoredKey = typename TypeSelector<Place, Refable::No, Key>::Result;
 		using StoredValue = typename TypeSelector<Place, Refable::No, Value>::Result;

@@ -109,9 +109,9 @@ namespace Collections
 			_shallowTreeCallbackPtr = nullptr;
 		}
 
-		vector<Key> Keys() const override
+		vector<Key> LetMinLeafCollectKeys() const override
 		{
-			return MinSon()->Keys();
+			return MinSon()->LetMinLeafCollectKeys();
 		}
 
 		Ptr<Base1> HandleOverOnlySon()
