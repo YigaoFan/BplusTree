@@ -72,11 +72,28 @@ namespace Collections
 		}
 
 		Generator(coro_handle handle) : handle(handle) {}
+		Generator(Generator const& that) = delete;
+		Generator(Generator&& that) noexcept
+			: handle(move(that.handle))
+		{
+			that.handle = nullptr;
+		}
+
+		Generator& operator= (Generator const& that) = delete;
+		Generator& operator= (Generator&& that) noexcept
+		{
+			this->handle = move(that.handle);
+			that.handle = nullptr;
+			return *this;
+		}
 
 		~Generator()
 		{
 			// 因为 Generator 还没有复制的情况，所以不用判断 handle 是否有效
-			handle.destroy();
+			if (handle) // 我看了里面实际就是判断一个指针是否有值，并没有判断对应的协程是否还有效，所以加了移动、复制构造函数来控制
+			{
+				handle.destroy();
+			}
 		}
 
 	private:
