@@ -12,8 +12,9 @@ TESTCASE("CompileTest")
 		auto filename = "FuncDef.cpp";
 		ifstream fs(filename, ifstream::in | ifstream::binary);
 		auto reader = FuncDefTokenReader(make_unique<ifstream>(move(fs)));
-		Compile(&reader);
+		Compile(move(reader));
+		
 	}
 }
 
-DEF_TEST_FUNC(compileTest)
+DEF_TEST_FUNC(TestCompile)

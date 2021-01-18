@@ -7,16 +7,18 @@
 #include <stdexcept>
 #include <functional>
 #include <string_view>
+#include "../Basic/StringViewUtil.hpp"
 #include "Request.hpp"
 
 namespace Server
 {
+	using Basic::ParseOut;
+	using Basic::TrimEnd;
+	using Basic::TrimStart;
 	using FuncLib::Compile::FuncType;
-	using ::std::find_if_not;
 	using ::std::forward;
 	using ::std::function;
 	using ::std::invalid_argument;
-	using ::std::isspace;
 	using ::std::move;
 	using ::std::pair;
 	using ::std::string;
@@ -55,18 +57,6 @@ namespace Server
 		};
 	}
 
-	string_view TrimStart(string_view s)
-	{
-		auto isSpace = [](char c) { return isspace(c); };
-		return s.substr(find_if_not(s.begin(), s.end(), isSpace) - s.begin());
-	}
-
-	string_view TrimEnd(string_view s)
-	{
-		auto isSpace = [](char c) { return isspace(c); };
-		return s.substr(0, find_if_not(s.rbegin(), s.rend(), isSpace).base() - s.begin());
-	}
-
 	/// keyword 要确定存在，否则会报错
 	string_view RemoveFirst(string_view keyword, string_view s)
 	{
@@ -82,26 +72,6 @@ namespace Server
 	string_view Preprocess(string_view cmdName, string inputCmd)
 	{
 		return TrimStart(RemoveFirst(cmdName, TrimEnd(TrimStart(inputCmd))));
-	}
-
-	/// 调用者要保证 divider 确在，否则会抛异常
-	template <bool IsTrimRemainStart>
-	pair<string_view, string_view> ParseOut(string_view s, string_view divider)
-	{
-		auto dividerPos = s.find_first_of(divider);
-		auto content = s.substr(0, dividerPos);
-		string_view remain;
-
-		if (dividerPos != string_view::npos)
-		{
-			remain = s.substr(dividerPos + divider.size());
-			if constexpr (IsTrimRemainStart)
-			{
-				remain = TrimStart(remain);
-			}
-		}
-		
-		return { content, remain };
 	}
 
 	/// Package divided with '.'
@@ -141,7 +111,7 @@ namespace Server
 		funcName = TrimEnd(funcName);
 
 		auto [argTypeInfo, remain3] = ParseOut<true>(remain2, ")");
-		function<vector<string>(string_view)> GetArgTypesFrom = [&](string_view s) -> vector<string>
+		function<vector<string>(string_view)> GetParaTypesFrom = [&](string_view s) -> vector<string>
 		{
 			if (s.empty()) { return {}; }
 
@@ -151,11 +121,11 @@ namespace Server
 				return vector<string>{ string(type), };
 			}
 
-			auto remainTypes = GetArgTypesFrom(remain);
+			auto remainTypes = GetParaTypesFrom(remain);
 			remainTypes.insert(remainTypes.begin(), string(type));
 			return remainTypes;
 		};
-		vector<string> argTypes = GetArgTypesFrom(argTypeInfo);
+		vector<string> argTypes = GetParaTypesFrom(argTypeInfo);
 
 		return FuncType(move(string(returnType)), move(string(funcName)), move(argTypes), move(package));
 	}

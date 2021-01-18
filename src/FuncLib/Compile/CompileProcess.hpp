@@ -10,5 +10,5 @@ namespace FuncLib::Compile
 	using ::std::vector;
 
 	/// include 所有必要的头文件，让外界方便使用，后期需求
-	pair<vector<FuncObj>, vector<char>> Compile(FuncDefTokenReader* defReader);
+	pair<vector<FuncObj>, vector<char>> Compile(FuncDefTokenReader defReader);
 }

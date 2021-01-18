@@ -7,9 +7,13 @@
 #include "../../Basic/Exception.hpp"
 #include "ParseFunc.hpp"
 #include "../../Json/JsonConverter/WordEnumerator.hpp"
+#include "../Basic/StringViewUtil.hpp" // 原来不需要一级一级写上去
 
 namespace FuncLib::Compile
 {
+	using Basic::ParseOut;
+	using Basic::TrimEnd;
+	using Basic::TrimStart;
 	using Json::JsonConverter::WordEnumerator;
 	using ::std::array;
 	using ::std::function;
@@ -23,6 +27,7 @@ namespace FuncLib::Compile
 	/// return type, name, args
 	optional<array<string, 3>> ParseFuncSignature(FuncDefTokenReader* reader)
 	{
+		// 这里假设源代码打开上来遇到的不是空白就是函数体
 		array<pair<bool, function<bool(char)>>, 3> parseConfigs
 		{
 			// pair: 允许为空字符串, delimiter predicate
@@ -87,7 +92,7 @@ namespace FuncLib::Compile
 			if (unpairedCount == 0)
 			{
 				funcBody.push_back(move(part));
-				return move(funcBody);
+				return funcBody;
 			}
 			else
 			{
@@ -96,47 +101,43 @@ namespace FuncLib::Compile
 		}
 
 		return funcBody;
-		// throw Basic::InvalidOperationException("{} in func body is unpaired");
 	}
 
 	/// pair: type and parameter name
-	pair<vector<string>, vector<string>> ParseOutParas(string const &argsStr)
+	pair<vector<string>, vector<string>> ParseOutParas(string_view parasStr)
 	{
-		auto divideArg = [](string_view s, char delimiter)
+		function<pair<vector<string>, vector<string>>(string_view)> GetParaTypeNamesFrom = [&](string_view s) -> pair<vector<string>, vector<string>>
 		{
-			auto i = s.find_first_of(delimiter);
-			return array<string_view, 2>
-			{
-				s.substr(0, i), 
-				s.substr(i)
-			};
-		};
+			if (s.empty()) { return {}; }
 
-		WordEnumerator e{ vector<string_view>{ argsStr }, ','};
-		pair<vector<string>, vector<string>> paras;
-		while (e.MoveNext())
-		{
-			if (not e.Current().empty())
+			auto [typeAndName, remain] = ParseOut<true>(s, ",");
+			auto [type, name] = ParseOut<true>(typeAndName, " ");
+			if (remain.empty())
 			{
-				auto [type, name] = divideArg(e.Current(), ' ');
-				paras.first.push_back(string(type));
-				paras.second.push_back(string(name));
+				return { { string(type) }, { string(name) } };
 			}
-		}
 
-		return paras;
+			auto remainTypeNames = GetParaTypeNamesFrom(remain);
+			remainTypeNames.first.insert(remainTypeNames.first.begin(), string(type));
+			remainTypeNames.second.insert(remainTypeNames.second.begin(), string(name));
+			return remainTypeNames;
+		};
+		
+		return GetParaTypeNamesFrom(parasStr);
 	}
 
+	// TODO 准确定位到函数类型签名，忽略 using 和 include 语句
 	/// tuple: FuncType, para name, func body 
-	vector<tuple<FuncType, vector<string>, vector<string>>> ParseFunc(FuncDefTokenReader* defReader)
+	vector<tuple<FuncType, vector<string>, vector<string>>> ParseFunc(FuncDefTokenReader& defReader)
 	{
+		defReader.ResetReadPos();
 		vector<tuple<FuncType, vector<string>, vector<string>>> funcs;
 
-		while (not defReader->AtEnd())
+		while (not defReader.AtEnd())
 		{
-			if (auto sign = ParseFuncSignature(defReader); sign.has_value())
+			if (auto sign = ParseFuncSignature(&defReader); sign.has_value())
 			{
-				auto body = ParseFuncBodyAfterSignature(defReader);
+				auto body = ParseFuncBodyAfterSignature(&defReader);
 				auto& s = sign.value();
 				auto [paraType, paraName] = ParseOutParas(s[2]);
 				funcs.push_back({ 
