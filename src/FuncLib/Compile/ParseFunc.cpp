@@ -4,10 +4,14 @@
 #include <array>
 #include <utility>
 #include <functional>
-#include "../../Basic/Exception.hpp"
+#include "../Basic/Exception.hpp"
 #include "ParseFunc.hpp"
-#include "../../Json/JsonConverter/WordEnumerator.hpp"
+#include "../Json/JsonConverter/WordEnumerator.hpp"
 #include "../Basic/StringViewUtil.hpp" // 原来不需要一级一级写上去
+
+// temp
+#include <string>
+#include <utility>
 
 namespace FuncLib::Compile
 {
@@ -21,6 +25,195 @@ namespace FuncLib::Compile
 	using ::std::optional;
 	using ::std::pair;
 	using ::std::string_view;
+
+	using ::std::string;
+	using ::std::make_index_sequence;
+	using ::std::index_sequence;
+
+	// Parser Combinator inspired from: https://zhuanlan.zhihu.com/p/249005405
+	using ParserInput = string_view;
+	template <typename T>
+	using ParserResult = optional<pair<T, ParserInput>>;
+	template <typename T>
+	using Parser = auto(*)(ParserInput) -> ParserResult<T>;
+
+	template <typename T>
+	struct GetDestTypeOfParser
+	{
+		using Result = typename std::invoke_result_t<T, ParserInput>::value_type::first_type;
+	};
+
+	template <typename T>
+	struct GetDestTypeOfParser<auto (*)(ParserInput) -> ParserResult<T>>
+	{
+		using Result = T;
+	};
+	
+	template <typename T>
+	using ResultOfGetDestTypeOfParser = typename GetDestTypeOfParser<T>::Result;
+
+	constexpr auto Combine(auto parser1, auto parser2, auto resultProcessor)
+	{
+		return [parser1=move(parser1), parser2=move(parser2), resultProcessor=move(resultProcessor)](ParserInput s) -> ParserResult<std::invoke_result_t<decltype(resultProcessor), ResultOfGetDestTypeOfParser<decltype(parser1)>, ResultOfGetDestTypeOfParser<decltype(parser2)>>>
+		{
+			if (auto r1 = parser1(s); r1.has_value())
+			{
+				if (auto r2 = parser2(r1->second); r2.has_value())
+				{
+					return pair(resultProcessor(move(r1->first), move(r2->first)), r2->second);
+				}
+			}
+
+			return std::nullopt;
+		};
+	}
+
+	constexpr auto MakeStopWhileEncounterParser(auto pred)
+	{
+		return [pred=move(pred)](ParserInput s) -> ParserResult<string>
+		{
+			for (auto i = 0; i < s.size(); ++i)
+			{
+				if (not pred(s[i]))
+				{
+					return pair(string(s.substr(0, i)), s.substr(i));
+				}
+			}
+
+			return pair(string(s), string_view());
+		};
+	}
+
+	/// Result not include c
+	constexpr auto MakeStopWhileEncounterParser(char c)
+	{
+		return [=](ParserInput s) -> ParserResult<string>
+		{
+			for (auto i = 0; i < s.size(); ++i)
+			{
+				if (c == s[i])
+				{
+					return pair(string(s.substr(0, i)), s.substr(i));
+				}
+			}
+
+			return pair(string(s), ParserInput());
+		};
+	}
+
+	// 为什么这个就不用放到 std namespace 里，上次在 ByteConverter 那里就用
+	// 不过那次是加两个 array，然后使用的地方是在 ByteConverter 特化的类里面
+	template <typename T, auto N>
+	array<T, N + 1> operator+ (array<T, N> ts, T t)
+	{
+		auto add = [&]<size_t... Idxs>(index_sequence<Idxs...>)
+		{
+			return array<T, N + 1>
+			{
+				move(ts[Idxs])...,
+				move(t),
+			};
+		};
+
+		auto idxs = make_index_sequence<N>();
+		return add(idxs);
+	}
+
+	template <typename T>
+	array<T, 2> operator+ (T t1, T t2)
+	{
+		return array<T, 2>
+		{
+			move(t1),
+			move(t2),
+		};
+	}
+
+	/// 两个 parser，然后也有相应的结果处理就使用这种
+	template <typename Parser2, typename ResultProcessor>
+	constexpr auto operator> (auto parser, pair<Parser2, ResultProcessor> parserAndResultProcessor)
+	{
+		return Combine(move(parser), move(parserAndResultProcessor.first), move(parserAndResultProcessor.second));
+	}
+
+	constexpr auto operator> (auto parser, auto remainStrProcessor)
+	{
+		return [parser=move(parser), remainStrProcessor=move(remainStrProcessor)](string_view s) -> ParserResult<ResultOfGetDestTypeOfParser<decltype(parser)>>
+		{
+			auto r = parser(s);
+			if (r.has_value())
+			{
+				return pair(move(r->first), remainStrProcessor(r->second));
+			}
+
+			return r;
+		};
+	}
+
+	constexpr auto operator< (auto parser, auto resultProcessor)
+	{
+		return [parser=move(parser), resultProcessor=move(resultProcessor)](string_view s) -> ParserResult<std::invoke_result_t<decltype(resultProcessor), ResultOfGetDestTypeOfParser<decltype(parser)>>>
+		{
+			auto r = parser(s);
+			if (r.has_value())
+			{
+				return pair(resultProcessor(move(r->first)), r->second);
+			}
+
+			return r;
+		};
+	}
+
+	constexpr auto MakeFuncSignParser()
+	{
+		auto trimStart = [](auto s)
+		{
+			auto subView = TrimStart(s);
+			if constexpr (std::is_same_v<decltype(s), string>)
+			{
+				return string(subView);
+			}
+			else
+			{
+				return subView;
+			}
+		};
+
+		// sign 是合要求的可以保证我们解析到的是正确位置的 sign
+		auto checkStrAfterSign = [](auto sign, auto strAfterSign) -> optional<decltype(sign)>
+		{
+				if (not strAfterSign.empty())
+				{
+					return std::nullopt;
+				}
+				return sign;
+		};
+
+		auto trimEnd = [](auto s)
+		{
+			auto subView = TrimEnd(s);
+			if constexpr (std::is_same_v<decltype(s), string>)
+			{
+				return string(subView);
+			}
+			else
+			{
+				return subView;
+			}
+		};
+
+		auto trimFirstChar = [](auto s)
+		{
+			return s.substr(1);
+		};
+		return MakeStopWhileEncounterParser(' ') // return type
+			> trimStart // 之前是 TrimStart：是由于 TrimStart 不是 opeator 的原因，导致不用像下面这样取地址吗？
+			> pair(MakeStopWhileEncounterParser('(') < trimEnd, &operator+<string>)
+			> trimFirstChar
+			> pair(MakeStopWhileEncounterParser(')') < trimStart < trimEnd, &operator+<string, 2>)
+			> trimFirstChar
+			> pair(MakeStopWhileEncounterParser('{') < trimStart < trimEnd, checkStrAfterSign);
+	}
 
 	/// 不支持全局变量
 	/// 不支持模板，以及非 JSON 包含的基本类型作为参数和返回值
@@ -74,33 +267,58 @@ namespace FuncLib::Compile
 		return n;
 	}
 
-	// WordEnumerator 还是有问题的，因为 start 到 end 可能跨 string_view 了，这就不行了
-	/// body 是不包含函数的 { } 的
-	vector<string> ParseFuncBodyAfterSignature(FuncDefTokenReader* defReader)
+	/// body 是包含函数的 { } 的
+	pair<bool, size_t> CheckBracesBalance(string_view s, size_t& i)
 	{
-		vector<string> funcBody;
-		auto g = defReader->GetTokenGenerator();
-		int unpairedCount = 0;
-		defReader->DelimiterPredicate([](char c) { return c == '}'; });
-
-		while (g.MoveNext())
+		auto balance = true;
+		for (; i < s.size();)
 		{
-			auto part = g.Current();
-			unpairedCount += Count('{', part);
-			--unpairedCount;
-
-			if (unpairedCount == 0)
+			// 这个检测有缺陷的地方在于有些需要忽略的地方没有忽略——注释和字符串里也可能有 { 符号 
+			if (s[i] == '{')
 			{
-				funcBody.push_back(move(part));
-				return funcBody;
+				if (balance)
+				{
+					++i;
+					balance = false;
+				}
+
+				if (auto r = CheckBracesBalance(s, i); not r.first)
+				{
+					return r;
+				}
+			}
+			else if (s[i] == '}')
+			{
+				if (not balance)
+				{
+					++i;
+				}
+
+				return pair(true, i);
 			}
 			else
 			{
-				funcBody.push_back(move(part) + '}');
+				++i;
 			}
 		}
 
-		return funcBody;
+		return pair(balance, s.size());
+	}
+
+	ParserResult<bool> CheckFuncBody(string_view s)
+	{
+		size_t i = 0;
+		if (auto r = CheckBracesBalance(s, i); r.first)
+		{
+			return pair(true, s.substr(r.second)); // 即使这个 r.second 是 end 位置也安全的返回了空 string_view，看下文档是否是明确规定了
+		}
+
+		return std::nullopt;
+	}
+	// 这都可以，可以当扩展方法用了，但是怎么查找到这个函数上来的？
+	auto operator| (auto s, auto processor)
+	{
+		return processor(s);
 	}
 
 	/// pair: type and parameter name
@@ -122,29 +340,43 @@ namespace FuncLib::Compile
 			remainTypeNames.second.insert(remainTypeNames.second.begin(), string(name));
 			return remainTypeNames;
 		};
-		
-		return GetParaTypeNamesFrom(parasStr);
+
+		return GetParaTypeNamesFrom(parasStr | TrimEnd | TrimStart);
 	}
 
 	// TODO 准确定位到函数类型签名，忽略 using 和 include 语句
 	/// tuple: FuncType, para name, func body 
-	vector<tuple<FuncType, vector<string>, vector<string>>> ParseFunc(FuncDefTokenReader& defReader)
+	vector<tuple<FuncType, vector<string>, vector<string>>> ParseFunc(string_view code)
 	{
-		defReader.ResetReadPos();
 		vector<tuple<FuncType, vector<string>, vector<string>>> funcs;
+		auto signParser = MakeFuncSignParser();
+		auto tokenParser = MakeStopWhileEncounterParser([](char c) { return std::isspace(c); }) > TrimStart;
 
-		while (not defReader.AtEnd())
+		for (auto tokenResult = tokenParser(code); tokenResult.has_value() and not tokenResult.value().second.empty(); )
 		{
-			if (auto sign = ParseFuncSignature(&defReader); sign.has_value())
+			auto remainCode = tokenResult.value().second;
+
+			// sign parser 里面要加下错误处理
+			if (auto r = signParser(remainCode); r.has_value())
 			{
-				auto body = ParseFuncBodyAfterSignature(&defReader);
-				auto& s = sign.value();
-				auto [paraType, paraName] = ParseOutParas(s[2]);
-				funcs.push_back({ 
-					FuncType(move(s[0]), move(s[1]), move(paraType)),
-					move(paraName),
-					move(body) });
+				auto inner = move(r.value());
+				if (inner.first.has_value())
+				{
+					auto [returnType, funcName, paraStr] = move(inner.first.value());
+					auto [paraTypes, paraNames] = ParseOutParas(paraStr);
+
+					vector<string> body; // TODO
+					funcs.push_back({FuncType(move(returnType), move(funcName), move(paraTypes)),
+									 move(paraNames),
+									 move(body)});
+
+					auto r = CheckFuncBody(inner.second);
+					// assert(r.has_value()); // TODO handle
+					remainCode = r.value().second;
+				}
 			}
+
+			tokenResult = tokenParser(remainCode);
 		}
 
 		return funcs;

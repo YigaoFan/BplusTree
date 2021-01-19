@@ -81,7 +81,6 @@ namespace FuncLib::Compile
 		}, move(g1), move(g2));
 	}
 
-	/// Will ResetReadPos
 	FuncDefTokenReader& CheckGrammar(FuncDefTokenReader& defReader)
 	{
 		defReader.ResetReadPos();
@@ -163,10 +162,15 @@ namespace FuncLib::Compile
 		return wrapperFuncDef;
 	}
 
-	pair<vector<vector<string>>, vector<FuncObj>> ProcessFuncs(vector<tuple<FuncType, vector<string>, vector<string>>> funcs)
+	tuple<vector<vector<string>>, vector<FuncObj>, vector<string>> ProcessFuncs(vector<tuple<FuncType, vector<string>, vector<string>>> funcs)
 	{
 		vector<vector<string>> wrapperFuncsDef;
 		vector<FuncObj> funcObjs;
+		vector<string> headers
+		{
+			"../src/Json/JsonConverter/JsonConverter.hpp",
+			"tuple",
+		};
 
 		for (auto& f : funcs)
 		{
@@ -179,7 +183,7 @@ namespace FuncLib::Compile
 			funcObjs.push_back(FuncObj{move(type), move(paraNames), {}});
 		}
 
-		return pair(move(wrapperFuncsDef), move(funcObjs));
+		return tuple(move(wrapperFuncsDef), move(funcObjs), move(headers));
 	};
 
 	// 不太清楚 ParseFunc 在这个 operator 的返回值 decltype(auto) 推导出来是不是引用类型，
@@ -190,20 +194,23 @@ namespace FuncLib::Compile
 		return processor(reader);
 	}
 
-	auto operator| (vector<tuple<FuncType, vector<string>, vector<string>>> funcs, auto processor)
+	auto operator| (auto data, auto processor)
 	{
-		return processor(move(funcs));
+		return processor(move(data));
+	}
+
+	string ReadAllCode(FuncDefTokenReader& reader)
+	{
+		return "";
 	}
 
 	// TODO extern C 里返回 Json 会warning，看 StackOverflow 上说是防止 C 程序使用不正确，那调用程序是 C++ 程序呢，测试一下
 	pair<vector<FuncObj>, vector<char>> Compile(FuncDefTokenReader defReader)
 	{
-		auto [wrapperFuncsDef, funcObjs] = defReader | ParseFunc | ProcessFuncs;
+		auto [wrapperFuncsDef, funcObjs, headersToAdd] = defReader | ReadAllCode | ParseFunc | ProcessFuncs;
 		
-		AppendCode code;
-		code.IncludeNames.push_back("../src/Json/JsonConverter/JsonConverter.hpp");
-		code.IncludeNames.push_back("tuple");
-		code.ExternCBody.WrapperFuncDefs = move(wrapperFuncsDef);
+		AppendCode code{ move(headersToAdd), move(wrapperFuncsDef) };
+		// 这里还有链接 JsonConverter 相关的 cpp 文件的事，应该要搞一个文件夹放这些编译需要的东西
 
 		defReader.ResetReadPos();
 #ifdef _MSVC_LANG
