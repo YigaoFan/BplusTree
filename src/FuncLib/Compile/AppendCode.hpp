@@ -17,9 +17,9 @@ namespace FuncLib::Compile
 		{
 			for (auto &funcDef : WrapperFuncDefs)
 			{
-				for (auto &line : funcDef)
+				for (auto& line : funcDef)
 				{
-					co_yield line;
+					co_yield line + '\n';
 				}
 			}
 		}
@@ -34,13 +34,13 @@ namespace FuncLib::Compile
 		{
 			for (auto &i : IncludeNames)
 			{
-				co_yield "#include \"" + i + "\"";
+				co_yield "#include \"" + i + "\"\n";
 			}
 
-			co_yield "extern \"C\"";
-			co_yield "{";
+			co_yield "extern \"C\"\n";
+			co_yield "{\n";
 			co_yield ExternCBody.GetLineCodeGenerator();
-			co_yield "}";
+			co_yield "}\n";
 		}
 	};
 }

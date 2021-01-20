@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <filesystem>
 #include "../Json/Json.hpp"
-#include "Compile/FuncDefTokenReader.hpp"
+#include "Compile/FuncsDefReader.hpp"
 #include "FuncBinaryLib.hpp"
 #include "FuncBinaryLibIndex.hpp"
 #include "../Btree/Generator.hpp"
@@ -13,7 +13,7 @@
 namespace FuncLib
 {
 	using Collections::Generator;
-	using FuncLib::Compile::FuncDefTokenReader;
+	using FuncLib::Compile::FuncsDefReader;
 	using Json::JsonObject;
 	using ::std::pair;
 	using ::std::string;
@@ -59,7 +59,7 @@ namespace FuncLib
 		// }
 
 		/// 加入多个项，如果中间某一个项爆异常，那就会处于一个中间状态了，让用户来处理，
-		void Add(vector<string> packageHierarchy, FuncDefTokenReader defReader, string summary);
+		void Add(vector<string> packageHierarchy, FuncsDefReader defReader, string summary);
 		bool Contains(FuncType const& func) const;
 		// 是用 func 这种，把组装对象的逻辑放在外面，还是 vector<string> packageHierarchy, string funcName，把组装的逻辑放在这里
 		// void ModifyFuncName(FuncType const& func, string newFuncName);

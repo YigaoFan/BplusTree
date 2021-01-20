@@ -24,7 +24,7 @@ namespace FuncLib::Compile
 	using ::std::to_string;
 	using ::std::vector;
 	
-	vector<char> CompileOnWindows(FuncDefTokenReader* defReader, AppendCode* appendCode)
+	vector<char> CompileOnWindows(FuncsDefReader* defReader, AppendCode* appendCode)
 	{
 		throw NotImplementException("CompileOnWindows function not implemented");
 	}
@@ -34,7 +34,7 @@ namespace FuncLib::Compile
 	{
 		while (generatorPtr->MoveNext())
 		{
-			(*file) << generatorPtr->Current() << std::endl;
+			(*file) << generatorPtr->Current();
 		}
 
 		if constexpr (sizeof...(GeneratorPtrs) > 0)
@@ -58,13 +58,13 @@ namespace FuncLib::Compile
 		string soFileName = name + ".so";
 		auto compileCmd = string("g++ -shared -fPIC -o ") + soFileName + " " + cppFileName + " -std=c++2a";
 		auto r = system(compileCmd.c_str());
-		cleaner.Add(soFileName);
+		// cleaner.Add(soFileName); TODO 恢复这行
 
 		return afterCompileCallback(cppFileName, soFileName, r);
 	}
 
 	/// 返回编译过后的字节
-	vector<char> GetCompiledByteOnUnix(FuncDefTokenReader* defReader, AppendCode const* appendCode)
+	vector<char> GetCompiledByteOnUnix(FuncsDefReader* defReader, AppendCode const* appendCode)
 	{
 		defReader->ResetReadPos();
 		auto g1 = defReader->GetLineCodeGenerator();
@@ -81,7 +81,7 @@ namespace FuncLib::Compile
 		}, move(g1), move(g2));
 	}
 
-	FuncDefTokenReader& CheckGrammar(FuncDefTokenReader& defReader)
+	FuncsDefReader& CheckGrammar(FuncsDefReader& defReader)
 	{
 		defReader.ResetReadPos();
 		auto g = defReader.GetLineCodeGenerator();
@@ -94,18 +94,6 @@ namespace FuncLib::Compile
 		}, move(g));
 
 		return defReader;
-	}
-
-	void CheckProhibitedUseage(vector<string> const& funcBody)
-	{
-		for (auto& l : funcBody)
-		{
-			// 这里的检测还比较粗，因为下面这样的 new 有可能在一个变量名末尾或者注释中
-			if (l.find("new ") != string::npos)
-			{
-				throw InvalidOperationException("Not permit to use new operator in lib function");
-			}
-		}
 	}
 
 	vector<string> GenerateWrapperFunc(FuncType const& funcType, vector<string> const& paraNames)
@@ -146,7 +134,7 @@ namespace FuncLib::Compile
 		if (returnType == "void")
 		{
 			invokeStatement = string("std::apply(" + name + ", std::move(argsTuple));");
-			returnStatement = string("return Json();");
+			returnStatement = string("return JsonObject();");
 		}
 		else
 		{
@@ -155,6 +143,7 @@ namespace FuncLib::Compile
 		}
 
 		wrapperFuncDef.push_back(move(argsTuple));
+		wrapperFuncDef.push_back("// return type: " + returnType);
 		wrapperFuncDef.push_back(move(invokeStatement));
 		wrapperFuncDef.push_back(move(returnStatement));
 		wrapperFuncDef.push_back("}");
@@ -162,13 +151,13 @@ namespace FuncLib::Compile
 		return wrapperFuncDef;
 	}
 
-	tuple<vector<vector<string>>, vector<FuncObj>, vector<string>> ProcessFuncs(vector<tuple<FuncType, vector<string>, vector<string>>> funcs)
+	tuple<vector<vector<string>>, vector<FuncObj>, vector<string>> ProcessFuncs(vector<tuple<FuncType, vector<string>>> funcs)
 	{
 		vector<vector<string>> wrapperFuncsDef;
 		vector<FuncObj> funcObjs;
 		vector<string> headers
 		{
-			"../src/Json/JsonConverter/JsonConverter.hpp",
+			"../Json/JsonConverter/JsonConverter.hpp",
 			"tuple",
 		};
 
@@ -176,9 +165,7 @@ namespace FuncLib::Compile
 		{
 			auto& type = get<0>(f);
 			auto& paraNames = get<1>(f);
-			auto& body = get<2>(f);
 
-			CheckProhibitedUseage(body);
 			wrapperFuncsDef.push_back(GenerateWrapperFunc(type, paraNames));
 			funcObjs.push_back(FuncObj{move(type), move(paraNames), {}});
 		}
@@ -189,7 +176,7 @@ namespace FuncLib::Compile
 	// 不太清楚 ParseFunc 在这个 operator 的返回值 decltype(auto) 推导出来是不是引用类型，
 	// 是引用类型的话，应该是返回一个局部变量的，那就有问题了，但是编译器没有报 warning
 	// 看了下编辑器鼠标放上去的提示，不是引用类型，之后补一下相关的知识
-	decltype(auto) operator| (FuncDefTokenReader& reader, auto processor)
+	decltype(auto) operator| (FuncsDefReader& reader, auto processor)
 	{
 		return processor(reader);
 	}
@@ -199,13 +186,21 @@ namespace FuncLib::Compile
 		return processor(move(data));
 	}
 
-	string ReadAllCode(FuncDefTokenReader& reader)
+	string ReadAllCode(FuncsDefReader& reader)
 	{
-		return "";
+		string code;
+		code.reserve(200); // 估计的值，未仔细验证其有效性
+		auto g = reader.GetLineCodeGenerator();
+		while (g.MoveNext())
+		{
+			code.append(move(g.Current()));
+		}
+
+		return code;
 	}
 
 	// TODO extern C 里返回 Json 会warning，看 StackOverflow 上说是防止 C 程序使用不正确，那调用程序是 C++ 程序呢，测试一下
-	pair<vector<FuncObj>, vector<char>> Compile(FuncDefTokenReader defReader)
+	pair<vector<FuncObj>, vector<char>> Compile(FuncsDefReader defReader)
 	{
 		auto [wrapperFuncsDef, funcObjs, headersToAdd] = defReader | ReadAllCode | ParseFunc | ProcessFuncs;
 		

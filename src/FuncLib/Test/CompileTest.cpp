@@ -8,7 +8,7 @@ using namespace std;
 
 TESTCASE("CompileTest")
 {
-	SECTION("ParseFunc")
+	SECTION("Check Braces Balance", false)
 	{
 		size_t i = 0;
 
@@ -42,60 +42,64 @@ TESTCASE("CompileTest")
 		{
 			ASSERT(CheckBracesBalance("{ {  {}}}}", i).first);
 		}
+	}
 
-		SECTION("Parse func")
+	SECTION("Parse func", false)
+	{
+		SECTION("Simple")
 		{
-			SECTION("Simple")
-			{
-				auto funcs = ParseFunc("void Func(int a, int b) { }");
-			}
+			auto funcs = ParseFunc("void Func(int a, int b) { }");
+		}
 
-			SECTION("Complex1")
-			{
-				auto code = "#include <string>\n"
-							"using namespace std;\n"
-							"void Func(int a, double b) { }";
-				auto fs = ParseFunc(code);
+		SECTION("Complex1")
+		{
+			auto code = "#include <string>\n"
+						"using namespace std;\n"
+						"void Func(int a, double b) { }";
+			auto fs = ParseFunc(code);
 
-				ASSERT(fs.size() == 1);
+			ASSERT(fs.size() == 1);
+			auto f = fs[0];
+			auto t = std::get<0>(f);
+			ASSERT(t.FuncName == "Func");
+			ASSERT(t.ArgTypes.size() == 2);
+			ASSERT(t.ReturnType == "void");
+		}
+
+		SECTION("Complex2")
+		{
+			auto code = "#include <string>\n"
+						"using namespace std;\n"
+						"void Func1 (int a, double b) { }\n"
+						"int Func(int a, double b) { }";
+			auto fs = ParseFunc(code);
+
+			ASSERT(fs.size() == 2);
+
+			{
 				auto f = fs[0];
 				auto t = std::get<0>(f);
-				ASSERT(t.FuncName == "Func");
+				ASSERT(t.FuncName == "Func1");
 				ASSERT(t.ArgTypes.size() == 2);
 				ASSERT(t.ReturnType == "void");
 			}
 
-			SECTION("Complex2")
 			{
-				auto code = "#include <string>\n"
-							"using namespace std;\n"
-							"void Func1 (int a, double b) { }\n"
-							"int Func(int a, double b) { }";
-				auto fs = ParseFunc(code);
-
-				ASSERT(fs.size() == 2);
-
-				{
-					auto f = fs[0];
-					auto t = std::get<0>(f);
-					ASSERT(t.FuncName == "Func1");
-					ASSERT(t.ArgTypes.size() == 2);
-					ASSERT(t.ReturnType == "void");
-				}
-
-				{
-					auto f = fs[1];
-					auto t = std::get<0>(f);
-					ASSERT(t.FuncName == "Func");
-					ASSERT(t.ArgTypes.size() == 2);
-					ASSERT(t.ReturnType == "int");
-				}
+				auto f = fs[1];
+				auto t = std::get<0>(f);
+				ASSERT(t.FuncName == "Func");
+				ASSERT(t.ArgTypes.size() == 2);
+				ASSERT(t.ReturnType == "int");
 			}
 		}
-		// auto filename = "FuncDef.cpp";
-		// ifstream fs(filename, ifstream::in | ifstream::binary);
-		// auto reader = FuncDefTokenReader(make_unique<ifstream>(move(fs)));
-		// Compile(move(reader));
+	}
+
+	SECTION("Compile")
+	{
+		auto filename = "FuncDef.cpp";
+		ifstream fs(filename, ifstream::in | ifstream::binary);
+		auto reader = FuncsDefReader(make_unique<ifstream>(move(fs)));
+		Compile(move(reader));
 	}
 }
 

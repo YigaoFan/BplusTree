@@ -28,7 +28,7 @@ namespace FuncLib
 		return FunctionLibrary(move(i), move(b));
 	}
 
-	void FunctionLibrary::Add(vector<string> packageHierarchy, FuncDefTokenReader defReader, string summary)
+	void FunctionLibrary::Add(vector<string> packageHierarchy, FuncsDefReader defReader, string summary)
 	{
 		auto [funcs, bin] = Compile::Compile(move(defReader));
 		auto p = _binLib.Add(move(bin));

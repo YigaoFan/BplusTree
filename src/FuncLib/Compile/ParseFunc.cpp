@@ -7,7 +7,7 @@
 #include "../Basic/Exception.hpp"
 #include "ParseFunc.hpp"
 #include "../Json/JsonConverter/WordEnumerator.hpp"
-#include "../Basic/StringViewUtil.hpp" // 原来不需要一级一级写上去
+#include "../Basic/StringViewUtil.hpp" // 原来不需要一级一级写上去，有点好奇匹配规则
 
 // temp
 #include <string>
@@ -16,10 +16,11 @@
 
 namespace FuncLib::Compile
 {
+	using Basic::InvalidOperationException;
 	using Basic::ParseOut;
 	using Basic::TrimEnd;
-	using Basic::TrimStart;
 	using Basic::TrimFirstChar;
+	using Basic::TrimStart;
 	using Json::JsonConverter::WordEnumerator;
 	using ::std::array;
 	using ::std::function;
@@ -250,63 +251,12 @@ namespace FuncLib::Compile
 		};
 		auto isSpace = [](char c) { return std::isspace(c); };
 
+		/// parse result: return type, name, argstr
 		return LastTwo(MakeStopWhileEncounterParser('('), MakeStopWhileEncounterParser(isSpace))  // return type and func name
 			> trimFirstChar
 			> pair(MakeStopWhileEncounterParser(')') < trimStart < trimEnd, &operator+<string_view, 2>)
 			> trimFirstChar
 			> pair(MakeStopWhileEncounterParser('{') < trimStart < trimEnd, checkStrAfterSign);
-	}
-
-	/// 不支持全局变量
-	/// 不支持模板，以及非 JSON 包含的基本类型作为参数和返回值
-	/// return type, name, args
-	// optional<array<string, 3>> ParseFuncSignature(FuncDefTokenReader* reader)
-	// {
-	// 	// 这里假设源代码打开上来遇到的不是空白就是函数体
-	// 	array<pair<bool, function<bool(char)>>, 3> parseConfigs
-	// 	{
-	// 		// pair: 允许为空字符串, delimiter predicate
-	// 		pair<bool, function<bool(char)>>{ false, [](char c) { return std::isspace(c); } },
-	// 		{ false, [](char c) { return c == '('; } },
-	// 		{ true, [](char c) { return c == ')'; } },
-	// 	};
-		
-	// 	array<string, 3> infos;
-	// 	auto g = reader->GetTokenGenerator();
-
-	// 	for (auto i = 0; auto c : parseConfigs)
-	// 	{
-	// 		reader->DelimiterPredicate(c.second);
-	// 		while (g.MoveNext())
-	// 		{
-	// 			auto t = g.Current();
-	// 			if (c.first or not t.empty())
-	// 			{
-	// 				infos[i++] = move(g.Current());
-	// 				goto Continue;
-	// 			}
-	// 		}
-			
-	// 		return {};
-	// 	Continue:
-	// 		continue;
-	// 	}
-
-	// 	return infos;
-	// }
-
-	int Count(char c, string_view rangeStr)
-	{
-		int n = 0;
-		for (auto x : rangeStr)
-		{
-			if (c == x)
-			{
-				++n;
-			}
-		}
-
-		return n;
 	}
 
 	/// body 是包含函数的 { } 的
@@ -347,15 +297,22 @@ namespace FuncLib::Compile
 		return pair(balance, s.size());
 	}
 
-	ParserResult<bool> CheckFuncBody(string_view s)
+	string_view CheckFuncBody(string_view s)
 	{
 		size_t i = 0;
 		if (auto r = CheckBracesBalance(s, i); r.first)
 		{
-			return pair(true, s.substr(r.second)); // 即使这个 r.second 是 end 位置也安全的返回了空 string_view，看下文档是否是明确规定了
+			auto body = s.substr(0, r.second);
+			// 这里的检测还比较粗，因为下面这样的 new 有可能在一个变量名末尾或者注释中
+			if (body.find(" new ") != string::npos)
+			{
+				throw InvalidOperationException("Not permit to use new operator in lib function");
+			}
+
+			return s.substr(r.second); // 即使这个 r.second 是 end 位置也安全的返回了空 string_view
 		}
 
-		return std::nullopt;
+		throw InvalidOperationException("braces of function body not balance");
 	}
 	// 这都可以，可以当扩展方法用了，但是怎么查找到这个函数上来的？
 	auto operator| (auto s, auto processor)
@@ -386,11 +343,10 @@ namespace FuncLib::Compile
 		return GetParaTypeNamesFrom(parasStr | TrimEnd | TrimStart);
 	}
 
-	// TODO 准确定位到函数类型签名，忽略 using 和 include 语句
-	/// tuple: FuncType, para name, func body 
-	vector<tuple<FuncType, vector<string>, vector<string>>> ParseFunc(string_view code)
+	/// tuple: FuncType, para name
+	vector<tuple<FuncType, vector<string>>> ParseFunc(string_view code)
 	{
-		vector<tuple<FuncType, vector<string>, vector<string>>> funcs;
+		vector<tuple<FuncType, vector<string>>> funcs;
 		auto signParser = MakeFuncSignParser();
 		auto first = true;
 		auto tokenParser = MakeStopWhileEncounterParser([&first](char c) { if (first) { first = false; return true; } return static_cast<bool>(std::isspace(c)); }) > TrimStart;
@@ -408,14 +364,10 @@ namespace FuncLib::Compile
 					auto [returnType, funcName, paraStr] = move(inner.first.value());
 					auto [paraTypes, paraNames] = ParseOutParas(paraStr);
 
-					vector<string> body; // TODO
 					funcs.push_back({FuncType(string(returnType), string(funcName), move(paraTypes)),
-									 move(paraNames),
-									 move(body)});
+									 move(paraNames)});
 
-					auto r = CheckFuncBody(inner.second);
-					// assert(r.has_value());
-					remainCode = r->second;
+					remainCode = CheckFuncBody(inner.second);
 				}
 			}
 
