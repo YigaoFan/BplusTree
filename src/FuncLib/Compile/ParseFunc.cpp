@@ -73,17 +73,17 @@ namespace FuncLib::Compile
 
 	constexpr auto MakeStopWhileEncounterParser(auto pred)
 	{
-		return [pred=move(pred)](ParserInput s) -> ParserResult<string>
+		return [pred=move(pred)](ParserInput s) -> ParserResult<string_view>
 		{
 			for (auto i = 0; i < s.size(); ++i)
 			{
 				if (pred(s[i]))
 				{
-					return pair(string(s.substr(0, i)), s.substr(i));
+					return pair(s.substr(0, i), s.substr(i));
 				}
 			}
 
-			return pair(string(s), string_view());
+			return pair(s, string_view());
 		};
 	}
 
@@ -91,18 +91,18 @@ namespace FuncLib::Compile
 	/// 如果不含 c，则返回全字符串作为 pair 中的 first
 	constexpr auto MakeStopWhileEncounterParser(char c)
 	{
-		return [=](ParserInput s) -> ParserResult<string>
+		return [=](ParserInput s) -> ParserResult<string_view>
 		{
 			for (auto i = 0; i < s.size(); ++i)
 			{
 				if (c == s[i])
 				{
 					// 返回值都变成 string_view 吧 TODO
-					return pair(string(s.substr(0, i)), s.substr(i));
+					return pair(s.substr(0, i), s.substr(i));
 				}
 			}
 
-			return pair(string(s), ParserInput());
+			return pair(s, ParserInput());
 		};
 	}
 
@@ -252,7 +252,7 @@ namespace FuncLib::Compile
 
 		return LastTwo(MakeStopWhileEncounterParser('('), MakeStopWhileEncounterParser(isSpace))  // return type and func name
 			> trimFirstChar
-			> pair(MakeStopWhileEncounterParser(')') < trimStart < trimEnd, &operator+<string, 2>)
+			> pair(MakeStopWhileEncounterParser(')') < trimStart < trimEnd, &operator+<string_view, 2>)
 			> trimFirstChar
 			> pair(MakeStopWhileEncounterParser('{') < trimStart < trimEnd, checkStrAfterSign);
 	}
@@ -409,13 +409,13 @@ namespace FuncLib::Compile
 					auto [paraTypes, paraNames] = ParseOutParas(paraStr);
 
 					vector<string> body; // TODO
-					funcs.push_back({FuncType(move(returnType), move(funcName), move(paraTypes)),
+					funcs.push_back({FuncType(string(returnType), string(funcName), move(paraTypes)),
 									 move(paraNames),
 									 move(body)});
 
 					auto r = CheckFuncBody(inner.second);
-					// assert(r.has_value()); // TODO handle
-					remainCode = r.value().second;
+					// assert(r.has_value());
+					remainCode = r->second;
 				}
 			}
 
