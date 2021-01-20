@@ -17,8 +17,13 @@ namespace FuncLib::Compile
 		vector<string> _filenames;
 
 		FilesCleaner(vector<string> filenames = {}) : _filenames(move(filenames))
-		{
-		}
+		{ }
+
+		FilesCleaner(string filename) : FilesCleaner(vector{ move(filename) })
+		{ }
+
+		FilesCleaner(FilesCleaner&& that) noexcept = default;
+		FilesCleaner(FilesCleaner const& that) = delete;
 
 		void Add(string filename)
 		{
