@@ -12,12 +12,14 @@
 // temp
 #include <string>
 #include <utility>
+#include <queue>
 
 namespace FuncLib::Compile
 {
 	using Basic::ParseOut;
 	using Basic::TrimEnd;
 	using Basic::TrimStart;
+	using Basic::TrimFirstChar;
 	using Json::JsonConverter::WordEnumerator;
 	using ::std::array;
 	using ::std::function;
@@ -29,6 +31,7 @@ namespace FuncLib::Compile
 	using ::std::string;
 	using ::std::make_index_sequence;
 	using ::std::index_sequence;
+	using ::std::queue;
 
 	// Parser Combinator inspired from: https://zhuanlan.zhihu.com/p/249005405
 	using ParserInput = string_view;
@@ -74,7 +77,7 @@ namespace FuncLib::Compile
 		{
 			for (auto i = 0; i < s.size(); ++i)
 			{
-				if (not pred(s[i]))
+				if (pred(s[i]))
 				{
 					return pair(string(s.substr(0, i)), s.substr(i));
 				}
@@ -85,6 +88,7 @@ namespace FuncLib::Compile
 	}
 
 	/// Result not include c
+	/// 如果不含 c，则返回全字符串作为 pair 中的 first
 	constexpr auto MakeStopWhileEncounterParser(char c)
 	{
 		return [=](ParserInput s) -> ParserResult<string>
@@ -93,6 +97,7 @@ namespace FuncLib::Compile
 			{
 				if (c == s[i])
 				{
+					// 返回值都变成 string_view 吧 TODO
 					return pair(string(s.substr(0, i)), s.substr(i));
 				}
 			}
@@ -102,7 +107,7 @@ namespace FuncLib::Compile
 	}
 
 	// 为什么这个就不用放到 std namespace 里，上次在 ByteConverter 那里就用
-	// 不过那次是加两个 array，然后使用的地方是在 ByteConverter 特化的类里面
+	// 不过那次是加两个 array，然后使用的地方是在 ByteConverter 特化的类里面，可能依赖查找的地方就不一样了
 	template <typename T, auto N>
 	array<T, N + 1> operator+ (array<T, N> ts, T t)
 	{
@@ -138,7 +143,7 @@ namespace FuncLib::Compile
 
 	constexpr auto operator> (auto parser, auto remainStrProcessor)
 	{
-		return [parser=move(parser), remainStrProcessor=move(remainStrProcessor)](string_view s) -> ParserResult<ResultOfGetDestTypeOfParser<decltype(parser)>>
+		return [parser=move(parser), remainStrProcessor=move(remainStrProcessor)](string_view s) -> std::invoke_result_t<decltype(parser), decltype(s)>
 		{
 			auto r = parser(s);
 			if (r.has_value())
@@ -164,6 +169,43 @@ namespace FuncLib::Compile
 		};
 	}
 
+	// 也可以想办法逆着解析
+	/// rangeParser is ParserResult<string_view>
+	constexpr auto LastTwo(auto rangeParser, auto unitParser)
+	{
+		return [rangeParser=move(rangeParser), unitParser=move(unitParser)](string_view s) -> ParserResult<array<ResultOfGetDestTypeOfParser<decltype(unitParser)>, 2>>
+		{
+			if (auto r1 = rangeParser(s); r1.has_value())
+			{
+				using T = ResultOfGetDestTypeOfParser<decltype(unitParser)>;
+				queue<T> results;
+				auto range = r1->first;
+
+				while (not range.empty())
+				{
+					if (auto r2 = unitParser(range); r2.has_value())
+					{
+						if (results.size() == 2)
+						{
+							results.pop();
+						}
+						results.push(move(r2->first));
+						range = TrimFirstChar(move(r2->second));
+						continue;
+					}
+					break;
+				}
+
+				if (results.size() == 2)
+				{
+					return pair(array<T, 2>{ move(results.front()), move(results.back()) }, r1->second); // 改返回值类型，检查这个程序
+				}
+			}
+
+			return std::nullopt;
+		};
+	}
+
 	constexpr auto MakeFuncSignParser()
 	{
 		auto trimStart = [](auto s)
@@ -182,11 +224,11 @@ namespace FuncLib::Compile
 		// sign 是合要求的可以保证我们解析到的是正确位置的 sign
 		auto checkStrAfterSign = [](auto sign, auto strAfterSign) -> optional<decltype(sign)>
 		{
-				if (not strAfterSign.empty())
-				{
-					return std::nullopt;
-				}
-				return sign;
+			if (not strAfterSign.empty())
+			{
+				return std::nullopt;
+			}
+			return sign;
 		};
 
 		auto trimEnd = [](auto s)
@@ -206,9 +248,9 @@ namespace FuncLib::Compile
 		{
 			return s.substr(1);
 		};
-		return MakeStopWhileEncounterParser(' ') // return type
-			> trimStart // 之前是 TrimStart：是由于 TrimStart 不是 opeator 的原因，导致不用像下面这样取地址吗？
-			> pair(MakeStopWhileEncounterParser('(') < trimEnd, &operator+<string>)
+		auto isSpace = [](char c) { return std::isspace(c); };
+
+		return LastTwo(MakeStopWhileEncounterParser('('), MakeStopWhileEncounterParser(isSpace))  // return type and func name
 			> trimFirstChar
 			> pair(MakeStopWhileEncounterParser(')') < trimStart < trimEnd, &operator+<string, 2>)
 			> trimFirstChar
@@ -218,40 +260,40 @@ namespace FuncLib::Compile
 	/// 不支持全局变量
 	/// 不支持模板，以及非 JSON 包含的基本类型作为参数和返回值
 	/// return type, name, args
-	optional<array<string, 3>> ParseFuncSignature(FuncDefTokenReader* reader)
-	{
-		// 这里假设源代码打开上来遇到的不是空白就是函数体
-		array<pair<bool, function<bool(char)>>, 3> parseConfigs
-		{
-			// pair: 允许为空字符串, delimiter predicate
-			pair<bool, function<bool(char)>>{ false, [](char c) { return std::isspace(c); } },
-			{ false, [](char c) { return c == '('; } },
-			{ true, [](char c) { return c == ')'; } },
-		};
+	// optional<array<string, 3>> ParseFuncSignature(FuncDefTokenReader* reader)
+	// {
+	// 	// 这里假设源代码打开上来遇到的不是空白就是函数体
+	// 	array<pair<bool, function<bool(char)>>, 3> parseConfigs
+	// 	{
+	// 		// pair: 允许为空字符串, delimiter predicate
+	// 		pair<bool, function<bool(char)>>{ false, [](char c) { return std::isspace(c); } },
+	// 		{ false, [](char c) { return c == '('; } },
+	// 		{ true, [](char c) { return c == ')'; } },
+	// 	};
 		
-		array<string, 3> infos;
-		auto g = reader->GetTokenGenerator();
+	// 	array<string, 3> infos;
+	// 	auto g = reader->GetTokenGenerator();
 
-		for (auto i = 0; auto c : parseConfigs)
-		{
-			reader->DelimiterPredicate(c.second);
-			while (g.MoveNext())
-			{
-				auto t = g.Current();
-				if (c.first or not t.empty())
-				{
-					infos[i++] = move(g.Current());
-					goto Continue;
-				}
-			}
+	// 	for (auto i = 0; auto c : parseConfigs)
+	// 	{
+	// 		reader->DelimiterPredicate(c.second);
+	// 		while (g.MoveNext())
+	// 		{
+	// 			auto t = g.Current();
+	// 			if (c.first or not t.empty())
+	// 			{
+	// 				infos[i++] = move(g.Current());
+	// 				goto Continue;
+	// 			}
+	// 		}
 			
-			return {};
-		Continue:
-			continue;
-		}
+	// 		return {};
+	// 	Continue:
+	// 		continue;
+	// 	}
 
-		return infos;
-	}
+	// 	return infos;
+	// }
 
 	int Count(char c, string_view rangeStr)
 	{
@@ -350,7 +392,8 @@ namespace FuncLib::Compile
 	{
 		vector<tuple<FuncType, vector<string>, vector<string>>> funcs;
 		auto signParser = MakeFuncSignParser();
-		auto tokenParser = MakeStopWhileEncounterParser([](char c) { return std::isspace(c); }) > TrimStart;
+		auto first = true;
+		auto tokenParser = MakeStopWhileEncounterParser([&first](char c) { if (first) { first = false; return true; } return static_cast<bool>(std::isspace(c)); }) > TrimStart;
 
 		for (auto tokenResult = tokenParser(code); tokenResult.has_value() and not tokenResult.value().second.empty(); )
 		{

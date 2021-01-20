@@ -18,4 +18,14 @@ namespace Basic
 		auto isSpace = [](char c) { return isspace(c); };
 		return s.substr(0, find_if_not(s.rbegin(), s.rend(), isSpace).base() - s.begin());
 	}
+
+	string_view TrimFirstChar(string_view s)
+	{
+		if (not s.empty())
+		{
+			return s.substr(1);
+		}
+
+		return s;
+	};
 }
