@@ -2,17 +2,15 @@
 #include <optional>
 #include <cctype>
 #include <array>
+#include <string>
+#include <utility>
+#include <queue>
 #include <utility>
 #include <functional>
 #include "../Basic/Exception.hpp"
 #include "ParseFunc.hpp"
 #include "../Json/JsonConverter/WordEnumerator.hpp"
 #include "../Basic/StringViewUtil.hpp" // 原来不需要一级一级写上去，有点好奇匹配规则
-
-// temp
-#include <string>
-#include <utility>
-#include <queue>
 
 namespace FuncLib::Compile
 {
@@ -24,15 +22,14 @@ namespace FuncLib::Compile
 	using Json::JsonConverter::WordEnumerator;
 	using ::std::array;
 	using ::std::function;
+	using ::std::index_sequence;
+	using ::std::make_index_sequence;
 	using ::std::move;
 	using ::std::optional;
 	using ::std::pair;
-	using ::std::string_view;
-
-	using ::std::string;
-	using ::std::make_index_sequence;
-	using ::std::index_sequence;
 	using ::std::queue;
+	using ::std::string;
+	using ::std::string_view;
 
 	// Parser Combinator inspired from: https://zhuanlan.zhihu.com/p/249005405
 	using ParserInput = string_view;
@@ -314,6 +311,7 @@ namespace FuncLib::Compile
 
 		throw InvalidOperationException("braces of function body not balance");
 	}
+
 	// 这都可以，可以当扩展方法用了，但是怎么查找到这个函数上来的？
 	auto operator| (auto s, auto processor)
 	{
@@ -355,7 +353,6 @@ namespace FuncLib::Compile
 		{
 			auto remainCode = tokenResult.value().second;
 
-			// sign parser 里面要加下错误处理
 			if (auto r = signParser(remainCode); r.has_value())
 			{
 				auto inner = move(r.value());

@@ -1,10 +1,8 @@
 
-#include <array>
 #include <string>
 #include <vector>
-#include <string_view>
-#include <cstdlib>
 #include <fstream>
+#include <string_view>
 #include "../Basic/Exception.hpp"
 #include "CompileProcess.hpp"
 #include "AppendCode.hpp"
@@ -15,7 +13,6 @@ namespace FuncLib::Compile
 {
 	using Basic::InvalidOperationException;
 	using Basic::NotImplementException;
-	using ::std::array;
 	using ::std::get;
 	using ::std::move;
 	using ::std::ofstream;
@@ -209,9 +206,7 @@ namespace FuncLib::Compile
 		auto [wrapperFuncsDef, funcObjs, headersToAdd] = defReader | CheckGrammar | ReadAllCode | ParseFunc | ProcessFuncs;
 		
 		AppendCode code{ move(headersToAdd), move(wrapperFuncsDef) };
-		// 这里还有链接 JsonConverter 相关的 cpp 文件的事，应该要搞一个文件夹放这些编译需要的东西
 
-		defReader.ResetReadPos();
 #ifdef _MSVC_LANG
 		auto bins = CompileOnWindows(defReader, &appendCode);
 #else // __clang__ or __GNUC__
