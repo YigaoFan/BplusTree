@@ -15,24 +15,11 @@ namespace FuncLib::Compile
 		void* _handle;
 
 	public:
-		SharedLibrary(char const* filename) : _handle(dlopen(filename, RTLD_LAZY))
-		{
-			if (_handle == nullptr)
-			{
-				throw InvalidOperationException(string("open ") + filename + " failed");
-			}
-		}
-
-		SharedLibrary(string const& filename) : SharedLibrary(filename.c_str())
-		{ }
-
-		SharedLibrary(SharedLibrary&& that) noexcept
-			: _handle(that._handle)
-		{
-			that._handle = nullptr;
-		}
-
+		SharedLibrary(char const* filename);
+		SharedLibrary(string const& filename);
+		SharedLibrary(SharedLibrary&& that) noexcept;
 		SharedLibrary(SharedLibrary const& that) noexcept = delete;
+		~SharedLibrary() noexcept(false);
 
 		// 返回值 decltype(auto) 是我在 CompileProcess 使用后感觉
 		template <typename Func, typename... Args>
@@ -52,17 +39,6 @@ namespace FuncLib::Compile
 		decltype(auto) Invoke(string const& funcName, Args&&... args)
 		{
 			return Invoke(funcName.c_str(), forward<Args>(args)...);
-		}
-
-		~SharedLibrary() noexcept(false)
-		{
-			if (_handle != nullptr)
-			{
-				if (dlclose(_handle) != 0)
-				{
-					throw InvalidOperationException("close handle failed");
-				}
-			}
 		}
 	};
 }
