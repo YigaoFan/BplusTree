@@ -10,7 +10,7 @@ namespace FuncLib::Compile
 
 	void FuncsDefReader::ResetReadPos()
 	{
-		_istream->clear();// 这句到底需不需要？TODO
+		_istream->clear();
 		_istream->seekg(0, istream::beg);
 	}
 
