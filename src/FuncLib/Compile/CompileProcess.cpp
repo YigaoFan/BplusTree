@@ -41,6 +41,10 @@ namespace FuncLib::Compile
 		{
 			AppendCodeTo(file, generatorPtrs...);
 		}
+		else
+		{
+			file->flush();
+		}
 	}
 
 	template <typename... Generators>
@@ -51,14 +55,14 @@ namespace FuncLib::Compile
 		string name = "temp_compile_" + RandomString(); // 加入随机性
 		string cppFileName = name + ".cpp";
 		ofstream f(cppFileName);
-		// cleaner.Add(cppFileName); TODO 恢复这行
+		cleaner.Add(cppFileName);
 
 		AppendCodeTo(&f, (&codeContentGenerators)...);
 
 		string soFileName = name + ".so";
-		auto compileCmd = string("g++ -shared -fPIC -o ") + soFileName + " " + cppFileName + " -std=c++2a";
+		auto compileCmd = string("g++ -shared -fPIC -I../src -o ") + soFileName + " " + cppFileName + " -std=c++2a";
 		auto r = system(compileCmd.c_str());
-		// cleaner.Add(soFileName); TODO 恢复这行
+		cleaner.Add(soFileName);
 
 		return afterCompileCallback(cppFileName, soFileName, r);
 	}
@@ -134,7 +138,7 @@ namespace FuncLib::Compile
 		if (returnType == "void")
 		{
 			invokeStatement = string("std::apply(" + name + ", std::move(argsTuple));");
-			returnStatement = string("return JsonObject();");
+			returnStatement = string("return Json::JsonObject();");
 		}
 		else
 		{
@@ -157,8 +161,7 @@ namespace FuncLib::Compile
 		vector<FuncObj> funcObjs;
 		vector<string> headers
 		{
-			"../Json/JsonConverter/JsonConverter.hpp",
-			"tuple",
+			"Unity.hpp",
 		};
 
 		for (auto& f : funcs)
@@ -188,6 +191,8 @@ namespace FuncLib::Compile
 
 	string ReadAllCode(FuncsDefReader& reader)
 	{
+		reader.ResetReadPos();
+
 		string code;
 		code.reserve(200); // 估计的值，未仔细验证其有效性
 		auto g = reader.GetLineCodeGenerator();
@@ -199,10 +204,9 @@ namespace FuncLib::Compile
 		return code;
 	}
 
-	// TODO extern C 里返回 Json 会warning，看 StackOverflow 上说是防止 C 程序使用不正确，那调用程序是 C++ 程序呢，测试一下
 	pair<vector<FuncObj>, vector<char>> Compile(FuncsDefReader defReader)
 	{
-		auto [wrapperFuncsDef, funcObjs, headersToAdd] = defReader | ReadAllCode | ParseFunc | ProcessFuncs;
+		auto [wrapperFuncsDef, funcObjs, headersToAdd] = defReader | CheckGrammar | ReadAllCode | ParseFunc | ProcessFuncs;
 		
 		AppendCode code{ move(headersToAdd), move(wrapperFuncsDef) };
 		// 这里还有链接 JsonConverter 相关的 cpp 文件的事，应该要搞一个文件夹放这些编译需要的东西
