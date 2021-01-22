@@ -57,7 +57,7 @@ namespace FuncLib::Compile
 		AppendCodeTo(&f, (&codeContentGenerators)...);
 
 		string soFileName = name + ".so";
-		auto compileCmd = string("g++ -shared -fPIC -I../src -o ") + soFileName + " " + cppFileName + " -std=c++2a";
+		auto compileCmd = string("g++ -O2 -shared -fPIC -I../src -o ") + soFileName + " " + cppFileName + " -std=c++2a"; // TODO > 重定向编译输出
 		auto r = system(compileCmd.c_str());
 		cleaner.Add(soFileName);
 
@@ -104,7 +104,7 @@ namespace FuncLib::Compile
 		auto& paraTypes = funcType.ArgTypes;
 		vector<string> wrapperFuncDef
 		{
-			"Json::JsonObject " + name + "_wrapper(Json::JsonObject jsonObj) {",
+			"Json::JsonObject " + GetWrapperFuncName(name) + "(Json::JsonObject jsonObj) {",
 		};
 
 		vector<string> argDeserialCodes;
@@ -214,5 +214,14 @@ namespace FuncLib::Compile
 #endif
 
 		return { move(funcObjs), bins };
+	}
+
+	string GetWrapperFuncName(string_view rawName)
+	{
+		char const suffix[] = "_wrapper";
+		string name(rawName);
+		name.reserve(rawName.size()  + sizeof(suffix) - 1);
+		name.append(suffix);
+		return name;
 	}
 }
