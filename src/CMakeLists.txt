@@ -62,6 +62,7 @@ add_executable(RPC
         FuncLib/Test/CompileTest.cpp
         FuncLib/Test/LabelNodeTest.cpp
         FuncLib/Test/ObjectRelationTreeTest.cpp
+        FuncLib/Test/FunctionLibraryTest.cpp
 
         #Server/Request.cpp
         #Server/Test/ServerTest.cpp
