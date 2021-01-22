@@ -22,6 +22,15 @@ namespace FuncLib::Store
 		using Remain = TypeList<Ts...>;
 	};
 
+	template <typename T, typename TypeList>
+	struct Cons;
+
+	template <typename T, typename... Ts>
+	struct Cons<T, TypeList<Ts...>>
+	{
+		using Result = TypeList<T, Ts...>;
+	};
+
 	template <typename T>
 	struct GenerateOtherSearchRoutine
 	{

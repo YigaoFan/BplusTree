@@ -64,8 +64,8 @@ namespace FuncLib::Store
 		template <typename T>
 		bool HasRead(pos_label label) const
 		{
-			// 这里也不全面 TODO
-			return _cache.Cached<T>(label);
+			using SearchRoutine = typename Cons<T, typename GenerateOtherSearchRoutine<T>::Result>::Result;
+			return HasCached<SearchRoutine>(label);
 		}
 
 		template <typename T>
@@ -154,8 +154,12 @@ namespace FuncLib::Store
 		void StoreInner(pos_label posLabel, shared_ptr<T> const& object, FakeObjectBytes* writer)
 		{
 			ProcessFakeStore(posLabel, object, writer);
+
+			using SearchRoutine = typename Cons<T, typename GenerateOtherSearchRoutine<T>::Result>::Result;
+			TryRemoveCache<SearchRoutine>(posLabel);
 		}
 
+		/// In File, Fake Store is for delete
 		template <typename T>
 		void Delete(pos_label posLabel, shared_ptr<T> object) // 这个模仿 delete 这个接口，但暂不处理 object
 		{
@@ -164,7 +168,9 @@ namespace FuncLib::Store
 
 			auto readStateNode = ReadStateLabelNode::ConsNodeWith(&writer);
 			_objRelationTree.Free(move(readStateNode));
-			_cache.Remove<T>(posLabel);// TODO 这里的 remove 不全，树里的 label 都要 remove 掉，或者不要处理 cache 了
+
+			using SearchRoutine = typename Cons<T, typename GenerateOtherSearchRoutine<T>::Result>::Result;
+			TryRemoveCache<SearchRoutine>(posLabel);
 		}
 
 		template <typename T>
@@ -174,6 +180,44 @@ namespace FuncLib::Store
 		}
 
 	private:
+		template <typename SearchTypeList>
+		void TryRemoveCache(pos_label label)
+		{
+			if constexpr (SearchTypeList::IsNull)
+			{
+				return;
+			}
+			else
+			{
+				using T = typename SearchTypeList::Current;
+				if (_cache.Cached<T>(label))
+				{
+					return _cache.Remove<T>(label);
+				}
+
+				return TryRemoveCache<typename SearchTypeList::Remain>(label);
+			}
+		}
+
+		template <typename SearchTypeList>
+		bool HasCached(pos_label label) const
+		{
+			if constexpr (SearchTypeList::IsNull)
+			{
+				return false;
+			}
+			else
+			{
+				using T = typename SearchTypeList::Current;
+				if (_cache.Cached<T>(label))
+				{
+					return true;
+				}
+
+				return HasCached<typename SearchTypeList::Remain>(label);
+			}
+		}
+
 		template <typename Des, typename OtherSearchTypeList, bool FirstCall=true>
 		shared_ptr<Des> Search(pos_label label)
 		{
