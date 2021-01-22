@@ -100,9 +100,6 @@ namespace Collections
 			0 : (Total % ItemCapacity == 0 ? (Total / ItemCapacity) : (Total / ItemCapacity + 1));
 	}
 
-	template <order_int BtreeOrder, typename Key, typename Value>
-	class UniversalEnumerator;
-
 	// 这三个类型参数的顺序要不要调整下啊
 	template <order_int BtreeOrder, typename Key, typename Value, StorePlace Place = StorePlace::Memory>
 	class Btree : public TakeWithFile<IsDisk<Place> ? Switch::Enable : Switch::Disable>
@@ -113,7 +110,6 @@ namespace Collections
 		// 待验证：因为它是某个模板的特化，所以模板需要前置声明，特化不需要
 		template <typename... Ts>
 		using Ptr = typename TypeConfig::template Ptr<Place>::template Type<Ts...>;
-		friend class UniversalEnumerator<BtreeOrder, Key, Value>;
 		friend struct FuncLib::Persistence::ByteConverter<Btree, false>; // Btree here is undefined or incomplete type
 		friend struct FuncLib::Persistence::TypeConverter<Btree>;
 		friend struct FuncLib::Persistence::TypeConverter<Btree<BtreeOrder, Key, Value, StorePlace::Memory>>;
