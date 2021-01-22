@@ -37,5 +37,10 @@ namespace FuncLib::Test
 			_stream.read(reinterpret_cast<char *>(&bytes), N);
 			return bytes;
 		}
+
+		void Skip(size_t size)
+		{
+			Read(size);
+		}
 	};
 }

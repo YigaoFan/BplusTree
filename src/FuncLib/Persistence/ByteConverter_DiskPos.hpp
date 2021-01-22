@@ -32,9 +32,13 @@ namespace FuncLib::Persistence
 
 		static ThisType ReadOut(IReaderWithFile auto* reader)
 		{
-			auto p = ByteConverter<DataMemberType>::ReadOut(reader);
-			auto file = reader->GetLessOwnershipFile();
-			return { file, p };
+			auto label = ByteConverter<DataMemberType>::ReadOut(reader);
+			File* file = nullptr;
+			if (label != FileLabel)
+			{
+				file = reader->GetLessOwnershipFile();
+			}
+			return { file, label };
 		}
 	};
 }

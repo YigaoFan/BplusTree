@@ -199,6 +199,13 @@ namespace FuncLib::Persistence
 				vec.Add(ByteConverter<T>::ReadOut(reader));
 			}
 
+			// 空读，使 reader 里的偏移向前移动，与写入时对应
+			if constexpr (SizeStable)
+			{
+				auto unitSize = Size / Capacity;
+				reader->Skip(unitSize * (Capacity - n));
+			}
+
 			return vec;
 		}
 	};

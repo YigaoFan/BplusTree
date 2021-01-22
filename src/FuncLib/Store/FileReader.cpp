@@ -40,6 +40,11 @@ namespace FuncLib::Store
 		return ReadByte(&_readStream, pos, size);
 	}
 
+	void FileReader::Skip(size_t size)
+	{
+		Read(size);
+	}
+
 	File* FileReader::GetLessOwnershipFile() const
 	{
 		return _file;

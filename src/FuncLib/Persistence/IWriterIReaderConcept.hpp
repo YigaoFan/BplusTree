@@ -48,6 +48,7 @@ namespace FuncLib::Persistence
 	{
 		t.template Read<1>(); // 1 is just a sample
 		{ t.Read(size) } -> IsSameTo<vector<byte>>;
+		t.Skip(1);
 	};
 
 	template <typename T>

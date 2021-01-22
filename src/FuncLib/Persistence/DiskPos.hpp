@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <utility>
+#include "../Store/StaticConfig.hpp"
 #include "../Store/File.hpp"
 #include "IWriterIReaderConcept.hpp"
 
@@ -25,7 +26,7 @@ namespace FuncLib::Persistence
 		File* _file;
 		pos_label _label;
 	public:
-		DiskPos() : _file(nullptr), _label(0)
+		DiskPos() : _file(nullptr), _label(FileLabel)
 		{ }
 
 		DiskPos(File* file, pos_label label) : _file(file), _label(label)
@@ -35,7 +36,7 @@ namespace FuncLib::Persistence
 			: _file(that._file), _label(that._label)
 		{
 			that._file = nullptr;
-			that._label = 0;
+			that._label = FileLabel;
 		}
 
 		DiskPos(DiskPos const& that) = default;
@@ -44,7 +45,7 @@ namespace FuncLib::Persistence
 			this->_file = that._file;
 			this->_label = that._label;
 			that._file = nullptr;
-			that._label = 0;
+			that._label = FileLabel;
 			return *this;
 		}
 		DiskPos& operator= (DiskPos const& that) noexcept = default;
@@ -57,7 +58,7 @@ namespace FuncLib::Persistence
 		DiskPos(DiskPos<Derived>&& that) : _file(that._file), _label(that._label)
 		{
 			that._file = nullptr;
-			that._label = 0;
+			that._label = FileLabel;
 		}
 
 		shared_ptr<T> ReadObject() const

@@ -47,6 +47,7 @@ namespace FuncLib::Store
 		FileReader(File* file, ifstream readStream, pos_int startPos);
 		/// has side effect: move forward size positions
 		vector<byte> Read(size_t size);
+		void Skip(size_t size);
 		File* GetLessOwnershipFile() const;
 
 		/// Side effect: move forward N positions
