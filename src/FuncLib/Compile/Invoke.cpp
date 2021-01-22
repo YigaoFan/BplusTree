@@ -13,8 +13,10 @@ namespace FuncLib::Compile
 	JsonObject Invoke(vector<char> const& bin, char const* funcName, JsonObject arg)
 	{
 		string tempFileName = "temp_invoke" + RandomString() + ".so";
-		ofstream of(tempFileName);
-		of.write(bin.data(), bin.size());
+		{
+			ofstream of(tempFileName);
+			of.write(bin.data(), bin.size());
+		}
 		FilesCleaner cleaner(tempFileName);
 
 		SharedLibrary lib(tempFileName);
