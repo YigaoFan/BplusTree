@@ -27,11 +27,12 @@ namespace FuncLib::Store
 	public:
 		static constexpr char Blank = ' ';
 
-		WriteQueue* ToWrites;
-		AllocateSpaceQueue* ToAllocates;
-		ResizeSpaceQueue* ToResizes;
+		WriteQueue* ToWrites = nullptr;
+		AllocateSpaceQueue* ToAllocates = nullptr;
+		ResizeSpaceQueue* ToResizes = nullptr;
 
 		ObjectBytes(pos_label label, WriteQueue* writeQueuen = nullptr, AllocateSpaceQueue* allocateQueue = nullptr, ResizeSpaceQueue* resizeQueue = nullptr);
+		ObjectBytes(pos_label label, vector<char> bytes);
 		
 		ObjectBytes* ConstructSub(pos_label label);
 		using Base::CreateSortedSubNodeEnumerator;

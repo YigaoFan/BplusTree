@@ -44,9 +44,10 @@ namespace FuncLib::Store
 	class File : public enable_shared_from_this<File>
 	{
 	private:
+		friend struct FuncLib::Persistence::ByteConverter<File, false>;
 		static inline unsigned int FileCount = 0;
-		static constexpr pos_int MetadataSize = 2048; // Byte，这个应该属于 data member，因为后期会改
 
+		pos_int _metadataSize; // Byte
 		shared_ptr<path> _filename;
 		FileCache _cache;
 		StorageAllocator _allocator;
@@ -55,11 +56,9 @@ namespace FuncLib::Store
 	public:
 		static shared_ptr<File> GetFile(path const& filename);
 		/// below for make_shared use in File class only
-		File(FileCache cache, shared_ptr<path> filename, StorageAllocator allocator, ObjectRelationTree relationTree);
+		File(pos_int metadataSize, FileCache cache, shared_ptr<path> filename, StorageAllocator allocator, ObjectRelationTree relationTree);
 		File(File&& that) noexcept = delete;
 		File(File const& that) = delete;
-
-		shared_ptr<path> Path() const;
 		~File();
 
 		template <typename T>
@@ -123,7 +122,7 @@ namespace FuncLib::Store
 			auto write = [&](ObjectBytes* bytes)
 			{
 				auto start = _allocator.GetConcretePos(bytes->Label());
-				bytes->WriteIn(&fs, start + MetadataSize);
+				bytes->WriteIn(&fs, start + _metadataSize);
 			};
 
 			// 这里的 SizeStable 不考虑指针指向的对象，牵涉到 ByteConverter<DiskPtr> 和这下面的 if
@@ -208,8 +207,8 @@ namespace FuncLib::Store
 		{
 			// 触发 读 的唯一一个地方
 			auto start = _allocator.GetConcretePos(posLabel);
-			printf("read from %lu\n", start + MetadataSize);
-			auto reader = FileReader::MakeReader(this, *_filename, start + MetadataSize);
+			printf("read from %lu\n", start + _metadataSize);
+			auto reader = FileReader::MakeReader(this, *_filename, start + _metadataSize);
 			return ByteConverter<T>::ReadOut(&reader);
 		}
 

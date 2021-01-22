@@ -14,6 +14,10 @@ namespace FuncLib::Store
 		: Base(label), ToWrites(writeQueue), ToAllocates(allocateQueue), ToResizes(resizeQueue)
 	{ }
 
+	ObjectBytes::ObjectBytes(pos_label label, vector<char> bytes)
+		: Base(label), _bytes(move(bytes))
+	{ }
+
 	void ObjectBytes::WriteIn(fstream* fileStream, pos_int pos) const
 	{
 		if (not _bytes.empty())
