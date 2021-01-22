@@ -1,4 +1,3 @@
-#include <cassert>
 #include "FuncBinaryLibIndex.hpp"
 
 namespace FuncLib
@@ -14,7 +13,10 @@ namespace FuncLib
 
 	FuncBinaryLibIndex::~FuncBinaryLibIndex()
 	{
-		_file->Store(DiskTreeLable, _diskBtree);
+		if (_file != nullptr and _diskBtree != nullptr)
+		{
+			_file->Store(DiskTreeLable, _diskBtree);
+		}
 	}
 
 	FuncBinaryLibIndex FuncBinaryLibIndex::GetFrom(path const &path)
@@ -30,7 +32,8 @@ namespace FuncLib
 
 		if (firstSetup)
 		{
-			auto [l, tree] = file->New(DiskTreeLable, DiskBtree(move(pred), file.get()));
+			auto [l, t] = file->New(DiskTreeLable, DiskBtree(move(pred), file.get()));
+			tree = move(t);
 		}
 		else
 		{

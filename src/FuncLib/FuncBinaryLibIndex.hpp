@@ -45,6 +45,8 @@ namespace FuncLib
 
 	public:
 		static FuncBinaryLibIndex GetFrom(path const& path);
+		FuncBinaryLibIndex(FuncBinaryLibIndex&& that) noexcept = default;
+		FuncBinaryLibIndex(FuncBinaryLibIndex const& that) = delete;
 		void Add(FuncObj const& funcObj, pos_label label);
 		pos_label GetStoreLabel(FuncType const& type) const;
 		bool Contains(FuncType const& type) const;
