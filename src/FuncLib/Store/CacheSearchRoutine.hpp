@@ -8,25 +8,24 @@ namespace FuncLib::Store
 	template <typename... Ts>
 	struct TypeList;
 
-	template <typename T>
-	struct TypeList<T>
+	template <>
+	struct TypeList<>
 	{
-		static constexpr bool IsLast = true;
-		using Current = T;
+		static constexpr bool IsNull = true;
 	};
 
 	template <typename T, typename... Ts>
 	struct TypeList<T, Ts...>
 	{
-		static constexpr bool IsLast = false;
+		static constexpr bool IsNull = false;
 		using Current = T;
 		using Remain = TypeList<Ts...>;
 	};
 
 	template <typename T>
-	struct GenerateSearchRoutine
+	struct GenerateOtherSearchRoutine
 	{
-		using Result = TypeList<T>;
+		using Result = TypeList<>;
 	};
 
 	template <typename T>
@@ -40,9 +39,9 @@ namespace FuncLib::Store
 
 	template <typename T>
 	requires ConcreteNodeBase<T>
-	struct GenerateSearchRoutine<T>
+	struct GenerateOtherSearchRoutine<T>
 	{
 		using Result =
-			TypeList<T, typename GetNodeTypeFrom<T>::Leaf, typename GetNodeTypeFrom<T>::Middle>;
+			TypeList<typename GetNodeTypeFrom<T>::Leaf, typename GetNodeTypeFrom<T>::Middle>;
 	};
 }

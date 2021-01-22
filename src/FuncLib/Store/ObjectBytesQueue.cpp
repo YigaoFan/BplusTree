@@ -2,11 +2,13 @@
 
 namespace FuncLib::Store
 {
-	ObjectBytesQueue::ObjectBytesQueue(vector<ObjectBytes *> objBytesQueue) : _objBytesQueue(move(objBytesQueue))
+	using ::std::move;
+	
+	ObjectBytesQueue::ObjectBytesQueue(vector<ObjectBytes> objBytesQueue) : _objBytesQueue(move(objBytesQueue))
 	{ }
 
-	void ObjectBytesQueue::Add(ObjectBytes* objectBytes)
+	void ObjectBytesQueue::Add(ObjectBytes objectBytes)
 	{
-		_objBytesQueue.push_back(objectBytes);
+		_objBytesQueue.push_back(move(objectBytes));
 	}
 }

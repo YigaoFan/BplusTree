@@ -5,6 +5,7 @@
 #include <cstdio>
 #include "Util.hpp"
 #include "../../TestFrame/FlyTest.hpp"
+#define private public
 #include "../Persistence/ByteConverter.hpp"
 #include "../Persistence/TypeConverter.hpp"
 
@@ -19,7 +20,6 @@ TESTCASE("File test")
 	auto filename = "fileTest";
 	// // 函数库要写一些元信息和校验数据，平台限定
 	// // 需要使用 std::bit_cast 来转换使用不相关类型吗？
-		
 
 	SECTION("Simple")
 	{
@@ -87,7 +87,7 @@ TESTCASE("File test")
 
 		auto file = File::GetFile(filename);
 		using namespace Collections;
-		using Tree = Btree<4, T, T>; // 之后用 string 作为 key，value
+		using Tree = Btree<4, T, T>;
 		auto lessThan = [](T a, T b) { return a < b; };
 		Tree b(lessThan);
 		auto n = 4;
@@ -141,10 +141,106 @@ TESTCASE("File test")
 		file->Store(label, treeObj);
 	}
 
-	// TODO TypeConverter 转换后的 Btree 有问题
-	// TODO 转换后 Btree 来进行一些 Btree 的操作操作，注意加入、删除和修改一些节点的时候
+	SECTION("Store and Read")
+	{
+		using T = string;
+		auto filename = "store_read";
+		constexpr pos_label l = 300;
+		auto lessThan = [](T a, T b) { return a < b; };
 
-	// Cleaner c(filename);
+		// Cleaner c(filename);
+		using Tree = Btree<4, T, T, StorePlace::Memory>;
+		using DiskTree = Btree<4, T, T, StorePlace::Disk>;
+		auto const n = 2;
+		auto const dn = 0;
+
+		SECTION("Test seek", false)
+		{
+			using ::std::filesystem::exists;
+			auto filename = "seek_test";
+			if (not exists(filename))
+			{
+				ofstream f(filename);
+			}
+
+			{
+				fstream fs(filename, fstream::binary | fstream::in | fstream::out);
+				fs.seekp(1000, fstream::beg);
+				char const s[] = "All is well~";
+				fs.write(s, sizeof(s));
+				fs.flush();
+			}
+
+			{
+				fstream fs(filename, fstream::binary | fstream::in | fstream::out);
+				fs.seekp(3000, fstream::beg);
+				char const s[] = "Hello world!";
+				fs.write(s, sizeof(s));
+				fs.flush();
+			}
+
+		}
+
+		SECTION("Store")
+		{
+			auto file = File::GetFile(filename);
+			using namespace Collections;
+			Tree b(lessThan);
+			// auto dn = 14;
+			for (auto i = 0; i < n; ++i)
+			{
+				b.Add({to_string(i), to_string(i)});
+			}
+
+			auto t = TypeConverter<Tree>::ConvertFrom(b, file.get());
+			// printf("after convert\n");
+			ASSERT(t.Count() == n);
+			// operate on converted tree
+			for (auto i = 0; i < n; ++i)
+			{
+				ASSERT(t.ContainsKey(to_string(i)));
+			}
+
+			for (auto i = n; i < n + dn; ++i)
+			{
+				auto k = to_string(i);
+				UniqueDiskRef<T> ks(MakeUnique(k, file.get()));
+				UniqueDiskRef<T> vs(MakeUnique(k, file.get()));
+				// printf("start add %s\n", k.c_str());
+				t.Add({move(ks), move(vs)});
+				// printf("after add %s\n", k.c_str());
+				// t.CheckTree();
+				ASSERT(t.ContainsKey(k));
+				ASSERT(t.GetValue(k) == k);
+			}
+
+			{
+				auto ks = t.Keys();
+				ASSERT(ks.size() == n + dn);
+			}
+
+			// printf("start new\n");
+			auto [label, treeObj] = file->New(l, move(t));
+			printf("store label %d\n", label);
+			file->Store(label, treeObj);
+		}
+
+		SECTION("Read")
+		{
+			auto file = File::GetFile(filename);
+			printf("Start read test\n");
+			auto t = file->Read<DiskTree>(l);
+			// printf("read num %d\n", t->Count());
+			t->LessThanPredicate(lessThan);
+			ASSERT(t->Count() == (n + dn));
+
+			for (auto i = 0; i < n + dn; ++i)
+			{
+				ASSERT(t->ContainsKey(to_string(i)));
+				ASSERT(t->GetValue(to_string(i)) == to_string(i));
+			}
+		}
+	}
 }
 
 DEF_TEST_FUNC(TestFile)

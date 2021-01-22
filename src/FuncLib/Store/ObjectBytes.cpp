@@ -19,6 +19,7 @@ namespace FuncLib::Store
 		if (not _bytes.empty())
 		{
 			auto size = _bytes.size();
+			printf("write %d start: %lu size: %lu \n", _label, pos, size);
 			WriteByte(fileStream, pos, _bytes.data(), size);
 		}
 	}

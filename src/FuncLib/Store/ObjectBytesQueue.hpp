@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "ObjectBytes.hpp"
 
 namespace FuncLib::Store
 {
@@ -10,12 +11,12 @@ namespace FuncLib::Store
 	class ObjectBytesQueue
 	{
 	protected:
-		vector<ObjectBytes*> _objBytesQueue;
+		vector<ObjectBytes> _objBytesQueue;
 
 	public:
 		ObjectBytesQueue() = default;
-		ObjectBytesQueue(vector<ObjectBytes*> objBytesQueue);
-		void Add(ObjectBytes* objectBytes);
+		ObjectBytesQueue(vector<ObjectBytes> objBytesQueue);
+		void Add(ObjectBytes objectBytes);
 
 		auto begin() const { return _objBytesQueue.begin(); }
 		auto end() const { return _objBytesQueue.end(); }
@@ -23,11 +24,11 @@ namespace FuncLib::Store
 		auto end() { return _objBytesQueue.end(); }
 
 		template <typename Callback>
-		ObjectBytesQueue& operator| (Callback callback)
+		ObjectBytesQueue& operator> (Callback callback)
 		{
-			for (auto x : (*this))
+			for (auto& x : (*this))
 			{
-				callback(x);
+				callback(&x);
 			}
 
 			return *this;
@@ -37,7 +38,7 @@ namespace FuncLib::Store
 	struct AllocateSpaceQueue : protected ObjectBytesQueue
 	{
 		using ObjectBytesQueue::Add;
-		using ObjectBytesQueue::operator|;
+		using ObjectBytesQueue::operator>;
 		using ObjectBytesQueue::begin;
 		using ObjectBytesQueue::end;
 	};
@@ -45,7 +46,7 @@ namespace FuncLib::Store
 	struct ResizeSpaceQueue : protected ObjectBytesQueue
 	{
 		using ObjectBytesQueue::Add;
-		using ObjectBytesQueue::operator|;
+		using ObjectBytesQueue::operator>;
 		using ObjectBytesQueue::begin;
 		using ObjectBytesQueue::end;
 	};
@@ -53,7 +54,7 @@ namespace FuncLib::Store
 	struct WriteQueue : protected ObjectBytesQueue
 	{
 		using ObjectBytesQueue::Add;
-		using ObjectBytesQueue::operator|;
+		using ObjectBytesQueue::operator>;
 		using ObjectBytesQueue::begin;
 		using ObjectBytesQueue::end;
 	};

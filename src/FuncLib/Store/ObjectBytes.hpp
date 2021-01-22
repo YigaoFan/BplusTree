@@ -4,7 +4,6 @@
 #include <vector>
 #include "StaticConfig.hpp"
 #include "../../Btree/Enumerator.hpp"
-#include "ObjectBytesQueue.hpp"
 #include "ObjectRelation/LabelNodeBase.hpp"
 
 namespace FuncLib::Store
@@ -14,6 +13,10 @@ namespace FuncLib::Store
 	using ::std::fstream;
 	using ::std::size_t;
 	using ::std::vector;
+
+	class WriteQueue;
+	class AllocateSpaceQueue;
+	class ResizeSpaceQueue;
 
 	class ObjectBytes : private LabelNodeBase<ObjectBytes>
 	{

@@ -9,6 +9,7 @@
 #include "FileCache.hpp"
 #include "FileReader.hpp"
 #include "ObjectBytes.hpp"
+#include "ObjectBytesQueue.hpp"
 #include "StorageAllocator.hpp"
 // 这里用到 ByteConverter，但因为 DiskPos 里面有功能依赖 File，所以这里只能声明 ByteConverter
 #include "../Persistence/FriendFuncLibDeclare.hpp"
@@ -64,13 +65,14 @@ namespace FuncLib::Store
 		template <typename T>
 		bool HasRead(pos_label label) const
 		{
+			// 这里也不全面 TODO
 			return _cache.Cached<T>(label);
 		}
 
 		template <typename T>
 		shared_ptr<T> Read(pos_label posLabel)
 		{
-			using SearchRoutine = typename GenerateSearchRoutine<T>::Result;
+			using SearchRoutine = typename GenerateOtherSearchRoutine<T>::Result;
 			auto obj = Search<T, SearchRoutine>(posLabel);
 			return obj;
 		}
@@ -104,6 +106,7 @@ namespace FuncLib::Store
 		void Store(pos_label posLabel, shared_ptr<T> const& object)
 		{
 			_notStoredLabels.erase(posLabel);
+			CreateIfNotExist(_filename.get());
 
 			auto fs = MakeFileStream(_filename.get());
 			auto allocate = [&](ObjectBytes* bytes)
@@ -130,10 +133,10 @@ namespace FuncLib::Store
 			ObjectBytes bytes{ posLabel, &toWrites, &toAllocates, &toResize };
 			ProcessStore(posLabel, object, &bytes);
 
-			CreateIfNotExist(_filename.get());
-			toResize | resize | write; // Resize first, then allocate. Below allocates can reuse place.
-			toAllocates | allocate | write;
-			toWrites | write;
+			toResize > resize > write; // Resize first, then allocate. Below allocates can reuse place.
+			toAllocates > allocate > write;
+			toWrites > write;
+			fs.flush();
 
 			auto readStateNode = ReadStateLabelNode::ConsNodeWith(&bytes);
 			_objRelationTree.UpdateWith(move(readStateNode));
@@ -162,7 +165,7 @@ namespace FuncLib::Store
 
 			auto readStateNode = ReadStateLabelNode::ConsNodeWith(&writer);
 			_objRelationTree.Free(move(readStateNode));
-			_cache.Remove<T>(posLabel);// 这里的 remove 不全，树里的 label 都要 remove 掉，或者不要处理 cache 了
+			_cache.Remove<T>(posLabel);// TODO 这里的 remove 不全，树里的 label 都要 remove 掉，或者不要处理 cache 了
 		}
 
 		template <typename T>
@@ -172,22 +175,31 @@ namespace FuncLib::Store
 		}
 
 	private:
-		template <typename Des, typename TypeList>
+		template <typename Des, typename OtherSearchTypeList, bool FirstCall=true>
 		shared_ptr<Des> Search(pos_label label)
 		{
-			using T = typename TypeList::Current;
-			if (_cache.Cached<T>(label))
+			if constexpr (FirstCall)
 			{
-				return _cache.Read<T>(label);
+				using T = Des;
+				if (_cache.Cached<T>(label))
+				{
+					return _cache.Read<T>(label);
+				}
 			}
 
-			if constexpr (TypeList::IsLast)
+			if constexpr (OtherSearchTypeList::IsNull)
 			{
-				return SetItUp(ReadOn<T>(label), label);
+				return SetItUp(ReadOn<Des>(label), label);
 			}
 			else
 			{
-				return Search<Des, typename TypeList::Remain>(label);
+				using T = typename OtherSearchTypeList::Current;
+				if (_cache.Cached<T>(label))
+				{
+					return _cache.Read<T>(label);
+				}
+
+				return Search<Des, typename OtherSearchTypeList::Remain, false>(label);
 			}
 		}
 
@@ -196,7 +208,8 @@ namespace FuncLib::Store
 		{
 			// 触发 读 的唯一一个地方
 			auto start = _allocator.GetConcretePos(posLabel);
-			auto reader = FileReader::MakeReader(this, *_filename, start);
+			printf("read from %lu\n", start + MetadataSize);
+			auto reader = FileReader::MakeReader(this, *_filename, start + MetadataSize);
 			return ByteConverter<T>::ReadOut(&reader);
 		}
 
@@ -243,18 +256,21 @@ namespace FuncLib::Store
 					if (previousSize < newSize)
 					{
 						// 加入重分配区
-						bytes->ToResizes->Add(bytes);
+						printf("%s add to Resizes label %d size %lu\n", typeid(T).name(), posLabel, bytes->Size());
+						bytes->ToResizes->Add(move(*bytes)); // move bytes to queue
 						return;
 					}
 				}
 
 				// 加入待写区
-				bytes->ToWrites->Add(bytes);
+				printf("%s add to Writes label %d size %lu\n", typeid(T).name(), posLabel, bytes->Size());
+				bytes->ToWrites->Add(move(*bytes));
 			}
 			else
 			{
 				// 加入待分配区
-				bytes->ToAllocates->Add(bytes);
+				printf("%s add to Allocates label %d size %lu\n", typeid(T).name(), posLabel, bytes->Size());
+				bytes->ToAllocates->Add(move(*bytes));
 			}
 		}
 
