@@ -18,7 +18,6 @@ namespace Collections
 	using ::std::is_convertible;
 	using ::std::move;
 	using ::std::pair;
-	using ::std::shared_ptr;
 	using ::std::vector;
 
 	template <typename LessThan>

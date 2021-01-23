@@ -18,7 +18,6 @@ namespace Collections
 	using ::std::make_unique;
 	using ::std::move;
 	using ::std::remove_reference_t;
-	using ::std::shared_ptr;
 	using ::std::unique_ptr;
 
 	template <typename Key, typename Value, order_int BtreeOrder, StorePlace Place>

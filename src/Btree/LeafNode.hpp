@@ -22,7 +22,6 @@ namespace Collections
 	using ::std::move;
 	using ::std::out_of_range;
 	using ::std::result_of_t;
-	using ::std::unique_ptr;
 
 	template <typename Key, typename Value, order_int BtreeOrder, StorePlace Place = StorePlace::Memory>
 	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Place>,
