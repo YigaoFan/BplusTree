@@ -33,7 +33,7 @@ namespace Collections
 	template <typename T, typename LessThan>
 	concept MatchLessThanArgType = is_convertible<T, typename TraitArgType<LessThan>::Result>::value;
 
-	// TODO when BtreeOrder is big, use binary search in iterate process
+	// when BtreeOrder is big, use binary search in iterate process
 	template <typename Key, typename Value, order_int BtreeOrder, typename LessThan = LessThan<Key>>
 	class Elements : public LiteVector<pair<Key, Value>, order_int, BtreeOrder>
 	{
@@ -43,15 +43,20 @@ namespace Collections
 		friend struct FuncLib::Persistence::TypeConverter;
 		using Item = pair<Key, Value>;
 		using Base = LiteVector<Item, order_int, BtreeOrder>;
-		shared_ptr<LessThan> LessThanPtr;
+		LessThan* LessThanPtr = nullptr;
 
 	public:
+		Elements() : Base(), LessThanPtr(+[](Key const& k1, Key const& k2) { return k1 < k2; })
+		{
+			static_assert(std::is_same_v<LessThan, Collections::LessThan<Key>>, "constructor can only be call on default LessThan type");
+		}
+
 		// Items in constructor is sorted, will be moved
-		Elements(shared_ptr<LessThan> lessThanPtr)
+		Elements(LessThan* lessThanPtr)
 			: Base(), LessThanPtr(lessThanPtr)
 		{ }
 
-		Elements(IEnumerator<Item&> auto enumerator, shared_ptr<LessThan> lessThanPtr)
+		Elements(IEnumerator<Item&> auto enumerator, LessThan* lessThanPtr)
 			: Base(), LessThanPtr(lessThanPtr)
 		{
 			while (enumerator.MoveNext())
@@ -60,7 +65,7 @@ namespace Collections
 			}
 		}
 
-		Elements(IEnumerator<Item> auto enumerator, shared_ptr<LessThan> lessThanPtr)
+		Elements(IEnumerator<Item> auto enumerator, LessThan* lessThanPtr)
 			: Base(), LessThanPtr(lessThanPtr)
 		{ 
 			while (enumerator.MoveNext())
@@ -74,6 +79,10 @@ namespace Collections
 
 		Elements(Elements&& that) noexcept
 			: Base(move(that)), LessThanPtr(move(that.LessThanPtr))
+		{ }
+
+		Elements(Elements&& that, LessThan* lessThanPtr) noexcept
+			: Base(move(that)), LessThanPtr(move(lessThanPtr))
 		{ }
 
 		template <typename T>

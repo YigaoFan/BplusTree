@@ -25,20 +25,15 @@ namespace FuncLib
 		auto file = File::GetFile(path);
 
 		shared_ptr<DiskBtree> tree;
-		auto pred = [](string const& s1, string const& s2)
-		{
-			return s1 < s2;
-		};
 
 		if (firstSetup)
 		{
-			auto [l, t] = file->New(DiskTreeLable, DiskBtree(move(pred), file.get()));
+			auto [l, t] = file->New(DiskTreeLable, DiskBtree(file.get()));
 			tree = move(t);
 		}
 		else
 		{
 			tree = file->Read<DiskBtree>(DiskTreeLable);
-			tree->LessThanPredicate(move(pred));
 		}
 
 		return FuncBinaryLibIndex(move(file), move(tree));

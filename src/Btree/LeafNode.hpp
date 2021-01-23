@@ -33,24 +33,23 @@ namespace Collections
 		using Ptr = typename TypeConfig::template Ptr<Place>::template Type<Ts...>;
 		friend struct FuncLib::Persistence::ByteConverter<LeafNode, false>;
 		friend struct FuncLib::Persistence::TypeConverter<LeafNode<Key, Value, BtreeOrder, StorePlace::Memory>>;
-		using _LessThan = LessThan<Key>;
 		using Base1 = NodeBase<Key, Value, BtreeOrder, Place>;
 		using Base2 = TakeWithDiskPos<LeafNode<Key, Value, BtreeOrder, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>;
 #define RAW_PTR(TYPE) typename Base1::template OwnerLessPtr<TYPE>
 		using StoredKey = typename Base1::StoredKey;
 		using StoredValue = typename Base1::StoredValue;
-		Elements<StoredKey, StoredValue, BtreeOrder, _LessThan> _elements;
+		Elements<StoredKey, StoredValue, BtreeOrder, LessThan<Key>> _elements;
 		RAW_PTR(LeafNode) _next{nullptr};
 		RAW_PTR(LeafNode) _previous{nullptr};
 
 	public:
 		bool Middle() const override { return false; }
 
-		LeafNode(shared_ptr<_LessThan> lessThan) : Base1(), _elements(lessThan)
+		LeafNode() : Base1(), _elements(Base1::_lessThan)
 		{ }
 
-		LeafNode(IEnumerator<pair<StoredKey, StoredValue>> auto enumerator, shared_ptr<_LessThan> lessThan)
-			: Base1(), _elements(enumerator, lessThan)
+		LeafNode(IEnumerator<pair<StoredKey, StoredValue>> auto enumerator)
+			: Base1(), _elements(enumerator, Base1::_lessThan)
 		{ }
 
 		LeafNode(LeafNode const& that) : Base1(that), Base2(that), _elements(that._elements)
@@ -65,11 +64,6 @@ namespace Collections
 		Ptr<Base1> Clone() const
 		{
 			return this->CopyNode(this);
-		}
-
-		void LessThanPredicate(shared_ptr<LessThan<Key>> lessThan) override
-		{
-			_elements.LessThanPtr = lessThan;
 		}
 
 		vector<Key> LetMinLeafCollectKeys() const override
@@ -157,9 +151,10 @@ namespace Collections
 		void Next(decltype(_next) next)             { _next = move(next); }
 		void Previous(decltype(_previous) previous) { _previous = move(previous); }
 	private:
+		// element LessThanPtr is not set
 		LeafNode(decltype(_elements) elements, 
 			RAW_PTR(LeafNode) previous, RAW_PTR(LeafNode) next)
-		 : Base1(), _elements(move(elements)), _previous(move(previous)), _next(move(next))
+		 : Base1(), _elements(move(elements), Base1::_lessThan), _previous(move(previous)), _next(move(next))
 		{ }
 
 		vector<Key> CollectKeys(vector<Key> previousNodesKeys = {}) const

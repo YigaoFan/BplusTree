@@ -11,8 +11,7 @@ using namespace ::std;
 
 TESTCASE("Element test")
 {
-	auto lessThan = [](int const& a, int const& b) { return a < b; };
-	auto lessThanPtr = make_shared<function<bool(int const&, int const&)>>(lessThan);
+	auto lessThanPtr = +[](int const& a, int const& b) { return a < b; };
 
 	auto kv0 = make_pair<int, string>(0, "Hello world, fanyigao");
 	auto kv1 = make_pair<int, string>(1, "Hello world, fanyigao");

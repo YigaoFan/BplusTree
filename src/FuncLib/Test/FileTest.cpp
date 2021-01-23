@@ -21,7 +21,7 @@ TESTCASE("File test")
 	// // 函数库要写一些元信息和校验数据，平台限定
 	// // 需要使用 std::bit_cast 来转换使用不相关类型吗？
 
-	SECTION("Simple")
+	SECTION("Simple", false)
 	{
 		auto file = File::GetFile(filename);
 		auto [posLabel, obj] = file->New(1);
@@ -33,14 +33,13 @@ TESTCASE("File test")
 		Cleaner c(filename);
 	}
 	
-	SECTION("Complex(int version)")
+	SECTION("Complex(int version)", false)
 	{
 		Cleaner c(filename);
 		auto file = File::GetFile(filename);
 		using namespace Collections;
 		using Tree = Btree<4, int, int>; // 之后用 string 作为 key，value
-		auto lessThan = [](int a, int b) { return a < b; };
-		Tree b(lessThan);
+		Tree b;
 		auto n = 4;
 		auto dn = 4;
 		for (auto i = 0; i < n; ++i)
@@ -80,7 +79,7 @@ TESTCASE("File test")
 		file->Store(label, treeObj);
 	}
 
-	SECTION("Complex(string version)")
+	SECTION("Complex(string version)", false)
 	{
 		using T = string;
 		Cleaner c(filename);
@@ -88,8 +87,7 @@ TESTCASE("File test")
 		auto file = File::GetFile(filename);
 		using namespace Collections;
 		using Tree = Btree<4, T, T>;
-		auto lessThan = [](T a, T b) { return a < b; };
-		Tree b(lessThan);
+		Tree b;
 		auto n = 4;
 		auto dn = 100;
 		// auto dn = 14;
@@ -146,13 +144,12 @@ TESTCASE("File test")
 		using T = string;
 		auto filename = "store_read";
 		constexpr pos_label l = 300;
-		auto lessThan = [](T a, T b) { return a < b; };
 
 		// Cleaner c(filename);
 		using Tree = Btree<4, T, T, StorePlace::Memory>;
 		using DiskTree = Btree<4, T, T, StorePlace::Disk>;
 		auto const n = 2;
-		auto const dn = 0;
+		auto const dn = 5;
 
 		SECTION("Test seek", false)
 		{
@@ -185,7 +182,7 @@ TESTCASE("File test")
 		{
 			auto file = File::GetFile(filename);
 			using namespace Collections;
-			Tree b(lessThan);
+			Tree b;
 			// auto dn = 14;
 			for (auto i = 0; i < n; ++i)
 			{
@@ -231,7 +228,20 @@ TESTCASE("File test")
 			printf("Start read test\n");
 			auto t = file->Read<DiskTree>(l);
 			// printf("read num %d\n", t->Count());
-			t->LessThanPredicate(lessThan);
+			ASSERT(t->Count() == (n + dn));
+
+			for (auto i = 0; i < n + dn; ++i)
+			{
+				ASSERT(t->ContainsKey(to_string(i)));
+				ASSERT(t->GetValue(to_string(i)) == to_string(i));
+			}
+		}
+
+		SECTION("Add", false)
+		{
+			auto file = File::GetFile(filename);
+			printf("Start add test\n");
+			auto t = file->Read<DiskTree>(l);
 			ASSERT(t->Count() == (n + dn));
 
 			for (auto i = 0; i < n + dn; ++i)

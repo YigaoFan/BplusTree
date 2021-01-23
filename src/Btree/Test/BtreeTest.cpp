@@ -64,14 +64,14 @@ TESTCASE("Str-Str btree test")
 			kv0, kv1, kv2, kv3, kv4,
 			kv5, kv6, kv7, kv8, kv2,
 		};
-		ASSERT_THROW(DuplicateKeyException<string>, Btr(lessThan, dupKeyValueArray));
+		ASSERT_THROW(DuplicateKeyException<string>, Btr(dupKeyValueArray));
 	}
 
 #define ADD_LOT_FROM(ARRAY)  for (auto& p : ARRAY) { btree.Add(p); ASSERT(btree.ContainsKey(p.first)); }
 	SECTION("Empty cons")
 	{
 		using Btr = Collections::Btree<4, string, string>;
-		Btr btree(lessThan);
+		Btr btree;
 		ASSERT(btree.Empty());
 
 		SECTION("Add a lot")
@@ -83,7 +83,7 @@ TESTCASE("Str-Str btree test")
 	SECTION("Count more than BtreeOrder btree")
 	{
 		using Btr = Collections::Btree<4, string, string>;
-		Btr btree(lessThan, basicKeyValueArray);
+		Btr btree(basicKeyValueArray);
 
 		SECTION("Move cons")
 		{
@@ -178,7 +178,7 @@ TESTCASE("Str-Str btree test")
 	SECTION("Count less than BtreeOrder cons")
 	{
 		using Btr = Btree<10, string, string>;
-		Btr btree{ lessThan, basicKeyValueArray };
+		Btr btree{ basicKeyValueArray };
 	}
 
 	SECTION("Random add and remove")
@@ -189,7 +189,7 @@ TESTCASE("Str-Str btree test")
 		using Btr = Btree<4, string, string>;
 		for (auto i = 0; i < 100; ++i)
 		{
-			Btr btree(lessThan);
+			Btr btree;
 			random_device rd;
 			mt19937 g(rd());
 			shuffle(completeKeyValueArray.begin(), completeKeyValueArray.end(), g);
@@ -333,7 +333,7 @@ TESTCASE("Int-Str btree test")
 	SECTION("Count more than BtreeOrder btree")
 	{
 		using Btr = Collections::Btree<4, int32_t, string>;
-		Btr btree(lessThan, basicKeyValueArray);
+		Btr btree(basicKeyValueArray);
 	}
 }
 

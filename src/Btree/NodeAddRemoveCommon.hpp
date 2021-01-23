@@ -1,14 +1,16 @@
 #pragma once
+// put this file code into NodeBase static method as friend to MiddleNode and LeafNode
 // Combine or change also need to set callback
 #define AFTER_REMOVE_COMMON(IS_LEAF)                                                                                     \
 	if (_elements.Empty())                                                                                               \
 	{                                                                                                                    \
+		printf("delete self");/*这里会不会是有问题的，一个节点除了在 Order 为 2 的情况下，会出现 1 外，什么情况下会只有一个节点*/                                                                                           \
 		(*this->_upNodeDeleteSubNodeCallbackPtr)(this);                                                                  \
 	}                                                                                                                    \
 	bool nxtStealable = false, preStealable = false;                                                                     \
 	if (next != nullptr)                                                                                                 \
 	{                                                                                                                    \
-		if (next->_elements.Count() == lowBound /* + 1 */)                                                               \
+		if (next->_elements.Count() == lowBound)                                                                         \
 		{                                                                                                                \
 			/* Think combine first */                                                                                    \
 			if constexpr (IS_LEAF)                                                                                       \
@@ -28,7 +30,7 @@
                                                                                                                          \
 	if (previous != nullptr)                                                                                             \
 	{                                                                                                                    \
-		if (previous->_elements.Count() == lowBound /* + 1 */)                                                           \
+		if (previous->_elements.Count() == lowBound)                                                                     \
 		{                                                                                                                \
 			if constexpr (IS_LEAF)                                                                                       \
 			{                                                                                                            \
@@ -47,8 +49,8 @@
                                                                                                                          \
 	if (nxtStealable && preStealable)                                                                                    \
 	{                                                                                                                    \
-		switch (Base::ChooseRemovePosition(previous->_elements.Count(), this->_elements.Count(),                         \
-										   next->_elements.Count()))                                                     \
+		switch (Base1::ChooseRemovePosition(previous->_elements.Count(), this->_elements.Count(),                        \
+											next->_elements.Count()))                                                    \
 		{                                                                                                                \
 		case Position::Next:                                                                                             \
 			goto StealNxt;                                                                                               \
@@ -106,9 +108,9 @@
 		}                                                                                                  \
 		else                                                                                               \
 		{                                                                                                  \
-			switch (Base::ChooseAddPosition(previous->_elements.Count(),                                   \
-											this->_elements.Count(),                                       \
-											next->_elements.Count()))                                      \
+			switch (Base1::ChooseAddPosition(previous->_elements.Count(),                                  \
+											 this->_elements.Count(),                                      \
+											 next->_elements.Count()))                                     \
 			{                                                                                              \
 			case Position::Previous:                                                                       \
 				goto AddToPre;                                                                             \
@@ -135,8 +137,7 @@
 	goto ConsNewNode;                                                                                      \
                                                                                                            \
 	ConsNewNode:                                                                                           \
-	auto lessThanPred = this->_elements.LessThanPtr;                                                       \
-	auto newNxtNode = this->NewEmptyNode(this, lessThanPred);                                              \
+	auto newNxtNode = this->NewEmptyNode(this);                                                            \
 	if constexpr (IS_LEAF)                                                                                 \
 	{                                                                                                      \
 		this->SetRelationWhileSplitNewNext(newNxtNode.get());                                              \

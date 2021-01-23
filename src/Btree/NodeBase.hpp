@@ -12,13 +12,15 @@
 #include "../FuncLib/Persistence/FriendFuncLibDeclare.hpp"
 #include "../Basic/TypeTrait.hpp"
 #include "TypeConfig.hpp"
+#include "Elements.hpp"
 
 namespace Collections
 {
 	using ::Basic::IsSpecialization;
-	using ::FuncLib::Persistence::UniqueDiskPtr;
 	using ::FuncLib::Persistence::MakeUnique;
+	using ::FuncLib::Persistence::UniqueDiskPtr;
 	using ::std::function;
+	using ::std::make_unique;
 	using ::std::move;
 	using ::std::pair;
 	using ::std::remove_const_t;
@@ -58,6 +60,7 @@ namespace Collections
 		UpNodeAddSubNodeCallback* _upNodeAddSubNodeCallbackPtr = nullptr;
 		UpNodeDeleteSubNodeCallback* _upNodeDeleteSubNodeCallbackPtr = nullptr;
 		MinKeyChangeCallback* _minKeyChangeCallbackPtr = nullptr;
+		inline static LessThan<Key>* _lessThan = +[](Key const &k1, Key const &k2) { return k1 < k2; };
 
 	public:
 		static constexpr order_int LowBound = 1 + ((BtreeOrder - 1) / 2);
@@ -74,7 +77,6 @@ namespace Collections
 		{ }
 		virtual void ResetShallowCallbackPointer()
 		{ }
-		virtual void LessThanPredicate(shared_ptr<LessThan<Key>>) = 0;
 		virtual ~NodeBase() = default;
 		virtual bool Middle() const = 0;
 		virtual vector<Key> LetMinLeafCollectKeys() const = 0;
@@ -129,20 +131,20 @@ namespace Collections
 			}
 		}
 
-		static auto NewEmptyNode(auto thisPtr, auto lessThanPred)
+		static auto NewEmptyNode(auto thisPtr)
 		{
 			using NodeType = remove_const_t<remove_pointer_t<decltype(thisPtr)>>;
 
 			if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)
 			{
 				auto f = thisPtr->GetLessOwnershipFile();
-				auto n = NodeType(lessThanPred);
+				auto n = NodeType();
 				// 或许 MakeUnique 可以实现成原位构造那样？ TODO
 				return MakeUnique(move(n), f);
 			}
 			else
 			{
-				return make_unique<NodeType>(lessThanPred);
+				return make_unique<NodeType>();
 			}
 		}
 
@@ -159,6 +161,99 @@ namespace Collections
 			}
 
 			return ks;
+		}
+
+		// template <typename Node, bool IsLeaf>
+		// void Add(OwnerLessPtr<Node> previous, OwnerLessPtr<Node> next, )
+		// {
+		// 	unsigned char state = 0;
+		// 	constexpr unsigned char previousValidFlag = 0b0000'0001;
+		// 	constexpr unsigned char nextValidFlag = 0b0000'0010;
+
+		// 	auto setNextFlag = [&state](bool valid)
+		// 	{
+		// 		if (valid)
+		// 		{
+		// 			state |= nextValidFlag;
+		// 		}
+		// 		else
+		// 		{
+		// 			state &= ~nextValidFlag;
+		// 		}
+		// 	};
+		// 	auto setPreviousFlag = [&state](bool valid)
+		// 	{
+		// 		if (valid)
+		// 		{
+		// 			state |= previousValidFlag;
+		// 		}
+		// 		else
+		// 		{
+		// 			state &= ~previousValidFlag;
+		// 		}
+		// 	};
+
+		// 	setPreviousFlag(previous != nullptr and not previous->_elements.Full());
+		// 	setNextFlag(next != nullptr and not next->_elements.Full());
+
+		// 	switch (state)
+		// 	{
+		// 	case 0: goto ConsNewNode;
+		// 	case 1: goto AddToPre;
+		// 	case 2: goto AddToNext;
+		// 	case 3:
+		// 	{
+		// 		switch (ChooseAddPosition(previous->_elements.Count(), this->_elements.Count(),
+		// 								  next->_elements.Count()))
+		// 		{
+		// 		case Position::Previous:
+		// 			goto AddToPre;
+		// 		case Position::Next:
+		// 			goto AddToNext;
+		// 		}
+		// 	}
+
+		// 	default:
+		// 		throw std::out_of_range("state out of range");
+		// 	}
+
+		// AddToPre:	
+		// 	previous->Append(this->ExchangeMin(move(p)));
+		// 	return;
+
+		// AddToNext:
+		// 	next->EmplaceHead(this->ExchangeMax(move(p)));
+		// 	return;
+
+		// ConsNewNode:
+		// 	auto lessThanPred = this->_elements.LessThanPtr;
+		// 	auto newNxtNode = this->NewEmptyNode(this, lessThanPred);
+		// 	if constexpr (IsLeaf)
+		// 	{
+		// 		this->SetRelationWhileSplitNewNext(newNxtNode.get());
+		// 	}
+
+		// 	auto i = _elements.SelectBranch(p.first);
+		// 	constexpr auto middle = BtreeOrder / 2;
+		// 	if (i <= (middle - 1))
+		// 	{
+		// 		auto items = this->_elements.PopOutItems(BtreeOrder - middle);
+		// 		this->ProcessedAdd(move(p)); /* Add (Does it duplicate to SelectBranch before)*/
+		// 		newNxtNode->AppendItems(move(items));
+		// 	}
+		// 	else
+		// 	{
+		// 		auto items = this->_elements.PopOutItems(middle);
+		// 		newNxtNode->AppendItems(move(items));
+		// 		newNxtNode->ProcessedAdd(move(p));
+		// 	}
+
+		// 	(*this->_upNodeAddSubNodeCallbackPtr)(this, move(newNxtNode));
+		// }
+
+		void AfterRemove()
+		{
+
 		}
 	};
 }

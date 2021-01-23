@@ -50,26 +50,25 @@ namespace Collections
 		typename Base1::ShallowTreeCallback* _shallowTreeCallbackPtr = nullptr;
 		function<RAW_PTR(MiddleNode)(MiddleNode const*)> _queryPrevious = [](auto) { return nullptr; };
 		function<RAW_PTR(MiddleNode)(MiddleNode const*)> _queryNext = [](auto) { return nullptr; };
-		using _LessThan = LessThan<Key>;
 		using StoredKey = result_of_t<decltype(&Base1::MinKey)(Base1)>;
 		using StoredValue = typename TypeSelector<Place, Refable::No, Ptr<Base1>>::Result;
-		Elements<StoredKey, StoredValue, BtreeOrder, _LessThan> _elements;
+		Elements<StoredKey, StoredValue, BtreeOrder, LessThan<Key>> _elements;
 
 	public:
 		bool Middle() const override { return true; }
 
-		MiddleNode(shared_ptr<_LessThan> lessThanPtr) : Base1(), _elements(lessThanPtr)
-		{ }	
+		MiddleNode() : Base1(), _elements(Base1::_lessThan)
+		{ }
 
-		MiddleNode(IEnumerator<Ptr<Base1>> auto enumerator, shared_ptr<_LessThan> lessThanPtr)
-			: Base1(), _elements(EnumeratorPipeline<Ptr<Base1>, typename decltype(_elements)::Item, decltype(enumerator)>(enumerator, bind(&MiddleNode::ConvertPtrToKeyPtrPair, _1)), lessThanPtr)
+		MiddleNode(IEnumerator<Ptr<Base1>> auto enumerator)
+			: Base1(), _elements(EnumeratorPipeline<Ptr<Base1>, typename decltype(_elements)::Item, decltype(enumerator)>(enumerator, bind(&MiddleNode::ConvertPtrToKeyPtrPair, _1)), Base1::_lessThan)
 		{
 			SetSubNode();
 		}
 
 		/// Not set query next, previous and shallow tree callbacks
 		MiddleNode(MiddleNode const& that)
-			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, Ptr<Base1>, decltype(that._elements.GetEnumerator())>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)), that._elements.LessThanPtr)
+			: MiddleNode(EnumeratorPipeline<typename decltype(that._elements)::Item const&, Ptr<Base1>, decltype(that._elements.GetEnumerator())>(that._elements.GetEnumerator(), bind(&MiddleNode::CloneSubNode, _1)))
 		{ }
 
 		MiddleNode(MiddleNode&& that) noexcept
@@ -87,15 +86,6 @@ namespace Collections
 			// In make_unique internal will call MiddleNode copy constructor,
 			// but it doesn't have access
 			return this->CopyNode(this);
-		}
-
-		void LessThanPredicate(shared_ptr<LessThan<Key>> lessThan) override
-		{
-			_elements.LessThanPtr = lessThan;
-			for (auto& x : _elements)
-			{
-				x.second->LessThanPredicate(lessThan);
-			}
 		}
 
 		void SetShallowCallbackPointer(typename Base1::ShallowTreeCallback* shallowTreeCallbackPtr) override
@@ -184,7 +174,8 @@ namespace Collections
 			}
 		}
 	private:
-		MiddleNode(decltype(_elements) elements) : Base1(), _elements(move(elements))
+		// element LessThanPtr is not set
+		MiddleNode(decltype(_elements) elements) : Base1(), _elements(move(elements), Base1::_lessThan)
 		{
 			SetSubNode();
 		}
@@ -192,6 +183,7 @@ namespace Collections
 		RAW_PTR(Base1) MinSon() const { return _elements[0].second.get(); }
 		RAW_PTR(Base1) MaxSon() const { return _elements[_elements.Count() - 1].second.get(); }
 
+// TODO 注意使用下面这些转型的地方
 #define MID_CAST(NODE) static_cast<RAW_PTR(MiddleNode)> (NODE)
 #define LEF_CAST(NODE) static_cast<RAW_PTR(Leaf)>(NODE)
 		RAW_PTR(Leaf) MinLeafInMyRange() const
@@ -320,13 +312,14 @@ namespace Collections
 
 				if (subIsMiddle)
 				{
-					auto midNode = MID_CAST(node.get());
+					auto midNode = MID_CAST(node.get()); // 这里转型后直接读取会有问题 TODO 想改成 set property 回调里读后再转型
 					// set previous and next between MiddleNode
 					if (lastMidNode != nullptr)
 					{
+						// 当 MiddleNode 是 move 过来的，这里的应该不用设置，只用设置下回调 TODO
 						auto nowMin = midNode->MinLeafInMyRange();
 						auto lastMax = lastMidNode->MaxLeafInMyRange();
-						SET_PROPERTY(lastMax, =, ->Next(nowMin));// TODO newNextNode should also set in MiddleNode? not in itself
+						SET_PROPERTY(lastMax, =, ->Next(nowMin));
 						SET_PROPERTY(nowMin, =, ->Previous(lastMax));
 					}
 

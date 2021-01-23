@@ -34,22 +34,22 @@ namespace Collections
 
 	public:
 		template <typename... Ts>
-		static Ptr<Node> MakeNodeOnMemory(Enumerator<Ts...> enumerator, shared_ptr<_LessThan> lessThan)
+		static Ptr<Node> MakeNodeOnMemory(Enumerator<Ts...> enumerator)
 		{
 			using T = remove_reference_t<ValueTypeOf<Enumerator<Ts...>>>;
 
 			if constexpr (IsSpecialization<T, unique_ptr>::value)
 			{
-				return make_unique<Middle>(enumerator, lessThan);
+				return make_unique<Middle>(enumerator);
 			}
 			else
 			{
-				return make_unique<Leaf>(enumerator, lessThan);
+				return make_unique<Leaf>(enumerator);
 			}
 		}
 
 		template <typename... Ts>
-		static Ptr<Node> MakeNodeOnDisk(File* file, Enumerator<Ts...> enumerator, shared_ptr<_LessThan> lessThan)
+		static Ptr<Node> MakeNodeOnDisk(File* file, Enumerator<Ts...> enumerator)
 		{
 			using T = remove_reference_t<ValueTypeOf<Enumerator<Ts...>>>;
 
@@ -58,11 +58,11 @@ namespace Collections
 			// 可以利用栈来弄吗，反正关系在栈里是对的
 			if constexpr (IsSpecialization<T, UniqueDiskPtr>::value)
 			{
-				return MakeUnique(make_shared<Middle>(enumerator, lessThan), file);
+				return MakeUnique(make_shared<Middle>(enumerator), file);
 			}
 			else
 			{
-				return MakeUnique(make_shared<Leaf>(enumerator, lessThan), file);
+				return MakeUnique(make_shared<Leaf>(enumerator), file);
 			}
 		}
 

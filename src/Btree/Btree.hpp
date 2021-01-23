@@ -122,36 +122,32 @@ namespace Collections
 		typename Node::UpNodeDeleteSubNodeCallback const _deleteRootCallback = bind(&Btree::DeleteRootCallback, this, _1);
 		typename Node::MinKeyChangeCallback const _minKeyChangeCallback = bind(&Btree::RootMinKeyChangeCallback, this, _1, _2);
 		typename Node::ShallowTreeCallback const _shallowTreeCallback = bind(&Btree::ShallowRootCallback, this);
-		shared_ptr<_LessThan> _lessThanPtr;
 		key_int              _keyCount{ 0 };
 		Ptr<Node>            _root;
 
 	public:
-		Btree(_LessThan lessThan) : Btree(move(lessThan), array<pair<StoredKey, StoredValue>, 0>())
+		Btree() : Btree(array<pair<StoredKey, StoredValue>, 0>())
 		{ }
 
 		/// 只有这一种构造才能保证，Node 被构造出来携带正确的 DiskPos
-		Btree(_LessThan lessThan, File* file)
+		Btree(File* file)
 			: Base(file),
-			  _lessThanPtr(make_shared<_LessThan>(lessThan)),
-			  _root(ConstructRoot(array<pair<StoredKey, StoredValue>, 0>(), lessThan)),
+			  _root(ConstructRoot(array<pair<StoredKey, StoredValue>, 0>())),
 			  _keyCount(0)
 		{
 			static_assert(Place == StorePlace::Disk, "Only Btree on disk can call this method");
 		}
 
 		template <size_t NumOfEle>
-		Btree(_LessThan lessThan, array<pair<StoredKey, StoredValue>, NumOfEle> keyValueArray)
-			: _lessThanPtr(make_shared<_LessThan>(lessThan)),
-			  _root(ConstructRoot(move(keyValueArray), lessThan)),
+		Btree(array<pair<StoredKey, StoredValue>, NumOfEle> keyValueArray)
+			: _root(ConstructRoot(move(keyValueArray))),
 			  _keyCount(NumOfEle)
 		{
 			this->SetRootCallbacks();
 		}
 
 		// TODO wait to test
-		Btree(_LessThan lessThan, IEnumerator<pair<StoredKey, StoredValue>> auto enumerator)
-			: Btree(move(lessThan))
+		Btree(IEnumerator<pair<StoredKey, StoredValue>> auto enumerator) : Btree()
 		{
 			while (enumerator.MoveNext())
 			{
@@ -160,13 +156,13 @@ namespace Collections
 		}
 
 		Btree(Btree const& that)
-			: _keyCount(that._keyCount), _root(Clone(that._root.get())), _lessThanPtr(that._lessThanPtr)
+			: _keyCount(that._keyCount), _root(Clone(that._root.get()))
 		{
 			this->SetRootCallbacks();
 		}
 
 		Btree(Btree&& that) noexcept
-			: Base(move(that)), _keyCount(that._keyCount), _root(move(that._root)), _lessThanPtr(move(that._lessThanPtr))
+			: Base(move(that)), _keyCount(that._keyCount), _root(move(that._root))
 		{
 			this->SetRootCallbacks();
 			that._keyCount = 0;
@@ -177,7 +173,6 @@ namespace Collections
 			this->_root.reset(Clone(that._root.get()));// TODO reset is unique_ptr
 			this->SetRootCallbacks();
 			this->_keyCount = that._keyCount;
-			this->_lessThanPtr = that._lessThanPtr;
 
 			return *this;
 		}
@@ -188,7 +183,6 @@ namespace Collections
 			this->SetRootCallbacks();
 			this->_keyCount = that._keyCount;
 			that._keyCount = 0;
-			this->_lessThanPtr = move(that._lessThanPtr);
 
 			return *this;
 		}
@@ -259,33 +253,15 @@ namespace Collections
 		}
 #undef ARG_TYPE_IN_NODE
 
-		// 感觉这些类型有的用推导，有的直接写出来了，有些随意
-		void LessThanPredicate(_LessThan lessThan)
-		{
-			_lessThanPtr = make_shared<_LessThan>(lessThan);
-			SET_PROPERTY(_root, &, ->LessThanPredicate(_lessThanPtr));
-		}
-
-		void LessThanPredicate(shared_ptr<_LessThan> lessThanPtr)
-		{
-			_lessThanPtr = lessThanPtr;
-			SET_PROPERTY(_root, &, ->LessThanPredicate(_lessThanPtr));
-		}
-
 		RecursiveGenerator<pair<StoredKey, StoredValue>*> GetStoredPairEnumerator()
 		{
 			return _root->GetStoredPairEnumerator();
 		}
 
 	private:
-		Btree(key_int keyCount, Ptr<Node> root, File* file, shared_ptr<_LessThan> lessThanPtr = nullptr) : Base(file), _root(move(root)), _keyCount(keyCount)
+		Btree(key_int keyCount, Ptr<Node> root, File* file) : Base(file), _root(move(root)), _keyCount(keyCount)
 		{
 			static_assert(Place == StorePlace::Disk, "Only Btree on disk can call this method");
-			if (lessThanPtr != nullptr)
-			{
-				LessThanPredicate(move(lessThanPtr));
-			}
-			
 			this->SetRootCallbacks();
 		}
 
@@ -306,15 +282,15 @@ namespace Collections
 		}
 
 		template <typename T, auto Count, size_t... Is>
-		auto ConsNodeInArrayImp(array<T, Count> srcArray, shared_ptr<_LessThan> lessThan, index_sequence<Is...> is)
+		auto ConsNodeInArrayImp(array<T, Count> srcArray, index_sequence<Is...> is)
 		{
 			constexpr auto nodesCount = is.size() == 0 ? 1 : is.size();
 			array<Ptr<Node>, nodesCount> consNodes;
-			auto constor = [&srcArray, &consNodes, &lessThan, this](auto index, auto itemsCount, auto preItemsCount)
+			auto constor = [&srcArray, &consNodes, this](auto index, auto itemsCount, auto preItemsCount)
 			{
 				auto begin = srcArray.begin() + preItemsCount;
 				auto end = begin + itemsCount;
-				consNodes[index] = this->MakeNewNode(CreateMoveEnumerator(begin, end), lessThan);
+				consNodes[index] = this->MakeNewNode(CreateMoveEnumerator(begin, end));
 			};
 			if constexpr (is.size() == 0)
 			{
@@ -329,18 +305,18 @@ namespace Collections
 		}
 
 		template <typename T, auto Count>
-		auto ConsNodeInArray(array<T, Count> src, shared_ptr<_LessThan> lessThan)
+		auto ConsNodeInArray(array<T, Count> src)
 		{
-			return ConsNodeInArrayImp(move(src), move(lessThan), make_index_sequence<GetNodeCount<Count, BtreeOrder>()>());
+			return ConsNodeInArrayImp(move(src), make_index_sequence<GetNodeCount<Count, BtreeOrder>()>());
 		}
 
 		template <size_t NumOfEle>
-		decltype(_root) ConstructRoot(array<pair<StoredKey, StoredValue>, NumOfEle> keyValueArray, _LessThan const& lessThan)
+		decltype(_root) ConstructRoot(array<pair<StoredKey, StoredValue>, NumOfEle> keyValueArray)
 		{
 			// Check duplicate
 			auto less = [&](auto const& p1, auto const& p2)
 			{
-				return lessThan(p1.first, p2.first);
+				return static_cast<Key const&>(p1.first) < static_cast<Key const&>(p2.first);
 			};
 
 			sort(keyValueArray.begin(), keyValueArray.end(), less);
@@ -364,11 +340,11 @@ namespace Collections
 		{
 			if constexpr (Count <= BtreeOrder)
 			{
-				auto root = MakeNewNode(CreateMoveEnumerator(ItemsToConsNode.begin(), ItemsToConsNode.end()), _lessThanPtr);
+				auto root = MakeNewNode(CreateMoveEnumerator(ItemsToConsNode.begin(), ItemsToConsNode.end()));
 				return root;
 			}
 
-			return ConstructFromLeafToRoot(move(ConsNodeInArray(move(ItemsToConsNode), _lessThanPtr)));
+			return ConstructFromLeafToRoot(move(ConsNodeInArray(move(ItemsToConsNode))));
 		}
 
 		void SetRootCallbacks()
@@ -383,7 +359,7 @@ namespace Collections
 			// TODO Assert the srcNode == _root when debug
 			_root->ResetShallowCallbackPointer();
 			array<Ptr<Node>, 2> nodes { move(_root), move(newNextNode) }; // TODO have average node count between nodes?
-			_root = MakeNewNode(CreateMoveEnumerator(nodes), _lessThanPtr);
+			_root = MakeNewNode(CreateMoveEnumerator(nodes));
 			SetRootCallbacks();
 		}
 

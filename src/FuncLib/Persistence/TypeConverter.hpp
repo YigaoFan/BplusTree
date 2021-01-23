@@ -106,7 +106,7 @@ namespace FuncLib::Persistence
 			auto nodes =
 				// why need decltype(from._elements.GetEnumerator()), it's obvious
 				EnumeratorPipeline<typename decltype(from._elements)::Item const &, UniqueDiskPtr<Node>, decltype(from._elements.GetEnumerator())>(from._elements.GetEnumerator(), bind(&CloneNodeToDisk, _1, file));
-			return { move(nodes), from._elements.LessThanPtr };
+			return { move(nodes) };
 		}
 	};
 
@@ -185,7 +185,6 @@ namespace FuncLib::Persistence
 				from._keyCount, 
 				TypeConverter<unique_ptr<NodeBase<Key, Value, Count, StorePlace::Memory>>>::ConvertFrom(from._root, file),
 				file,
-				from._lessThanPtr,
 			};
 		}
 	};

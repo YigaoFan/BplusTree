@@ -19,10 +19,6 @@ TESTCASE("Type converter test")
 	// auto file = File::GetFile("typeConverterTest");
 	File* file = nullptr;
 	uint32_t offset = 0;
-	auto intLessThan = [](int const& a, int const& b) { return a < b; };
-	auto strLessThan = [](string const& a, string const& b) { return a < b; };
-	auto intPredPtr = make_shared<LessThan<int>>(intLessThan);
-	auto strPredPtr = make_shared<LessThan<string>>(strLessThan);
 
 #define BYTE_COV_TEST_UNIT(VAR)                              \
 	// do                                                       \
@@ -94,7 +90,7 @@ TESTCASE("Type converter test")
 
 	SECTION("Elements Convert")
 	{
-		Elements<int, int, 4> es(intPredPtr);
+		Elements<int, int, 4> es;
 		es.Add({ 1, 1 });
 		es.Add({ 2, 2 });
 		auto c_es = TypeConverter<decltype(es)>::ConvertFrom(es, file);
@@ -111,7 +107,7 @@ TESTCASE("Type converter test")
 	SECTION("Int-int LeafNode Convert")
 	{
 		using Leaf = LeafNode<int, int, 4>;
-		Leaf l(intPredPtr);
+		Leaf l;
 		auto c_l = TypeConverter<Leaf>::ConvertFrom(l, file);
 		BYTE_COV_TEST_UNIT(c_l);
 	}
@@ -119,7 +115,7 @@ TESTCASE("Type converter test")
 	SECTION("Int-int MiddleNode Convert")
 	{
 		using Middle = MiddleNode<int, int, 4>;
-		Middle m(intPredPtr);
+		Middle m;
 		auto c_m = TypeConverter<decltype(m)>::ConvertFrom(m, file);
 		BYTE_COV_TEST_UNIT(c_m);
 	}
@@ -127,7 +123,7 @@ TESTCASE("Type converter test")
 	SECTION("Int-int Btree Convert")
 	{
 		using Tree = Btree<4, int, int>;
-		Tree t(intLessThan);
+		Tree t;
 		auto c_t = TypeConverter<decltype(t)>::ConvertFrom(t, file);
 		BYTE_COV_TEST_UNIT(c_t);
 	}
@@ -135,7 +131,7 @@ TESTCASE("Type converter test")
 	SECTION("Int-string Btree Convert")
 	{
 		using Tree = Btree<4, int, string>;
-		Tree t(intLessThan);
+		Tree t;
 		auto c_t = TypeConverter<decltype(t)>::ConvertFrom(t, file);
 		BYTE_COV_TEST_UNIT(c_t);
 	}
@@ -144,7 +140,7 @@ TESTCASE("Type converter test")
 	SECTION("String-int LeafNode Convert")
 	{
 		using Leaf = LeafNode<string, int, 4>;
-		Leaf l(strPredPtr);
+		Leaf l;
 		auto c_l = TypeConverter<decltype(l)>::ConvertFrom(l, file);
 		BYTE_COV_TEST_UNIT(c_l);
 	}
@@ -152,7 +148,7 @@ TESTCASE("Type converter test")
 	SECTION("String-int MiddleNode Convert")
 	{
 		using Middle = MiddleNode<string, int, 4>;
-		Middle m(strPredPtr);
+		Middle m;
 		auto c_m = TypeConverter<decltype(m)>::ConvertFrom(m, file);
 		BYTE_COV_TEST_UNIT(c_m);
 	}
@@ -160,7 +156,7 @@ TESTCASE("Type converter test")
 	SECTION("String-int Btree Convert")
 	{
 		using Tree = Btree<4, string, int>;
-		Tree t(strLessThan);
+		Tree t;
 		auto c_t = TypeConverter<decltype(t)>::ConvertFrom(t, file);
 		BYTE_COV_TEST_UNIT(c_t);
 	}
