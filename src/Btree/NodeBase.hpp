@@ -129,20 +129,19 @@ namespace Collections
 			}
 		}
 
-		static auto NewEmptyNode(auto thisPtr)
+		template <typename Node>
+		static auto NewEmptyNode(Node* thisPtr)
 		{
-			using NodeType = remove_const_t<remove_pointer_t<decltype(thisPtr)>>;
-
 			if constexpr (IsSpecialization<Ptr<int>, UniqueDiskPtr>::value)
 			{
 				auto f = thisPtr->GetLessOwnershipFile();
-				auto n = NodeType();
+				auto n = Node();
 				// 或许 MakeUnique 可以实现成原位构造那样？ TODO
 				return MakeUnique(move(n), f);
 			}
 			else
 			{
-				return make_unique<NodeType>();
+				return make_unique<Node>();
 			}
 		}
 
@@ -161,97 +160,199 @@ namespace Collections
 			return ks;
 		}
 
-		// template <typename Node, bool IsLeaf>
-		// void Add(OwnerLessPtr<Node> previous, OwnerLessPtr<Node> next, )
-		// {
-		// 	unsigned char state = 0;
-		// 	constexpr unsigned char previousValidFlag = 0b0000'0001;
-		// 	constexpr unsigned char nextValidFlag = 0b0000'0010;
-
-		// 	auto setNextFlag = [&state](bool valid)
-		// 	{
-		// 		if (valid)
-		// 		{
-		// 			state |= nextValidFlag;
-		// 		}
-		// 		else
-		// 		{
-		// 			state &= ~nextValidFlag;
-		// 		}
-		// 	};
-		// 	auto setPreviousFlag = [&state](bool valid)
-		// 	{
-		// 		if (valid)
-		// 		{
-		// 			state |= previousValidFlag;
-		// 		}
-		// 		else
-		// 		{
-		// 			state &= ~previousValidFlag;
-		// 		}
-		// 	};
-
-		// 	setPreviousFlag(previous != nullptr and not previous->_elements.Full());
-		// 	setNextFlag(next != nullptr and not next->_elements.Full());
-
-		// 	switch (state)
-		// 	{
-		// 	case 0: goto ConsNewNode;
-		// 	case 1: goto AddToPre;
-		// 	case 2: goto AddToNext;
-		// 	case 3:
-		// 	{
-		// 		switch (ChooseAddPosition(previous->_elements.Count(), this->_elements.Count(),
-		// 								  next->_elements.Count()))
-		// 		{
-		// 		case Position::Previous:
-		// 			goto AddToPre;
-		// 		case Position::Next:
-		// 			goto AddToNext;
-		// 		}
-		// 	}
-
-		// 	default:
-		// 		throw std::out_of_range("state out of range");
-		// 	}
-
-		// AddToPre:	
-		// 	previous->Append(this->ExchangeMin(move(p)));
-		// 	return;
-
-		// AddToNext:
-		// 	next->EmplaceHead(this->ExchangeMax(move(p)));
-		// 	return;
-
-		// ConsNewNode:
-		// 	auto lessThanPred = this->_elements.LessThanPtr;
-		// 	auto newNxtNode = this->NewEmptyNode(this, lessThanPred);
-		// 	if constexpr (IsLeaf)
-		// 	{
-		// 		this->SetRelationWhileSplitNewNext(newNxtNode.get());
-		// 	}
-
-		// 	auto i = _elements.SelectBranch(p.first);
-		// 	constexpr auto middle = BtreeOrder / 2;
-		// 	if (i <= (middle - 1))
-		// 	{
-		// 		auto items = this->_elements.PopOutItems(BtreeOrder - middle);
-		// 		this->ProcessedAdd(move(p)); /* Add (Does it duplicate to SelectBranch before)*/
-		// 		newNxtNode->AppendItems(move(items));
-		// 	}
-		// 	else
-		// 	{
-		// 		auto items = this->_elements.PopOutItems(middle);
-		// 		newNxtNode->AppendItems(move(items));
-		// 		newNxtNode->ProcessedAdd(move(p));
-		// 	}
-
-		// 	(*this->_upNodeAddSubNodeCallbackPtr)(this, move(newNxtNode));
-		// }
-
-		void AfterRemove()
+		template <bool IsLeaf, typename Node>
+		static void AddWith(OwnerLessPtr<Node> previous, OwnerLessPtr<Node> next, Node *self, auto p)
 		{
+			unsigned char state = 0;
+			constexpr unsigned char previousValidFlag = 0b0000'0001;
+			constexpr unsigned char nextValidFlag = 0b0000'0010;
 
+			auto setNextFlag = [&state](bool valid)
+			{
+				if (valid)
+				{
+					state |= nextValidFlag;
+				}
+				else
+				{
+					state &= ~nextValidFlag;
+				}
+			};
+			auto setPreviousFlag = [&state](bool valid)
+			{
+				if (valid)
+				{
+					state |= previousValidFlag;
+				}
+				else
+				{
+					state &= ~previousValidFlag;
+				}
+			};
+
+			setPreviousFlag(previous != nullptr and not previous->_elements.Full());
+			setNextFlag(next != nullptr and not next->_elements.Full());
+
+			switch (state)
+			{
+			case 0: goto ConsNewNode;
+			case 1: goto AddToPre;
+			case 2: goto AddToNext;
+			case 3:
+			{
+				switch (ChooseAddPosition(previous->_elements.Count(), self->_elements.Count(),
+										  next->_elements.Count()))
+				{
+				case Position::Previous: goto AddToPre;
+				case Position::Next:     goto AddToNext;
+				}
+			}
+
+			default:
+				throw std::out_of_range("add state out of range");
+			}
+
+		AddToPre:	
+			previous->Append(self->ExchangeMin(move(p)));
+			return;
+
+		AddToNext:
+			next->EmplaceHead(self->ExchangeMax(move(p)));
+			return;
+
+		ConsNewNode:
+			auto newNxtNode = self->NewEmptyNode(self);
+			if constexpr (IsLeaf)
+			{
+				self->SetRelationWhileSplitNewNext(newNxtNode.get());
+			}
+
+			auto i = self->_elements.SelectBranch(p.first);
+			constexpr auto middle = BtreeOrder / 2;
+			if (i <= (middle - 1))
+			{
+				auto items = self->_elements.PopOutItems(BtreeOrder - middle);
+				self->ProcessedAdd(move(p)); /* Add (Does it duplicate to SelectBranch before)*/
+				newNxtNode->AppendItems(move(items));
+			}
+			else
+			{
+				auto items = self->_elements.PopOutItems(middle);
+				newNxtNode->AppendItems(move(items));
+				newNxtNode->ProcessedAdd(move(p));
+			}
+
+			(*self->_upNodeAddSubNodeCallbackPtr)(self, move(newNxtNode));
+		}
+
+		// 给 order 加个限制 static_assert(order > ...)
+		template <bool IsLeaf, typename Node>
+		void AdjustAfterRemove(OwnerLessPtr<Node> previous, OwnerLessPtr<Node> next, Node* self, auto noWhereToProcessCallback)
+		{
+			if (self->_elements.Empty())
+			{
+				// 这里会不会是有问题的，一个节点除了在 Order 为 2 的情况下，会出现 1 外，什么情况下会只有一个节点
+				printf("delete self");
+				(*self->_upNodeDeleteSubNodeCallbackPtr)(self);
+			}
+
+			unsigned char state = 0;
+			constexpr unsigned char previousValidFlag = 0b0000'0001;
+			constexpr unsigned char nextValidFlag = 0b0001'0000;
+
+			auto addNextState = [&state](bool valid)
+			{
+				if (valid)
+				{
+					state += nextValidFlag;
+				}
+			};
+			auto addPreviousState = [&state](bool valid)
+			{
+				if (valid)
+				{
+					state += previousValidFlag;
+				}
+			};
+
+			if (previous != nullptr)
+			{
+				addPreviousState(true);
+				addPreviousState(previous->_elements.Count() > LowBound);
+			}
+			if (next != nullptr)
+			{
+				addNextState(true);
+				addNextState(next->_elements.Count() > LowBound);
+			}
+
+			// steal first? 优先 2
+			switch (state)
+			{
+			// 这里有两种选择，combine 和 steal
+			case 0x00: goto NoWhereToProcess;
+			case 0x01: goto CombineWithPrevious;
+			case 0x02: goto StealPrevious;
+			case 0x10: goto CombineWithNext;
+			case 0x11: goto CombineWithPrevious; // combine with preivous or next, 选择回调在自身结点上调用，因为考虑硬盘 B+ 树， node 自身已读
+			case 0x12: goto StealPrevious;
+
+			case 0x20:
+			case 0x21: goto StealNext;
+			case 0x22:
+			{
+				switch (ChooseRemovePosition(previous->_elements.Count(), self->_elements.Count(),
+											 next->_elements.Count()))
+				{
+				case Position::Next:     goto StealNext;
+				case Position::Previous: goto StealPrevious;
+				}
+			}
+
+			default:
+				throw std::out_of_range("after remove state out of range");
+			}
+
+		
+
+		CombineWithNext:
+		{
+			if constexpr (IsLeaf)
+			{
+				self->SetRelationWhileCombineNext(next);
+			}
+			auto items = next->_elements.PopOutAll();
+			(*next->_upNodeDeleteSubNodeCallbackPtr)(next); /*TODO 这里的参数有时是指针有时是硬存指针*/
+			self->AppendItems(move(items));
+			return;
+		}
+
+		CombineWithPrevious:
+		{
+			if constexpr (IsLeaf)
+			{
+				self->SetRelationWhileCombineToPrevious(previous);
+			}
+			auto items = self->_elements.PopOutAll();
+			(*self->_upNodeDeleteSubNodeCallbackPtr)(self);
+			previous->AppendItems(move(items));
+			return;
+		}
+		StealNext:
+		{
+			auto item = next->_elements.FrontPopOut();
+			(*next->_minKeyChangeCallbackPtr)(next->MinKey(), next);
+			self->Append(move(item));
+			return;
+		}
+		StealPrevious:
+		{
+			auto item = previous->_elements.PopOut();
+			self->EmplaceHead(move(item));
+			return;
+		}
+		NoWhereToProcess:
+			noWhereToProcessCallback();
 		}
 	};
 }

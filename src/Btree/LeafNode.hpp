@@ -8,7 +8,6 @@
 #include "Enumerator.hpp"
 #include "Elements.hpp"
 #include "NodeBase.hpp"
-#include "NodeAddRemoveCommon.hpp"
 
 namespace Collections
 {
@@ -35,6 +34,11 @@ namespace Collections
 		using Base1 = NodeBase<Key, Value, BtreeOrder, Place>;
 		using Base2 = TakeWithDiskPos<LeafNode<Key, Value, BtreeOrder, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>;
 #define RAW_PTR(TYPE) typename Base1::template OwnerLessPtr<TYPE>
+		template <bool IsLeaf, typename Node, typename Item>
+		friend void Base1::AddWith(RAW_PTR(Node) previous, RAW_PTR(Node) next, Node* self, Item p);
+		template <bool IsLeaf, typename Node, typename NoWhereToProcessCallback>
+		friend void Base1::AdjustAfterRemove(RAW_PTR(Node) previous, RAW_PTR(Node) next, Node* self, NoWhereToProcessCallback noWhereToProcessCallback);
+
 		using StoredKey = typename Base1::StoredKey;
 		using StoredValue = typename Base1::StoredValue;
 		Elements<StoredKey, StoredValue, BtreeOrder, LessThan<Key>> _elements;
@@ -101,9 +105,7 @@ namespace Collections
 				});
 			}
 
-			auto next = _next;
-			auto previous = _previous;
-			ADD_COMMON(true);
+			Base1::template AddWith<true>(_previous, _next, this, move(p));
 		}
 
 		void Remove(ARG_TYPE_IN_BASE(Remove, 0) key) override
@@ -118,11 +120,7 @@ namespace Collections
 			constexpr auto lowBound = Base1::LowBound;
 			if (_elements.Count() < lowBound)
 			{
-				auto next = _next;
-				auto previous = _previous;
-				AFTER_REMOVE_COMMON(true);
-				// LeafNode no need to handle NoWhereToProcess,
-				// Cannot put code here
+				Base1::template AdjustAfterRemove<true>(_previous, _next, this, []{});
 			}
 		}
 #undef ARG_TYPE_IN_BASE

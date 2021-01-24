@@ -13,7 +13,6 @@
 #include "ClonerDeclare.hpp"
 #include "../FuncLib/Persistence/FriendFuncLibDeclare.hpp"
 #include "../FuncLib/Persistence/PtrSetter.hpp"
-#include "NodeAddRemoveCommon.hpp"
 
 namespace Collections 
 {
@@ -42,6 +41,11 @@ namespace Collections
 		friend class NodeFactory<Key, Value, BtreeOrder, Place>;
 		using Base1 = NodeBase<Key, Value, BtreeOrder, Place>;
 		using Base2 = TakeWithDiskPos<MiddleNode<Key, Value, BtreeOrder, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>;
+		template <bool IsLeaf, typename Node, typename Item>
+		friend void Base1::AddWith(typename Base1::template OwnerLessPtr<Node> previous, typename Base1::template OwnerLessPtr<Node> next, Node *self, Item p);
+		template <bool IsLeaf, typename Node, typename NoWhereToProcessCallback>
+		friend void Base1::AdjustAfterRemove(RAW_PTR(Node) previous, RAW_PTR(Node) next, Node* self, NoWhereToProcessCallback noWhereToProcessCallback);
+
 		using Leaf = LeafNode<Key, Value, BtreeOrder, Place>;
 		// TODO maybe below two item could be pointer, then entity stored in its' parent like Btree do
 		typename Base1::UpNodeAddSubNodeCallback const _addSubNodeCallback = bind(&MiddleNode::AddSubNodeCallback, this, _1, _2);
@@ -221,7 +225,7 @@ namespace Collections
 			auto next = _queryNext(this);
 			auto previous = _queryPrevious(this);
 			typename decltype(_elements)::Item p{ StoredKey(newNextNode->MinKey()), move(newNextNode) };
-			ADD_COMMON(false);
+			Base1::template AddWith<false>(previous, next, this, move(p));
 		}
 
 		void DeleteSubNodeCallback(Base1* node)
@@ -237,16 +241,14 @@ namespace Collections
 			constexpr auto lowBound = Base1::LowBound;
 			if (_elements.Count() < lowBound)
 			{
-				// Below two variables is to macro
 				auto next = _queryNext(this);
 				auto previous = _queryPrevious(this);
-				AFTER_REMOVE_COMMON(false);
+				Base1::template AdjustAfterRemove<false>(previous, next, this, [this]{ (*this->_shallowTreeCallbackPtr)(); });
 				// MiddleNode need to handle NoWhereToProcess
 				// 下面这句是发生在 root 那个 node
 				// 加层和减层这两个操作只能发生在 root
 				// 所以下面这句在普通 MiddleNode 发生不了
 				// 下面这句如何确保是 root 节点调用的呢？
-				(*this->_shallowTreeCallbackPtr)();
 			}
 		}
 
