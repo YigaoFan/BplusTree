@@ -251,8 +251,9 @@ namespace Collections
 		{
 			if (self->_elements.Empty())
 			{
+				// 进入这个分支的时候，Btree 里的 node count 只有 1 个，所以没必要调用，下一个 commit 会删掉
 				// 这里会不会是有问题的，一个节点除了在 Order 为 2 的情况下，会出现 1 外，什么情况下会只有一个节点
-				printf("delete self");
+				printf("delete self is leaf: %d\n", IsLeaf);
 				(*self->_upNodeDeleteSubNodeCallbackPtr)(self);
 			}
 
@@ -286,6 +287,7 @@ namespace Collections
 				addNextState(next->_elements.Count() > LowBound);
 			}
 
+			printf("previous next node state %x\n", state);
 			// steal first? 优先 2
 			switch (state)
 			{
@@ -312,8 +314,6 @@ namespace Collections
 			default:
 				throw std::out_of_range("after remove state out of range");
 			}
-
-		
 
 		CombineWithNext:
 		{
