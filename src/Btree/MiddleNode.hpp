@@ -22,7 +22,6 @@ namespace Collections
 	using ::std::make_pair;
 	using ::std::move;
 	using ::std::result_of_t;
-	using ::std::unique_ptr;
 	using ::std::placeholders::_1;
 	using ::std::placeholders::_2;
 
@@ -30,8 +29,7 @@ namespace Collections
 	class NodeFactory;
 	// 最好把 MiddleNode 和 LeafNode 的构造与 Btree 隔绝起来，使用 NodeBase 来作用，顶多使用强制转型来调用一些函数
 	template <typename Key, typename Value, order_int BtreeOrder, StorePlace Place = StorePlace::Memory>
-	class MiddleNode : public NodeBase<Key, Value, BtreeOrder, Place>,
-					   public TakeWithDiskPos<MiddleNode<Key, Value, BtreeOrder, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>
+	class MiddleNode : public NodeBase<Key, Value, BtreeOrder, Place>
 	{
 	private:
 		template <typename... Ts>
@@ -40,7 +38,6 @@ namespace Collections
 		friend struct FuncLib::Persistence::TypeConverter<MiddleNode<Key, Value, BtreeOrder, StorePlace::Memory>>;
 		friend class NodeFactory<Key, Value, BtreeOrder, Place>;
 		using Base1 = NodeBase<Key, Value, BtreeOrder, Place>;
-		using Base2 = TakeWithDiskPos<MiddleNode<Key, Value, BtreeOrder, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>;
 		template <bool IsLeaf, typename Node, typename Item>
 		friend void Base1::AddWith(typename Base1::template OwnerLessPtr<Node> previous, typename Base1::template OwnerLessPtr<Node> next, Node *self, Item p);
 		template <bool IsLeaf, typename Node, typename NoWhereToProcessCallback>
@@ -67,7 +64,7 @@ namespace Collections
 		MiddleNode(IEnumerator<Ptr<Base1>> auto enumerator)
 			: Base1(), _elements(EnumeratorPipeline<Ptr<Base1>, typename decltype(_elements)::Item, decltype(enumerator)>(enumerator, bind(&MiddleNode::ConvertPtrToKeyPtrPair, _1)), Base1::_lessThan)
 		{
-			SetSubNode();
+			SetSubNode(false);
 		}
 
 		/// Not set query next, previous and shallow tree callbacks
@@ -76,12 +73,12 @@ namespace Collections
 		{ }
 
 		MiddleNode(MiddleNode&& that) noexcept
-			: Base1(move(that)), Base2(move(that)),
+			: Base1(move(that)),
 			  _elements(move(that._elements)),
 			  _queryNext(move(that._queryNext)), _queryPrevious(move(that._queryPrevious)),
 			  _shallowTreeCallbackPtr(that._shallowTreeCallbackPtr)
 		{
-			SetSubNode(); 
+			SetSubNode(true); 
 		}
 
 		Ptr<Base1> Clone() const
@@ -181,7 +178,7 @@ namespace Collections
 		// element LessThanPtr is not set
 		MiddleNode(decltype(_elements) elements) : Base1(), _elements(move(elements), Base1::_lessThan)
 		{
-			SetSubNode();
+			SetSubNode(true);
 		}
 
 		RAW_PTR(Base1) MinSon() const { return _elements[0].second.get(); }
@@ -294,7 +291,7 @@ namespace Collections
 			}
 		}
 
-		void SetSubNode()
+		void SetSubNode(bool leafRelationCorrect)
 		{
 			if (_elements.Empty())
 			{
@@ -309,13 +306,18 @@ namespace Collections
 				auto& node = e.second;
 				SetSubNodeCallback(subIsMiddle, node);
 
+				if (leafRelationCorrect)
+				{
+					continue;
+				}
+
+				// set leaf relation
 				if (subIsMiddle)
 				{
+					// set previous and next LeafNode between MiddleNode
 					auto midNode = MID_CAST(node.get()); // 这里转型后直接读取会有问题 TODO 想改成 set property 回调里读后再转型
-					// set previous and next between MiddleNode
 					if (lastMidNode != nullptr)
 					{
-						// 当 MiddleNode 是 move 过来的，这里的应该不用设置，只用设置下回调 TODO
 						auto nowMin = midNode->MinLeafInMyRange();
 						auto lastMax = lastMidNode->MaxLeafInMyRange();
 						SET_PROPERTY(lastMax, =, ->Next(nowMin));
@@ -326,12 +328,12 @@ namespace Collections
 				}
 				else
 				{
-					// set previous and next in MiddleNode that contains Leafnode internal
+					// set previous and next LeafNode that contained in MiddleNode
 					auto nowLeaf = LEF_CAST(node.get());
 					if (lastLeaf != nullptr)
 					{
 						auto last = lastLeaf;// 直接用显式声明类型的 lastLeaf 不行，疑似是 clang 的 bug。
-						SET_PROPERTY(nowLeaf, =, ->Previous(lastLeaf));// TODO newNextNode should also set in MiddleNode? not in itself
+						SET_PROPERTY(nowLeaf, =, ->Previous(lastLeaf));
 						SET_PROPERTY(last, =, ->Next(nowLeaf));
 					}
 

@@ -8,10 +8,10 @@
 #include <map>
 #include <vector>
 #include <cstdint>
-#include "../../Btree/Elements.hpp"
-#include "../../Btree/LiteVector.hpp"
-#include "../../Btree/Basic.hpp"
-#include "../../Basic/TypeTrait.hpp"
+#include "../Btree/Elements.hpp"
+#include "../Btree/LiteVector.hpp"
+#include "../Btree/Basic.hpp"
+#include "../Basic/TypeTrait.hpp"
 #include "../Store/FileReader.hpp"
 #include "IWriterIReaderConcept.hpp"
 #include "StructToTuple.hpp"
@@ -185,8 +185,8 @@ namespace FuncLib::Persistence
 
 			if constexpr (SizeStable)
 			{
-				auto unitSize = Size / Capacity;
-				writer->AddBlank(unitSize * (Capacity - n));
+				auto unitSize = static_cast<size_t>(Size / Capacity);
+				writer->AddBlank(unitSize * static_cast<size_t>(Capacity - n));
 			}
 		}
 
@@ -194,7 +194,7 @@ namespace FuncLib::Persistence
 		{
 			auto n = ByteConverter<size_int>::ReadOut(reader);
 			ThisType vec;
-			for (size_t i = 0; i < n; ++i)
+			for (size_int i = 0; i < n; ++i)
 			{
 				vec.Add(ByteConverter<T>::ReadOut(reader));
 			}
@@ -202,8 +202,9 @@ namespace FuncLib::Persistence
 			// 空读，使 reader 里的偏移向前移动，与写入时对应
 			if constexpr (SizeStable)
 			{
-				auto unitSize = Size / Capacity;
-				reader->Skip(unitSize * (Capacity - n));
+				auto unitSize = static_cast<size_t>(Size / Capacity);
+				auto s = unitSize * static_cast<size_t>(Capacity - n);
+				reader->Skip(s);
 			}
 
 			return vec;
@@ -304,7 +305,7 @@ namespace FuncLib::Persistence
 		{
 			size_t size = ByteConverter<size_t>::ReadOut(reader);
 			ThisType t;
-			for (auto i = 0; i < size; ++i)
+			for (size_t i = 0; i < size; ++i)
 			{
 				auto item = ByteConverter<T>::ReadOut(reader);
 				t.push_back(move(item));

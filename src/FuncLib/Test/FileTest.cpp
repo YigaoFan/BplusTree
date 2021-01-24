@@ -237,17 +237,22 @@ TESTCASE("File test")
 			}
 		}
 
-		SECTION("Add", false)
+		SECTION("Add")
 		{
 			auto file = File::GetFile(filename);
 			printf("Start add test\n");
 			auto t = file->Read<DiskTree>(l);
 			ASSERT(t->Count() == (n + dn));
 
-			for (auto i = 0; i < n + dn; ++i)
+			for (auto i = n + dn; i < n + dn + 30; ++i)
 			{
-				ASSERT(t->ContainsKey(to_string(i)));
-				ASSERT(t->GetValue(to_string(i)) == to_string(i));
+				auto k = to_string(i);
+				UniqueDiskRef<T> ks(MakeUnique(k, file.get()));
+				UniqueDiskRef<T> vs(MakeUnique(k, file.get()));
+				// printf("start add %s\n", k.c_str());
+				t->Add({move(ks), move(vs)});
+				ASSERT(t->ContainsKey(k));
+				ASSERT(t->GetValue(k) == k);
 			}
 		}
 	}

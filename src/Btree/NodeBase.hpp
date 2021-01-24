@@ -18,6 +18,8 @@ namespace Collections
 {
 	using ::Basic::IsSpecialization;
 	using ::FuncLib::Persistence::MakeUnique;
+	using ::FuncLib::Persistence::Switch;
+	using ::FuncLib::Persistence::TakeWithDiskPos;
 	using ::FuncLib::Persistence::UniqueDiskPtr;
 	using ::std::function;
 	using ::std::make_unique;
@@ -38,7 +40,7 @@ namespace Collections
 	constexpr bool IsDisk = Place == StorePlace::Disk;
 
 	template <typename Key, typename Value, order_int BtreeOrder, StorePlace Place = StorePlace::Memory>
-	class NodeBase
+	class NodeBase : public TakeWithDiskPos<NodeBase<Key, Value, BtreeOrder, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>
 	{
 	private:
 		template <typename... Ts>

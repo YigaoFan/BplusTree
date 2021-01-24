@@ -13,18 +13,14 @@ namespace Collections
 {
 	using Basic::FuncTraits;
 	using Basic::GetMemberFuncType;
-	using ::FuncLib::Persistence::Switch;
-	using ::FuncLib::Persistence::TakeWithDiskPos;
 	using ::std::back_inserter;
 	using ::std::is_same_v;
-	using ::std::make_unique;
 	using ::std::move;
 	using ::std::out_of_range;
 	using ::std::result_of_t;
 
 	template <typename Key, typename Value, order_int BtreeOrder, StorePlace Place = StorePlace::Memory>
-	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Place>,
-					 public TakeWithDiskPos<LeafNode<Key, Value, BtreeOrder, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>
+	class LeafNode : public NodeBase<Key, Value, BtreeOrder, Place>
 	{
 	private:
 		template <typename... Ts>
@@ -32,7 +28,6 @@ namespace Collections
 		friend struct FuncLib::Persistence::ByteConverter<LeafNode, false>;
 		friend struct FuncLib::Persistence::TypeConverter<LeafNode<Key, Value, BtreeOrder, StorePlace::Memory>>;
 		using Base1 = NodeBase<Key, Value, BtreeOrder, Place>;
-		using Base2 = TakeWithDiskPos<LeafNode<Key, Value, BtreeOrder, Place>, IsDisk<Place> ? Switch::Enable : Switch::Disable>;
 #define RAW_PTR(TYPE) typename Base1::template OwnerLessPtr<TYPE>
 		template <bool IsLeaf, typename Node, typename Item>
 		friend void Base1::AddWith(RAW_PTR(Node) previous, RAW_PTR(Node) next, Node* self, Item p);
@@ -55,11 +50,11 @@ namespace Collections
 			: Base1(), _elements(enumerator, Base1::_lessThan)
 		{ }
 
-		LeafNode(LeafNode const& that) : Base1(that), Base2(that), _elements(that._elements)
+		LeafNode(LeafNode const& that) : Base1(that), _elements(that._elements)
 		{ }
 
 		LeafNode(LeafNode&& that) noexcept
-			: Base1(move(that)), Base2(move(that)),
+			: Base1(move(that)),
 			  _elements(move(that._elements)),
 			  _next(that._next), _previous(that._previous)
 		{ }

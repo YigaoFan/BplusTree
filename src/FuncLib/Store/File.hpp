@@ -37,10 +37,6 @@ namespace FuncLib::Store
 	using ::std::shared_ptr;
 	using ::std::filesystem::path;
 
-	/// 一个路径仅有一个 File 对象，这里的功能大部分是提供给模块外部使用的
-	/// 那这里就有点问题了，Btree 内部用这个是什么功能
-	/// 这样使用场景是不是就不干净了？指的是内外都用。
-	/// 不一定，因为使用方那里还不完善，给那边先保留着这么大的能力吧
 	class File : public enable_shared_from_this<File>
 	{
 	private:
@@ -232,6 +228,9 @@ namespace FuncLib::Store
 
 			if constexpr (OtherSearchTypeList::IsNull)
 			{
+				// 加入 cache 要清空里面相关类型的 setters TODO
+				// cache 提供查询 setters 的功能
+				// TODO
 				return SetItUp(ReadOn<Des>(label), label);
 			}
 			else
@@ -239,7 +238,7 @@ namespace FuncLib::Store
 				using T = typename OtherSearchTypeList::Current;
 				if (_cache.Cached<T>(label))
 				{
-					return _cache.Read<T>(label);
+					return static_pointer_cast<Des>(_cache.Read<T>(label));
 				}
 
 				return Search<Des, typename OtherSearchTypeList::Remain, false>(label);
@@ -251,16 +250,17 @@ namespace FuncLib::Store
 		{
 			// 触发 读 的唯一一个地方
 			auto start = _allocator.GetConcretePos(posLabel);
-			printf("read from %lu\n", start + _metadataSize);
+			// printf("read from %lu\n", start + _metadataSize);
 			auto reader = FileReader::MakeReader(this, *_filename, start + _metadataSize);
 			return ByteConverter<T>::ReadOut(&reader);
 		}
 
-		template <typename T>
-		void SetDiskPosIfEnable(T* obj, pos_label label)
+		template <typename Object>
+		void SetDiskPosIfEnable(Object* obj, pos_label label)
 		{
-			if constexpr (is_base_of_v<TakeWithDiskPos<T, Switch::Enable>, T>)
+			if constexpr (not TryGetTakeWithDiskPosDestType<Object>::IsNull)
 			{
+				using T = typename TryGetTakeWithDiskPosDestType<Object>::Result;
 				DiskPos<T> pos(this, label);
 				TakeWithDiskPos<T, Switch::Enable>::SetDiskPos(obj, move(pos));
 			}
@@ -299,20 +299,20 @@ namespace FuncLib::Store
 					if (previousSize < newSize)
 					{
 						// 加入重分配区
-						printf("%s add to Resizes label %d size %lu\n", typeid(T).name(), posLabel, bytes->Size());
+						// printf("%s add to Resizes label %d size %lu\n", typeid(T).name(), posLabel, bytes->Size());
 						bytes->ToResizes->Add(move(*bytes)); // move bytes to queue
 						return;
 					}
 				}
 
 				// 加入待写区
-				printf("%s add to Writes label %d size %lu\n", typeid(T).name(), posLabel, bytes->Size());
+				// printf("%s add to Writes label %d size %lu\n", typeid(T).name(), posLabel, bytes->Size());
 				bytes->ToWrites->Add(move(*bytes));
 			}
 			else
 			{
 				// 加入待分配区
-				printf("%s add to Allocates label %d size %lu\n", typeid(T).name(), posLabel, bytes->Size());
+				// printf("%s add to Allocates label %d size %lu\n", typeid(T).name(), posLabel, bytes->Size());
 				bytes->ToAllocates->Add(move(*bytes));
 			}
 		}

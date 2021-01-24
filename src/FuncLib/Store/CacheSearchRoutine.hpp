@@ -44,6 +44,12 @@ namespace FuncLib::Store
 		{ t.Middle() } -> Basic::IsSameTo<bool>;
 	};
 
+	template <typename T>
+	concept ConcreteDeriveNode = (not ::std::is_abstract_v<T>) and requires (T t)
+	{
+		{ t.Middle() } -> Basic::IsSameTo<bool>;
+	};
+
 	using Collections::GetNodeTypeFrom;
 
 	template <typename T>
@@ -52,5 +58,41 @@ namespace FuncLib::Store
 	{
 		using Result =
 			TypeList<typename GetNodeTypeFrom<T>::Leaf, typename GetNodeTypeFrom<T>::Middle>;
+	};
+
+	template <typename T>
+	requires ConcreteDeriveNode<T>
+	struct GenerateOtherSearchRoutine<T>
+	{
+		using Result = TypeList<typename GetNodeTypeFrom<T>::Base>;
+	};
+
+	template <typename T>
+	struct TryGetTakeWithDiskPosDestType
+	{
+		static constexpr bool IsNull = true;
+	};
+
+	using Collections::LeafNode;
+	using Collections::MiddleNode;
+	using Collections::NodeBase;
+	using Collections::order_int;
+	using Collections::StorePlace;
+
+	template <typename Key, typename Value, order_int Order, StorePlace Place>
+	struct TryGetTakeWithDiskPosDestType<NodeBase<Key, Value, Order, Place>>
+	{
+		static constexpr bool IsNull = false;
+		using Result = NodeBase<Key, Value, Order, Place>;
+	};
+
+	template <typename Key, typename Value, order_int Order, StorePlace Place>
+	struct TryGetTakeWithDiskPosDestType<MiddleNode<Key, Value, Order, Place>> : public TryGetTakeWithDiskPosDestType<NodeBase<Key, Value, Order, Place>>
+	{
+	};
+
+	template <typename Key, typename Value, order_int Order, StorePlace Place>
+	struct TryGetTakeWithDiskPosDestType<LeafNode<Key, Value, Order, Place>> : public TryGetTakeWithDiskPosDestType<NodeBase<Key, Value, Order, Place>>
+	{
 	};
 }
