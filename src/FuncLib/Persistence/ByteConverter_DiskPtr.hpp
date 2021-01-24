@@ -86,19 +86,32 @@ namespace FuncLib::Persistence
 	struct ByteConverter<MiddleNode<Key, Value, Count, StorePlace::Disk>, false>
 	{
 		using ThisType = MiddleNode<Key, Value, Count, StorePlace::Disk>;
+		using Base = NodeBase<Key, Value, Count, StorePlace::Disk>;
 		using DataMemberType = decltype(declval<ThisType>()._elements);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType>::Result;
 		static constexpr size_t Size = SizeStable ? Sum<GetSize, DataMemberType>::Result : SIZE_MAX;
 
-		static void WriteDown(ThisType const& t, IWriter auto* writer)
+		static void WriteDerivedPartDown(ThisType const& t, IWriter auto *writer)
 		{
 			ByteConverter<DataMemberType>::WriteDown(t._elements, writer);
 		}
 
-		static ThisType ReadOut(IReader auto* reader)
+		static void WriteDown(ThisType const& t, IWriter auto* writer)
+		{
+			ByteConverter<Base>::WriteAbstractBasePartDown(t, writer);
+			WriteDerivedPartDown(t, writer);
+		}
+
+		static ThisType ReadDerivedPartOut(IReader auto* reader)
 		{
 			auto elements = ByteConverter<DataMemberType>::ReadOut(reader);
 			return { move(elements) };
+		}
+
+		static ThisType ReadOut(IReader auto* reader)
+		{
+			ByteConverter<Base>::ReadAbstractBasePartOut(reader);
+			return ReadDerivedPartOut(reader);
 		}
 	};
 
@@ -106,25 +119,38 @@ namespace FuncLib::Persistence
 	struct ByteConverter<LeafNode<Key, Value, Count, StorePlace::Disk>, false>
 	{
 		using ThisType = LeafNode<Key, Value, Count, StorePlace::Disk>;
+		using Base = NodeBase<Key, Value, Count, StorePlace::Disk>;
 		using DataMemberType0 = decltype(declval<ThisType>()._elements);
 		using DataMemberType1 = decltype(declval<ThisType>()._previous);
 		using DataMemberType2 = decltype(declval<ThisType>()._next);
 		static constexpr bool SizeStable = All<GetSizeStable, DataMemberType0, DataMemberType1, DataMemberType2>::Result;
 		static constexpr size_t Size = SizeStable ? Sum<GetSize, DataMemberType0, DataMemberType1, DataMemberType2>::Result : SIZE_MAX;
 
-		static void WriteDown(ThisType const& t, IWriter auto* writer)
+		static void WriteDerivedPartDown(ThisType const& t, IWriter auto* writer)
 		{
 			ByteConverter<DataMemberType0>::WriteDown(t._elements, writer);
 			ByteConverter<DataMemberType1>::WriteDown(t._previous, writer);
 			ByteConverter<DataMemberType2>::WriteDown(t._next, writer);
 		}
 
-		static ThisType ReadOut(IReader auto* reader)
+		static void WriteDown(ThisType const& t, IWriter auto* writer)
+		{
+			ByteConverter<Base>::WriteAbstractBasePartDown(t, writer);
+			WriteDerivedPartDown(t, writer);
+		}
+
+		static ThisType ReadDerivedPartOut(IReader auto* reader)
 		{
 			auto elements = ByteConverter<DataMemberType0>::ReadOut(reader);
 			auto preivous = ByteConverter<DataMemberType1>::ReadOut(reader);
 			auto next = ByteConverter<DataMemberType2>::ReadOut(reader);
 			return { move(elements), preivous, next };
+		}
+
+		static ThisType ReadOut(IReader auto* reader)
+		{
+			ByteConverter<Base>::ReadAbstractBasePartOut(reader);
+			return ReadDerivedPartOut(reader);
 		}
 	};
 
@@ -137,6 +163,12 @@ namespace FuncLib::Persistence
 		static constexpr bool SizeStable = All<GetSizeStable, MidNode, LeafNode>::Result;
 		static constexpr size_t Size = SizeStable ? Max<GetSize, MidNode, LeafNode>::Result : SIZE_MAX;
 
+		static void WriteAbstractBasePartDown(ThisType const& node, IWriter auto* writer)
+		{
+			auto middle = node.Middle();
+			ByteConverter<bool>::WriteDown(middle, writer);
+		}
+
 		static void WriteDown(ThisType const& node, IWriter auto* writer)
 		{
 			auto middle = node.Middle();
@@ -144,12 +176,17 @@ namespace FuncLib::Persistence
 
 			if (middle)
 			{
-				ByteConverter<MidNode>::WriteDown(static_cast<MidNode const&>(node), writer);
+				ByteConverter<MidNode>::WriteDerivedPartDown(static_cast<MidNode const&>(node), writer);
 			}
 			else
 			{
-				ByteConverter<LeafNode>::WriteDown(static_cast<LeafNode const&>(node), writer);
+				ByteConverter<LeafNode>::WriteDerivedPartDown(static_cast<LeafNode const&>(node), writer);
 			}
+		}
+
+		static void ReadAbstractBasePartOut(IReader auto* reader)
+		{
+			auto middle = ByteConverter<bool>::ReadOut(reader);
 		}
 
 		static shared_ptr<ThisType> ReadOut(IReader auto* reader)
@@ -158,11 +195,11 @@ namespace FuncLib::Persistence
 
 			if (middle)
 			{
-				return make_shared<MidNode>(ByteConverter<MidNode>::ReadOut(reader));
+				return make_shared<MidNode>(ByteConverter<MidNode>::ReadDerivedPartOut(reader));
 			}
 			else
 			{
-				return make_shared<LeafNode>(ByteConverter<LeafNode>::ReadOut(reader));
+				return make_shared<LeafNode>(ByteConverter<LeafNode>::ReadDerivedPartOut(reader));
 			}
 		}
 	};

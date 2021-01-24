@@ -149,7 +149,7 @@ TESTCASE("File test")
 		using Tree = Btree<4, T, T, StorePlace::Memory>;
 		using DiskTree = Btree<4, T, T, StorePlace::Disk>;
 		auto const n = 2;
-		auto const dn = 5;
+		auto const dn = 30;
 
 		SECTION("Test seek", false)
 		{
