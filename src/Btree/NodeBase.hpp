@@ -249,14 +249,6 @@ namespace Collections
 		template <bool IsLeaf, typename Node>
 		void AdjustAfterRemove(OwnerLessPtr<Node> previous, OwnerLessPtr<Node> next, Node* self, auto noWhereToProcessCallback)
 		{
-			if (self->_elements.Empty())
-			{
-				// 进入这个分支的时候，Btree 里的 node count 只有 1 个，所以没必要调用，下一个 commit 会删掉
-				// 这里会不会是有问题的，一个节点除了在 Order 为 2 的情况下，会出现 1 外，什么情况下会只有一个节点
-				printf("delete self is leaf: %d\n", IsLeaf);
-				(*self->_upNodeDeleteSubNodeCallbackPtr)(self);
-			}
-
 			unsigned char state = 0;
 			constexpr unsigned char previousValidFlag = 0b0000'0001;
 			constexpr unsigned char nextValidFlag = 0b0001'0000;
@@ -287,7 +279,6 @@ namespace Collections
 				addNextState(next->_elements.Count() > LowBound);
 			}
 
-			printf("previous next node state %x\n", state);
 			// steal first? 优先 2
 			switch (state)
 			{
@@ -298,7 +289,6 @@ namespace Collections
 			case 0x10: goto CombineWithNext;
 			case 0x11: goto CombineWithPrevious; // combine with preivous or next, 选择回调在自身结点上调用，因为考虑硬盘 B+ 树， node 自身已读
 			case 0x12: goto StealPrevious;
-
 			case 0x20:
 			case 0x21: goto StealNext;
 			case 0x22:

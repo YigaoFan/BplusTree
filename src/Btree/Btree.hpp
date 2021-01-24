@@ -241,7 +241,6 @@ namespace Collections
 		void Remove(ARG_TYPE_IN_NODE(Remove, 0) key)
 		{
 			EMPTY_CHECK;
-			printf("node count before remove: %d\n", Count());
 			_root->Remove(key);
 			--_keyCount;
 		}
