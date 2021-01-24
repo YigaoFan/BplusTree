@@ -268,6 +268,7 @@ namespace FuncLib::Store
 
 		// 还有 DiskPos 依赖也不是 File 的所有功能，所以可以考虑剥离一部分功能出来形成一个类，来让 DiskPos 依赖
 		// 或者让 DiskPos 中依赖 File 的部分作为友元
+		/// Precondition: label not cached
 		template <typename T>
 		auto SetItUp(T&& t, pos_label posLabel) -> shared_ptr<remove_const_t<remove_reference_t<T>>>
 		{
@@ -276,10 +277,13 @@ namespace FuncLib::Store
 			return SetItUp(obj, posLabel);
 		}
 
+		/// Precondition: label not cached
 		template <typename T>
 		shared_ptr<T> SetItUp(shared_ptr<T> obj, pos_label posLabel)
 		{
+			ClearCacheRelatedTypeSetter<typename GenerateOtherSearchRoutine<T>::Result>(posLabel, obj.get());
 			_cache.Add<T>(posLabel, obj);
+
 			SetDiskPosIfEnable(obj.get(), posLabel);
 			return obj;
 		}
@@ -323,6 +327,21 @@ namespace FuncLib::Store
 		void ProcessFakeStore(pos_label posLabel, shared_ptr<T> const& object, FakeObjectBytes* writer)
 		{
 			ByteConverter<T>::WriteDown(*object, writer);
+		}
+
+		template <typename RelatedTypeList, typename Object>
+		void ClearCacheRelatedTypeSetter(pos_label label, Object* object)
+		{
+			if constexpr (not RelatedTypeList::IsNull)
+			{
+				using T = typename RelatedTypeList::Current;
+				if (_cache.HasSetter<T>(label))
+				{
+					_cache.Set(label, static_cast<T*>(object));
+				}
+				ClearCacheRelatedTypeSetter<typename RelatedTypeList::Remain>(label, object);
+			}
+
 		}
 	};
 }

@@ -57,6 +57,33 @@ namespace FuncLib::Store
 				setter(obj.get());
 			}
 			// 如果析构的时候仍有 setters，那就需要读一下，读一下，以及设置下就有个顺序的问题，采用队列吧 TODO
+			// 或者先报异常不是处理吧
+		}
+
+		template <typename T>
+		bool HasSetter(pos_label posLabel)
+		{
+			if (Cache<T>[_fileId].contains(posLabel))
+			{
+				if (holds_alternative<SettersOf<T>>(Cache<T>[_fileId][posLabel]))
+				{
+					return not get<SettersOf<T>>(Cache<T>[_fileId][posLabel]).empty();
+				}
+			}
+
+			return false;
+		}
+
+		/// Precondition: HasSetter return true
+		template <typename T>
+		void Set(pos_label label, T* object)
+		{
+			auto& v = Cache<T>[_fileId][label];
+			auto& setters = std::get<SettersOf<T>>(v);
+			for (auto& s : setters)
+			{
+				s(object);
+			}
 		}
 
 		template <typename T>
@@ -71,14 +98,9 @@ namespace FuncLib::Store
 				};
 			}
 
-			if (holds_alternative<SettersOf<T>>(Cache<T>[_fileId][posLabel]))
+			if (HasSetter<T>(posLabel))
 			{
-				auto& v = Cache<T>[_fileId][posLabel];
-				auto& setters = std::get<SettersOf<T>>(v);
-				for (auto& s : setters)
-				{
-					s(object.get());
-				}
+				Set<T>(posLabel, object.get());
 			}
 
 			Cache<T>[_fileId][posLabel] = object;
