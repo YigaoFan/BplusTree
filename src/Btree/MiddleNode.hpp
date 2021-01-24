@@ -244,11 +244,8 @@ namespace Collections
 				auto next = _queryNext(this);
 				auto previous = _queryPrevious(this);
 				Base1::template AdjustAfterRemove<false>(previous, next, this, [this]{ (*this->_shallowTreeCallbackPtr)(); });
-				// MiddleNode need to handle NoWhereToProcess
-				// 下面这句是发生在 root 那个 node
+				// 上面这回调是发生在本身是 root 的那个 node
 				// 加层和减层这两个操作只能发生在 root
-				// 所以下面这句在普通 MiddleNode 发生不了
-				// 下面这句如何确保是 root 节点调用的呢？
 			}
 		}
 
