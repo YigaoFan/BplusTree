@@ -35,8 +35,8 @@ namespace FuncLib
 			: _label(label), _binUnitObj(move(binObj)), _callbackOnDestroy(move(callbackOnDestroy))
 		{ }
 
+		BookingPos(BookingPos&& that) noexcept = default;
 		BookingPos(BookingPos const& that) = delete;
-
 		pos_label Label() const
 		{
 			return _label;
@@ -44,7 +44,10 @@ namespace FuncLib
 
 		~BookingPos()
 		{
-			_callbackOnDestroy(this);
+			if (_binUnitObj != nullptr)
+			{
+				_callbackOnDestroy(this);
+			}
 		}
 	};
 
@@ -68,8 +71,13 @@ namespace FuncLib
 				// 这样搞就不允许多线程添加了
 				if (pos->_binUnitObj->RefCount != 0)
 				{
-					// 存的作用现在是，想清楚，是不是现在都要手动存？
+					// printf("store %d func binary\n", pos->Label());
 					_file->Store(pos->Label(), pos->_binUnitObj);
+				}
+				else
+				{
+					// printf("delete %d func binary\n", pos->Label());
+					_file->Delete(pos->Label(), pos->_binUnitObj);
 				}
 			});
 		}
