@@ -10,4 +10,4 @@ TESTCASE("Server Test")
 }
 
 // 下面这个改为大写驼峰，其他的也改一下 TODO
-DEF_TEST_FUNC(ServerTest)
+DEF_TEST_FUNC(TestServer)

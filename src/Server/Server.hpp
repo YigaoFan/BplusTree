@@ -47,8 +47,6 @@ namespace Server
 		{
 			_businessAcceptor.StartAcceptBackground();
 		}
-
-		// terminate run? 有这个需求吗？
 	};
 
 	auto New(io_context& ioContext, int port)

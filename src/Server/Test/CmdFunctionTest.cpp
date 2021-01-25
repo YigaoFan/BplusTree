@@ -165,4 +165,4 @@ TESTCASE("Cmd Function Test")
 	}
 }
 
-DEF_TEST_FUNC(CmdFunctionTest)
+DEF_TEST_FUNC(TestCmdFunction)
