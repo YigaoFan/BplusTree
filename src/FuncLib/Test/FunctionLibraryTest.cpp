@@ -1,9 +1,11 @@
 #include "../TestFrame/FlyTest.hpp"
+#include "Util.hpp"
 #include <sstream>
 #define private public
 #include "../FunctionLibrary.hpp"
 
 using namespace FuncLib;
+using namespace FuncLib::Test;
 using namespace std;
 
 pair<vector<string>, FuncsDefReader> MakeFuncDefReader(string funcDef)
@@ -16,6 +18,7 @@ pair<vector<string>, FuncsDefReader> MakeFuncDefReader(string funcDef)
 
 TESTCASE("FunctionLibrary Test")
 {
+	static Cleaner c1("func.idx"), c2("func_bin.lib");
 	SECTION("New FunctionLibrary")
 	{
 		auto lib = FunctionLibrary::GetFrom(".");

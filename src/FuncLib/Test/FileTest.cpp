@@ -21,19 +21,19 @@ TESTCASE("File test")
 	// // 函数库要写一些元信息和校验数据，平台限定
 	// // 需要使用 std::bit_cast 来转换使用不相关类型吗？
 
-	SECTION("Simple", false)
+	SECTION("Simple")
 	{
 		auto file = File::GetFile(filename);
+		Cleaner c(filename);
 		auto [posLabel, obj] = file->New(1);
 		auto obj1 = file->Read<int>(posLabel);
 		ASSERT(obj == obj1);
 		ASSERT(*obj == 1);
 		file->Store(posLabel, obj);
 		// file->Delete(posLabel, obj);
-		Cleaner c(filename);
 	}
 	
-	SECTION("Complex(int version)", false)
+	SECTION("Complex(int version)")
 	{
 		Cleaner c(filename);
 		auto file = File::GetFile(filename);
@@ -79,7 +79,7 @@ TESTCASE("File test")
 		file->Store(label, treeObj);
 	}
 
-	SECTION("Complex(string version)", false)
+	SECTION("Complex(string version)")
 	{
 		using T = string;
 		Cleaner c(filename);
@@ -145,7 +145,7 @@ TESTCASE("File test")
 		auto filename = "store_read";
 		constexpr pos_label l = 300;
 
-		// Cleaner c(filename);
+		static Cleaner c(filename);
 		using Tree = Btree<4, T, T, StorePlace::Memory>;
 		using DiskTree = Btree<4, T, T, StorePlace::Disk>;
 		auto const n = 2;
