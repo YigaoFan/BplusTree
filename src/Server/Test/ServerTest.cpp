@@ -1,14 +1,15 @@
 #include "../TestFrame/FlyTest.hpp"
-// #define MOCK_NET
+#define MOCK_NET
 #include "../Server.hpp"
 
-using namespace Server;
+namespace Svr = Server;
 
 TESTCASE("Server Test")
 {
-    IoContext io;
-    auto s = ::Server::Server::New(io, 13);
+    Svr::IoContext io;
+    auto s = Svr::Server::New(io, 13);
     s.StartRunBackground();
+    io.SetSendMessages({ "Hello Server" });
     io.Run();
 }
 

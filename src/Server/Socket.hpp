@@ -33,6 +33,11 @@ namespace Server
 			return addr.append(":" + std::to_string(_port));
 		}
 
+		vector<string> const& ReceivedMessage() const
+		{
+			return _receiveMessages;
+		}
+
 		void Send(string const& message)
 		{
 			_receiveMessages.push_back(message);

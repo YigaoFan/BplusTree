@@ -4,29 +4,33 @@
 #ifdef MOCK_NET
 #include <string>
 #include <functional>
+#include <asio.hpp>
 
 namespace Server
 {
 	using ::std::function;
+	using ::std::move;
 	using ::std::string;
 
 	class NetworkAcceptor
 	{
+	public:
+		using Handler = function<void(asio::error_code const &, Socket)>;
+
 	private:
-		function<void(asio::error_code const&, Socket)> _callback;
+		function<void(Handler)> _handlerRegister;
 		
 	public:
-		NetworkAcceptor(string ip, int port)
-		{
-
-		}
+		NetworkAcceptor(function<void(Handler)> handlerRegister)
+			: _handlerRegister(move(handlerRegister))
+		{ }
 
 		NetworkAcceptor(NetworkAcceptor&& that) noexcept = default;
 		NetworkAcceptor(NetworkAcceptor const& that) = delete;
 
 		void AsyncAccept(auto callback)
 		{
-			_callback = move(callback);
+			_handlerRegister(move(callback));
 		}
 	};
 }

@@ -2,41 +2,49 @@
 #include "NetworkAcceptor.hpp"
 
 #ifdef MOCK_NET
+#include <vector>
 
 namespace Server
 {
+	using ::std::vector;
+
 	class IoContext
 	{
 	private:
-	public:
-		IoContext();
+		using SendMessages = vector<string>;
+		using Handler = typename NetworkAcceptor::Handler;
+		vector<Handler> _connectHandlers;
+		SendMessages _sendMessages;
 
+	public:
+		void SetSendMessages(SendMessages sendMessages)
+		{
+			_sendMessages = move(sendMessages);
+		}
+		
 		NetworkAcceptor GetNetworkAcceptorOf(int port)
 		{
-			auto acceptor = NetworkAcceptor("localhost", port);
+			auto handlerRegister = [this](Handler handler)
+			{
+				_connectHandlers.push_back(move(handler));
+			};
+			auto acceptor = NetworkAcceptor(move(handlerRegister));
 			return acceptor;
 		}
 
 		void Run()
 		{
-			// 会为每个 Socket 准备一组发送的请求
-			string requests[] =
+			int port = 8888;
+			for (auto& h : _connectHandlers)
 			{
-				"Hello Server",
-				// ...
-			};
+				h({}, Socket("localhost", port, _sendMessages));
+			}
 		}
 	};
 }
 
 #else
 #include <asio.hpp>
-
-namespace Server
-{
-	using ::asio::io_context;
-	using ::asio::ip::tcp;
-
 	class IoContext
 	{
 	private:
