@@ -11,7 +11,7 @@ namespace Server
 	{
 	private:
 	public:
-		IoContext(/* args */);
+		IoContext();
 
 		NetworkAcceptor GetNetworkAcceptorOf(int port)
 		{
