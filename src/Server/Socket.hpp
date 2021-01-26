@@ -3,6 +3,7 @@
 
 #ifdef MOCK_NET
 #include <vector>
+#include <exception>
 
 namespace Server
 {
@@ -45,7 +46,11 @@ namespace Server
 
 		string Receive()
 		{
-			return _sendMessages[_currentSendIndex++];
+			if (_currentSendIndex < _sendMessages.size())
+			{
+				return _sendMessages[_currentSendIndex++];
+			}
+			throw std::runtime_error("end of file");
 		}
 
 		// 要不要析构函数里设置当有效的 Socket 析构时打一个下线 log 呢 TODO

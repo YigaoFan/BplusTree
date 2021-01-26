@@ -5,6 +5,7 @@
 #include <thread>
 #include <functional>
 #include <condition_variable>
+#include "../TestFrame/Log.hpp" // TODO remove
 
 namespace Server
 {
@@ -51,7 +52,11 @@ namespace Server
 							{
 								current();
 							}
-							catch(...) { }
+							catch(std::runtime_error const& e)
+							{
+								// TODO remove this code
+								log("encounter error %s\n", e.what());
+							}
 
 							lock.lock();
 						}
@@ -83,12 +88,15 @@ namespace Server
 		
 		~ThreadPool()
 		{
+			if (_data != nullptr)
 			{
-				lock_guard<mutex> lock(_data->Mutex);
-				_data->IsShutdown = true;
-			}
+				{
+					lock_guard<mutex> lock(_data->Mutex);
+					_data->IsShutdown = true;
+				}
 
-			_data->CondVar.notify_all();
+				_data->CondVar.notify_all();
+			}
 		}
 	};
 }

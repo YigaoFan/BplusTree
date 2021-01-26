@@ -10,6 +10,7 @@ namespace Server
 	using FuncLib::FunctionLibrary;
 	using ::std::make_unique;
 	using ::std::move;
+	using ::std::shared_ptr;
 
 	class FuncLibWorker
 	{
@@ -82,7 +83,7 @@ namespace Server
 		template <typename Request>
 		struct Awaiter
 		{
-			Request* RequestPtr;
+			shared_ptr<Request> RequestPtr;
 
 			bool await_ready() const noexcept
 			{
