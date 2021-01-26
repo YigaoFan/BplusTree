@@ -1,5 +1,6 @@
 #pragma once
 #include <tuple>
+#include <mutex>
 #include <chrono>
 #include <string>
 #include <memory>
@@ -43,14 +44,18 @@ namespace Log
 	using ::std::forward;
 	using ::std::index_sequence;
 	using ::std::is_same_v;
+	using ::std::lock_guard;
 	using ::std::make_index_sequence;
+	using ::std::mutex;
 	using ::std::ofstream;
 	using ::std::ostream;
+	using ::std::recursive_mutex;
 	using ::std::remove_reference_t;
 	using ::std::string;
 	using ::std::tuple;
 	using ::std::tuple_cat;
 	using ::std::tuple_size_v;
+	using ::std::unique_lock;
 	using ::std::unique_ptr;
 	using ::std::filesystem::path;
 
@@ -60,11 +65,17 @@ namespace Log
 	class Logger
 	{
 	private:
+		recursive_mutex _mutex;
 		unique_ptr<ostream> _ostream;
 
 	public:
 		Logger(unique_ptr<ostream> outputStream) : _ostream(move(outputStream))
 		{
+		}
+
+		Logger(Logger&& that) noexcept : _ostream(SafeMoveStream(move(that)))
+		{
+
 		}
 
 		template <size_t BasicInfoLimitCount, typename CurryedAccessLogger, typename CurrentBasicInfoTuple>
@@ -114,6 +125,7 @@ namespace Log
 
 		void Flush()
 		{
+			lock_guard<decltype(_mutex)> guard(_mutex);
 			_ostream->flush();
 		}
 	
@@ -136,12 +148,12 @@ namespace Log
 		template <bool InnerCall = false, typename Message, typename... Messages>
 		void WriteLine(Message message, Messages... messages)
 		{
-			// guard_lock
-			// here and flush TODO
+			unique_lock<decltype(_mutex)> lock(_mutex, std::defer_lock);
 			if constexpr (not InnerCall)
 			{
 				auto now = std::chrono::system_clock::now();
 				auto clock = std::chrono::system_clock::to_time_t(now);
+				lock.lock();
 				(*_ostream) << std::put_time(std::localtime(&clock), "%F %T") << ' ';
 			}
 
@@ -156,6 +168,12 @@ namespace Log
 				(*_ostream) << std::endl;
 			}
 		}
+
+		static decltype(_ostream) SafeMoveStream(Logger&& that)
+		{
+			lock_guard<recursive_mutex> guard(that._mutex);
+			return move(that._ostream);
+		}
 	};
 
 	template <size_t BasicInfoLimitCount, typename CurryedAccessLogger, typename CurrentBasicInfoTuple>
@@ -169,6 +187,8 @@ namespace Log
 		AccessLogSubLogger(CurryedAccessLogger curryedAccessLog, Logger *parentLogger, CurrentBasicInfoTuple infos)
 			: Base(move(infos), parentLogger), CurryedAccessLog(move(curryedAccessLog))
 		{ }
+
+		using Base::Base;
 
 		using NextInfo = typename FuncTraits<decltype(&CurryedAccessLogger::operator())>::template Arg<0>::Type;
 		auto BornNewWith(NextInfo info)
@@ -224,6 +244,7 @@ namespace Log
 					catch (std::exception const& e)
 					{
 						this->ParentLogger->Error(this->GetBasicInfoLogPrefix() + " Access terminated:", e);
+						this->ParentLogger->Flush();
 					}
 				}
 			}
@@ -240,6 +261,17 @@ namespace Log
 		NonAccessLogSubLogger(CurrentBasicInfoTuple infos, Logger* parentLogger)
 			: BasicInfo(move(infos)), ParentLogger(parentLogger)
 		{ }
+
+		/// This constructor only for function copyable
+		NonAccessLogSubLogger(NonAccessLogSubLogger const& that)
+			: NonAccessLogSubLogger(move(const_cast<NonAccessLogSubLogger&>(that)))
+		{ }
+
+		NonAccessLogSubLogger(NonAccessLogSubLogger&& that) noexcept
+			: BasicInfo(move(that.BasicInfo)), ParentLogger(that.ParentLogger)
+		{
+			that.ParentLogger = nullptr;
+		}
 		
 		void Info(string message)
 		{
@@ -273,6 +305,13 @@ namespace Log
 			ParentLogger->Warn(move(m), exception);
 		}
 
+		~NonAccessLogSubLogger()
+		{
+			if (ParentLogger != nullptr)
+			{
+				ParentLogger->Flush();
+			}
+		}
 	protected:
 		string GetBasicInfoLogPrefix() const
 		{
