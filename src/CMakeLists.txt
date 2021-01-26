@@ -64,9 +64,9 @@ add_executable(RPC
         FuncLib/Test/ObjectRelationTreeTest.cpp
         FuncLib/Test/FunctionLibraryTest.cpp
 
-        #Server/Request.cpp
-        #Server/Test/ServerTest.cpp
-        #Server/Test/CmdFunctionTest.cpp
+        Server/Request.cpp
+        Server/Test/ServerTest.cpp
+        Server/Test/CmdFunctionTest.cpp
         )
 
 add_executable(cmd
