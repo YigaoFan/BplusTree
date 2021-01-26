@@ -3,5 +3,4 @@
 
 namespace Server
 {
-	using Socket = asio::ip::tcp::socket;
 }
