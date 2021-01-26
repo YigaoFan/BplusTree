@@ -23,13 +23,12 @@ namespace Server
 		tcp::acceptor _netAcceptor;
 		BusinessAcceptor _businessAcceptor;
 		FuncLibWorker _funcLibWorker;
-		Logger _logger;
 
 	public:
-		Server(ThreadPool threadPool, tcp::acceptor netAcceptor, BusinessAcceptor businessAcceptor, FuncLibWorker funcLibWorker, Logger logger)
+		Server(ThreadPool threadPool, tcp::acceptor netAcceptor, BusinessAcceptor businessAcceptor, FuncLibWorker funcLibWorker)
 			: _threadPool(move(threadPool)), _netAcceptor(move(netAcceptor)),
 			  _businessAcceptor(move(businessAcceptor)),
-			  _funcLibWorker(move(funcLibWorker)), _logger(move(logger))
+			  _funcLibWorker(move(funcLibWorker))
 		{
 			_businessAcceptor.SetThreadPool(&_threadPool);
 			_funcLibWorker.SetThreadPool(&_threadPool);
@@ -61,11 +60,11 @@ namespace Server
 		auto n = thread::hardware_concurrency();
 		ThreadPool threadPool(n);
 		Responder responder;
-		auto acceptor = BusinessAcceptor(move(responder));
+		auto logger = Log::MakeLogger("server.log");
+		auto acceptor = BusinessAcceptor(move(responder), move(logger));
 		auto funcLib = FunctionLibrary::GetFrom(serverDir);
 		auto funcLibWorker = FuncLibWorker(move(funcLib));
-		auto logger = Log::MakeLogger();
 		tcp::acceptor netAcceptor(ioContext, tcp::endpoint(tcp::v4(), port));
-		return Server(move(threadPool), move(netAcceptor), move(acceptor), move(funcLibWorker), move(logger));
+		return Server(move(threadPool), move(netAcceptor), move(acceptor), move(funcLibWorker));
 	}
 }

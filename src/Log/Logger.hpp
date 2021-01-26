@@ -2,8 +2,10 @@
 #include <tuple>
 #include <chrono>
 #include <string>
+#include <memory>
 #include <sstream>
-#include <string_view>
+#include <fstream>
+#include <filesystem>
 #include <type_traits>
 #include "../Basic/TypeTrait.hpp"
 #include "Curry.hpp"
@@ -42,14 +44,15 @@ namespace Log
 	using ::std::index_sequence;
 	using ::std::is_same_v;
 	using ::std::make_index_sequence;
+	using ::std::ofstream;
+	using ::std::ostream;
 	using ::std::remove_reference_t;
 	using ::std::string;
-	using ::std::string_view;
-	using ::std::stringstream;
-	using ::std::tie;
 	using ::std::tuple;
 	using ::std::tuple_cat;
 	using ::std::tuple_size_v;
+	using ::std::unique_ptr;
+	using ::std::filesystem::path;
 
 	// 分离 hpp 和 cpp
 	// 每天存档前一日的 log 文件，触发 log 操作的时候检查下，或者能设置定时回调吗？设个定时任务
@@ -57,13 +60,11 @@ namespace Log
 	class Logger
 	{
 	private:
-		// 可以设置向控制台和文件输出，输出后清空
-		stringstream _strStream { stringstream::out | stringstream::app };
+		unique_ptr<ostream> _ostream;
 
 	public:
-		Logger()
+		Logger(unique_ptr<ostream> outputStream) : _ostream(move(outputStream))
 		{
-
 		}
 
 		template <size_t BasicInfoLimitCount, typename CurryedAccessLogger, typename CurrentBasicInfoTuple>
@@ -110,6 +111,11 @@ namespace Log
 		{
 			WriteLine(message, exception.what());
 		}
+
+		void Flush()
+		{
+			_ostream->flush();
+		}
 	
 	private:
 		template <typename TypeList, size_t... Idxs>
@@ -130,22 +136,24 @@ namespace Log
 		template <bool InnerCall = false, typename Message, typename... Messages>
 		void WriteLine(Message message, Messages... messages)
 		{
+			// guard_lock
+			// here and flush TODO
 			if constexpr (not InnerCall)
 			{
 				auto now = std::chrono::system_clock::now();
 				auto clock = std::chrono::system_clock::to_time_t(now);
-				_strStream << std::put_time(std::localtime(&clock), "%F %T") << ' ';
+				(*_ostream) << std::put_time(std::localtime(&clock), "%F %T") << ' ';
 			}
 
-			_strStream << message;
+			(*_ostream) << message;
 			if constexpr (sizeof... (messages) > 0)
 			{
-				_strStream << ' ';
+				(*_ostream) << ' ';
 				WriteLine<true>(forward<Messages>(messages)...);
 			}
 			else
 			{
-				_strStream << std::endl;
+				(*_ostream) << std::endl;
 			}
 		}
 	};
@@ -280,8 +288,11 @@ namespace Log
 
 	// https://ctrpeach.io/posts/cpp20-string-literal-template-parameters/
 
-	Logger MakeLogger()
+	Logger MakeLogger(path const& filename)
 	{
-		return Logger();
+		using ::std::make_unique;
+
+		auto s = make_unique<ofstream>(filename);
+		return Logger(move(s));
 	}
 }

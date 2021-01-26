@@ -70,8 +70,8 @@ namespace Server
 		Logger _logger;
 
 	public:
-		BusinessAcceptor(Responder responder)
-			: _responder(move(responder))
+		BusinessAcceptor(Responder responder, Logger logger)
+			: _responder(move(responder)), _logger(move(logger))
 		{
 		}
 
@@ -119,6 +119,7 @@ namespace Server
 				return;
 			}
 			
+			auto port = peer.remote_endpoint().port(); // add to log TODO
 			auto ipAddr = peer.remote_endpoint().address().to_string();
 			auto connectLogger = subLogger.BornNewWith(ipAddr);
 			_threadPool->Execute([this, p = make_shared<Socket>(move(peer)), conLogger = move(connectLogger)] () mutable
@@ -137,26 +138,18 @@ namespace Server
 				_responder.RespondTo(peer, message);
 			};
 
-			// try
-			// {
 				// 会不会有多余的空格问题？这个两端发送的时候要统一好
-				auto greet = Receive<string, false, ByteProcessWay::Raw>(peer.get());
-				if (greet == "hello server")
-				{
-					send("server ok");
-				}
-				else
-				{
-					send("wrong greeting words.");
-					return;
-				}
-			// }
-			// catch (exception const& e)
-			// {
-			// 	connectLogger.Error("Exception happened at greeting", e);
-			// 	// client 那边应该会因为这边 socket 析构而收到中断异常或信息吧 TODO 测试下
-			// 	throw e;
-			// }
+			auto greet = Receive<string, false, ByteProcessWay::Raw>(peer.get());
+			if (greet == "hello server")
+			{
+				send("server ok");
+			}
+			else
+			{
+				send("wrong greeting words.");
+				return;
+			}
+			// client 那边应该会因为这边 socket 析构而收到中断异常或信息吧 TODO 测试下
 
 			auto loginInfo = Receive<LoginInfo, false, ByteProcessWay::ParseThenDeserial>(peer.get());
 			// client send username and password 鉴权
