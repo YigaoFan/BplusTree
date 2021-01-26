@@ -1,10 +1,9 @@
 #pragma once
-#include <functional>
 #include <filesystem>
-#include <asio.hpp>
-#include <string>
 #include "../Log/Logger.hpp"
 #include "ThreadPool.hpp"
+#include "NetworkAcceptor.hpp"
+#include "IOContext.hpp"
 #include "BusinessAcceptor.hpp"
 #include "Responder.hpp"
 #include "FuncLibWorker.hpp"
@@ -20,12 +19,12 @@ namespace Server
 	{
 	private:
 		ThreadPool _threadPool;
-		tcp::acceptor _netAcceptor;
+		NetworkAcceptor _netAcceptor;
 		BusinessAcceptor _businessAcceptor;
 		FuncLibWorker _funcLibWorker;
 
 	public:
-		Server(ThreadPool threadPool, tcp::acceptor netAcceptor, BusinessAcceptor businessAcceptor, FuncLibWorker funcLibWorker)
+		Server(ThreadPool threadPool, NetworkAcceptor netAcceptor, BusinessAcceptor businessAcceptor, FuncLibWorker funcLibWorker)
 			: _threadPool(move(threadPool)), _netAcceptor(move(netAcceptor)),
 			  _businessAcceptor(move(businessAcceptor)),
 			  _funcLibWorker(move(funcLibWorker))
@@ -37,7 +36,7 @@ namespace Server
 				[&](shared_ptr<Socket> socket, Responder *responder) mutable { return ClientService(move(socket), &_funcLibWorker, responder); },
 				[&](shared_ptr<Socket> socket, Responder *responder) mutable { return AdminService(move(socket), &_funcLibWorker, responder); });
 
-			_netAcceptor.async_accept(
+			_netAcceptor.AsyncAccept(
 				std::bind(&BusinessAcceptor::HandleAccept, &_businessAcceptor,
 						  std::placeholders::_1, std::placeholders::_2));
 		}
@@ -46,25 +45,25 @@ namespace Server
 		{
 			_businessAcceptor.StartAcceptBackground();
 		}
-	};
-
-	auto New(io_context& ioContext, int port)
-	{
-		using FuncLib::FunctionLibrary;
-		fs::path serverDir = R"(./server)";
-		if ((not fs::exists(serverDir)) or (not fs::is_directory(serverDir)))
+		
+		static auto New(IoContext& ioContext, int port)
 		{
-			fs::create_directory(serverDir);
-		}
+			using FuncLib::FunctionLibrary;
+			fs::path serverDir = R"(./server)";
+			if ((not fs::exists(serverDir)) or (not fs::is_directory(serverDir)))
+			{
+				fs::create_directory(serverDir);
+			}
 
-		auto n = thread::hardware_concurrency();
-		ThreadPool threadPool(n);
-		Responder responder;
-		auto logger = Log::MakeLogger("server.log");
-		auto acceptor = BusinessAcceptor(move(responder), move(logger));
-		auto funcLib = FunctionLibrary::GetFrom(serverDir);
-		auto funcLibWorker = FuncLibWorker(move(funcLib));
-		tcp::acceptor netAcceptor(ioContext, tcp::endpoint(tcp::v4(), port));
-		return Server(move(threadPool), move(netAcceptor), move(acceptor), move(funcLibWorker));
-	}
+			auto n = thread::hardware_concurrency();
+			ThreadPool threadPool(n);
+			Responder responder;
+			auto logger = Log::MakeLogger("server.log");
+			auto acceptor = BusinessAcceptor(move(responder), move(logger));
+			auto funcLib = FunctionLibrary::GetFrom(serverDir);
+			auto funcLibWorker = FuncLibWorker(move(funcLib));
+			NetworkAcceptor netAcceptor = ioContext.GetNetworkAcceptorOf(port);
+			return Server(move(threadPool), move(netAcceptor), move(acceptor), move(funcLibWorker));
+		}
+	};
 }

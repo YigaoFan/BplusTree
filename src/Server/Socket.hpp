@@ -1,8 +1,8 @@
 #pragma once
-#include <array>
 #include <string>
+
+#ifdef MOCK_NET
 #include <vector>
-#include <asio.hpp>
 
 namespace Server
 {
@@ -10,7 +10,6 @@ namespace Server
 	using ::std::vector;
 	using ::std::move;
 
-#ifdef MOCK_NET
 	class Socket
 	{
 	private:
@@ -45,11 +44,19 @@ namespace Server
 		}
 
 		// 要不要析构函数里设置当有效的 Socket 析构时打一个下线 log 呢 TODO
-	};	
+	};
+}	
 
 #else
+#include <asio.hpp>
+#include <array>
+
+namespace Server
+{
 	using asio::ip::tcp;
 	using ::std::array;
+	using ::std::move;
+	using ::std::string;
 
 	// async_accept 竟然可以匹配上这个类型
 	class Socket
@@ -80,5 +87,5 @@ namespace Server
 			return string(_buff.data(), n);
 		}
 	};
-#endif
 }
+#endif

@@ -1,12 +1,15 @@
-#include "../../TestFrame/FlyTest.hpp"
+#include "../TestFrame/FlyTest.hpp"
+// #define MOCK_NET
 #include "../Server.hpp"
+
+using namespace Server;
 
 TESTCASE("Server Test")
 {
-    asio::io_context io;
-    auto s = Server::New(io, 13);
+    IoContext io;
+    auto s = ::Server::Server::New(io, 13);
     s.StartRunBackground();
-    io.run();
+    io.Run();
 }
 
 // 下面这个改为大写驼峰，其他的也改一下 TODO
