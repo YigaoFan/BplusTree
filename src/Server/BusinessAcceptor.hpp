@@ -6,7 +6,7 @@
 #include "../Json/Parser.hpp"
 #include "../Json/JsonConverter/JsonConverter.hpp"
 #include "../Log/Logger.hpp"
-#include "BasicType.hpp"
+#include "Socket.hpp"
 #include "ThreadPool.hpp"
 #include "FuncLibWorker.hpp"
 #include "Responder.hpp"
@@ -119,9 +119,8 @@ namespace Server
 				return;
 			}
 			
-			auto port = peer.remote_endpoint().port(); // add to log TODO
-			auto ipAddr = peer.remote_endpoint().address().to_string();
-			auto connectLogger = subLogger.BornNewWith(ipAddr);
+			auto addr = peer.Address();
+			auto connectLogger = subLogger.BornNewWith(addr);
 			_threadPool->Execute([this, p = make_shared<Socket>(move(peer)), conLogger = move(connectLogger)] () mutable
 			{
 				CommunicateWith(move(p), move(conLogger));

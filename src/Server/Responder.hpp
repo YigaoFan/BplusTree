@@ -20,7 +20,7 @@ namespace Server
 
 		void RespondTo(shared_ptr<Socket> peer, string const& message)
 		{
-			peer->send(asio::buffer(message));
+			peer->Send(message);
 		}
 	};
 }

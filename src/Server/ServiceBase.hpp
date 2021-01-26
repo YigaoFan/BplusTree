@@ -96,10 +96,15 @@ namespace Server
 #undef try_with_exception_handle
 
 #define nameof(VAR) #VAR
+#define PRIMITIVE_CAT(A, B) A##B
+#define CAT(A, B) PRIMITIVE_CAT(A, B)
 
 #define ASYNC_HANDLER(NAME)                                                                            \
-	[this, idLogger = userLogger.BornNewWith(GenerateRequestId())]() mutable -> Void                   \
+	[this, userLogger = move(userLogger)]() mutable -> Void                                            \
 	{                                                                                                  \
+		auto id = GenerateRequestId();                                                                 \
+		auto idLogger = userLogger.BornNewWith(id);                                                    \
+		_responder->RespondTo(_peer, id);                                                              \
 		auto requestLogger = idLogger.BornNewWith(nameof(NAME));                                       \
 		auto [paras, rawStr] = ReceiveFromClient<CAT(NAME, Request)::Content, true>(&requestLogger);   \
 		auto argLogger = requestLogger.BornNewWith(move(rawStr));                                      \
