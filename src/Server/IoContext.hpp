@@ -5,8 +5,6 @@
 
 namespace Server
 {
-	using ::asio::ip::tcp;
-
 	class IoContext
 	{
 	private:
