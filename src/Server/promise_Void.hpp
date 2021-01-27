@@ -15,18 +15,18 @@ namespace Server
 				return {};
 			}
 
-			// 不 final_suspend 了，还需要显式 destroy handle 吗？
 			suspend_never final_suspend() noexcept
 			{
 				return {};
 			}
 
-			// 让函数自己处理好异常
 			void unhandled_exception()
 			{
-				using coro_handle = coroutine_handle<promise_type>;
-				auto handle = coro_handle::from_promise(*this);
-				handle.destroy();
+				// 在协程展开代码后，unhandled_exception 之后运行到的是 final_suspend
+				// 而 final_suspend 后会销毁协程
+				// using coro_handle = coroutine_handle<promise_type>;
+				// auto handle = coro_handle::from_promise(*this);
+				// handle.destroy();
 			}
 
 			Void get_return_object()
