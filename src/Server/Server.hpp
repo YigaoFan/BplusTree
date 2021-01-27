@@ -56,10 +56,16 @@ namespace Server
 		static auto New(IoContext& ioContext, int port)
 		{
 			fs::path serverDir = R"(./server)";
-			auto funcLib = FunctionLibrary::GetFrom(serverDir);
+			auto firstTime = false;
 			if ((not fs::exists(serverDir)) or (not fs::is_directory(serverDir)))
 			{
 				fs::create_directory(serverDir);
+				firstTime = true;
+			}
+
+			auto funcLib = FunctionLibrary::GetFrom(serverDir);
+			if (firstTime)
+			{
 				InitBasicFuncTo(funcLib);
 			}
 
@@ -80,17 +86,17 @@ namespace Server
 				"int Zero()\n"
 				"{\n"
 				"	return 0;\n"
-				"}\n"
-				"int Add(int a, int b)\n"
-				"{\n"
-				"	return a + b;\n"
-				"}\n"
-				"#include <string>\n"
-				"using std::string;\n"
-				"string Add(string s1, string s2)\n"
-				"{\n"
-				"	return s1 + s2;\n"
 				"}\n";
+				// "int Add(int a, int b)\n"
+				// "{\n"
+				// "	return a + b;\n"
+				// "}\n"
+				// "#include <string>\n"
+				// "using std::string;\n"
+				// "string Add(string s1, string s2)\n"
+				// "{\n"
+				// "	return s1 + s2;\n"
+				// "}\n";
 
 			auto [pack, defReader] = MakeFuncDefReader(def);
 			lib.Add(pack, move(defReader), "");
