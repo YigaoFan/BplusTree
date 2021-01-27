@@ -24,9 +24,7 @@ namespace Server
 			{
 				// 在协程展开代码后，unhandled_exception 之后运行到的是 final_suspend
 				// 而 final_suspend 后会销毁协程
-				// using coro_handle = coroutine_handle<promise_type>;
-				// auto handle = coro_handle::from_promise(*this);
-				// handle.destroy();
+				// 所以只需要在这里处理异常
 			}
 
 			Void get_return_object()
