@@ -1,12 +1,14 @@
 #include <string>
 #include "Util.hpp"
-#include "../../TestFrame/FlyTest.hpp"
+#include "../TestFrame/FlyTest.hpp"
+#include "../TestFrame/Util.hpp"
 #include "../Store/FileReader.hpp"
 #include "../Store/ObjectBytes.hpp"
 
 using namespace FuncLib::Store;
 using namespace std;
 using namespace FuncLib::Test;
+using namespace ::Test;
 
 TESTCASE("FileReaderObjectBytes test")
 {

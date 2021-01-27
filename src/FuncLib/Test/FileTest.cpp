@@ -4,12 +4,14 @@
 #include <cstddef>
 #include <cstdio>
 #include "Util.hpp"
-#include "../../TestFrame/FlyTest.hpp"
+#include "../TestFrame/FlyTest.hpp"
+#include "../TestFrame/Util.hpp"
 #define private public
 #include "../Persistence/ByteConverter.hpp"
 #include "../Persistence/TypeConverter.hpp"
 
 using namespace std;
+using namespace ::Test;
 using namespace FuncLib;
 using namespace FuncLib::Persistence;
 using namespace FuncLib::Store;
@@ -145,7 +147,6 @@ TESTCASE("File test")
 		auto filename = "store_read";
 		constexpr pos_label l = 300;
 
-		static Cleaner c(filename);
 		using Tree = Btree<4, T, T, StorePlace::Memory>;
 		using DiskTree = Btree<4, T, T, StorePlace::Disk>;
 		auto const n = 2;
@@ -258,4 +259,13 @@ TESTCASE("File test")
 	}
 }
 
-DEF_TEST_FUNC(TestFile)
+void TestFile(bool executed)
+{
+	Cleaner c("store_read");
+
+	if (executed)
+	{
+		allTest();
+	}
+	_tests_.clear();
+}

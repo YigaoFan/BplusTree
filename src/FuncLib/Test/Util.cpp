@@ -6,11 +6,4 @@ namespace FuncLib::Test
 	{
 		return path(filename);
 	}
-
-	Cleaner::Cleaner(char const *path) : Path(path) {}
-
-	Cleaner::~Cleaner()
-	{
-		remove(Path);
-	}
 }
