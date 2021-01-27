@@ -5,7 +5,6 @@
 #include <thread>
 #include <functional>
 #include <condition_variable>
-#include "../TestFrame/Log.hpp" // TODO remove
 
 namespace Server
 {
@@ -52,11 +51,8 @@ namespace Server
 							{
 								current();
 							}
-							catch(std::runtime_error const& e)
-							{
-								// TODO remove this code
-								log("encounter error %s\n", e.what());
-							}
+							catch(...)
+							{ }
 
 							lock.lock();
 						}

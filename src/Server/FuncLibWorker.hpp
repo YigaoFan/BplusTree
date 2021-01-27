@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <sstream>
 #include "Request.hpp"
 #include "ThreadPool.hpp"
 #include "RequestQueue.hpp"
@@ -23,12 +24,13 @@ namespace Server
 		RequestQueue<RemoveFuncRequest> _removeFuncRequestQueue;
 		RequestQueue<SearchFuncRequest> _searchFuncRequestQueue;
 		RequestQueue<ModifyFuncPackageRequest> _modifyFuncPackageRequestQueue;
+		RequestQueue<ContainsFuncRequest> _containsFuncRequestQueue;
 
 	private:
 		auto GenerateTask(auto requestPtr, auto specificTask)
 		{
 			/// 对 specificTask 提供一个安全访问 request 和 funcLib 的环境
-			return [this, request = requestPtr, task = move(specificTask)]
+			return [this, request = move(requestPtr), task = move(specificTask)]
 			{
 				unique_lock<mutex> lock(request->Mutex);
 				struct Guard
@@ -140,10 +142,10 @@ namespace Server
 			auto requestPtr = _addFuncRequestQueue.Add({ {}, move(paras) });
 			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
 			{
-				using ::std::stringstream;
+				using ::std::istringstream;
 
-				stringstream strStream(move(request->Paras.FuncsDef));
-				_funcLib.Add(move(request->Paras.Package), { make_unique<stringstream>(move(strStream)) }, move(request->Paras.Summary));
+				istringstream strStream(move(request->Paras.FuncsDef));
+				_funcLib.Add(move(request->Paras.Package), { make_unique<istringstream>(move(strStream)) }, move(request->Paras.Summary));
 			}));
 
 			return { requestPtr };
@@ -184,6 +186,18 @@ namespace Server
 			{
 				auto& paras = request->Paras;
 				_funcLib.ModifyPackageOf(paras.Func, paras.NewPackage);
+			}));
+
+			return { requestPtr };
+		}
+
+		Awaiter<ContainsFuncRequest> ContainsFunc(ContainsFuncRequest::Content paras)
+		{
+			auto requestPtr = _containsFuncRequestQueue.Add({ {}, move(paras) });
+			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
+			{
+				auto& paras = request->Paras;
+				request->Result = _funcLib.Contains(paras.Func);
 			}));
 
 			return { requestPtr };

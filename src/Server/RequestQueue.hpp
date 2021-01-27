@@ -28,7 +28,7 @@ namespace Server
 		shared_ptr<T> Add(T t)
 		{
 			lock_guard<mutex> guard(_mutex);
-			while (_queue.front()->Done)
+			while (not _queue.empty() and _queue.front()->Done)
 			{
 				_queue.pop();
 			}

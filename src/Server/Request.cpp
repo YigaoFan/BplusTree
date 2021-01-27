@@ -148,5 +148,24 @@ namespace Json::JsonConverter
 
 		return { move(func), move(newPackage) };
 	}
+
+	///---------- ContainsFuncPackageRequest ----------
+	template <>
+	JsonObject Serialize(ContainsFuncRequest::Content const& content)
+	{
+		auto [func] = content;
+		JsonObject::_Object obj;
+		obj.insert({ nameof(func), Serialize(func) });
+
+		return JsonObject(move(obj));
+	}
+
+	template <>
+	ContainsFuncRequest::Content Deserialize(JsonObject const& jsonObj)
+	{
+		auto func = Deserialize<FuncType>(jsonObj[nameof(func)]);
+
+		return { move(func) };
+	}
 #undef nameof
 }

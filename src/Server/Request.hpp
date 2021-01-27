@@ -89,6 +89,17 @@ namespace Server
 
 		Content Paras;
 	};
+
+	struct ContainsFuncRequest : public Request
+	{
+		struct Content
+		{
+			FuncType Func;
+		};
+
+		Content Paras;
+		bool Result;
+	};
 }
 
 namespace Json::JsonConverter
@@ -99,6 +110,7 @@ namespace Json::JsonConverter
 	using Server::ModifyFuncPackageRequest;
 	using Server::RemoveFuncRequest;
 	using Server::SearchFuncRequest;
+	using Server::ContainsFuncRequest;
 
 	///---------- FuncType ----------
 	template <>
@@ -141,4 +153,11 @@ namespace Json::JsonConverter
 
 	template <>
 	ModifyFuncPackageRequest::Content Deserialize(JsonObject const& jsonObj);
+
+	///---------- ContainsFuncPackageRequest ----------
+	template <>
+	JsonObject Serialize(ContainsFuncRequest::Content const& content);
+
+	template <>
+	ContainsFuncRequest::Content Deserialize(JsonObject const& jsonObj);
 }
