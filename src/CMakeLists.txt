@@ -67,6 +67,7 @@ add_executable(RPC
         Server/Request.cpp
         Server/Test/ServerTest.cpp
         Server/Test/CmdFunctionTest.cpp
+        Server/Test/FuncLibWorkerTest.cpp
         )
 
 add_executable(cmd
