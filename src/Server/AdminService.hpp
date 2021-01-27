@@ -13,6 +13,7 @@ namespace Server
 		RemoveFunc,
 		SearchFunc,
 		ModifyFuncPackage,
+		ContainsFunc,
 	};
 }
 
@@ -68,7 +69,8 @@ namespace Server
 				ASYNC_HANDLER(AddFunc),
 				ASYNC_HANDLER(RemoveFunc),
 				ASYNC_HANDLER(SearchFunc),
-				ASYNC_HANDLER(ModifyFuncPackage)
+				ASYNC_HANDLER(ModifyFuncPackage),
+				ASYNC_HANDLER(ContainsFunc)
 				// 这里的 lambda 里面还可以用 LoopAcquireThenDispatch，这样就可以写复杂情况了
 			);
 		}
