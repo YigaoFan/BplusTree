@@ -3,11 +3,12 @@
 #include <memory>
 #include <utility>
 #include <type_traits>
-#include "BasicType.hpp"
 #include "FuncLibWorker.hpp"
 #include "Responder.hpp"
 #include "RequestId.hpp"
 #include "Util.hpp"
+#include "../TestFrame/Util.hpp" // TODO remove
+using namespace Test;
 
 namespace Server
 {
@@ -39,18 +40,6 @@ namespace Server
 		{
 			return Receive<Return, ReturnAdditionalRawByte, ByteProcessWay>(_peer.get());
 		}
-
-// TODO wait complete
-#define try_with_exception_handle(STATEMENT) [&] { \
-	try                                            \
-	{                                              \
-		return STATEMENT;                          \
-	}                                              \
-	catch (std::exception const &e)                \
-	{                                              \
-		throw e;                                   \
-	}                                              \
-}()
 
 		template <typename Callback>
 		void Loop(Callback callback)
@@ -93,7 +82,6 @@ namespace Server
 				throw string("No handler of ") + std::to_string(dispatcherResult);
 			}
 		}
-#undef try_with_exception_handle
 
 #define nameof(VAR) #VAR
 #define PRIMITIVE_CAT(A, B) A##B
