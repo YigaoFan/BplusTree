@@ -61,7 +61,7 @@ namespace FuncLib
 	public:
 		static FuncBinaryLib GetFrom(path const& path);
 		void DecreaseRefCount(pos_label label);
-		vector<char> Read(pos_label label);
+		vector<char>* Read(pos_label label);
 
 		auto Add(vector<char> bin)
 		{

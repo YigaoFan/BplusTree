@@ -98,9 +98,9 @@ namespace FuncLib
 	{
 		// 改名字再调用会出现问题
 		auto l = GetStoreLabel(func);
-		auto bytes = _binLib.Read(l);
+		auto bytesPtr = _binLib.Read(l);
 		auto wrapperFuncName = GetWrapperFuncName(func.FuncName);
-		return Compile::Invoke(bytes, wrapperFuncName.c_str(), move(args));
+		return Compile::Invoke(*bytesPtr, wrapperFuncName.c_str(), move(args));
 	}
 
 	// keyword maybe part package name, 需要去匹配，所以返回值可能不能做到返回函数的相关信息
