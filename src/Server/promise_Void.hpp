@@ -1,22 +1,48 @@
 #pragma once
+#include <utility>
 #include <exception>
 #include <experimental/coroutine>
 
 namespace Server
 {
+	using ::std::exchange;
 	using ::std::experimental::coroutine_handle;
 	using ::std::experimental::suspend_never;
+	using ::std::exception_ptr;
 
 	struct Void
 	{
+		struct FinalAwaiter
+		{
+			bool await_ready() noexcept
+			{
+				return false;
+			}
+
+			void await_suspend(auto handle) noexcept
+			{
+				auto& p = handle.promise();
+				if (auto c = p.Continuation; c != nullptr)
+				{
+					c.resume();
+					c.destroy();
+				}
+			}
+
+			void await_resume() noexcept {}
+		};
+
 		struct promise_type
 		{
+			coroutine_handle<promise_type> Continuation = nullptr;
+			exception_ptr ExceptionPtr = nullptr;
+
 			suspend_never initial_suspend()
 			{
 				return {};
 			}
 
-			suspend_never final_suspend() noexcept
+			FinalAwaiter final_suspend() noexcept
 			{
 				return {};
 			}
@@ -26,16 +52,51 @@ namespace Server
 				// 在协程展开代码后，unhandled_exception 之后运行到的是 final_suspend
 				// 而 final_suspend 后会销毁协程
 				// 所以只需要在这里处理异常
-				auto ePtr = std::current_exception();
-				std::rethrow_exception(ePtr);
+				ExceptionPtr = std::current_exception();
 			}
 
 			Void get_return_object()
 			{
-				return {};
+				return coroutine_handle<promise_type>::from_promise(*this);
 			}
 
 			void return_void() {}
 		};
+		
+		using coro_handle = coroutine_handle<promise_type>;
+
+		bool await_ready() const noexcept
+		{
+			return false;
+		}
+
+		void await_suspend(coro_handle handle) const noexcept
+		{
+			this->handle.promise().Continuation = handle;
+		}
+
+		void await_resume() const noexcept
+		{
+			auto& p = handle.promise();
+			if (p.ExceptionPtr != nullptr)
+			{
+				std::rethrow_exception(p.ExceptionPtr);
+			}
+		}
+
+		Void(coro_handle handle) : handle(move(handle))
+		{ }
+
+		Void(Void&& that) noexcept : handle(exchange(that.handle, {}))
+		{ }
+
+		Void(Void const& that) = delete;
+
+		~Void()
+		{
+			// handle 所指对象由发起 resume 的部分来销毁
+		}
+	private:
+		coroutine_handle<promise_type> handle;
 	};
 }

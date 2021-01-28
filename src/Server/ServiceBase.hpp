@@ -7,6 +7,7 @@
 #include "Responder.hpp"
 #include "RequestId.hpp"
 #include "Util.hpp"
+#include "promise_Void.hpp"
 #include "../TestFrame/Util.hpp" // TODO remove
 using namespace Test;
 
@@ -36,38 +37,37 @@ namespace Server
 				  bool ReturnAdditionalRawByte = false,
 				  ByteProcessWay ByteProcessWay = ByteProcessWay::ParseThenDeserial,
 				  typename Logger>
-		auto ReceiveFromClient(Logger* logger)
+		static auto ReceiveFromClient(Logger* logger, Socket* peer)
 		{
-			return Receive<Return, ReturnAdditionalRawByte, ByteProcessWay>(_peer.get());
+			return Receive<Return, ReturnAdditionalRawByte, ByteProcessWay>(peer);
 		}
 
 		template <typename Callback>
-		void Loop(Callback callback)
+		static Void Loop(Callback callback)
 		{
 			// log and send and throw
-
-			while (true)
+			for (;;)
 			{
-				callback(); // 这一步要不要异常处理？
+				co_await callback(); // 这一步要不要异常处理？
+				printf("coroutine come back here\n");
 			}
 		}
 
 		template <typename Receive, typename UserLogger, typename Dispatcher, typename... Handlers>
-		void LoopAcquireThenDispatch(UserLogger userLogger, Dispatcher dispatcher, Handlers... handlers)
+		static void LoopAcquireThenDispatch(UserLogger userLogger, Dispatcher dispatcher, Handlers... handlers)
 		{
-			while (true)
+			for (;;)
 			{
-				tuple handlersTuple = { move(handlers)...};
-				// auto r = try_with_exception_handle(ReceiveFromClient<Receive>(&userLogger));
-				auto r = ReceiveFromClient<Receive>(&userLogger);
-				auto d = dispatcher(move(r));
+				// tuple handlersTuple = { move(handlers)...};
+				// auto r = ReceiveFromClient<Receive>(&userLogger);
+				// auto d = dispatcher(move(r));
 
-				InvokeWhenEqualTo<0>(d, move(handlersTuple));
+				// InvokeWhenEqualTo<0>(d, move(handlersTuple));
 			}
 		}
 
 		template <auto CurrentOption, typename... Handlers>
-		void InvokeWhenEqualTo(int dispatcherResult, tuple<Handlers...> handlersTuple)
+		static void InvokeWhenEqualTo(int dispatcherResult, tuple<Handlers...> handlersTuple)
 		{
 			if (dispatcherResult == CurrentOption)
 			{
@@ -87,28 +87,28 @@ namespace Server
 #define PRIMITIVE_CAT(A, B) A##B
 #define CAT(A, B) PRIMITIVE_CAT(A, B)
 
-#define ASYNC_HANDLER(NAME)                                                                            \
-	[this, userLogger = move(userLogger)]() mutable -> Void                                            \
-	{                                                                                                  \
-		auto id = GenerateRequestId();                                                                 \
-		auto idLogger = userLogger.BornNewWith(id);                                                    \
-		_responder->RespondTo(_peer, id);                                                              \
-		auto requestLogger = idLogger.BornNewWith(nameof(NAME));                                       \
-		auto [paras, rawStr] = ReceiveFromClient<CAT(NAME, Request)::Content, true>(&requestLogger);   \
-		auto argLogger = requestLogger.BornNewWith(move(rawStr));                                      \
-		string response;                                                                               \
-		if constexpr (not is_same_v<void, decltype(_funcLibWorker->NAME(move(paras)).await_resume())>) \
-		{                                                                                              \
-			auto result = co_await _funcLibWorker->NAME(move(paras));                                  \
-			response = Json::JsonConverter::Serialize(result).ToString();                              \
-		}                                                                                              \
-		else                                                                                           \
-		{                                                                                              \
-			co_await _funcLibWorker->NAME(move(paras));                                                \
-			response = nameof(NAME) " operate succeed(or TODO null)";                                  \
-		}                                                                                              \
-		_responder->RespondTo(_peer, response);                                                        \
-		argLogger.BornNewWith(ResultStatus::Complete);                                                 \
+#define ASYNC_HANDLER(NAME)                                                                                          \
+	[responder=_responder, libWorker = _funcLibWorker, peer = _peer, userLogger = move(userLogger)]() mutable -> Void\
+	{                                                                                                                \
+		auto id = GenerateRequestId();                                                                               \
+		auto idLogger = userLogger.BornNewWith(id);                                                                  \
+		responder->RespondTo(peer, id);                                                                             \
+		auto requestLogger = idLogger.BornNewWith(nameof(NAME));                                                     \
+		auto [paras, rawStr] = ReceiveFromClient<CAT(NAME, Request)::Content, true>(&requestLogger, peer.get());                 \
+		auto argLogger = requestLogger.BornNewWith(move(rawStr));                                                    \
+		string response;                                                                                             \
+		if constexpr (not is_same_v<void, decltype(libWorker->NAME(move(paras)).await_resume())>)                    \
+		{                                                                                                            \
+			auto result = co_await libWorker->NAME(move(paras));                                                     \
+			response = Json::JsonConverter::Serialize(result).ToString();                                            \
+		}                                                                                                            \
+		else                                                                                                         \
+		{                                                                                                            \
+			co_await libWorker->NAME(move(paras));                                                                   \
+			response = nameof(NAME) " operate succeed(or TODO null)";                                                \
+		}                                                                                                            \
+		responder->RespondTo(peer, response);                                                                       \
+		argLogger.BornNewWith(ResultStatus::Complete);                                                               \
 	}
 	};
 }

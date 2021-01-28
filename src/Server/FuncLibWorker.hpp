@@ -40,6 +40,7 @@ namespace Server
 
 					~Guard()
 					{
+						Request->Done = true;
 						if (std::current_exception() != nullptr)
 						{
 							Request->CondVar.wait(*Lock, [=]
@@ -50,7 +51,6 @@ namespace Server
 						}
 						
 						// 这里对 fail 的情况要区分下应该 TODO 和 log 里的信息能不能统一起来
-						Request->Done = true;
 					}
 				};
 
@@ -92,8 +92,7 @@ namespace Server
 				return false;
 			}
 
-			template <typename Handle>
-			void await_suspend(Handle handle) const noexcept
+			void await_suspend(auto handle) const noexcept
 			{
 				{
 					lock_guard<mutex> lock(RequestPtr->Mutex);
@@ -101,9 +100,7 @@ namespace Server
 					RequestPtr->Success = [=]() mutable
 					{
 						handle.resume();
-						// outside co_routine should without final suspend, so the
-						// resource can be free？
-						// handle.destroy(); 看文章说要不要，以及异常情况下这个 handle 怎么释放
+						handle.destroy();
 					};
 
 					RequestPtr->Fail = [promise = &handle.promise()]
