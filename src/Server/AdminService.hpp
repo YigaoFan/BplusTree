@@ -47,6 +47,7 @@ namespace Server
 			// 各个 handler 通过 capture 自行处理会产生的各自的 requestLogger
 			// 这个产生了不必要的 requestLogger，这点之后应该要处理
 			AsyncLoopAcquireThenDispatch<ServiceOption>(
+				move(userLogger),
 				_peer,
 				[](auto serviceOption)
 				{
