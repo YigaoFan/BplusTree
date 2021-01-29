@@ -22,8 +22,13 @@ namespace FuncLib
 		}
 	}
 
-	vector<char>* FuncBinaryLib::Read(pos_label label)
+	vector<char>* FuncBinaryLib::ReadBin(pos_label label)
 	{
 		return &_file->Read<BinUnit>(label)->Bin;
+	}
+
+	shared_ptr<BinUnit> FuncBinaryLib::ReadBinUnit(pos_label label)
+	{
+		return _file->Read<BinUnit>(label);
 	}
 }

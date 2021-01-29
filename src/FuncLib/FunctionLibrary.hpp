@@ -9,6 +9,8 @@
 #include "FuncBinaryLib.hpp"
 #include "FuncBinaryLibIndex.hpp"
 #include "../Btree/Generator.hpp"
+#include "Compile/CompileProcess.hpp"
+#include "Compile/Invoke.hpp"
 
 namespace FuncLib
 {
@@ -69,6 +71,17 @@ namespace FuncLib
 		JsonObject Invoke(FuncType const& func, JsonObject args);
 		// keyword maybe part package name, 需要去匹配，所以返回值可能不能做到返回函数的相关信息
 		Generator<pair<string, string>> Search(string const& keyword);
+
+		auto GetInvoker(FuncType func, JsonObject args)
+		{
+			auto l = GetStoreLabel(func);
+			auto unitPtr = _binLib.ReadBinUnit(l);
+			return [func=move(func), unitPtr=move(unitPtr), args=move(args)]() -> JsonObject
+			{
+				auto wrapperFuncName = Compile::GetWrapperFuncName(func.FuncName);
+				return Compile::Invoke(unitPtr->Bin, wrapperFuncName.c_str(), move(args));
+			};
+		}
 
 	private:
 		pos_label GetStoreLabel(FuncType const& func);

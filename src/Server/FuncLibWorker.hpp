@@ -27,6 +27,8 @@ namespace Server
 		RequestQueue<ContainsFuncRequest> _containsFuncRequestQueue;
 
 	private:
+		/// if ManualManageLock, the lock is locked already
+		template <bool ManualManageLock = false>
 		auto GenerateTask(auto requestPtr, auto specificTask)
 		{
 			/// 对 specificTask 提供一个安全访问 request 和 funcLib 的环境
@@ -54,6 +56,13 @@ namespace Server
 					}
 				};
 
+				if constexpr (ManualManageLock)
+				{
+					Guard g{ request, &lock };
+					unique_lock<mutex> libLock(this->_funcLibMutex);
+					task(request, &libLock);
+				}
+				else
 				{
 					Guard g{ request, &lock }; // 由于 C++ 逆序析构的原则，Guard 在 lock_guard 之先比较好
 					lock_guard<mutex> libGuard(this->_funcLibMutex);
@@ -126,9 +135,11 @@ namespace Server
 		Awaiter<InvokeFuncRequest> InvokeFunc(InvokeFuncRequest::Content paras)
 		{
 			auto requestPtr = _invokeRequestQueue.Add({ {}, move(paras) });
-			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
+			_threadPool->Execute(GenerateTask<true>(requestPtr, [this](auto request, unique_lock<mutex>* lockPtr)
 			{
-				request->Result = _funcLib.Invoke(request->Paras.Func, request->Paras.Arg);
+				auto invoker = _funcLib.GetInvoker(request->Paras.Func, request->Paras.Arg);
+				lockPtr->unlock();
+				request->Result = invoker();
 			}));
 
 			return { requestPtr };

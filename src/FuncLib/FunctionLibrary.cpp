@@ -98,7 +98,7 @@ namespace FuncLib
 	{
 		// 改名字再调用会出现问题
 		auto l = GetStoreLabel(func);
-		auto bytesPtr = _binLib.Read(l);
+		auto bytesPtr = _binLib.ReadBin(l);
 		auto wrapperFuncName = GetWrapperFuncName(func.FuncName);
 		return Compile::Invoke(*bytesPtr, wrapperFuncName.c_str(), move(args));
 	}
