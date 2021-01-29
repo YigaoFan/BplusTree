@@ -56,15 +56,15 @@ namespace Server
 		static auto New(IoContext& ioContext, int port)
 		{
 			fs::path serverDir = R"(./server)";
-			auto firstTime = false;
+			auto firstSetup = false;
 			if ((not fs::exists(serverDir)) or (not fs::is_directory(serverDir)))
 			{
 				fs::create_directory(serverDir);
-				firstTime = true;
+				firstSetup = true;
 			}
 
 			auto funcLib = FunctionLibrary::GetFrom(serverDir);
-			if (firstTime)
+			if (firstSetup)
 			{
 				InitBasicFuncTo(funcLib);
 			}
