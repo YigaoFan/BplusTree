@@ -13,6 +13,7 @@
 #include "ClientService.hpp"
 #include "AdminService.hpp"
 #include "Util.hpp"
+#include "AccountManager.hpp"
 
 namespace Server
 {
@@ -64,6 +65,7 @@ namespace Server
 	private:
 		bool _startAccept = false;
 		ThreadPool* _threadPool = nullptr;
+		AccountManager* _accountManager = nullptr;
 		Responder _responder;
 		function<ClientService(shared_ptr<Socket>, Responder*)> _clientServiceFactory;
 		function<AdminService(shared_ptr<Socket>, Responder*)> _adminServiceFactory;
@@ -78,6 +80,11 @@ namespace Server
 		void SetThreadPool(ThreadPool* threadPool)
 		{
 			_threadPool = threadPool;
+		}
+
+		void SetAccountManager(AccountManager* accountManager)
+		{
+			_accountManager = accountManager;
 		}
 
 		template <typename ClientServiceFactory, typename AdminServiceFactory>
@@ -151,24 +158,25 @@ namespace Server
 			// client 那边应该会因为这边 socket 析构而收到中断异常或信息吧 TODO 测试下
 
 			auto loginInfo = Receive<LoginInfo, false, ByteProcessWay::ParseThenDeserial>(peer.get());
-			// client send username and password 鉴权
-			auto isAdmin = false;
-			// search account in account info file
-			auto userLogger = connectLogger.BornNewWith(loginInfo.Username);
+			if (_accountManager->IsRegistered(loginInfo.Username, loginInfo.Password))
+			{
+				auto userLogger = connectLogger.BornNewWith(loginInfo.Username);
 
-			// 可以 DRY 这种固定的问答模式吗？
-			if (isAdmin)
-			{
-				send("server ok. welcome admin.");
-				auto s = _adminServiceFactory(move(peer), &_responder);
-				return s.Run(move(userLogger));
+				if (_accountManager->IsAdmin(loginInfo.Username, loginInfo.Password))
+				{
+					send("server ok. welcome admin.");
+					auto s = _adminServiceFactory(move(peer), &_responder);
+					return s.Run(move(userLogger));
+				}
+				else
+				{
+					send("server ok. hello client.");
+					auto s = _clientServiceFactory(move(peer), &_responder);
+					return s.Run(move(userLogger));
+				}
 			}
-			else
-			{
-				send("server ok. hello client.");
-				auto s = _clientServiceFactory(move(peer), &_responder);
-				return s.Run(move(userLogger));
-			}
+
+			send("Account not registered. please contact admin to register.");
 		}
 	};
 }

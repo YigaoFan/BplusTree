@@ -1,5 +1,6 @@
 #pragma once
 #include "ServiceBase.hpp"
+#include "AccountManager.hpp"
 
 namespace Server
 {
@@ -10,6 +11,7 @@ namespace Server
 		SearchFunc,
 		ModifyFuncPackage,
 		ContainsFunc,
+		ManageAccount, // TODO
 	};
 }
 
@@ -36,9 +38,12 @@ namespace Server
 	{
 	private:
 		using Base = ServiceBase;
+		AccountManager* _accountManager;
 
 	public:
-		using Base::Base;
+		AdminService(shared_ptr<Socket> peer, FuncLibWorker* funcLibWorker, Responder* responder, AccountManager* accountManager)
+			: Base(move(peer), funcLibWorker, responder), _accountManager(accountManager)
+		{ }
 
 		void Run(auto userLogger)
 		{

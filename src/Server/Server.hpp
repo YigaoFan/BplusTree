@@ -11,6 +11,7 @@
 #include "Responder.hpp"
 #include "../FuncLib/FunctionLibrary.hpp"
 #include "FuncLibWorker.hpp"
+#include "AccountManager.hpp"
 
 namespace Server
 {
@@ -29,19 +30,22 @@ namespace Server
 		NetworkAcceptor _netAcceptor;
 		BusinessAcceptor _businessAcceptor;
 		FuncLibWorker _funcLibWorker;
+		AccountManager _accountManager;
 
 	public:
-		Server(ThreadPool threadPool, NetworkAcceptor netAcceptor, BusinessAcceptor businessAcceptor, FuncLibWorker funcLibWorker)
+		Server(ThreadPool threadPool, NetworkAcceptor netAcceptor, BusinessAcceptor businessAcceptor, FuncLibWorker funcLibWorker, AccountManager accountManager)
 			: _threadPool(move(threadPool)), _netAcceptor(move(netAcceptor)),
 			  _businessAcceptor(move(businessAcceptor)),
-			  _funcLibWorker(move(funcLibWorker))
+			  _funcLibWorker(move(funcLibWorker)),
+			  _accountManager(move(accountManager))
 		{
 			_businessAcceptor.SetThreadPool(&_threadPool);
 			_funcLibWorker.SetThreadPool(&_threadPool);
 
 			_businessAcceptor.SetServiceFactory(
 				[&](shared_ptr<Socket> socket, Responder *responder) mutable { return ClientService(move(socket), &_funcLibWorker, responder); },
-				[&](shared_ptr<Socket> socket, Responder *responder) mutable { return AdminService(move(socket), &_funcLibWorker, responder); });
+				[&](shared_ptr<Socket> socket, Responder *responder) mutable { return AdminService(move(socket), &_funcLibWorker, responder, &_accountManager); });
+			_businessAcceptor.SetAccountManager(&_accountManager);
 
 			_netAcceptor.AsyncAccept(
 				std::bind(&BusinessAcceptor::HandleAccept, &_businessAcceptor,
@@ -59,11 +63,12 @@ namespace Server
 			auto firstSetup = false;
 			if ((not fs::exists(serverDir)) or (not fs::is_directory(serverDir)))
 			{
-				fs::create_directory(serverDir);
 				firstSetup = true;
+				fs::create_directory(serverDir);
 			}
 
 			auto funcLib = FunctionLibrary::GetFrom(serverDir);
+			auto accountManager = AccountManager::GetFrom(serverDir);
 			if (firstSetup)
 			{
 				InitBasicFuncTo(funcLib);
@@ -76,7 +81,7 @@ namespace Server
 			auto acceptor = BusinessAcceptor(move(responder), move(logger));
 			auto funcLibWorker = FuncLibWorker(move(funcLib));
 			NetworkAcceptor netAcceptor = ioContext.GetNetworkAcceptorOf(port);
-			return Server(move(threadPool), move(netAcceptor), move(acceptor), move(funcLibWorker));
+			return Server(move(threadPool), move(netAcceptor), move(acceptor), move(funcLibWorker), move(accountManager));
 		}
 
 	private:
