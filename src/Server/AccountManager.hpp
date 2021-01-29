@@ -21,6 +21,7 @@ namespace Server
 	class AccountManager
 	{
 	private:
+		static constexpr pos_label AccountsLabel = 10;
 		using AccountsInfo = map<string, pair<string, bool>>;
 		shared_ptr<File> _file;
 		shared_ptr<AccountsInfo> _accountsInfo;
@@ -40,15 +41,14 @@ namespace Server
 
 			shared_ptr<AccountsInfo> accounts;
 
-			constexpr pos_label accountsLabel = 10;
 			if (firstSetup)
 			{
-				auto [l, a] = file->New(accountsLabel, AccountsInfo());
+				auto [l, a] = file->New(AccountsLabel, AccountsInfo());
 				accounts = move(a);
 			}
 			else
 			{
-				accounts = file->Read<AccountsInfo>(accountsLabel);
+				accounts = file->Read<AccountsInfo>(AccountsLabel);
 			}
 
 			return AccountManager(move(file), move(accounts));
@@ -70,6 +70,14 @@ namespace Server
 			return _accountsInfo->contains(username)
 				and (*_accountsInfo)[username].first == password
 				and (*_accountsInfo)[username].second;
+		}
+
+		~AccountManager()
+		{
+			if (_file != nullptr and _accountsInfo != nullptr)
+			{
+				_file->Store(AccountsLabel, _accountsInfo);
+			}
 		}
 	};
 }
