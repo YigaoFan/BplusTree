@@ -167,5 +167,96 @@ namespace Json::JsonConverter
 
 		return { move(func) };
 	}
+
+	///---------- Account Info Serialize Deserialize Helper ----------
+
+	JsonObject AccountInfoSerialize(auto const& content)
+	{
+		auto [username, password] = content;
+		JsonObject::_Object obj;
+		obj.insert({ nameof(username), Serialize(username) });
+		obj.insert({ nameof(password), Serialize(password) });
+
+		return JsonObject(move(obj));
+	}
+
+	template <typename T>
+	T AccountInfoDeserialize(JsonObject const& jsonObj)
+	{
+		auto username = Deserialize<string>(jsonObj[nameof(username)]);
+		auto password = Deserialize<string>(jsonObj[nameof(password)]);
+
+		return { move(username), move(password) };
+	}
+
+	///---------- AddClientAccountRequest ----------
+	template <>
+	JsonObject Serialize(AddClientAccountRequest::Content const& content)
+	{
+		return AccountInfoSerialize(content);
+	}
+
+	template <>
+	AddClientAccountRequest::Content Deserialize(JsonObject const& jsonObj)
+	{
+		return AccountInfoDeserialize<AddClientAccountRequest::Content>(jsonObj);
+	}
+
+	///---------- AddAdminAccountRequest ----------
+	template <>
+	JsonObject Serialize(AddAdminAccountRequest::Content const& content)
+	{
+		return AccountInfoSerialize(content);
+	}
+
+	template <>
+	AddAdminAccountRequest::Content Deserialize(JsonObject const& jsonObj)
+	{
+		return AccountInfoDeserialize<AddAdminAccountRequest::Content>(jsonObj);
+	}
+
+	///---------- Account Username Serialize Deserialize Helper ----------
+	JsonObject AccountUsernameSerialize(auto const& content)
+	{
+		auto [username] = content;
+		JsonObject::_Object obj;
+		obj.insert({ nameof(username), Serialize(username) });
+
+		return JsonObject(move(obj));
+	}
+
+	template <typename T>
+	T AccountUsernameDeserialize(JsonObject const& jsonObj)
+	{
+		auto username = Deserialize<string>(jsonObj[nameof(username)]);
+
+		return { move(username), };
+	}
+
+	///---------- RemoveClientAccountRequest ----------
+	template <>
+	JsonObject Serialize(RemoveClientAccountRequest::Content const& content)
+	{
+		return AccountUsernameSerialize(content);
+	}
+
+	template <>
+	RemoveClientAccountRequest::Content Deserialize(JsonObject const& jsonObj)
+	{
+		return AccountUsernameDeserialize<RemoveClientAccountRequest::Content>(jsonObj);
+	}
+
+	///---------- RemoveAdminAccountRequest ----------
+	template <>
+	JsonObject Serialize(RemoveAdminAccountRequest::Content const& content)
+	{
+		return AccountUsernameSerialize(content);
+	}
+
+	template <>
+	RemoveAdminAccountRequest::Content Deserialize(JsonObject const& jsonObj)
+	{
+		return AccountUsernameDeserialize<RemoveAdminAccountRequest::Content>(jsonObj);
+	}
 #undef nameof
 }

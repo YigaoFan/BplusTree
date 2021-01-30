@@ -11,7 +11,10 @@ namespace Server
 		SearchFunc,
 		ModifyFuncPackage,
 		ContainsFunc,
-		ManageAccount, // TODO
+		AddClientAccount,
+		RemoveClientAccount,
+		AddAdminAccount,
+		RemoveAdminAccount,
 	};
 }
 
@@ -45,6 +48,39 @@ namespace Server
 			: Base(move(peer), funcLibWorker, responder), _accountManager(accountManager)
 		{ }
 
+// 去掉这个宏 TODO
+#define ASYNC_ACCOUNT_HANDLER(NAME)                                                                                \
+	[responder = _responder, peer = _peer, accountManager = _accountManager](auto userLoggerPtr) mutable -> Void   \
+	{                                                                                                              \
+		auto [paras, rawStr] = ReceiveFromPeer<CAT(NAME, Request)::Content, true>(peer.get());                     \
+		auto id = GenerateRequestId();                                                                             \
+		auto idLogger = userLoggerPtr->BornNewWith(id);                                                            \
+		responder->RespondTo(peer, id);                                                                            \
+		auto requestLogger = idLogger.BornNewWith(nameof(NAME));                                                   \
+		auto argLogger = requestLogger.BornNewWith(move(rawStr));                                                  \
+		string response;                                                                                           \
+		try                                                                                                        \
+		{                                                                                                          \
+			if constexpr (not is_same_v<void, decltype(accountManager->NAME(move(paras)).await_resume())>)         \
+			{                                                                                                      \
+				auto result = co_await accountManager->NAME(move(paras));                                          \
+				response = Json::JsonConverter::Serialize(result).ToString();                                      \
+			}                                                                                                      \
+			else                                                                                                   \
+			{                                                                                                      \
+				co_await accountManager->NAME(move(paras));                                                        \
+				response = nameof(NAME) " operate succeed(or TODO null)";                                          \
+			}                                                                                                      \
+		}                                                                                                          \
+		catch (std::exception const &e)                                                                            \
+		{                                                                                                          \
+			responder->RespondTo(peer, e.what());                                                                  \
+			argLogger.BornNewWith(ResultStatus::Failed);                                                           \
+			co_return;                                                                                             \
+		}                                                                                                          \
+		responder->RespondTo(peer, response);                                                                      \
+		argLogger.BornNewWith(ResultStatus::Complete);                                                             \
+	}
 		void Run(auto userLogger)
 		{
 			// 那出异常怎么设置失败呢
@@ -54,8 +90,7 @@ namespace Server
 			AsyncLoopAcquireThenDispatch<ServiceOption>(
 				move(userLogger),
 				_peer,
-				[](auto serviceOption)
-				{
+				[](auto serviceOption) {
 					return static_cast<int>(serviceOption);
 				},
 				// 下面的顺序需要和 ServiceOption enum 的顺序一致
@@ -63,8 +98,11 @@ namespace Server
 				ASYNC_HANDLER(RemoveFunc),
 				ASYNC_HANDLER(SearchFunc),
 				ASYNC_HANDLER(ModifyFuncPackage),
-				ASYNC_HANDLER(ContainsFunc)
-			);
+				ASYNC_HANDLER(ContainsFunc),
+				ASYNC_ACCOUNT_HANDLER(AddClientAccount),
+				ASYNC_ACCOUNT_HANDLER(RemoveClientAccount),
+				ASYNC_ACCOUNT_HANDLER(AddAdminAccount),
+				ASYNC_ACCOUNT_HANDLER(RemoveAdminAccount));
 		}
 	};
 }

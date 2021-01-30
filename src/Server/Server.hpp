@@ -41,6 +41,7 @@ namespace Server
 		{
 			_businessAcceptor.SetThreadPool(&_threadPool);
 			_funcLibWorker.SetThreadPool(&_threadPool);
+			_accountManager.SetThreadPool(&_threadPool);
 
 			_businessAcceptor.SetServiceFactory(
 				[&](shared_ptr<Socket> socket, Responder *responder) mutable { return ClientService(move(socket), &_funcLibWorker, responder); },
@@ -68,10 +69,11 @@ namespace Server
 			}
 
 			auto funcLib = FunctionLibrary::GetFrom(serverDir);
-			auto accountManager = AccountManager::GetFrom(serverDir);
+			auto accountData = AccountData::GetFrom(serverDir);
 			if (firstSetup)
 			{
 				InitBasicFuncTo(funcLib);
+				accountData.Add(false, "yigao fan", "hello world");
 			}
 
 			auto n = thread::hardware_concurrency();
@@ -80,6 +82,7 @@ namespace Server
 			auto logger = Log::MakeLogger(serverDir / "server.log");
 			auto acceptor = BusinessAcceptor(move(responder), move(logger));
 			auto funcLibWorker = FuncLibWorker(move(funcLib));
+			auto accountManager = AccountManager(move(accountData));
 			NetworkAcceptor netAcceptor = ioContext.GetNetworkAcceptorOf(port);
 			return Server(move(threadPool), move(netAcceptor), move(acceptor), move(funcLibWorker), move(accountManager));
 		}

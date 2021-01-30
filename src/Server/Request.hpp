@@ -30,8 +30,10 @@ namespace Server
 		function<void()> Fail;
 
 		Request() = default;
-		Request(Request &&that) noexcept;
+		Request(Request&& that) noexcept;
 	};
+
+	///---------- FuncLibWorker request ----------
 
 	struct InvokeFuncRequest : public Request
 	{
@@ -100,6 +102,50 @@ namespace Server
 		Content Paras;
 		bool Result;
 	};
+
+	///---------- AccountManager request ----------
+
+	struct AddClientAccountRequest : public Request
+	{
+		struct Content
+		{
+			string Username;
+			string Password;
+		};
+
+		Content Paras;
+	};
+
+	struct RemoveClientAccountRequest : public Request
+	{
+		struct Content
+		{
+			string Username;
+		};
+
+		Content Paras;
+	};
+
+	struct AddAdminAccountRequest : public Request
+	{
+		struct Content
+		{
+			string Username;
+			string Password;
+		};
+
+		Content Paras;
+	};
+
+	struct RemoveAdminAccountRequest : public Request
+	{
+		struct Content
+		{
+			string Username;
+		};
+
+		Content Paras;
+	};
 }
 
 namespace Json::JsonConverter
@@ -111,10 +157,14 @@ namespace Json::JsonConverter
 	using Server::RemoveFuncRequest;
 	using Server::SearchFuncRequest;
 	using Server::ContainsFuncRequest;
+	using Server::AddClientAccountRequest;
+	using Server::AddAdminAccountRequest;
+	using Server::RemoveClientAccountRequest;
+	using Server::RemoveAdminAccountRequest;
 
 	///---------- FuncType ----------
 	template <>
-	JsonObject Serialize(FuncType const &type);
+	JsonObject Serialize(FuncType const& type);
 
 	template <>
 	FuncType Deserialize(JsonObject const& jsonObj);
@@ -160,4 +210,32 @@ namespace Json::JsonConverter
 
 	template <>
 	ContainsFuncRequest::Content Deserialize(JsonObject const& jsonObj);
+
+	///---------- AddClientAccountRequest ----------
+	template <>
+	JsonObject Serialize(AddClientAccountRequest::Content const& content);
+
+	template <>
+	AddClientAccountRequest::Content Deserialize(JsonObject const& jsonObj);
+
+	///---------- AddAdminAccountRequest ----------
+	template <>
+	JsonObject Serialize(AddAdminAccountRequest::Content const& content);
+
+	template <>
+	AddAdminAccountRequest::Content Deserialize(JsonObject const& jsonObj);
+
+	///---------- RemoveClientAccountRequest ----------
+	template <>
+	JsonObject Serialize(RemoveClientAccountRequest::Content const& content);
+
+	template <>
+	RemoveClientAccountRequest::Content Deserialize(JsonObject const& jsonObj);
+
+	///---------- RemoveAdminAccountRequest ----------
+	template <>
+	JsonObject Serialize(RemoveAdminAccountRequest::Content const& content);
+
+	template <>
+	RemoveAdminAccountRequest::Content Deserialize(JsonObject const& jsonObj);
 }
