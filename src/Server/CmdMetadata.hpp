@@ -39,6 +39,11 @@ namespace Server
 			nameof(RemoveFunc),
 			nameof(SearchFunc),
 			nameof(ModifyFunc),
+			nameof(ContainsFunc),
+			nameof(AddClientAccount),
+			nameof(RemoveClientAccount),
+			nameof(AddAdminAccount),
+			nameof(RemoveAdminAccount),
 		};
 	}
 
@@ -140,7 +145,7 @@ namespace Server
 			ifstream fs(filename, ifstream::in);
 			fs.seekg(0, ifstream::end);
 			auto n = fs.tellg();
-			string def;
+			string def(n, ' ');
 			def.resize(n);
 			fs.seekg(0); // restore read position
 			fs.read(def.data(), n);
@@ -202,7 +207,9 @@ namespace Server
 	private:
 		tuple<string_view, string_view> DivideInfo(string_view cmd)
 		{
-			auto [newPackageInfo, funcInfo] = ParseOut<true>(cmd, "::");
+			auto p = cmd.find_last_of(' ');
+			auto funcInfo = TrimEnd(cmd.substr(0, p));
+			auto newPackageInfo = cmd.substr(p + 1);
 			return { funcInfo, newPackageInfo };
 		}
 
@@ -215,6 +222,53 @@ namespace Server
 			auto newPackage = GetPackageFrom(newPackageInfo);
 
 			return Serial(CombineTo<ModifyFuncPackageRequest::Content>(move(func), move(newPackage)));
+		}
+	};
+
+	struct ContainsFuncCmd
+	{
+		string Process(string cmd)
+		{
+			auto funcInfo = Preprocess(nameof(ContainsFunc), cmd);
+			return Serial(CombineTo<ContainsFuncRequest::Content>(GetFuncTypeFrom(funcInfo)));
+		}
+	};
+
+	struct AddClientAccountCmd
+	{
+		string Process(string cmd)
+		{
+			auto accountInfo = Preprocess(nameof(AddClientAccount), cmd);
+			auto [username, password] = ParseOut<true>(accountInfo, " ");
+			return Serial(CombineTo<AddClientAccountRequest::Content>(string(username), string(password)));
+		}
+	};
+
+	struct RemoveClientAccountCmd
+	{
+		string Process(string cmd)
+		{
+			auto username = Preprocess(nameof(RemoveClientAccount), cmd);
+			return Serial(CombineTo<RemoveClientAccountRequest::Content>(string(username)));
+		}
+	};
+
+	struct AddAdminAccountCmd
+	{
+		string Process(string cmd)
+		{
+			auto accountInfo = Preprocess(nameof(AddAdminAccount), cmd);
+			auto [username, password] = ParseOut<true>(accountInfo, " ");
+			return Serial(CombineTo<AddAdminAccountRequest::Content>(string(username), string(password)));
+		}
+	};
+
+	struct RemoveAdminAccountCmd
+	{
+		string Process(string cmd)
+		{
+			auto username = Preprocess(nameof(RemoveAdminAccount), cmd);
+			return Serial(CombineTo<RemoveClientAccountRequest::Content>(string(username)));
 		}
 	};
 
