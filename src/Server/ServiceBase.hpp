@@ -34,7 +34,7 @@ namespace Server
 		template <typename Return,
 				  bool ReturnAdditionalRawByte = false,
 				  ByteProcessWay ByteProcessWay = ByteProcessWay::ParseThenDeserial>
-		static auto ReceiveFromClient(Socket* peer)
+		static auto ReceiveFromPeer(Socket* peer)
 		{
 			return Receive<Return, ReturnAdditionalRawByte, ByteProcessWay>(peer);
 		}
@@ -53,7 +53,7 @@ namespace Server
 			tuple handlersTuple = { move(handlers)...};
 			for (;;)
 			{
-				auto r = ReceiveFromClient<Receive>(peer.get());
+				auto r = ReceiveFromPeer<Receive>(peer.get());
 				auto d = dispatcher(move(r));
 				co_await InvokeWhenEqual(d, handlersTuple, &userLogger);
 			}
@@ -80,37 +80,38 @@ namespace Server
 #define PRIMITIVE_CAT(A, B) A##B
 #define CAT(A, B) PRIMITIVE_CAT(A, B)
 // 以上两个不能 undef，因为 FlyTest 里面也定义了
-#define ASYNC_HANDLER(NAME)                                                                                  \
-	[responder = _responder, libWorker = _funcLibWorker, peer = _peer](auto userLoggerPtr) mutable -> Void   \
-	{                                                                                                        \
-		auto [paras, rawStr] = ReceiveFromClient<CAT(NAME, Request)::Content, true>(peer.get());             \
-		auto id = GenerateRequestId();                                                                       \
-		auto idLogger = userLoggerPtr->BornNewWith(id);                                                      \
-		responder->RespondTo(peer, id);                                                                      \
-		auto requestLogger = idLogger.BornNewWith(nameof(NAME));                                             \
-		auto argLogger = requestLogger.BornNewWith(move(rawStr));                                            \
-		string response;                                                                                     \
-		try                                                                                                  \
-		{                                                                                                    \
-			if constexpr (not is_same_v<void, decltype(libWorker->NAME(move(paras)).await_resume())>)        \
-			{                                                                                                \
-				auto result = co_await libWorker->NAME(move(paras));                                         \
-				response = Json::JsonConverter::Serialize(result).ToString();                                \
-			}                                                                                                \
-			else                                                                                             \
-			{                                                                                                \
-				co_await libWorker->NAME(move(paras));                                                       \
-				response = nameof(NAME) " operate succeed(or TODO null)";                                    \
-			}                                                                                                \
-		}                                                                                                    \
-		catch (std::exception const &e)                                                                      \
-		{                                                                                                    \
-			responder->RespondTo(peer, "task failed");                                                       \
-			argLogger.BornNewWith(ResultStatus::Failed);                                                     \
-			co_return;                                                                                       \
-		}                                                                                                    \
-		responder->RespondTo(peer, response);                                                                \
-		argLogger.BornNewWith(ResultStatus::Complete);                                                       \
+#define ASYNC_HANDLER(NAME, WORKER)                                                                \
+	[responder = _responder, WORKER = WORKER, peer = _peer](auto userLoggerPtr) mutable -> Void    \
+	{                                                                                              \
+		auto [paras, rawStr] = ReceiveFromPeer<CAT(NAME, Request)::Content, true>(peer.get());     \
+		auto id = GenerateRequestId();                                                             \
+		auto idLogger = userLoggerPtr->BornNewWith(id);                                            \
+		responder->RespondTo(peer, id);                                                            \
+		auto requestLogger = idLogger.BornNewWith(nameof(NAME));                                   \
+		auto argLogger = requestLogger.BornNewWith(move(rawStr));                                  \
+		string response;                                                                           \
+		try                                                                                        \
+		{                                                                                          \
+			if constexpr (not is_same_v<void, decltype(WORKER->NAME(move(paras)).await_resume())>) \
+			{                                                                                      \
+				auto result = co_await WORKER->NAME(move(paras));                                  \
+				response = Json::JsonConverter::Serialize(result).ToString();                      \
+			}                                                                                      \
+			else                                                                                   \
+			{                                                                                      \
+				co_await WORKER->NAME(move(paras));                                                \
+				response = nameof(NAME) " operate succeed(or TODO null)";                          \
+			}                                                                                      \
+		}                                                                                          \
+		catch (std::exception const &e)                                                            \
+		{                                                                                          \
+			responder->RespondTo(peer, e.what());                                                  \
+			argLogger.BornNewWith(ResultStatus::Failed);                                           \
+			co_return;                                                                             \
+		}                                                                                          \
+		responder->RespondTo(peer, response);                                                      \
+		argLogger.BornNewWith(ResultStatus::Complete);                                             \
 	}
+#define ASYNC_FUNC_LIB_HANDLER(NAME) ASYNC_HANDLER(NAME, _funcLibWorker)
 	};
 }
