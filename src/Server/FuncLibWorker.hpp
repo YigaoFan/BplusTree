@@ -3,15 +3,15 @@
 #include <sstream>
 #include "Request.hpp"
 #include "ThreadPool.hpp"
-#include "RequestQueue.hpp"
+#include "Awaiter.hpp"
 #include "../FuncLib/FunctionLibrary.hpp"
 
 namespace Server
 {
 	using FuncLib::FunctionLibrary;
+	using ::std::make_shared;
 	using ::std::make_unique;
 	using ::std::move;
-	using ::std::shared_ptr;
 
 	class FuncLibWorker
 	{
@@ -19,12 +19,6 @@ namespace Server
 		mutex _funcLibMutex;
 		FunctionLibrary _funcLib;
 		ThreadPool* _threadPool;
-		RequestQueue<InvokeFuncRequest> _invokeRequestQueue;
-		RequestQueue<AddFuncRequest> _addFuncRequestQueue;
-		RequestQueue<RemoveFuncRequest> _removeFuncRequestQueue;
-		RequestQueue<SearchFuncRequest> _searchFuncRequestQueue;
-		RequestQueue<ModifyFuncPackageRequest> _modifyFuncPackageRequestQueue;
-		RequestQueue<ContainsFuncRequest> _containsFuncRequestQueue;
 
 	private:
 		/// if ManualManageLock, the lock is locked already
@@ -82,8 +76,7 @@ namespace Server
 
 		// 移动构造的时候还没有开始并发访问，所以可以不用加互斥量
 		FuncLibWorker(FuncLibWorker&& that) noexcept
-			: _funcLibMutex(), _funcLib(move(that._funcLib)),
-			  _threadPool(that._threadPool), _invokeRequestQueue(move(that._invokeRequestQueue))
+			: _funcLibMutex(), _funcLib(move(that._funcLib)), _threadPool(that._threadPool)
 		{ }
 
 		void SetThreadPool(ThreadPool* threadPool)
@@ -91,50 +84,9 @@ namespace Server
 			_threadPool = threadPool;
 		}
 
-		template <typename Request>
-		struct Awaiter
-		{
-			shared_ptr<Request> RequestPtr;
-
-			bool await_ready() const noexcept
-			{
-				return false;
-			}
-
-			void await_suspend(auto handle) const noexcept
-			{
-				{
-					lock_guard<mutex> lock(RequestPtr->Mutex);
-
-					RequestPtr->Success = [=]() mutable
-					{
-						handle.resume();
-						handle.destroy();
-					};
-
-					RequestPtr->Fail = [promise = &handle.promise()]
-					{
-						// 这里调用的时候，异常已被 catch，这个异常算 current_exception 吗？ TODO
-						// 看一下协程里的下面这个函数是在什么情况下调用的，看会不会影响 current_exception 的效果
-						promise->unhandled_exception();
-					};
-				}
-
-				RequestPtr->CondVar.notify_one();
-			}
-
-			auto await_resume() const noexcept
-			{
-				if constexpr (requires(Request* q) { q->Result; })
-				{
-					return RequestPtr->Result;
-				}
-			}
-		};
-
 		Awaiter<InvokeFuncRequest> InvokeFunc(InvokeFuncRequest::Content paras)
 		{
-			auto requestPtr = _invokeRequestQueue.Add({ {}, move(paras) });
+			auto requestPtr = make_shared<InvokeFuncRequest>(InvokeFuncRequest{ {}, move(paras) });
 			_threadPool->Execute(GenerateTask<true>(requestPtr, [this](auto request, unique_lock<mutex>* lockPtr)
 			{
 				auto invoker = _funcLib.GetInvoker(request->Paras.Func, request->Paras.Arg);
@@ -147,7 +99,7 @@ namespace Server
 
 		Awaiter<AddFuncRequest> AddFunc(AddFuncRequest::Content paras)
 		{
-			auto requestPtr = _addFuncRequestQueue.Add({ {}, move(paras) });
+			auto requestPtr = make_shared<AddFuncRequest>(AddFuncRequest{ {}, move(paras) });
 			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
 			{
 				using ::std::istringstream;
@@ -161,7 +113,7 @@ namespace Server
 
 		Awaiter<RemoveFuncRequest> RemoveFunc(RemoveFuncRequest::Content paras)
 		{
-			auto requestPtr = _removeFuncRequestQueue.Add({ {}, move(paras) });
+			auto requestPtr = make_shared<RemoveFuncRequest>(RemoveFuncRequest{ {}, move(paras) });
 			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
 			{
 				_funcLib.Remove(request->Paras.Func);
@@ -173,7 +125,7 @@ namespace Server
 		Awaiter<SearchFuncRequest> SearchFunc(SearchFuncRequest::Content paras)
 		{
 			// {} 构造时，处于后面的有默认构造函数的可以省略，曾经如下面的 Result
-			auto requestPtr = _searchFuncRequestQueue.Add({ {}, move(paras) });
+			auto requestPtr = make_shared<SearchFuncRequest>(SearchFuncRequest{ {}, move(paras) });
 			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
 			{
 				auto g = _funcLib.Search(request->Paras.Keyword);
@@ -189,7 +141,7 @@ namespace Server
 		Awaiter<ModifyFuncPackageRequest> ModifyFuncPackage(ModifyFuncPackageRequest::Content paras)
 		{
 			// {} 构造时，处于后面的有默认构造函数的可以省略，曾经如下面的 Result
-			auto requestPtr = _modifyFuncPackageRequestQueue.Add({ {}, move(paras) });
+			auto requestPtr = make_shared<ModifyFuncPackageRequest>(ModifyFuncPackageRequest{ {}, move(paras) });
 			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
 			{
 				auto& paras = request->Paras;
@@ -201,7 +153,7 @@ namespace Server
 
 		Awaiter<ContainsFuncRequest> ContainsFunc(ContainsFuncRequest::Content paras)
 		{
-			auto requestPtr = _containsFuncRequestQueue.Add({ {}, move(paras) });
+			auto requestPtr = make_shared<ContainsFuncRequest>(ContainsFuncRequest{ {}, move(paras) });
 			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
 			{
 				auto& paras = request->Paras;
