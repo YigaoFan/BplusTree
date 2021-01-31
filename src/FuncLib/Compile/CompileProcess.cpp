@@ -112,8 +112,7 @@ namespace FuncLib::Compile
 		for (auto i = 0; i < paraTypes.size(); ++i)
 		{
 			auto& t = paraTypes[i];
-			auto& n = paraNames[i];
-			argDeserialCodes.push_back(string("Json::JsonConverter::Deserialize<") + t + ">(jsonObj[\"" + n + "\"])");
+			argDeserialCodes.push_back(string("Json::JsonConverter::Deserialize<").append(t).append(">(jsonObj[").append(to_string(i)).append("])"));
 		}
 
 		auto ConsArgTupleStr = [](vector<string> initCodes)
