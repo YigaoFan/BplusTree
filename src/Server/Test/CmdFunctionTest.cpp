@@ -147,21 +147,72 @@ TESTCASE("Cmd Function Test")
 		}
 	}
 
-	SECTION("AddFunc Cmd")
+	SECTION("AddFunc")
 	{
 		auto c = AddFuncCmd();
 		auto [packagePart, filename, summary] = c.DivideInfo("A.B ./func.cpp basic util function");
 		ASSERT(packagePart == "A.B");
 		ASSERT(filename == "./func.cpp");
 		ASSERT(summary == "basic util function");
+
+		// auto r = c.Process("AddFunc A.B ./func.cpp basic util function");
 	}
 
-	SECTION("ModifyFuncPackage Cmd")
+	SECTION("RemoveFunc")
+	{
+		char const typeStr[] = "A.B::void Func(int, string)";
+		auto type = GetFuncTypeFrom(typeStr);
+		auto c = RemoveFuncCmd();
+		auto r = c.Process(string("RemoveFunc ") + typeStr);
+		using namespace Json;
+		JsonObject::_Object _obj;
+		_obj.insert({ "func", JsonConverter::Serialize(type) });
+		JsonObject j(move(_obj));
+		ASSERT(r.ToString() == j.ToString());
+	}
+
+	SECTION("SearchFunc")
+	{
+		auto c = SearchFuncCmd();
+		auto r = c.Process("SearchFunc Func");
+	}
+
+	SECTION("ModifyFuncPackage")
 	{
 		auto c = ModifyFuncPackageCmd();
-		auto [funcInfo, newPackageInfo] = c.DivideInfo("A.B::void Func(int, string)");
-		ASSERT(funcInfo == "void Func(int, string)");
-		ASSERT(newPackageInfo == "A.B");
+		auto [funcInfo, newPackageInfo] = c.DivideInfo("A.B::void Func(int, string) C.D");
+		ASSERT(funcInfo == "A.B::void Func(int, string)");
+		ASSERT(newPackageInfo == "C.D");
+	}
+
+	SECTION("ContainsFunc")
+	{
+		auto c = ContainsFuncCmd();
+		auto r = c.Process("ContainsFunc A.B::void Func(int, string)");
+	}
+
+	SECTION("AddClientAccount")
+	{
+		auto c = AddClientAccountCmd();
+		auto r = c.Process("AddClientAccount LiuQi 567");
+	}
+
+	SECTION("RemoveClientAccount")
+	{
+		auto c = RemoveClientAccountCmd();
+		auto r = c.Process("RemoveClientAccount LiuQi");
+	}
+
+	SECTION("AddAdminAccount")
+	{
+		auto c = AddAdminAccountCmd();
+		auto r = c.Process("AddAdminAccount god 123");
+	}
+
+	SECTION("RemoveAdminAccount")
+	{
+		auto c = RemoveAdminAccountCmd();
+		auto r = c.Process("RemoveAdminAccount god");
 	}
 }
 

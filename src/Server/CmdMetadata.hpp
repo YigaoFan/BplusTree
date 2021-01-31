@@ -48,9 +48,9 @@ namespace Server
 	}
 
 	template <typename Content>
-	string Serial(Content const& content)
+	JsonObject Serial(Content const& content)
 	{
-		return Json::JsonConverter::Serialize(content).ToString();
+		return Json::JsonConverter::Serialize(content);
 	}
 
 	template <typename To, typename... Elements>
@@ -168,7 +168,7 @@ namespace Server
 
 	public:
 		/// Process command to the content be sent to server
-		string Process(string cmd)
+		JsonObject Process(string_view cmd)
 		{
 			auto [packagePart, filename, summaryPart] = DivideInfo(Preprocess(nameof(AddFunc), cmd));
 			vector<string> package = GetPackageFrom(packagePart);
@@ -185,7 +185,7 @@ namespace Server
 	// Modify 和 Remove 应该在函数唯一的情况下，允许用户简写参数，但要返回来让用户确认 TODO
 	struct RemoveFuncCmd
 	{
-		JsonObject Process(string cmd)
+		JsonObject Process(string_view cmd)
 		{
 			auto funcInfo = Preprocess(nameof(RemoveFunc), cmd);
 			auto type = GetFuncTypeFrom(funcInfo);
@@ -196,7 +196,7 @@ namespace Server
 
 	struct SearchFuncCmd
 	{
-		string Process(string cmd)
+		JsonObject Process(string_view cmd)
 		{
 			auto keyword = Preprocess(nameof(SearchFunc), cmd);
 			return Serial(CombineTo<SearchFuncRequest::Content>(string(keyword)));
@@ -216,7 +216,7 @@ namespace Server
 		}
 
 	public:
-		string Process(string cmd)
+		JsonObject Process(string_view cmd)
 		{
 			auto [funcInfo, newPackageInfo] = DivideInfo(Preprocess(nameof(ModifyFuncPackage), cmd));
 
@@ -229,7 +229,7 @@ namespace Server
 
 	struct ContainsFuncCmd
 	{
-		string Process(string cmd)
+		JsonObject Process(string_view cmd)
 		{
 			auto funcInfo = Preprocess(nameof(ContainsFunc), cmd);
 			return Serial(CombineTo<ContainsFuncRequest::Content>(GetFuncTypeFrom(funcInfo)));
@@ -238,7 +238,7 @@ namespace Server
 
 	struct AddClientAccountCmd
 	{
-		string Process(string cmd)
+		JsonObject Process(string_view cmd)
 		{
 			auto accountInfo = Preprocess(nameof(AddClientAccount), cmd);
 			auto [username, password] = ParseOut<true>(accountInfo, " ");
@@ -248,7 +248,7 @@ namespace Server
 
 	struct RemoveClientAccountCmd
 	{
-		string Process(string cmd)
+		JsonObject Process(string_view cmd)
 		{
 			auto username = Preprocess(nameof(RemoveClientAccount), cmd);
 			return Serial(CombineTo<RemoveClientAccountRequest::Content>(string(username)));
@@ -257,7 +257,7 @@ namespace Server
 
 	struct AddAdminAccountCmd
 	{
-		string Process(string cmd)
+		JsonObject Process(string_view cmd)
 		{
 			auto accountInfo = Preprocess(nameof(AddAdminAccount), cmd);
 			auto [username, password] = ParseOut<true>(accountInfo, " ");
@@ -267,30 +267,38 @@ namespace Server
 
 	struct RemoveAdminAccountCmd
 	{
-		string Process(string cmd)
+		JsonObject Process(string_view cmd)
 		{
 			auto username = Preprocess(nameof(RemoveAdminAccount), cmd);
 			return Serial(CombineTo<RemoveClientAccountRequest::Content>(string(username)));
 		}
 	};
 
-	constexpr unsigned int StrToInt(char const* str, int h = 0)
+	constexpr unsigned int StrToInt(string_view str)
 	{
-		return !str[h] ? 5381 : (StrToInt(str, h + 1) * 33) ^ str[h];
+		if (not str.empty())
+		{
+			return (StrToInt(str.substr(1)) * 33) ^ str[0];
+		}
+		return 5381;
 	}
 
-	string GenerateSendBytes(string cmd)
+	string GenerateSendBytes(string const& cmd)
 	{
-		auto [cmdName, unused] = ParseOut<false>(cmd, " ");
-		switch (StrToInt(cmd.c_str()))
+		auto [cmdName, remain] = ParseOut<false>(TrimStart(cmd), " ");
+		switch (StrToInt(cmdName))
 		{
-#define CASE_OF(NAME) case StrToInt(nameof(NAME)): return NAME##Cmd().Process(cmd)
+#define CASE_OF(NAME) case StrToInt(nameof(NAME)): return NAME##Cmd().Process(cmd).ToString()
 
-		// TODO add other cmd
 		CASE_OF(AddFunc);
-		// CASE_OF(RemoveFunc);
+		CASE_OF(RemoveFunc);
 		CASE_OF(SearchFunc);
 		CASE_OF(ModifyFuncPackage);
+		CASE_OF(ContainsFunc);
+		CASE_OF(AddClientAccount);
+		CASE_OF(AddAdminAccount);
+		CASE_OF(RemoveClientAccount);
+		CASE_OF(RemoveAdminAccount);
 		default: throw invalid_argument(string("No handler of ") + cmd);
 
 #undef CASE_OF
