@@ -148,36 +148,36 @@ namespace Json
 		{
 		case JsonType::Object:
 		{
-			string objStr{ "{" };
+			string objStr = "{";
 			auto& objectMap = GetObject(); // TODO reduce the judge in GetObject()
 			for (auto& p : objectMap)
 			{
-				objStr += '"';
-				objStr += p.first;
-				objStr += '"';
-				objStr += ':';
-				objStr += p.second.ToString();
-				objStr += ',';
+				objStr.append(1, '"');
+				objStr.append(p.first);
+				objStr.append(1, '"');
+				objStr.append(1, ':');
+				objStr.append(p.second.ToString());
+				objStr.append(1, ',');
 			}
-			objStr += '}';
+			objStr.append(1, '}');
 			return objStr;
 		}
 
 		case JsonType::Array:
 		{
-			string arrStr{ "[" };
+			string arrStr = "[";
 			auto& array = GetArray();
 			for (auto& e : array)
 			{
-				arrStr += e.ToString();
-				arrStr += ',';
+				arrStr.append(e.ToString());
+				arrStr.append(1, ',');
 			}
-			arrStr += ']';
+			arrStr.append(1, ']');
 			return arrStr;
 		}
 
 		case JsonType::Number:return to_string(GetNumber());
-		case JsonType::String:return string("\"") + GetString() + string("\"");
+		case JsonType::String:return string("\"").append(GetString()).append(1, '"');
 		case JsonType::True:  return "true";
 		case JsonType::False: return "false";
 		case JsonType::Null:  return "null";

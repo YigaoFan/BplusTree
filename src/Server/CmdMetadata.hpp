@@ -48,7 +48,7 @@ namespace Server
 	}
 
 	template <typename Content>
-	string Serial(Content content)
+	string Serial(Content const& content)
 	{
 		return Json::JsonConverter::Serialize(content).ToString();
 	}
@@ -65,7 +65,7 @@ namespace Server
 	/// keyword 要确定存在，否则会报错
 	string_view RemoveFirst(string_view keyword, string_view s)
 	{
-		if (auto p = s.find_first_of(keyword); p != string_view::npos)
+		if (auto p = s.find(keyword); p != string_view::npos)
 		{
 			return s.substr(p + keyword.size());
 		}
@@ -74,7 +74,7 @@ namespace Server
 	}
 
 	/// Remove first cmd name in inputCmd with trim start and trim end
-	string_view Preprocess(string_view cmdName, string inputCmd)
+	string_view Preprocess(string_view cmdName, string_view inputCmd)
 	{
 		return TrimStart(RemoveFirst(cmdName, TrimEnd(TrimStart(inputCmd))));
 	}
@@ -116,10 +116,10 @@ namespace Server
 		funcName = TrimEnd(funcName);
 
 		auto [argTypeInfo, remain3] = ParseOut<true>(remain2, ")");
-		function<vector<string>(string_view)> GetParaTypesFrom = [&](string_view s) -> vector<string>
+		function<vector<string>(string_view)> GetParaTypesFrom = [&GetParaTypesFrom](string_view s) -> vector<string>
 		{
 			if (s.empty()) { return {}; }
-
+			
 			auto [type, remain] = ParseOut<true>(s, ",");
 			if (remain.empty())
 			{
@@ -185,10 +185,12 @@ namespace Server
 	// Modify 和 Remove 应该在函数唯一的情况下，允许用户简写参数，但要返回来让用户确认 TODO
 	struct RemoveFuncCmd
 	{
-		string Process(string cmd)
+		JsonObject Process(string cmd)
 		{
 			auto funcInfo = Preprocess(nameof(RemoveFunc), cmd);
-			return Serial(CombineTo<RemoveFuncRequest::Content>(GetFuncTypeFrom(funcInfo)));
+			auto type = GetFuncTypeFrom(funcInfo);
+			auto j = Json::JsonConverter::Serialize(RemoveFuncRequest::Content{ type });
+			return j;
 		}
 	};
 
@@ -284,8 +286,9 @@ namespace Server
 		{
 #define CASE_OF(NAME) case StrToInt(nameof(NAME)): return NAME##Cmd().Process(cmd)
 
+		// TODO add other cmd
 		CASE_OF(AddFunc);
-		CASE_OF(RemoveFunc);
+		// CASE_OF(RemoveFunc);
 		CASE_OF(SearchFunc);
 		CASE_OF(ModifyFuncPackage);
 		default: throw invalid_argument(string("No handler of ") + cmd);
