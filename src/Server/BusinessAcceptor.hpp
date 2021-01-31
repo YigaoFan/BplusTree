@@ -3,53 +3,15 @@
 #include <memory>
 #include <functional>
 #include <asio.hpp>
-#include "../Json/Parser.hpp"
-#include "../Json/JsonConverter/JsonConverter.hpp"
 #include "../Log/Logger.hpp"
 #include "Socket.hpp"
 #include "ThreadPool.hpp"
-#include "FuncLibWorker.hpp"
 #include "Responder.hpp"
 #include "ClientService.hpp"
 #include "AdminService.hpp"
 #include "Util.hpp"
 #include "AccountManager.hpp"
-
-namespace Server
-{
-	struct LoginInfo
-	{
-		string Username;
-		string Password;
-	};
-}
-
-namespace Json::JsonConverter
-{
-	using Server::LoginInfo;
-
-	template <>
-	JsonObject Serialize(LoginInfo const& account)
-	{
-#define nameof(VAR) #VAR
-		auto [username, password] = account;
-		JsonObject::_Object obj;
-		obj.insert({ nameof(username), Serialize(username) });
-		obj.insert({ nameof(password), Serialize(password) });
-
-		return JsonObject(move(obj));
-	}
-
-	template <>
-	LoginInfo Deserialize(JsonObject const& jsonObj)
-	{
-		auto username = Deserialize<string>(jsonObj[nameof(username)]);
-		auto password = Deserialize<string>(jsonObj[nameof(password)]);
-
-		return LoginInfo{ username, password };
-	}
-#undef nameof
-}
+#include "LoginInfo.hpp"
 
 namespace Server
 {
