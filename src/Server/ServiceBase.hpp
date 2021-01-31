@@ -12,6 +12,7 @@
 
 namespace Server
 {
+	using Json::JsonObject;
 	using Log::ResultStatus;
 	using ::std::is_same_v;
 	using ::std::shared_ptr;
@@ -76,6 +77,23 @@ namespace Server
 			}
 		}
 
+		template <typename Exception>
+		static void ReturnToPeer(Responder* responder, shared_ptr<Socket> peer, Exception const& e)
+		{
+			JsonObject::_Object _obj;
+			_obj.insert({ "type", JsonObject("exception") });
+			_obj.insert({ "value", JsonObject(e.what()) });
+			responder->RespondTo(peer, JsonObject(move(_obj)).ToString());
+		}
+
+		static void ReturnToPeer(Responder* responder, shared_ptr<Socket> peer, JsonObject result)
+		{
+			JsonObject::_Object _obj;
+			_obj.insert({ "type", JsonObject("not exception") });
+			_obj.insert({ "value", move(result) });
+			responder->RespondTo(peer, JsonObject(move(_obj)).ToString());
+		}
+
 #define nameof(VAR) #VAR
 #define PRIMITIVE_CAT(A, B) A##B
 #define CAT(A, B) PRIMITIVE_CAT(A, B)
@@ -89,27 +107,26 @@ namespace Server
 		responder->RespondTo(peer, id);                                                            \
 		auto requestLogger = idLogger.BornNewWith(nameof(NAME));                                   \
 		auto argLogger = requestLogger.BornNewWith(move(rawStr));                                  \
-		string response;                                                                           \
+		JsonObject result;                                                                         \
 		try                                                                                        \
 		{                                                                                          \
 			if constexpr (not is_same_v<void, decltype(WORKER->NAME(move(paras)).await_resume())>) \
 			{                                                                                      \
-				auto result = co_await WORKER->NAME(move(paras));                                  \
-				response = Json::JsonConverter::Serialize(result).ToString();                      \
+				auto ret = co_await WORKER->NAME(move(paras));                                     \
+				result = Json::JsonConverter::Serialize(ret);                                      \
 			}                                                                                      \
 			else                                                                                   \
 			{                                                                                      \
 				co_await WORKER->NAME(move(paras));                                                \
-				response = nameof(NAME) " operate succeed(or TODO null)";                          \
 			}                                                                                      \
 		}                                                                                          \
-		catch (std::exception const &e)                                                            \
+		catch (std::exception const& e)                                                            \
 		{                                                                                          \
-			responder->RespondTo(peer, e.what());                                                  \
+			ReturnToPeer(responder, peer, e);                                                      \
 			argLogger.BornNewWith(ResultStatus::Failed);                                           \
 			co_return;                                                                             \
 		}                                                                                          \
-		responder->RespondTo(peer, response);                                                      \
+		ReturnToPeer(responder, peer, move(result));                                               \
 		argLogger.BornNewWith(ResultStatus::Complete);                                             \
 	}
 #define ASYNC_FUNC_LIB_HANDLER(NAME) ASYNC_HANDLER(NAME, _funcLibWorker)
