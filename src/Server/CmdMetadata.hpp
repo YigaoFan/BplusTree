@@ -168,6 +168,7 @@ namespace Server
 
 	public:
 		/// Process command to the content be sent to server
+		/// 改成 JsonObject 返回值是方便测试，可以从中读信息，返回 string 读就比较难
 		JsonObject Process(string_view cmd)
 		{
 			auto [packagePart, filename, summaryPart] = DivideInfo(Preprocess(nameof(AddFunc), cmd));
