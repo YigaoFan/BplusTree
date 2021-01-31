@@ -23,7 +23,7 @@ namespace Json::JsonConverter
 
 	///---------- FuncType ----------
 	template <>
-	JsonObject Serialize(FuncType const &type)
+	JsonObject Serialize(FuncType const& type)
 	{
 		auto [returnType, funcName, argTypes, package] = type;
 		JsonObject::_Object obj;
