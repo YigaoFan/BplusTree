@@ -5,6 +5,9 @@
 #include "../Btree/Generator.hpp"
 #include "../FuncLib/Compile/FuncType.hpp"
 
+#include "../Json/JsonObject.hpp"
+#include "../Network/Request.hpp"
+
 namespace Server
 {
 	using Collections::Generator;
@@ -12,6 +15,10 @@ namespace Server
 	using ::std::set;
 	using ::std::string;
 	using ::std::vector;
+
+	using Json::JsonObject;
+	using Json::JsonConverter::Serialize;
+	using ::std::move;
 
 	struct PredefineHeader
 	{
@@ -27,6 +34,17 @@ namespace Server
 			}
 
 			return header;
+		}
+
+		static JsonObject GetFuncInfo(Generator<FuncType> funcsGenerator)
+		{
+			JsonObject::_Array a;
+			while (funcsGenerator.MoveNext())
+			{
+				a.push_back(Serialize(funcsGenerator.Current()));
+			}
+
+			return JsonObject(move(a));
 		}
 		
 		Generator<string> GetEnumDef()
