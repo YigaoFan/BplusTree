@@ -1,9 +1,11 @@
 #pragma once
 #include <string>
 #include <memory>
+#include "../Network/Socket.hpp"
 
 namespace Server
 {
+	using Network::Socket;
 	using ::std::shared_ptr;
 	using ::std::string;
 

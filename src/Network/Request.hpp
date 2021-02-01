@@ -9,7 +9,7 @@
 #include "../FuncLib/Compile/FuncType.hpp"
 #include "../Json/JsonConverter/JsonConverter.hpp"
 
-namespace Server
+namespace Network
 {
 	using FuncLib::Compile::FuncType;
 	using Json::JsonObject;
@@ -20,6 +20,7 @@ namespace Server
 	using ::std::string;
 	using ::std::vector;
 
+	/// Contain request handle thing
 	struct Request
 	{
 		mutable mutex Mutex;
@@ -105,6 +106,17 @@ namespace Server
 
 	///---------- AccountManager request ----------
 
+	struct LoginRequest
+	{
+		struct Content
+		{
+			string Username;
+			string Password;
+		};
+
+		Content Paras;
+	};
+
 	struct AddClientAccountRequest : public Request
 	{
 		struct Content
@@ -151,16 +163,17 @@ namespace Server
 namespace Json::JsonConverter
 {
 	using FuncLib::Compile::FuncType;
-	using Server::AddFuncRequest;
-	using Server::InvokeFuncRequest;
-	using Server::ModifyFuncPackageRequest;
-	using Server::RemoveFuncRequest;
-	using Server::SearchFuncRequest;
-	using Server::ContainsFuncRequest;
-	using Server::AddClientAccountRequest;
-	using Server::AddAdminAccountRequest;
-	using Server::RemoveClientAccountRequest;
-	using Server::RemoveAdminAccountRequest;
+	using Network::AddAdminAccountRequest;
+	using Network::AddClientAccountRequest;
+	using Network::AddFuncRequest;
+	using Network::ContainsFuncRequest;
+	using Network::InvokeFuncRequest;
+	using Network::LoginRequest;
+	using Network::ModifyFuncPackageRequest;
+	using Network::RemoveAdminAccountRequest;
+	using Network::RemoveClientAccountRequest;
+	using Network::RemoveFuncRequest;
+	using Network::SearchFuncRequest;
 
 	///---------- FuncType ----------
 	template <>
@@ -210,6 +223,13 @@ namespace Json::JsonConverter
 
 	template <>
 	ContainsFuncRequest::Content Deserialize(JsonObject const& jsonObj);
+
+	///---------- LoginRequest ----------
+	template <>
+	JsonObject Serialize(LoginRequest::Content const& content);
+
+	template <>
+	LoginRequest::Content Deserialize(JsonObject const& jsonObj);
 
 	///---------- AddClientAccountRequest ----------
 	template <>

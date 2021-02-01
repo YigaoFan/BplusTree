@@ -8,11 +8,11 @@
 #include "../Basic/TypeTrait.hpp"
 #include "../Basic/Exception.hpp"
 #include "Predefine.hpp"
-#include "../Server/Request.hpp"
-#include "../Server/Socket.hpp"
 #include "TypeToString.hpp"
 #include "../Json/Parser.hpp"
-#include "../Server/LoginInfo.hpp"
+#include "../Network/Request.hpp"
+#include "../Network/Socket.hpp"
+#include "../Network/IoContext.hpp"
 
 namespace RemoteInvokeLib
 {
@@ -20,9 +20,10 @@ namespace RemoteInvokeLib
 	using Basic::InvalidOperationException;
 	using FuncLib::Compile::FuncType;
 	using Json::JsonObject;
-	using Server::InvokeFuncRequest;
-	using Server::LoginInfo;
-	using Server::Socket;
+	using Network::InvokeFuncRequest;
+	using Network::IoContext;
+	using Network::LoginRequest;
+	using Network::Socket;
 	using ::std::forward;
 	using ::std::forward_as_tuple;
 	using ::std::index_sequence;
@@ -37,19 +38,19 @@ namespace RemoteInvokeLib
 	class RemoteInvoker
 	{
 	private:
-		Socket _peer;
-		LoginInfo _loginInfo;
+		IoContext _ioContext;
+		string _serverIp;
+		int _port;
+		LoginRequest::Content _loginInfo;
 
-		RemoteInvoker(Socket peer, LoginInfo loginInfo)
-			: _peer(move(peer)), _loginInfo(move(loginInfo))
+		RemoteInvoker(string serverIp, int port, LoginRequest::Content loginInfo)
+			: _ioContext(), _serverIp(move(serverIp)), _port(port), _loginInfo(move(loginInfo))
 		{ }
 
 	public:
 		static RemoteInvoker New(string serverIp, int port, string username, string password)
 		{
-			// TODO
-			// return RemoteInvoker(move(serverIp), port, move(username), move(password));
-			throw;
+			return RemoteInvoker(move(serverIp), port, { move(username), move(password) });
 		}
 
 		template <typename Func, typename... Args>
@@ -97,22 +98,24 @@ namespace RemoteInvokeLib
 		ReturnType DoInvokeOnRemote(JsonObject const& request)
 		{
 			// 这里的对方等待这里的回应会占用不必要的时间
-			_peer.Send("hello server");
-			auto r1 = _peer.Receive();
+			auto peer = _ioContext.GetConnectedSocketTo(_serverIp, _port);
+			
+			peer.Send("hello server");
+			auto r1 = peer.Receive();
 			if (r1 != "server ok")
 			{
 				throw InvalidOperationException("server response greet error: " + r1);
 			}
 
-			_peer.Send(Json::JsonConverter::Serialize(_loginInfo).ToString());
-			auto r2 = _peer.Receive();
+			peer.Send(Json::JsonConverter::Serialize(_loginInfo).ToString());
+			auto r2 = peer.Receive();
 			if (r2 != "server ok. hello client.")
 			{
 				throw InvalidOperationException("server response login error: " + r2);
 			}
 
-			_peer.Send(request.ToString());
-			auto response = _peer.Receive();
+			peer.Send(request.ToString());
+			auto response = peer.Receive();
 			JsonObject result = Json::Parse(response);
 
 			if (result["type"].GetString() == "exception")

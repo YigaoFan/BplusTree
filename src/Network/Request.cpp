@@ -1,10 +1,10 @@
 #include "Request.hpp"
 
-namespace Server
+namespace Network
 {
 	using ::std::lock_guard;
 	
-	Request::Request(Request &&that) noexcept : Mutex(), CondVar(), Success()
+	Request::Request(Request&& that) noexcept : Mutex(), CondVar(), Success()
 	{
 		lock_guard<mutex> guard(that.Mutex);
 		Done = that.Done;
@@ -19,7 +19,6 @@ namespace Json::JsonConverter
 
 #define nameof(VAR) #VAR
 	// Serialize 和 Deserialize 里的 item 名字需要一样
-
 
 	///---------- FuncType ----------
 	template <>
@@ -187,6 +186,27 @@ namespace Json::JsonConverter
 		auto password = Deserialize<string>(jsonObj[nameof(password)]);
 
 		return { move(username), move(password) };
+	}
+
+	///---------- LoginRequest ----------
+	template <>
+	JsonObject Serialize(LoginRequest::Content const& content)
+	{
+		auto [username, password] = content;
+		JsonObject::_Object obj;
+		obj.insert({ nameof(username), Serialize(username) });
+		obj.insert({ nameof(password), Serialize(password) });
+
+		return JsonObject(move(obj));
+	}
+
+	template <>
+	LoginRequest::Content Deserialize(JsonObject const& jsonObj)
+	{
+		auto username = Deserialize<string>(jsonObj[nameof(username)]);
+		auto password = Deserialize<string>(jsonObj[nameof(password)]);
+
+		return { username, password };
 	}
 
 	///---------- AddClientAccountRequest ----------

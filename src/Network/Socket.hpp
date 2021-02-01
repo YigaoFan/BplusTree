@@ -5,7 +5,7 @@
 #include <vector>
 #include <exception>
 
-namespace Server
+namespace Network
 {
 	using ::std::string;
 	using ::std::vector;
@@ -41,6 +41,7 @@ namespace Server
 
 		void Send(string const& message)
 		{
+			// printf("client receive: %s\n", message.c_str());
 			_receiveMessages.push_back(message);
 		}
 
@@ -61,7 +62,7 @@ namespace Server
 #include <asio.hpp>
 #include <array>
 
-namespace Server
+namespace Network
 {
 	using asio::ip::tcp;
 	using ::std::array;

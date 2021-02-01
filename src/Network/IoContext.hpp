@@ -4,7 +4,7 @@
 #ifdef MOCK_NET
 #include <vector>
 
-namespace Server
+namespace Network
 {
 	using ::std::vector;
 
@@ -45,6 +45,11 @@ namespace Server
 
 #else
 #include <asio.hpp>
+
+namespace Network
+{
+	using asio::io_context;
+
 	class IoContext
 	{
 	private:
@@ -57,6 +62,15 @@ namespace Server
 		{
 			NetworkAcceptor acceptor(_context, tcp::endpoint(tcp::v4(), port));
 			return acceptor;
+		}
+
+		Socket GetConnectedSocketTo(string const& hostname, int port)
+		{
+			using asio::ip::tcp;
+			tcp::endpoint p(asio::ip::address::from_string(hostname), port);
+			tcp::socket s(_context);
+			s.connect(p);
+			return move(s);
 		}
 
 		void Run()

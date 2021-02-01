@@ -9,7 +9,7 @@
 #include "../Basic/Exception.hpp"
 #include "../FuncLib/Store/File.hpp"
 #include "../FuncLib/Persistence/ByteConverter.hpp"
-#include "Request.hpp"
+#include "../Network/Request.hpp"
 #include "Awaiter.hpp"
 #include "ThreadPool.hpp"
 
@@ -18,13 +18,13 @@ namespace Server
 	using Basic::InvalidOperationException;
 	using FuncLib::Store::File;
 	using FuncLib::Store::pos_label;
+	using Network::Request;
 	using ::std::make_shared;
 	using ::std::map;
 	using ::std::move;
 	using ::std::pair;
 	using ::std::shared_lock;
 	using ::std::shared_mutex;
-	using ::std::unique_lock;
 	using ::std::shared_ptr;
 	using ::std::string;
 	using ::std::unique_lock;

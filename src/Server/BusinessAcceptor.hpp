@@ -4,18 +4,19 @@
 #include <functional>
 #include <asio.hpp>
 #include "../Log/Logger.hpp"
-#include "Socket.hpp"
+#include "../Network/Socket.hpp"
+#include "../Network/Request.hpp"
 #include "ThreadPool.hpp"
 #include "Responder.hpp"
 #include "ClientService.hpp"
 #include "AdminService.hpp"
 #include "Util.hpp"
 #include "AccountManager.hpp"
-#include "LoginInfo.hpp"
 
 namespace Server
 {
 	using Log::Logger;
+	using Network::LoginRequest;
 	using ::std::array;
 	using ::std::exception;
 	using ::std::function;
@@ -119,7 +120,7 @@ namespace Server
 			}
 			// client 那边应该会因为这边 socket 析构而收到中断异常或信息吧 TODO 测试下
 
-			auto loginInfo = Receive<LoginInfo, false, ByteProcessWay::ParseThenDeserial>(peer.get());
+			auto loginInfo = Receive<LoginRequest::Content, false, ByteProcessWay::ParseThenDeserial>(peer.get());
 			if (_accountManager->IsRegistered(loginInfo.Username, loginInfo.Password))
 			{
 				auto userLogger = connectLogger.BornNewWith(loginInfo.Username);

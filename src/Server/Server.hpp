@@ -5,8 +5,8 @@
 #include <filesystem>
 #include "../Log/Logger.hpp"
 #include "ThreadPool.hpp"
-#include "NetworkAcceptor.hpp"
-#include "IoContext.hpp"
+#include "../Network/NetworkAcceptor.hpp"
+#include "../Network/IoContext.hpp"
 #include "BusinessAcceptor.hpp"
 #include "Responder.hpp"
 #include "../FuncLib/FunctionLibrary.hpp"
@@ -18,6 +18,9 @@ namespace Server
 	namespace fs = ::std::filesystem;
 	using FuncLib::FuncsDefReader;
 	using FuncLib::FunctionLibrary;
+	using Network::IoContext;
+	using Network::NetworkAcceptor;
+	using Network::Socket;
 	using ::std::istringstream;
 	using ::std::move;
 	using ::std::pair;

@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 #include <sstream>
-#include "Request.hpp"
+#include "../Network/Request.hpp"
 #include "ThreadPool.hpp"
 #include "Awaiter.hpp"
 #include "../FuncLib/FunctionLibrary.hpp"
@@ -9,6 +9,16 @@
 namespace Server
 {
 	using FuncLib::FunctionLibrary;
+	using Network::AddAdminAccountRequest;
+	using Network::AddClientAccountRequest;
+	using Network::AddFuncRequest;
+	using Network::ContainsFuncRequest;
+	using Network::InvokeFuncRequest;
+	using Network::ModifyFuncPackageRequest;
+	using Network::RemoveAdminAccountRequest;
+	using Network::RemoveClientAccountRequest;
+	using Network::RemoveFuncRequest;
+	using Network::SearchFuncRequest;
 	using ::std::make_shared;
 	using ::std::make_unique;
 	using ::std::move;

@@ -64,7 +64,8 @@ add_executable(RPC
         FuncLib/Test/ObjectRelationTreeTest.cpp
         FuncLib/Test/FunctionLibraryTest.cpp
 
-        Server/Request.cpp
+        Network/Request.cpp
+
         Server/Test/ServerTest.cpp
         Server/Test/CmdFunctionTest.cpp
         Server/Test/FuncLibWorkerTest.cpp
@@ -86,7 +87,7 @@ add_executable(cmd
 
         FuncLib/Compile/FuncType.cpp
 
-        Server/Request.cpp
+        Network/Request.cpp
         )
 #for *nix platform
 target_link_libraries(cmd ncurses)
@@ -98,19 +99,12 @@ add_executable(client_demo
         Basic/Exception.cpp
 
         Json/Json.cpp
+        Json/Parser.cpp
         Json/LocationInfo.cpp
         Json/ParseException.cpp
         Json/JsonConverter/JsonConverter.cpp
+
+        Network/Request.cpp
+
+        FuncLib/Compile/FuncType.cpp
 )
-#add_library(JSON OBJECT 
-#        Json/Json.cpp
-#        Json/Parser.cpp
-#        Json/LocationInfo.cpp
-#        Json/ParseException.cpp
-#        
-#        Json/JsonConverter/SerialFunctionGenerator.cpp
-#        Json/JsonConverter/DeserialFunctionGenerator.cpp
-#        Json/JsonConverter/StructObject.cpp
-#        Json/JsonConverter/StructParser.cpp
-#        Json/JsonConverter/WordEnumerator.cpp
-#        Json/JsonConverter/JsonConverter.cpp)

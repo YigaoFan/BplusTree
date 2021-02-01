@@ -6,7 +6,7 @@
 #include <functional>
 #include <asio.hpp>
 
-namespace Server
+namespace Network
 {
 	using ::std::function;
 	using ::std::move;
@@ -37,7 +37,7 @@ namespace Server
 #else
 #include <asio.hpp>
 
-namespace Server
+namespace Network
 {
 	using ::asio::ip::tcp;
 	using ::std::forward;

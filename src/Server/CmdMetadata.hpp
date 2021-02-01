@@ -8,7 +8,8 @@
 #include <functional>
 #include <string_view>
 #include "../Basic/StringViewUtil.hpp"
-#include "Request.hpp"
+#include "../Network/Request.hpp"
+#include "../Json/Json.hpp"
 
 namespace Server
 {
@@ -16,6 +17,17 @@ namespace Server
 	using Basic::TrimEnd;
 	using Basic::TrimStart;
 	using FuncLib::Compile::FuncType;
+	using Json::JsonObject;
+	using Network::AddAdminAccountRequest;
+	using Network::AddClientAccountRequest;
+	using Network::AddFuncRequest;
+	using Network::ContainsFuncRequest;
+	using Network::InvokeFuncRequest;
+	using Network::ModifyFuncPackageRequest;
+	using Network::RemoveAdminAccountRequest;
+	using Network::RemoveClientAccountRequest;
+	using Network::RemoveFuncRequest;
+	using Network::SearchFuncRequest;
 	using ::std::forward;
 	using ::std::function;
 	using ::std::invalid_argument;
