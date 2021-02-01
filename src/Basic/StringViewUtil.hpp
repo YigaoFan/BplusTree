@@ -10,6 +10,7 @@ namespace Basic
 	string_view TrimEnd(string_view s);
 	string_view TrimFirstChar(string_view s);
 
+	/// remain will jump over the divider
 	template <bool IsTrimRemainStart>
 	pair<string_view, string_view> ParseOut(string_view s, string_view divider)
 	{

@@ -120,6 +120,34 @@ TESTCASE("CompileTest")
 		auto r = lib.Invoke<JsonObject(JsonObject)>("Func3_wrapper", JsonObject());
 		ASSERT(r.IsNull());
 	}
+
+	SECTION("FuncType")
+	{
+		{
+			FuncType t("int", "One", {}, {});
+			ASSERT(t.ToKey() == FuncType::FromKey(t.ToKey()).ToKey());
+		}
+
+		{
+			FuncType t("void", "Foo", { "string" }, { "A", });
+			ASSERT(t.ToKey() == FuncType::FromKey(t.ToKey()).ToKey());
+		}
+
+		{
+			FuncType t("void", "Foo", {}, { "A", "B", });
+			ASSERT(t.ToKey() == FuncType::FromKey(t.ToKey()).ToKey());
+		}
+
+		{
+			FuncType t("void", "Foo", { "string", "int" }, {});
+			ASSERT(t.ToKey() == FuncType::FromKey(t.ToKey()).ToKey());
+		}
+
+		{
+			FuncType t("void", "Foo", { "string", "int" }, { "A", "B", });
+			ASSERT(t.ToKey() == FuncType::FromKey(t.ToKey()).ToKey());
+		}
+	}
 }
 
 DEF_TEST_FUNC(TestCompile)
