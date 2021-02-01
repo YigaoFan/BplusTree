@@ -104,7 +104,7 @@ namespace FuncLib
 	}
 
 	// keyword maybe part package name, 需要去匹配，所以返回值可能不能做到返回函数的相关信息
-	Generator<pair<string, string>> FunctionLibrary::Search(string const& keyword)
+	Generator<pair<string, string>> FunctionLibrary::Search(string const& keyword) const
 	{
 		return _index.Search(keyword);
 	}
@@ -126,4 +126,9 @@ namespace FuncLib
 		FUNC_NOT_EXIST_EXCEPTION(func);
 	}
 #undef FUNC_NOT_EXIST_EXCEPTION
+
+	Generator<FuncType> FunctionLibrary::FuncTypes() const
+	{
+		return _index.FuncTypes();
+	}
 }

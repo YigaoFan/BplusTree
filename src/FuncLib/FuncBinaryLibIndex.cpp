@@ -42,12 +42,17 @@ namespace FuncLib
 #define STR_TO_DISK_REF_STR(STR) TypeConverter<string, OwnerState::FullOwner>::ConvertFrom(STR, _file.get())
 	void FuncBinaryLibIndex::Add(FuncObj const& funcObj, pos_label label)
 	{
-		auto combineStrWithSpace = [](vector<string> const& strs)
+		auto joinWithSpace = [](vector<string> const& strs)
 		{
 			string combined;
 			for (auto& s : strs)
 			{
-				combined.append(s);
+				combined.append(s + ' ');
+			}
+
+			if (not strs.empty())
+			{
+				combined.pop_back();
 			}
 
 			return combined;
@@ -56,7 +61,7 @@ namespace FuncLib
 		_diskBtree->Add(pair(STR_TO_DISK_REF_STR(funcObj.Type.ToKey()),
 			pair(label,
 				pair(STR_TO_DISK_REF_STR(funcObj.Summary),
-					STR_TO_DISK_REF_STR(combineStrWithSpace(funcObj.ParaNames))
+					STR_TO_DISK_REF_STR(joinWithSpace(funcObj.ParaNames))
 				))));
 	}
 
@@ -93,7 +98,7 @@ namespace FuncLib
 		_diskBtree->Remove(type.ToKey());
 	}
 
-	auto FuncBinaryLibIndex::Search(string const& keyword) -> Generator<pair<string, string>>
+	auto FuncBinaryLibIndex::Search(string const& keyword) const -> Generator<pair<string, string>>
 	{
 		auto g = _diskBtree->GetStoredPairEnumerator();
 		auto includedIn = [&keyword](string const& word)
@@ -124,5 +129,15 @@ namespace FuncLib
 		_diskBtree->ModifyKey(oldType.ToKey(), STR_TO_DISK_REF_STR(genNewTypeCallback(oldType).ToKey()));
 	}
 #undef STR_TO_DISK_REF_STR
-	// TODO Generate function meta info
+
+	Generator<FuncType> FuncBinaryLibIndex::FuncTypes() const
+	{
+		auto g = _diskBtree->GetStoredPairEnumerator();
+		while (g.MoveNext())
+		{
+			auto p = g.Current();
+			string k = p->first;
+			co_yield FuncType::FromKey(k);
+		}
+	}
 }

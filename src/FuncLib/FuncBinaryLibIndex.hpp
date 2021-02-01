@@ -54,7 +54,8 @@ namespace FuncLib
 		void ModifyPackageOf(FuncType type, vector<string> packageHierarchy);
 		void Remove(FuncType const& type);
 		/// pair: Key, summary
-		Generator<pair<string, string>> Search(string const& keyword);
+		Generator<pair<string, string>> Search(string const& keyword) const;
+		Generator<FuncType> FuncTypes() const;
 		~FuncBinaryLibIndex();
 
 	private:

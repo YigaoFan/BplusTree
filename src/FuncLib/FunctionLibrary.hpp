@@ -70,7 +70,8 @@ namespace FuncLib
 		/// 由外面处理异常
 		JsonObject Invoke(FuncType const& func, JsonObject args);
 		// keyword maybe part package name, 需要去匹配，所以返回值可能不能做到返回函数的相关信息
-		Generator<pair<string, string>> Search(string const& keyword);
+		Generator<pair<string, string>> Search(string const& keyword) const;
+		Generator<FuncType> FuncTypes() const;
 
 		auto GetInvoker(FuncType func, JsonObject args)
 		{

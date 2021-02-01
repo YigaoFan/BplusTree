@@ -9,7 +9,7 @@ namespace FuncLib::Compile
 	using ::std::string_view;
 	using ::std::vector;
 
-	// 包含包名、函数名、返回值类型、参数类型（参数类型和名字，这个信息可以放到 summary 里面去）
+	// 包含包名、函数名、返回值类型、参数类型
 	class FuncType
 	{
 	public:
@@ -18,6 +18,7 @@ namespace FuncLib::Compile
 		vector<string> ArgTypes;
 		vector<string> PackageHierarchy;
 		static FuncType FromKey(string_view key);
+		FuncType() = default;
 		FuncType(string returnType, string functionName, vector<string> argTypes);
 		FuncType(string returnType, string functionName, vector<string> argTypes, vector<string> package);
 		// 可以像 TiKV 那样对 Key 对 package name 做一些优化存储
