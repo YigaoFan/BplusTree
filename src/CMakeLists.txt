@@ -97,7 +97,8 @@ add_executable(client_demo
 
         Basic/Debug.cpp
         Basic/Exception.cpp
-
+        Basic/StringViewUtil.cpp
+        
         Json/Json.cpp
         Json/Parser.cpp
         Json/LocationInfo.cpp
