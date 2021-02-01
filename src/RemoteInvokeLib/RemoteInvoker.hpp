@@ -11,6 +11,7 @@
 #include "../Server/Request.hpp"
 #include "../Server/Socket.hpp"
 #include "TypeToString.hpp"
+#include "../Json/Parser.hpp"
 #include "../Server/LoginInfo.hpp"
 
 namespace RemoteInvokeLib
@@ -46,7 +47,9 @@ namespace RemoteInvokeLib
 	public:
 		static RemoteInvoker New(string serverIp, int port, string username, string password)
 		{
+			// TODO
 			// return RemoteInvoker(move(serverIp), port, move(username), move(password));
+			throw;
 		}
 
 		template <typename Func, typename... Args>
@@ -57,16 +60,15 @@ namespace RemoteInvokeLib
 			{
 				return vector<string>
 				{
-					TypeToString<typename F::template Arg<Idxs>::Type>()...,
+					TypeToString<typename F::template Arg<Idxs>::Type>::Result()...,
 				};
 			};
 			auto getArgsJsonObj = [&]<auto... Idxs>(index_sequence<Idxs...>)
 			{
-				auto args = forward_as_tuple(args...);
-				// get from args
+				auto argsTuple = forward_as_tuple(args...);
 				JsonObject::_Array a
 				{
-					Json::JsonConverter::Serialize<typename F::template Arg<Idxs>::Type>(std::get<Idxs>(args))...,
+					Json::JsonConverter::Serialize<typename F::template Arg<Idxs>::Type>(std::get<Idxs>(argsTuple))...,
 				};
 				return JsonObject(move(a));
 			};
@@ -74,27 +76,27 @@ namespace RemoteInvokeLib
 			static_assert(argCount == sizeof...(Args), "passed args' count not correct");
 
 			using ReturnType = invoke_result_t<Func, Args...>;
-			string returnType = TypeToString<>();
+			string returnType = TypeToString<ReturnType>::Result();
 			vector<string> argsType = getArgsType(make_index_sequence<argCount>());
-			auto argsJsonObj = getArgsJsonObj();
+			auto argsJsonObj = getArgsJsonObj(make_index_sequence<argCount>());
 
 			FuncType type(move(returnType), funcName, move(argsType), move(package));
 			auto request = Json::JsonConverter::Serialize(InvokeFuncRequest::Content{ move(type), move(argsJsonObj) });
 
-			reutrn DoInvokeOnRemote<ReturnType>(request);
+			return DoInvokeOnRemote<ReturnType>(request);
 		}
 
 		template <typename Func, typename... Args>
 		auto Invoke(PredefinePackage package, string const& funcName, Args&&... args)
 		{
-			return Invoke(ToVec(package), funcName, forward<Arg>(args)...);
+			return Invoke(ToVec(package), funcName, forward<Args>(args)...);
 		}
 
 	private:
 		template <typename ReturnType>
 		ReturnType DoInvokeOnRemote(JsonObject const& request)
 		{
-			// 这里的等待对方回应会占用不必要的时间
+			// 这里的对方等待这里的回应会占用不必要的时间
 			_peer.Send("hello server");
 			auto r1 = _peer.Receive();
 			if (r1 != "server ok")
@@ -119,7 +121,7 @@ namespace RemoteInvokeLib
 				throw runtime_error(move(message));
 			}
 
-			if constexpr (is_same_v<ReturnType, void>())
+			if constexpr (is_same_v<ReturnType, void>)
 			{
 				return;
 			}

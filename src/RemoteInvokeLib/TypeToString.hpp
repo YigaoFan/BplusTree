@@ -14,56 +14,84 @@ namespace RemoteInvokeLib
 #define nameof(NAME) #NAME
 
 	template <typename T>
-	void TypeToString()
+	struct TypeToString
 	{
-		static_assert(false, "Not support type");
-	}
+		static void Result()
+		{
+		}
+	};
 
 	template <>
-	string TypeToString<string>()
+	struct TypeToString<string>
 	{
-		return nameof(string);
-	}
+		static string Result()
+		{
+			return nameof(string);
+		}
+	};
 
 	template <>
-	string TypeToString<int>()
+	struct TypeToString<int>
 	{
-		return nameof(int);
-	}
+		static string Result()
+		{
+			return nameof(int);
+		}
+	};
 
 	template <>
-	string TypeToString<bool>()
+	struct TypeToString<bool>
 	{
-		return nameof(bool);
-	}
+		static string Result()
+		{
+			return nameof(bool);
+
+		}
+	};
 
 	template <>
-	string TypeToString<double>()
+	struct TypeToString<double>
 	{
-		return nameof(double);
-	}
+		static string Result()
+		{
+			return nameof(double);
+		}
+	};
 
 	template <typename T>
-	string TypeToString<vector<T>>()
+	struct TypeToString<vector<T>>
 	{
-		return string(nameof(vector)"<").append(TypeToString<T>()).append('>');
-	}
+		static string Result()
+		{
+			return string(nameof(vector)"<").append(TypeToString<T>()).append('>');
+		}
+	};
 
 	template <typename T, size_t N>
-	string TypeToString<array<T, N>>()
+	struct TypeToString<array<T, N>>
 	{
-		return string(nameof(array) "<")
+		static string Result()
+		{
+			return string(nameof(array) "<")
 				.append(TypeToString<T>())
 				.append(',')
 				.append(std::to_string(N))
 				.append('>');
-	}
+		}
+	};
 
 	template <typename Key, typename Value>
-	string TypeToString<map<Key, Value>>()
+	struct TypeToString<map<Key, Value>>
 	{
-		return string(nameof(map) "<").append(TypeToString<T>()).append('>');
-	}
+		static string Result()
+		{
+			return string(nameof(map) "<")
+				.append(TypeToString<Key>())
+				.append(',')
+				.append(TypeToString<Value>())
+				.append('>');
+		}
+	};
 
 #undef nameof
 }

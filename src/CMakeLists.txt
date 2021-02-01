@@ -91,6 +91,17 @@ add_executable(cmd
 #for *nix platform
 target_link_libraries(cmd ncurses)
 
+add_executable(client_demo
+        Client/Demo/Main.cpp
+
+        Basic/Debug.cpp
+        Basic/Exception.cpp
+
+        Json/Json.cpp
+        Json/LocationInfo.cpp
+        Json/ParseException.cpp
+        Json/JsonConverter/JsonConverter.cpp
+)
 #add_library(JSON OBJECT 
 #        Json/Json.cpp
 #        Json/Parser.cpp
