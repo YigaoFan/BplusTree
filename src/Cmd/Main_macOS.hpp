@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <iterator>
 #include <string_view>
 #include <asio.hpp>
 #include "CmdUI.hpp"
@@ -11,13 +12,12 @@ int UI_Main()
 	using ::asio::ip::tcp;
 	using Cmd::Cmder;
 	using Cmd::CmdUI;
+	using ::std::back_inserter;
 	using ::std::move;
 	using ::std::string;
 	using ::std::string_view;
 	using ::std::vector;
 
-	// printf("r: %d", '\r');
-	// return 0;
 	asio::io_context io;
 	// tcp::resolver resolver(io);
 	// auto endPoints = resolver.resolve("localhost", "daytime");
@@ -25,7 +25,7 @@ int UI_Main()
 	tcp::socket socket(io);
 	// asio::connect(socket, endPoints);
 
-	auto cmd = Cmder::NewFrom(move(socket));
+	auto cmder = Cmder::NewFrom(move(socket));
 
 	auto title = "Welcome to use Fan's cmd to control server(Press Up key can view history)";
 	auto ui = CmdUI(title);
@@ -47,7 +47,7 @@ int UI_Main()
 		}
 
 		hintLine->clear();
-		auto opts = cmd.Complete(lastWord);
+		auto opts = cmder.Complete(lastWord);
 		if (opts.size() == 1)
 		{
 			// 这些字符串操作还是太麻烦了，看怎么简化下 TODO
@@ -80,7 +80,7 @@ int UI_Main()
 
 		if (cmd == "exit")
 		{
-			ui.TerminateOnNextRun(); // 改名，running 也改名
+			ui.TerminateOnNextRun();
 		}
 		else
 		{
@@ -93,19 +93,18 @@ int UI_Main()
 				showStart = history->size() - ui.MaxUsableHeight();
 			}
 
-			return;
 			currentCmdLine->clear();
 			hintLine->clear();
 			
 			try
 			{
-				// auto result = cmd.Run(*currentCmdLine);
-				// addToHistory(result);
+				auto result = cmder.Run(*currentCmdLine);
+				move(result.begin(), result.end(), back_inserter(*history));
 			}
 			catch (std::exception const& e)
 			{
+				history->push_back(string("operation failed: ") + e.what());
 			}
-			
 		}
 	});
 

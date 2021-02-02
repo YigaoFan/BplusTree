@@ -20,6 +20,20 @@ namespace Network
 	using ::std::string;
 	using ::std::vector;
 
+	enum AdminServiceOption
+	{
+		AddFunc,
+		RemoveFunc,
+		SearchFunc,
+		ModifyFuncPackage,
+		ContainsFunc,
+		AddClientAccount,
+		RemoveClientAccount,
+		AddAdminAccount,
+		RemoveAdminAccount,
+		GetFuncsInfo,
+	};
+
 	/// Contain request handle thing
 	struct Request
 	{
@@ -104,6 +118,11 @@ namespace Network
 		bool Result;
 	};
 
+	struct GetFuncsInfoRequest : public Request
+	{
+		vector<FuncType> Result;
+	};
+
 	///---------- AccountManager request ----------
 
 	struct LoginRequest
@@ -166,6 +185,7 @@ namespace Json::JsonConverter
 	using Network::AddAdminAccountRequest;
 	using Network::AddClientAccountRequest;
 	using Network::AddFuncRequest;
+	using Network::AdminServiceOption;
 	using Network::ContainsFuncRequest;
 	using Network::InvokeFuncRequest;
 	using Network::LoginRequest;
@@ -181,6 +201,13 @@ namespace Json::JsonConverter
 
 	template <>
 	FuncType Deserialize(JsonObject const& jsonObj);
+
+	///---------- AdminServiceOption ----------
+	template <>
+	JsonObject Serialize(AdminServiceOption const &option);
+
+	template <>
+	AdminServiceOption Deserialize(JsonObject const &jsonObj);
 
 	///---------- InvokeFuncRequest ----------
 	template <>

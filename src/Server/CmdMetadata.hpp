@@ -10,6 +10,8 @@
 #include "../Basic/StringViewUtil.hpp"
 #include "../Network/Request.hpp"
 #include "../Json/Json.hpp"
+#include "../Network/Util.hpp"
+#include "PredefineHeader.hpp"
 
 namespace Server
 {
@@ -22,16 +24,20 @@ namespace Server
 	using Network::AddClientAccountRequest;
 	using Network::AddFuncRequest;
 	using Network::ContainsFuncRequest;
+	using Network::GetFuncsInfoRequest;
+	using Network::HandleOperationResponse;
 	using Network::InvokeFuncRequest;
 	using Network::ModifyFuncPackageRequest;
 	using Network::RemoveAdminAccountRequest;
 	using Network::RemoveClientAccountRequest;
 	using Network::RemoveFuncRequest;
 	using Network::SearchFuncRequest;
+	using ::std::declval;
 	using ::std::forward;
 	using ::std::function;
 	using ::std::invalid_argument;
 	using ::std::move;
+	using ::std::ofstream;
 	using ::std::pair;
 	using ::std::string;
 	using ::std::string_view;
@@ -86,10 +92,10 @@ namespace Server
 	}
 
 	/// Remove first cmd name in inputCmd with trim start and trim end
-	string_view Preprocess(string_view cmdName, string_view inputCmd)
-	{
-		return TrimStart(RemoveFirst(cmdName, TrimEnd(TrimStart(inputCmd))));
-	}
+	// string_view Preprocess(string_view cmdName, string_view inputCmd)
+	// {
+	// 	return TrimStart(RemoveFirst(cmdName, TrimEnd(TrimStart(inputCmd))));
+	// }
 
 	/// Package divided with '.'
 	vector<string> GetPackageFrom(string_view packageInfo)
@@ -115,6 +121,8 @@ namespace Server
 		remainPackage.insert(remainPackage.begin(), string(package));
 		return remainPackage;
 	}
+
+	constexpr char SuccessTip[] = "operate succssed";
 
 	// A.B::void A(argT1, argT2)
 	FuncType GetFuncTypeFrom(string_view funcInfo)
@@ -153,8 +161,7 @@ namespace Server
 		static string GetFuncsDefFrom(string_view filename)
 		{
 			using ::std::ifstream;
-			using ::std::istreambuf_iterator;
-			ifstream fs(filename, ifstream::in);
+			ifstream fs(filename);
 			fs.seekg(0, ifstream::end);
 			auto n = fs.tellg();
 			string def(n, ' ');
@@ -170,20 +177,20 @@ namespace Server
 			return string(summaryPartOfCmd);
 		}
 
-		tuple<string_view, string_view, string_view> DivideInfo(string_view cmd)
+		tuple<string_view, string_view, string_view> DivideInfo(string_view args)
 		{
-			auto [packagePart, remain] = ParseOut<true>(cmd, " ");
+			auto [packagePart, remain] = ParseOut<true>(args, " ");
 			auto [filename, summaryPart] = ParseOut<true>(remain, " ");
 
 			return { packagePart, filename, summaryPart };
 		}
 
 	public:
-		/// Process command to the content be sent to server
+		/// ProcessArg command to the content be sent to server
 		/// 改成 JsonObject 返回值是方便测试，可以从中读信息，返回 string 读就比较难
-		JsonObject Process(string_view cmd)
+		JsonObject ProcessArg(string_view args)
 		{
-			auto [packagePart, filename, summaryPart] = DivideInfo(Preprocess(nameof(AddFunc), cmd));
+			auto [packagePart, filename, summaryPart] = DivideInfo(args);
 			vector<string> package = GetPackageFrom(packagePart);
 			string funcsDef = GetFuncsDefFrom(filename);
 			string summary = GetSummaryFrom(summaryPart);
@@ -193,26 +200,50 @@ namespace Server
 				move(funcsDef),
 				move(summary)));
 		}
+
+		vector<string> ProcessResponse(string_view response)
+		{
+			HandleOperationResponse<void>(response);
+			return { SuccessTip };
+		}
 	};
 
 	// Modify 和 Remove 应该在函数唯一的情况下，允许用户简写参数，但要返回来让用户确认 TODO
 	struct RemoveFuncCmd
 	{
-		JsonObject Process(string_view cmd)
+		JsonObject ProcessArg(string_view args)
 		{
-			auto funcInfo = Preprocess(nameof(RemoveFunc), cmd);
+			auto funcInfo = args;
 			auto type = GetFuncTypeFrom(funcInfo);
 			auto j = Json::JsonConverter::Serialize(RemoveFuncRequest::Content{ type });
 			return j;
+		}
+
+		vector<string> ProcessResponse(string_view response)
+		{
+			HandleOperationResponse<void>(response);
+			return { SuccessTip };
 		}
 	};
 
 	struct SearchFuncCmd
 	{
-		JsonObject Process(string_view cmd)
+		JsonObject ProcessArg(string_view args)
 		{
-			auto keyword = Preprocess(nameof(SearchFunc), cmd);
+			auto keyword = args;
 			return Serial(CombineTo<SearchFuncRequest::Content>(string(keyword)));
+		}
+
+		vector<string> ProcessResponse(string_view response)
+		{
+			auto funcTypeKeySummarys = HandleOperationResponse<decltype(declval<SearchFuncRequest>().Result)>(response);
+			vector<string> displayLines;
+			for (auto& p : funcTypeKeySummarys)
+			{
+				displayLines.push_back(move(p.first));
+			}
+
+			return displayLines;
 		}
 	};
 
@@ -229,61 +260,117 @@ namespace Server
 		}
 
 	public:
-		JsonObject Process(string_view cmd)
+		JsonObject ProcessArg(string_view args)
 		{
-			auto [funcInfo, newPackageInfo] = DivideInfo(Preprocess(nameof(ModifyFuncPackage), cmd));
+			auto [funcInfo, newPackageInfo] = DivideInfo(args);
 
 			auto func = GetFuncTypeFrom(funcInfo);
 			auto newPackage = GetPackageFrom(newPackageInfo);
 
 			return Serial(CombineTo<ModifyFuncPackageRequest::Content>(move(func), move(newPackage)));
 		}
+
+		vector<string> ProcessResponse(string_view response)
+		{
+			HandleOperationResponse<void>(response);
+			return { SuccessTip };
+		}
 	};
 
 	struct ContainsFuncCmd
 	{
-		JsonObject Process(string_view cmd)
+		JsonObject ProcessArg(string_view args)
 		{
-			auto funcInfo = Preprocess(nameof(ContainsFunc), cmd);
+			auto funcInfo = args;
 			return Serial(CombineTo<ContainsFuncRequest::Content>(GetFuncTypeFrom(funcInfo)));
+		}
+
+		vector<string> ProcessResponse(string_view response)
+		{
+			return { std::to_string(HandleOperationResponse<bool>(response)) };
+		}
+	};
+
+	struct GetFuncsInfoCmd
+	{
+		/// no args need to process
+		vector<string> ProcessResponse(string_view response)
+		{
+			auto funcTypes = HandleOperationResponse<decltype(declval<GetFuncsInfoRequest>().Result)>(response);
+			auto header = PredefineHeader::NewFrom(move(funcTypes));
+
+			auto g = header.GetHeaderDef();
+			{
+				ofstream f("Predefine.hpp");
+				while (g.MoveNext())
+				{
+					f << g.Current() << std::endl;
+				}
+			}
+
+			return { "Predefine.hpp generated!" };
 		}
 	};
 
 	struct AddClientAccountCmd
 	{
-		JsonObject Process(string_view cmd)
+		JsonObject ProcessArg(string_view args)
 		{
-			auto accountInfo = Preprocess(nameof(AddClientAccount), cmd);
+			auto accountInfo = args;
 			auto [username, password] = ParseOut<true>(accountInfo, " ");
 			return Serial(CombineTo<AddClientAccountRequest::Content>(string(username), string(password)));
+		}
+
+		vector<string> ProcessResponse(string_view response)
+		{
+			HandleOperationResponse<void>(response);
+			return { SuccessTip };
 		}
 	};
 
 	struct RemoveClientAccountCmd
 	{
-		JsonObject Process(string_view cmd)
+		JsonObject ProcessArg(string_view args)
 		{
-			auto username = Preprocess(nameof(RemoveClientAccount), cmd);
+			auto username = args;
 			return Serial(CombineTo<RemoveClientAccountRequest::Content>(string(username)));
+		}
+
+		vector<string> ProcessResponse(string_view response)
+		{
+			HandleOperationResponse<void>(response);
+			return { SuccessTip };
 		}
 	};
 
 	struct AddAdminAccountCmd
 	{
-		JsonObject Process(string_view cmd)
+		JsonObject ProcessArg(string_view args)
 		{
-			auto accountInfo = Preprocess(nameof(AddAdminAccount), cmd);
+			auto accountInfo = args;
 			auto [username, password] = ParseOut<true>(accountInfo, " ");
 			return Serial(CombineTo<AddAdminAccountRequest::Content>(string(username), string(password)));
+		}
+
+		vector<string> ProcessResponse(string_view response)
+		{
+			HandleOperationResponse<void>(response);
+			return { SuccessTip };
 		}
 	};
 
 	struct RemoveAdminAccountCmd
 	{
-		JsonObject Process(string_view cmd)
+		JsonObject ProcessArg(string_view args)
 		{
-			auto username = Preprocess(nameof(RemoveAdminAccount), cmd);
+			auto username = args;
 			return Serial(CombineTo<RemoveClientAccountRequest::Content>(string(username)));
+		}
+
+		vector<string> ProcessResponse(string_view response)
+		{
+			HandleOperationResponse<void>(response);
+			return { SuccessTip };
 		}
 	};
 
@@ -296,26 +383,60 @@ namespace Server
 		return 5381;
 	}
 
-	string GenerateSendBytes(string const& cmd)
+	template <typename T>
+	concept HasProcess = requires(T t, string_view s)
+	{
+		t.ProcessArg(s);
+	};
+
+	/// return value: requests and response processor
+	pair<vector<string>, function<vector<string>(string_view)>> ProcessCmd(string const& cmd)
 	{
 		auto [cmdName, remain] = ParseOut<false>(TrimStart(cmd), " ");
+		auto args = TrimEnd(TrimStart(remain));
+		vector<string> requests;
+		function<vector<string>(string_view)> responseProcessor;
+
 		switch (StrToInt(cmdName))
 		{
-#define CASE_OF(NAME) case StrToInt(nameof(NAME)): return NAME##Cmd().Process(cmd).ToString()
+#define CASE_OF(NAME)                                                                 \
+	case StrToInt(nameof(NAME)):                                                      \
+		requests.push_back(Json::JsonConverter::Serialize(Network::NAME).ToString()); \
+		{                                                                             \
+			auto c = NAME##Cmd();                                                     \
+			requests.push_back(c.ProcessArg(args).ToString());                        \
+			responseProcessor = [c = move(c)](string_view response) mutable           \
+			{                                                                         \
+				return c.ProcessResponse(response);                                   \
+			};                                                                        \
+		}                                                                             \
+		break;
 
-		CASE_OF(AddFunc);
-		CASE_OF(RemoveFunc);
-		CASE_OF(SearchFunc);
-		CASE_OF(ModifyFuncPackage);
-		CASE_OF(ContainsFunc);
-		CASE_OF(AddClientAccount);
-		CASE_OF(AddAdminAccount);
-		CASE_OF(RemoveClientAccount);
-		CASE_OF(RemoveAdminAccount);
+			CASE_OF(AddFunc);
+			CASE_OF(RemoveFunc);
+			CASE_OF(SearchFunc);
+			CASE_OF(ModifyFuncPackage);
+			CASE_OF(ContainsFunc);
+			CASE_OF(AddClientAccount);
+			CASE_OF(AddAdminAccount);
+			CASE_OF(RemoveClientAccount);
+			CASE_OF(RemoveAdminAccount);
+		case StrToInt(nameof(GetFuncsInfoCmd)):
+			requests.push_back(Json::JsonConverter::Serialize(Network::GetFuncsInfo).ToString());
+			{
+				auto c = GetFuncsInfoCmd();
+				responseProcessor = [c = move(c)](string_view response) mutable
+				{
+					return c.ProcessResponse(response);
+				};
+			}
+			break;
 		default: throw invalid_argument(string("No handler of ") + cmd);
 
 #undef CASE_OF
 		}
+
+		return pair(move(requests), move(responseProcessor));
 	}
 #undef nameof
 }

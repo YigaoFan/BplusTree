@@ -10,7 +10,7 @@
 #include "Responder.hpp"
 #include "ClientService.hpp"
 #include "AdminService.hpp"
-#include "Util.hpp"
+#include "../Network/Util.hpp"
 #include "AccountManager.hpp"
 
 namespace Server

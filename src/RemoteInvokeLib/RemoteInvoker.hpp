@@ -3,7 +3,6 @@
 #include <vector>
 #include <string>
 #include <utility>
-#include <stdexcept>
 #include <type_traits>
 #include "../Basic/TypeTrait.hpp"
 #include "../Basic/Exception.hpp"
@@ -13,6 +12,7 @@
 #include "../Network/Request.hpp"
 #include "../Network/Socket.hpp"
 #include "../Network/IoContext.hpp"
+#include "../Network/Util.hpp"
 
 namespace RemoteInvokeLib
 {
@@ -20,6 +20,7 @@ namespace RemoteInvokeLib
 	using Basic::InvalidOperationException;
 	using FuncLib::Compile::FuncType;
 	using Json::JsonObject;
+	using ::Network::HandleOperationResponse;
 	using Network::InvokeFuncRequest;
 	using Network::IoContext;
 	using Network::LoginRequest;
@@ -31,7 +32,6 @@ namespace RemoteInvokeLib
 	using ::std::is_same_v;
 	using ::std::make_index_sequence;
 	using ::std::move;
-	using ::std::runtime_error;
 	using ::std::string;
 	using ::std::vector;
 
@@ -116,22 +116,7 @@ namespace RemoteInvokeLib
 
 			peer.Send(request.ToString());
 			auto response = peer.Receive();
-			JsonObject result = Json::Parse(response);
-
-			if (result["type"].GetString() == "exception")
-			{
-				auto message = result["value"].GetString();
-				throw runtime_error(move(message));
-			}
-
-			if constexpr (is_same_v<ReturnType, void>)
-			{
-				return;
-			}
-			else
-			{
-				return Json::JsonConverter::Deserialize<ReturnType>(result["value"]);
-			}
+			return HandleOperationResponse<ReturnType>(response);
 		}
 	};
 }

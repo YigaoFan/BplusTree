@@ -6,14 +6,14 @@
 #include "../Json/JsonConverter/JsonConverter.hpp"
 #include "FuncLibWorker.hpp"
 #include "Responder.hpp"
-#include "RequestId.hpp"
-#include "Util.hpp"
+#include "../Network/Util.hpp"
 #include "AwaiterVoid.hpp"
 
 namespace Server
 {
 	using Json::JsonObject;
 	using Log::ResultStatus;
+	using Network::ByteProcessWay;
 	using ::std::is_same_v;
 	using ::std::shared_ptr;
 	using ::std::tuple;
@@ -99,7 +99,7 @@ namespace Server
 #define CAT(A, B) PRIMITIVE_CAT(A, B)
 // 以上两个不能 undef，因为 FlyTest 里面也定义了
 #define ASYNC_HANDLER(NAME, WORKER)                                                                \
-	[responder = _responder, WORKER = WORKER, peer = _peer](auto userLoggerPtr) mutable -> Void    \
+	[responder = _responder, worker = WORKER, peer = _peer](auto userLoggerPtr) mutable -> Void    \
 	{                                                                                              \
 		auto [paras, rawStr] = ReceiveFromPeer<CAT(NAME, Request)::Content, true>(peer.get());     \
 		auto id = GenerateRequestId();                                                             \
@@ -110,14 +110,45 @@ namespace Server
 		JsonObject result;                                                                         \
 		try                                                                                        \
 		{                                                                                          \
-			if constexpr (not is_same_v<void, decltype(WORKER->NAME(move(paras)).await_resume())>) \
+			if constexpr (not is_same_v<void, decltype(worker->NAME(move(paras)).await_resume())>) \
 			{                                                                                      \
-				auto ret = co_await WORKER->NAME(move(paras));                                     \
+				auto ret = co_await worker->NAME(move(paras));                                     \
 				result = Json::JsonConverter::Serialize(ret);                                      \
 			}                                                                                      \
 			else                                                                                   \
 			{                                                                                      \
-				co_await WORKER->NAME(move(paras));                                                \
+				co_await worker->NAME(move(paras));                                                \
+			}                                                                                      \
+		}                                                                                          \
+		catch (std::exception const& e)                                                            \
+		{                                                                                          \
+			ReturnToPeer(responder, peer, e);                                                      \
+			argLogger.BornNewWith(ResultStatus::Failed);                                           \
+			co_return;                                                                             \
+		}                                                                                          \
+		ReturnToPeer(responder, peer, move(result));                                               \
+		argLogger.BornNewWith(ResultStatus::Complete);                                             \
+	}
+
+#define ASYNC_HANDLER_WITHOUT_ARG(NAME, WORKER)                                                                \
+	[responder = _responder, worker = WORKER, peer = _peer](auto userLoggerPtr) mutable -> Void    \
+	{                                                                                              \
+		auto id = GenerateRequestId();                                                             \
+		auto idLogger = userLoggerPtr->BornNewWith(id);                                            \
+		responder->RespondTo(peer, id);                                                            \
+		auto requestLogger = idLogger.BornNewWith(nameof(NAME));                                   \
+		auto argLogger = requestLogger.BornNewWith(nameof(-));                                     \
+		JsonObject result;                                                                         \
+		try                                                                                        \
+		{                                                                                          \
+			if constexpr (not is_same_v<void, decltype(worker->NAME().await_resume())>)            \
+			{                                                                                      \
+				auto ret = co_await worker->NAME();                                                \
+				result = Json::JsonConverter::Serialize(ret);                                      \
+			}                                                                                      \
+			else                                                                                   \
+			{                                                                                      \
+				co_await worker->NAME();                                                           \
 			}                                                                                      \
 		}                                                                                          \
 		catch (std::exception const& e)                                                            \

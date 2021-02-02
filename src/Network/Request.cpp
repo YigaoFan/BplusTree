@@ -45,6 +45,19 @@ namespace Json::JsonConverter
 		return FuncType(returnType, funcName, argTypes, package);
 	}
 
+	///---------- AdminServiceOption ----------
+	template <>
+	JsonObject Serialize(AdminServiceOption const& option)
+	{
+		return Serialize(static_cast<int>(option));
+	}
+
+	template <>
+	AdminServiceOption Deserialize(JsonObject const& jsonObj)
+	{
+		return static_cast<AdminServiceOption>(Deserialize<int>(jsonObj));
+	}
+
 	///---------- InvokeFuncRequest ----------
 	template <>
 	JsonObject Serialize(InvokeFuncRequest::Content const& content)

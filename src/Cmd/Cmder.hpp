@@ -9,7 +9,7 @@
 
 namespace Cmd
 {
-	using Server::GenerateSendBytes;
+	using Server::ProcessCmd;
 	using Server::GetCmdsName;
 	using ::std::array;
 	using ::std::move;
@@ -38,17 +38,20 @@ namespace Cmd
 		{ }
 		
 		/// return maybe multiple lines
-		string Run(string cmd)
+		vector<string> Run(string cmd)
 		{
 			// 这里可以从哪获取一点被调用接口的信息然后进行提示和检查
 			// 使用一些代码去生成
-			string bytes = GenerateSendBytes(cmd);
-			_socket.send(asio::buffer(bytes));
+			auto [requests, responseProcessor] = ProcessCmd(cmd);
+			for (auto& r : requests)
+			{
+				_socket.send(asio::buffer(r));
+			}
 
 			array<char, 1024> buff;
 			auto n = _socket.receive(asio::buffer(buff));//如何设置 block 的时限呢？
-			auto output = string(buff.data(), n);
-			return output;
+			auto response = string(buff.data(), n);
+			return responseProcessor(response);
 		}
 
 		/// return is multiple options

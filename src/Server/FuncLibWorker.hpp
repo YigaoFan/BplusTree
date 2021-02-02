@@ -13,6 +13,7 @@ namespace Server
 	using Network::AddClientAccountRequest;
 	using Network::AddFuncRequest;
 	using Network::ContainsFuncRequest;
+	using Network::GetFuncsInfoRequest;
 	using Network::InvokeFuncRequest;
 	using Network::ModifyFuncPackageRequest;
 	using Network::RemoveAdminAccountRequest;
@@ -168,6 +169,21 @@ namespace Server
 			{
 				auto& paras = request->Paras;
 				request->Result = _funcLib.Contains(paras.Func);
+			}));
+
+			return { requestPtr };
+		}
+
+		Awaiter<GetFuncsInfoRequest> GetFuncsInfo()
+		{
+			auto requestPtr = make_shared<GetFuncsInfoRequest>(GetFuncsInfoRequest{ {} });
+			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
+			{
+				auto g = _funcLib.FuncTypes();
+				while (g.MoveNext())
+				{
+					request->Result.push_back(move(g.Current()));
+				}
 			}));
 
 			return { requestPtr };

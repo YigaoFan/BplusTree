@@ -4,39 +4,8 @@
 
 namespace Server
 {
-	enum ServiceOption
-	{
-		AddFunc,
-		RemoveFunc,
-		SearchFunc,
-		ModifyFuncPackage,
-		ContainsFunc,
-		AddClientAccount,
-		RemoveClientAccount,
-		AddAdminAccount,
-		RemoveAdminAccount,
-	};
-}
-
-namespace Json::JsonConverter
-{
-	using Server::ServiceOption;
-
-	template <>
-	JsonObject Serialize(ServiceOption const& option)
-	{
-		return Serialize(static_cast<int>(option));
-	}
-
-	template <>
-	ServiceOption Deserialize(JsonObject const& jsonObj)
-	{
-		return static_cast<ServiceOption>(Deserialize<int>(jsonObj));
-	}
-}
-
-namespace Server
-{
+	using Network::AdminServiceOption;
+	
 	class AdminService : private ServiceBase
 	{
 	private:
@@ -55,13 +24,11 @@ namespace Server
 			// 这里 LoopAcquireThenDispatch 用 userLogger 来记录这里面的日志
 			// 各个 handler 通过 capture 自行处理会产生的各自的 requestLogger
 			// 这个产生了不必要的 requestLogger，这点之后应该要处理
-			AsyncLoopAcquireThenDispatch<ServiceOption>(
+			AsyncLoopAcquireThenDispatch<AdminServiceOption>(
 				move(userLogger),
 				_peer,
-				[](auto serviceOption) {
-					return static_cast<int>(serviceOption);
-				},
-				// 下面的顺序需要和 ServiceOption enum 的顺序一致
+				[](auto serviceOption) { return static_cast<int>(serviceOption); },
+				// 下面的顺序要和 AdminServiceOption enum 中定义顺序一致
 				ASYNC_FUNC_LIB_HANDLER(AddFunc),
 				ASYNC_FUNC_LIB_HANDLER(RemoveFunc),
 				ASYNC_FUNC_LIB_HANDLER(SearchFunc),
@@ -70,7 +37,9 @@ namespace Server
 				ASYNC_ACCOUNT_MANAGE_HANDLER(AddClientAccount),
 				ASYNC_ACCOUNT_MANAGE_HANDLER(RemoveClientAccount),
 				ASYNC_ACCOUNT_MANAGE_HANDLER(AddAdminAccount),
-				ASYNC_ACCOUNT_MANAGE_HANDLER(RemoveAdminAccount));
+				ASYNC_ACCOUNT_MANAGE_HANDLER(RemoveAdminAccount),
+				ASYNC_HANDLER_WITHOUT_ARG(GetFuncsInfo, _funcLibWorker)
+				);
 		}
 	};
 }

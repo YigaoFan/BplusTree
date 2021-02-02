@@ -4,8 +4,7 @@
 #include <vector>
 #include "../Btree/Generator.hpp"
 #include "../FuncLib/Compile/FuncType.hpp"
-
-#include "../Json/JsonObject.hpp"
+#include "../Json/Json.hpp"
 #include "../Network/Request.hpp"
 
 namespace Server
@@ -24,13 +23,12 @@ namespace Server
 	{
 		set<vector<string>> Packages;
 
-		static PredefineHeader NewFrom(Generator<FuncType> funcsGenerator)
+		static PredefineHeader NewFrom(vector<FuncType> funcTypes)
 		{
 			PredefineHeader header;
-			while (funcsGenerator.MoveNext())
+			for (auto& t : funcTypes)
 			{
-				auto f = funcsGenerator.Current();
-				header.Packages.insert(f.PackageHierarchy);
+				header.Packages.insert(move(t.PackageHierarchy));
 			}
 
 			return header;

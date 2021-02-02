@@ -128,18 +128,6 @@ TESTCASE("Cmd Function Test")
 			}
 		}
 
-		SECTION("Preprocess")
-		{
-			{
-				auto r = Preprocess("AddFunc", "AddFunc  a b");
-				ASSERT(r == "a b");
-			}
-
-			{
-				ASSERT_THROW(std::invalid_argument, Preprocess("AddFunc", "a b"));
-			}
-		}
-
 		SECTION("Read def")
 		{
 			// auto def = AddFuncCmd::GetFuncsDefFrom("func.cpp");
@@ -155,7 +143,7 @@ TESTCASE("Cmd Function Test")
 		ASSERT(filename == "./func.cpp");
 		ASSERT(summary == "basic util function");
 
-		// auto r = c.Process("AddFunc A.B ./func.cpp basic util function");
+		// auto r = c.ProcessArg("A.B ./func.cpp basic util function");
 	}
 
 	SECTION("RemoveFunc")
@@ -163,7 +151,7 @@ TESTCASE("Cmd Function Test")
 		char const typeStr[] = "A.B::void Func(int, string)";
 		auto type = GetFuncTypeFrom(typeStr);
 		auto c = RemoveFuncCmd();
-		auto r = c.Process(string("RemoveFunc ") + typeStr);
+		auto r = c.ProcessArg(typeStr);
 		using namespace Json;
 		JsonObject::_Object _obj;
 		_obj.insert({ "func", JsonConverter::Serialize(type) });
@@ -174,7 +162,7 @@ TESTCASE("Cmd Function Test")
 	SECTION("SearchFunc")
 	{
 		auto c = SearchFuncCmd();
-		auto r = c.Process("SearchFunc Func");
+		auto r = c.ProcessArg("Func");
 	}
 
 	SECTION("ModifyFuncPackage")
@@ -188,31 +176,31 @@ TESTCASE("Cmd Function Test")
 	SECTION("ContainsFunc")
 	{
 		auto c = ContainsFuncCmd();
-		auto r = c.Process("ContainsFunc A.B::void Func(int, string)");
+		auto r = c.ProcessArg("A.B::void Func(int, string)");
 	}
 
 	SECTION("AddClientAccount")
 	{
 		auto c = AddClientAccountCmd();
-		auto r = c.Process("AddClientAccount LiuQi 567");
+		auto r = c.ProcessArg("LiuQi 567");
 	}
 
 	SECTION("RemoveClientAccount")
 	{
 		auto c = RemoveClientAccountCmd();
-		auto r = c.Process("RemoveClientAccount LiuQi");
+		auto r = c.ProcessArg("LiuQi");
 	}
 
 	SECTION("AddAdminAccount")
 	{
 		auto c = AddAdminAccountCmd();
-		auto r = c.Process("AddAdminAccount god 123");
+		auto r = c.ProcessArg("god 123");
 	}
 
 	SECTION("RemoveAdminAccount")
 	{
 		auto c = RemoveAdminAccountCmd();
-		auto r = c.Process("RemoveAdminAccount god");
+		auto r = c.ProcessArg("god");
 	}
 }
 

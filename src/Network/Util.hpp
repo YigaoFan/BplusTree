@@ -1,13 +1,23 @@
 #pragma once
 #include <string>
 #include <utility>
+#include <stdexcept>
+#include <type_traits>
+#include <string_view>
+#include "../Network/Socket.hpp"
+#include "../Json/Json.hpp"
 #include "../Json/Parser.hpp"
 #include "../Json/JsonConverter/JsonConverter.hpp"
 
-namespace Server
+namespace Network
 {
+	using Json::JsonObject;
+	using Network::Socket;
+	using ::std::is_same_v;
 	using ::std::pair;
+	using ::std::runtime_error;
 	using ::std::string;
+	using ::std::string_view;
 
 	enum class ByteProcessWay
 	{
@@ -45,6 +55,27 @@ namespace Server
 			{
 				return input;
 			}
+		}
+	}
+
+	template <typename Return>
+	Return HandleOperationResponse(string_view response)
+	{
+		JsonObject result = Json::Parse(response);
+
+		if (result["type"].GetString() == "exception")
+		{
+			auto message = result["value"].GetString();
+			throw runtime_error(move(message));
+		}
+
+		if constexpr (is_same_v<Return, void>)
+		{
+			return;
+		}
+		else
+		{
+			return Json::JsonConverter::Deserialize<Return>(result["value"]);
 		}
 	}
 }

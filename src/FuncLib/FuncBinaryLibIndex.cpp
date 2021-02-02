@@ -112,7 +112,7 @@ namespace FuncLib
 			if (includedIn(p->first)) // Key
 			{
 				// 后续如果 FuncType::ToKey 的形成规则变了，这里也要变
-#define YIELD_EXP co_yield { string(p->first), string(p->second.second.first)}
+#define YIELD_EXP co_yield { string(p->first), string(p->second.second.first) }
 				YIELD_EXP;
 			}
 			else if (includedIn(p->second.second.first)) // summary
