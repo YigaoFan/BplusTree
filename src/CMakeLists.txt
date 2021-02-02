@@ -66,7 +66,7 @@ add_executable(RPC
 
         Network/Request.cpp
 
-        Server/Test/ServerTest.cpp
+        Server/Test/ServerMockTest.cpp
         Server/Test/CmdFunctionTest.cpp
         Server/Test/FuncLibWorkerTest.cpp
         )
