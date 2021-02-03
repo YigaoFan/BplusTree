@@ -1,7 +1,6 @@
 #include "FunctionLibrary.hpp"
 #include "../Basic/Exception.hpp"
 #include "Compile/CompileProcess.hpp"
-#include "Compile/Invoke.hpp"
 
 namespace FuncLib
 {
@@ -83,6 +82,7 @@ namespace FuncLib
 
 	void FunctionLibrary::Remove(FuncType const& func)
 	{
+		// TODO remove 和 modify 都要注意内存 cache 要不要改
 		if (_index.Contains(func))
 		{
 			auto l = GetStoreLabel(func);
@@ -98,9 +98,9 @@ namespace FuncLib
 	{
 		// 改名字再调用会出现问题
 		auto l = GetStoreLabel(func);
-		auto bytesPtr = _binLib.ReadBin(l);
+		auto libPtr = _binLib.Load(l);
 		auto wrapperFuncName = GetWrapperFuncName(func.FuncName);
-		return Compile::Invoke(*bytesPtr, wrapperFuncName.c_str(), move(args));
+		return libPtr->Invoke<InvokeFuncType>(wrapperFuncName.c_str(), move(args));
 	}
 
 	// keyword maybe part package name, 需要去匹配，所以返回值可能不能做到返回函数的相关信息

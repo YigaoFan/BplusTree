@@ -10,7 +10,6 @@
 #include "FuncBinaryLibIndex.hpp"
 #include "../Btree/Generator.hpp"
 #include "Compile/CompileProcess.hpp"
-#include "Compile/Invoke.hpp"
 
 namespace FuncLib
 {
@@ -44,6 +43,7 @@ namespace FuncLib
 	class FunctionLibrary
 	{
 	private:
+		using InvokeFuncType = JsonObject(JsonObject);
 		//  hash map 作为缓存，快速查询
 		unordered_map<FuncType, pos_label, FuncTypeHash, FuncTypeEqualTo> _funcInfoCache;
 		FuncBinaryLibIndex _index;
@@ -72,15 +72,15 @@ namespace FuncLib
 		// keyword maybe part package name, 需要去匹配，所以返回值可能不能做到返回函数的相关信息
 		Generator<pair<string, string>> Search(string const& keyword) const;
 		Generator<FuncType> FuncTypes() const;
-
+		// TODO 优化下在无更新的情况下，不要重新写文件 这样可以利用到缓存 注意 无更新，这是下步实现
 		auto GetInvoker(FuncType func, JsonObject args)
 		{
 			auto l = GetStoreLabel(func);
-			auto unitPtr = _binLib.ReadBinUnit(l);
-			return [func=move(func), unitPtr=move(unitPtr), args=move(args)]() -> JsonObject
+			auto libPtr = _binLib.Load(l);
+			return [func=move(func), libPtr=move(libPtr), args=move(args)]() -> JsonObject
 			{
 				auto wrapperFuncName = Compile::GetWrapperFuncName(func.FuncName);
-				return Compile::Invoke(unitPtr->Bin, wrapperFuncName.c_str(), move(args));
+				return libPtr->Invoke<InvokeFuncType>(wrapperFuncName.c_str(), move(args));
 			};
 		}
 

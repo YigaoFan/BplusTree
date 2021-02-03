@@ -2,9 +2,16 @@
 #include <vector>
 #include <memory>
 #include <filesystem>
+#include <unordered_map>
 #include "Store/StaticConfig.hpp"
 #include "Persistence/ByteConverter.hpp"
 #include "Store/File.hpp"
+
+// temp
+#include <string>
+#include "Compile/SharedLibrary.hpp"
+#include "Compile/Util.hpp"
+#include <fstream>
 
 namespace FuncLib
 {
@@ -12,8 +19,17 @@ namespace FuncLib
 	using FuncLib::Store::pos_label;
 	using ::std::move;
 	using ::std::shared_ptr;
+	using ::std::unordered_map;
 	using ::std::vector;
 	using ::std::filesystem::path;
+
+	// temp
+	using ::std::string;
+	using FuncLib::Compile::SharedLibrary;
+	using Compile::FilesCleaner;
+	using ::std::ofstream;
+	using Compile::RandomString;
+	using ::std::make_shared;
 
 	struct BinUnit
 	{
@@ -51,16 +67,21 @@ namespace FuncLib
 		}
 	};
 
+	class SharedLibWithCleaner;
+
 	class FuncBinaryLib
 	{
 	private:
 		shared_ptr<File> _file;
+		unordered_map<pos_label, shared_ptr<SharedLibWithCleaner>> _cache;
 
 		FuncBinaryLib(decltype(_file) file);
-
+		
 	public:
 		static FuncBinaryLib GetFrom(path const& path);
 		void DecreaseRefCount(pos_label label);
+
+		shared_ptr<SharedLibWithCleaner> Load(pos_label label);
 		vector<char>* ReadBin(pos_label label);
 		shared_ptr<BinUnit> ReadBinUnit(pos_label label);
 
@@ -88,5 +109,19 @@ namespace FuncLib
 		{
 			++pos._binUnitObj->RefCount;
 		}
+	};
+
+	class SharedLibWithCleaner : private SharedLibrary, private FilesCleaner
+	{
+	private:
+		using Base1 = SharedLibrary;
+		using Base2 = FilesCleaner;
+
+	public:
+		SharedLibWithCleaner(string filename) : Base1(filename), Base2(filename)
+		{
+		}
+
+		using SharedLibrary::Invoke;
 	};
 }

@@ -19,7 +19,8 @@ namespace FuncLib::Compile
 		SharedLibrary(string const& filename);
 		SharedLibrary(SharedLibrary&& that) noexcept;
 		SharedLibrary(SharedLibrary const& that) noexcept = delete;
-		~SharedLibrary() noexcept(false);
+		~SharedLibrary();
+		void Close();
 
 		// 返回值 decltype(auto) 是我在 CompileProcess 使用后感觉
 		template <typename Func, typename... Args>

@@ -19,7 +19,19 @@ namespace FuncLib::Compile
 		that._handle = nullptr;
 	}
 
-	SharedLibrary::~SharedLibrary() noexcept(false)
+	SharedLibrary::~SharedLibrary()
+	{
+		if (_handle != nullptr)
+		{
+			dlclose(_handle);
+			// 这里不做错误处理，两点原因：
+			// 1.在 handle 没错的情况下，极小概率出错
+			// 2.出错了本程序也处理不了，错了对本程序没有影响
+			// 想错误处理请显式使用 Close 函数
+		}
+	}
+
+	void SharedLibrary::Close()
 	{
 		if (_handle != nullptr)
 		{
@@ -27,6 +39,7 @@ namespace FuncLib::Compile
 			{
 				throw InvalidOperationException("close handle failed");
 			}
+			_handle = nullptr;
 		}
 	}
 }

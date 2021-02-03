@@ -22,6 +22,24 @@ namespace FuncLib
 		}
 	}
 
+	shared_ptr<SharedLibWithCleaner> FuncBinaryLib::Load(pos_label label)
+	{
+		if (_cache.contains(label))
+		{
+			return _cache[label];
+		}
+
+		auto binPtr = ReadBin(label);
+		string tempFileName = "temp_invoke" + RandomString() + ".so";
+		{
+			ofstream of(tempFileName);
+			of.write(binPtr->data(), binPtr->size());
+		}
+		auto lib = make_shared<SharedLibWithCleaner>(move(tempFileName));
+		_cache.insert({label, lib});
+		return lib;
+	}
+
 	vector<char>* FuncBinaryLib::ReadBin(pos_label label)
 	{
 		return &_file->Read<BinUnit>(label)->Bin;
