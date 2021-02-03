@@ -39,7 +39,7 @@ namespace FuncLib::Compile
 	}
 
 	FuncType::FuncType(string returnType, string functionName, vector<string> argTypes, vector<string> package)
-		: ReturnType(move(returnType)), FuncName(move(functionName)), ArgTypes(move(argTypes)), PackageHierarchy(move(package))
+		: ReturnType(move(returnType)), FuncName(move(functionName)), ArgTypes(move(argTypes)), Package(move(package))
 	{
 	}
 
@@ -49,14 +49,14 @@ namespace FuncLib::Compile
 		string s;
 
 		// 我希望排序的时候优先比较 package，所以把包名放在了前面
-		if (PackageHierarchy.empty())
+		if (Package.empty())
 		{
 			char DefalutPackage[] = "Global";
 			s.append(DefalutPackage);
 		}
 		else
 		{
-			for (auto& p : PackageHierarchy)
+			for (auto& p : Package)
 			{
 				s.append(p + '.');
 			}

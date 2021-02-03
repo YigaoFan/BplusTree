@@ -36,7 +36,7 @@ TESTCASE("Cmd Function Test")
 			{
 				auto func = GetFuncTypeFrom("A.B::void Func(int, string)");
 
-				auto &package = func.PackageHierarchy;
+				auto &package = func.Package;
 				ASSERT(package.size() == 2);
 				ASSERT(package[0] == "A");
 				ASSERT(package[1] == "B");
@@ -54,7 +54,7 @@ TESTCASE("Cmd Function Test")
 			{
 				auto func = GetFuncTypeFrom("B::void Func(int)");
 
-				auto &package = func.PackageHierarchy;
+				auto &package = func.Package;
 				ASSERT(package.size() == 1);
 				ASSERT(package[0] == "B");
 
@@ -70,7 +70,7 @@ TESTCASE("Cmd Function Test")
 			{
 				auto func = GetFuncTypeFrom("B::void Func()");
 
-				auto &package = func.PackageHierarchy;
+				auto &package = func.Package;
 				ASSERT(package.size() == 1);
 				ASSERT(package[0] == "B");
 
@@ -85,7 +85,7 @@ TESTCASE("Cmd Function Test")
 			{
 				auto func = GetFuncTypeFrom("B::void Func ()");
 
-				auto& package = func.PackageHierarchy;
+				auto& package = func.Package;
 				ASSERT(package.size() == 1);
 				ASSERT(package[0] == "B");
 
@@ -100,7 +100,7 @@ TESTCASE("Cmd Function Test")
 			{
 				auto func = GetFuncTypeFrom("::void Func ()");
 
-				auto &package = func.PackageHierarchy;
+				auto &package = func.Package;
 				ASSERT(package.size() == 0);
 
 				ASSERT(func.ReturnType == "void");
@@ -114,7 +114,7 @@ TESTCASE("Cmd Function Test")
 			{
 				auto func = GetFuncTypeFrom("AB.CD::void Func ()");
 
-				auto &package = func.PackageHierarchy;
+				auto &package = func.Package;
 				ASSERT(package.size() == 2);
 				ASSERT(package[0] == "AB");
 				ASSERT(package[1] == "CD");

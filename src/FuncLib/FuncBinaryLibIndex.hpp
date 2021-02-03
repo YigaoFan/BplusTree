@@ -50,8 +50,7 @@ namespace FuncLib
 		void Add(FuncObj const& funcObj, pos_label label);
 		pos_label GetStoreLabel(FuncType const& type) const;
 		bool Contains(FuncType const& type) const;
-		void ModifyFuncName(FuncType type, string newFuncName);
-		void ModifyPackageOf(FuncType type, vector<string> packageHierarchy);
+		void ModifyPackageOf(FuncType type, vector<string> package);
 		void Remove(FuncType const& type);
 		/// pair: Key, summary
 		Generator<pair<string, string>> Search(string const& keyword) const;
@@ -59,6 +58,8 @@ namespace FuncLib
 		~FuncBinaryLibIndex();
 
 	private:
+		/// func name 与 wrapper name 一一对应，wrapper name 编译后已经写死，所以暂时不允许修改 func name
+		void ModifyFuncName(FuncType type, string newFuncName);
 		template <typename Callback>
 		void ModifyType(FuncType oldType, Callback setTypeCallback);
 	};

@@ -84,11 +84,11 @@ namespace FuncLib
 		});
 	}
 
-	void FuncBinaryLibIndex::ModifyPackageOf(FuncType type, vector<string> packageHierarchy)
+	void FuncBinaryLibIndex::ModifyPackageOf(FuncType type, vector<string> package)
 	{
-		ModifyType(move(type), [h = move(packageHierarchy)](FuncType oldType)
+		ModifyType(move(type), [h = move(package)](FuncType oldType)
 		{
-			oldType.PackageHierarchy = move(h);
+			oldType.Package = move(h);
 			return oldType;
 		});
 	}

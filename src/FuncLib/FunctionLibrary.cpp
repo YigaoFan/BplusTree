@@ -21,7 +21,6 @@ namespace FuncLib
 			throw InvalidOperationException(string("Cannot operate on path: ") + dirPath.c_str() + " which is not directory");
 		}
 
-		// 可以加个子文件夹 func_lib
 		auto indexFilePath = dirPath / "func.idx";
 		auto binFilePath = dirPath / "func_bin.lib";
 		auto i = FuncBinaryLibIndex::GetFrom(indexFilePath);
@@ -29,16 +28,14 @@ namespace FuncLib
 		return FunctionLibrary(move(i), move(b));
 	}
 
-	void FunctionLibrary::Add(vector<string> packageHierarchy, FuncsDefReader defReader, string summary)
+	void FunctionLibrary::Add(vector<string> package, FuncsDefReader defReader, string summary)
 	{
 		auto [funcs, bin] = Compile::Compile(move(defReader));
-		printf("binary size: %lu\n", bin.size());
 		auto p = _binLib.Add(move(bin));
 
 		for (auto& f : funcs)
 		{
-			f.Type.PackageHierarchy = packageHierarchy;
-			printf("add func key %s\n", f.Type.ToKey().c_str());
+			f.Type.Package = package;
 			if (_index.Contains(f.Type))
 			{
 				throw InvalidOperationException("Function already exist: " + f.Type.ToString());
@@ -55,38 +52,39 @@ namespace FuncLib
 
 	bool FunctionLibrary::Contains(FuncType const& func) const
 	{
-		return _index.Contains(func);
+		return _funcInfoCache.contains(func) or _index.Contains(func);
 	}
 
 #define FUNC_NOT_EXIST_EXCEPTION(FUNC_TYPE) throw InvalidOperationException("Function not exist: " + FUNC_TYPE.ToString())
-	// void FunctionLibrary::ModifyFuncName(FuncType const& func, string newFuncName)
-	// {
-		// 调用时的名字变了，要怎么处理
-	// 	if (_index.Contains(func))
-	// 	{
-	// 		return _index.ModifyFuncName(func, move(newFuncName));
-	// 	}
 
-	// 	FUNC_NOT_EXIST_EXCEPTION(func);
-	// }
-
-	void FunctionLibrary::ModifyPackageOf(FuncType const &func, vector<string> packageHierarchy)
+	void FunctionLibrary::ModifyPackageOf(FuncType const& func, vector<string> package)
 	{
-		if (_index.Contains(func))
+		if (_funcInfoCache.contains(func) or _index.Contains(func))
 		{
-			return _index.ModifyPackageOf(func, move(packageHierarchy));
+			if (_funcInfoCache.contains(func))
+			{
+				auto item = _funcInfoCache.extract(func);
+				item.key().Package = package;
+				_funcInfoCache.insert(move(item));
+			}
+
+			return _index.ModifyPackageOf(func, move(package));
 		}
+
 
 		FUNC_NOT_EXIST_EXCEPTION(func);
 	}
 
 	void FunctionLibrary::Remove(FuncType const& func)
 	{
-		// TODO remove 和 modify 都要注意内存 cache 要不要改
 		if (_index.Contains(func))
 		{
 			auto l = GetStoreLabel(func);
 			_binLib.DecreaseRefCount(l);
+			if (_funcInfoCache.contains(func))
+			{
+				_funcInfoCache.erase(func);
+			}
 			_index.Remove(func);
 			return;
 		}
@@ -96,14 +94,12 @@ namespace FuncLib
 
 	JsonObject FunctionLibrary::Invoke(FuncType const& func, JsonObject args)
 	{
-		// 改名字再调用会出现问题
 		auto l = GetStoreLabel(func);
 		auto libPtr = _binLib.Load(l);
 		auto wrapperFuncName = GetWrapperFuncName(func.FuncName);
 		return libPtr->Invoke<InvokeFuncType>(wrapperFuncName.c_str(), move(args));
 	}
 
-	// keyword maybe part package name, 需要去匹配，所以返回值可能不能做到返回函数的相关信息
 	Generator<pair<string, string>> FunctionLibrary::Search(string const& keyword) const
 	{
 		return _index.Search(keyword);

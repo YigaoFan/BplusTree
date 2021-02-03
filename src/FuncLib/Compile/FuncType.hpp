@@ -16,7 +16,7 @@ namespace FuncLib::Compile
 		string ReturnType;
 		string FuncName;
 		vector<string> ArgTypes;
-		vector<string> PackageHierarchy;
+		vector<string> Package;
 		static FuncType FromKey(string_view key);
 		FuncType() = default;
 		FuncType(string returnType, string functionName, vector<string> argTypes);

@@ -80,10 +80,8 @@ namespace FuncLib
 	public:
 		static FuncBinaryLib GetFrom(path const& path);
 		void DecreaseRefCount(pos_label label);
-
 		shared_ptr<SharedLibWithCleaner> Load(pos_label label);
 		vector<char>* ReadBin(pos_label label);
-		shared_ptr<BinUnit> ReadBinUnit(pos_label label);
 
 		auto Add(vector<char> bin)
 		{
@@ -93,12 +91,10 @@ namespace FuncLib
 				// 这样搞就不允许多线程添加了
 				if (pos->_binUnitObj->RefCount != 0)
 				{
-					// printf("store %d func binary\n", pos->Label());
 					_file->Store(pos->Label(), pos->_binUnitObj);
 				}
 				else
 				{
-					// printf("delete %d func binary\n", pos->Label());
 					_file->Delete(pos->Label(), pos->_binUnitObj);
 				}
 			});

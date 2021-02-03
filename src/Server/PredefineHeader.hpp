@@ -28,7 +28,7 @@ namespace Server
 			PredefineHeader header;
 			for (auto& t : funcTypes)
 			{
-				header.Packages.insert(move(t.PackageHierarchy));
+				header.Packages.insert(move(t.Package));
 			}
 
 			return header;

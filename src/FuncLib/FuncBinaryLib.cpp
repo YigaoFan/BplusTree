@@ -18,6 +18,10 @@ namespace FuncLib
 		--refCount;
 		if (refCount == 0)
 		{
+			if (_cache.contains(label))
+			{
+				_cache.erase(label);
+			}
 			_file->Delete(label, binUnitObj);
 		}
 	}
@@ -36,17 +40,12 @@ namespace FuncLib
 			of.write(binPtr->data(), binPtr->size());
 		}
 		auto lib = make_shared<SharedLibWithCleaner>(move(tempFileName));
-		_cache.insert({label, lib});
+		_cache.insert({ label, lib });
 		return lib;
 	}
 
 	vector<char>* FuncBinaryLib::ReadBin(pos_label label)
 	{
 		return &_file->Read<BinUnit>(label)->Bin;
-	}
-
-	shared_ptr<BinUnit> FuncBinaryLib::ReadBinUnit(pos_label label)
-	{
-		return _file->Read<BinUnit>(label);
 	}
 }

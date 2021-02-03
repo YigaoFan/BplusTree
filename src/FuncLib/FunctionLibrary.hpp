@@ -53,33 +53,23 @@ namespace FuncLib
 
 	public:
 		static FunctionLibrary GetFrom(path dirPath);
-		// 批量 Add 功能让上层（脚本命令行）来做
-		// void Add(string const& packageName, path const& dirPath)
-		// {
-		// 	// 暂定一个函数对应一个 dll 文件，多对一加载 dll 的时候可能要想一下
-		// 	// 扫描某个目录，批量添加函数，以文件中的函数名为函数名（结合提供的 packageName）
-		// }
-
-		/// 加入多个项，如果中间某一个项爆异常，那就会处于一个中间状态了，让用户来处理，
-		void Add(vector<string> packageHierarchy, FuncsDefReader defReader, string summary);
+		/// 当加入多个项，中间某一个项抛异常，保证之前添加进去的项正常
+		void Add(vector<string> package, FuncsDefReader defReader, string summary);
 		bool Contains(FuncType const& func) const;
-		// 是用 func 这种，把组装对象的逻辑放在外面，还是 vector<string> packageHierarchy, string funcName，把组装的逻辑放在这里
-		// void ModifyFuncName(FuncType const& func, string newFuncName);
-		void ModifyPackageOf(FuncType const& func, vector<string> packageHierarchy);
+		void ModifyPackageOf(FuncType const& func, vector<string> package);
 		void Remove(FuncType const& func);
-		/// 由外面处理异常
+		/// 有异常会抛出
 		JsonObject Invoke(FuncType const& func, JsonObject args);
-		// keyword maybe part package name, 需要去匹配，所以返回值可能不能做到返回函数的相关信息
+		/// pair: FuncType.ToKey(), summary
 		Generator<pair<string, string>> Search(string const& keyword) const;
 		Generator<FuncType> FuncTypes() const;
-		// TODO 优化下在无更新的情况下，不要重新写文件 这样可以利用到缓存 注意 无更新，这是下步实现
 		auto GetInvoker(FuncType func, JsonObject args)
 		{
 			auto l = GetStoreLabel(func);
 			auto libPtr = _binLib.Load(l);
-			return [func=move(func), libPtr=move(libPtr), args=move(args)]() -> JsonObject
+			return [funcName=move(func.FuncName), libPtr=move(libPtr), args=move(args)]() -> JsonObject
 			{
-				auto wrapperFuncName = Compile::GetWrapperFuncName(func.FuncName);
+				auto wrapperFuncName = Compile::GetWrapperFuncName(funcName);
 				return libPtr->Invoke<InvokeFuncType>(wrapperFuncName.c_str(), move(args));
 			};
 		}

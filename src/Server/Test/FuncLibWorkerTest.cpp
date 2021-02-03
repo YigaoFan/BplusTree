@@ -100,7 +100,7 @@ Task RemovePredefineFunc(FuncLibWorker& libWorker)
 FuncType GetModifiedFuncType()
 {
 	auto t = GetAddFuncType();
-	t.PackageHierarchy = { "Math", };
+	t.Package = { "Math", };
 	return t;
 }
 
