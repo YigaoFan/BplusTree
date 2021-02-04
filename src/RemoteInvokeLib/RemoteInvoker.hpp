@@ -13,6 +13,9 @@
 #include "../Network/Socket.hpp"
 #include "../Network/IoContext.hpp"
 #include "../Network/Util.hpp"
+#include "../TestFrame/Util.hpp"
+
+using namespace Test;
 
 namespace RemoteInvokeLib
 {
@@ -106,6 +109,7 @@ namespace RemoteInvokeLib
 			{
 				throw InvalidOperationException("server response greet error: " + r1);
 			}
+			log("greet ok %s\n", r1.c_str());
 
 			peer.Send(Json::JsonConverter::Serialize(_loginInfo).ToString());
 			auto r2 = peer.Receive();
@@ -113,9 +117,13 @@ namespace RemoteInvokeLib
 			{
 				throw InvalidOperationException("server response login error: " + r2);
 			}
+			log("login ok %s\n", r2.c_str());
 
 			peer.Send(request.ToString());
+			auto id = peer.Receive();
+			log("receive id %s\n", id.c_str());
 			auto response = peer.Receive();
+			log("response %s\n", response.c_str());
 			return HandleOperationResponse<ReturnType>(response);
 		}
 	};
