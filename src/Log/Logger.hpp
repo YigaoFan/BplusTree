@@ -233,6 +233,11 @@ namespace Log
 
 		~AccessLogSubLogger()
 		{
+			if (this->ParentLogger == nullptr)
+			{
+				return;
+			}
+
 			if (tuple_size_v<decltype(this->BasicInfo)> < BasicInfoLimitCount)
 			{
 				if (auto ePtr = std::current_exception(); ePtr != nullptr)
@@ -243,8 +248,8 @@ namespace Log
 					}
 					catch (std::exception const& e)
 					{
+						// 其实不一定是 error，用户断开也是会抛异常的 TODO
 						this->ParentLogger->Error(this->GetBasicInfoLogPrefix() + " Access terminated:", e);
-						this->ParentLogger->Flush();
 					}
 				}
 			}
@@ -304,14 +309,6 @@ namespace Log
 			auto m = GetBasicInfoLogPrefix() + ' ' + message;
 			ParentLogger->Warn(move(m), exception);
 		}
-
-		~NonAccessLogSubLogger()
-		{
-			if (ParentLogger != nullptr)
-			{
-				ParentLogger->Flush();
-			}
-		}
 	protected:
 		string GetBasicInfoLogPrefix() const
 		{
@@ -331,7 +328,7 @@ namespace Log
 	{
 		using ::std::make_unique;
 
-		auto s = make_unique<ofstream>(filename);
+		auto s = make_unique<ofstream>(filename, ofstream::app);
 		return Logger(move(s));
 	}
 }
