@@ -431,7 +431,7 @@ namespace Server
 				};
 			}
 			break;
-		default: throw invalid_argument(string("No handler of ") + cmd);
+		default: throw invalid_argument(string("No handler of ").append(cmd));
 
 #undef CASE_OF
 		}
