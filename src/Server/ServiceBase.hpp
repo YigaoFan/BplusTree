@@ -1,6 +1,7 @@
 #pragma once
 #include <tuple>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include "RequestId.hpp"
 #include "../Json/JsonConverter/JsonConverter.hpp"
@@ -16,6 +17,7 @@ namespace Server
 	using Network::ByteProcessWay;
 	using ::std::is_same_v;
 	using ::std::shared_ptr;
+	using ::std::string;
 	using ::std::tuple;
 	using ::std::tuple_size_v;
 
@@ -56,6 +58,7 @@ namespace Server
 			{
 				auto r = ReceiveFromPeer<Receive>(peer.get());
 				auto d = dispatcher(move(r));
+				printf("dispatch result %d\n", d);
 				co_await InvokeWhenEqual(d, handlersTuple, &userLogger);
 			}
 		}
@@ -81,7 +84,7 @@ namespace Server
 		static void ReturnToPeer(Responder* responder, shared_ptr<Socket> peer, Exception const& e)
 		{
 			JsonObject::_Object _obj;
-			_obj.insert({ "type", JsonObject("exception") });
+			_obj.insert({ "type", JsonObject(string("exception")) });
 			_obj.insert({ "value", JsonObject(e.what()) });
 			responder->RespondTo(peer, JsonObject(move(_obj)).ToString());
 		}
@@ -89,7 +92,7 @@ namespace Server
 		static void ReturnToPeer(Responder* responder, shared_ptr<Socket> peer, JsonObject result)
 		{
 			JsonObject::_Object _obj;
-			_obj.insert({ "type", JsonObject("not exception") });
+			_obj.insert({ "type", JsonObject(string("not exception")) });
 			_obj.insert({ "value", move(result) });
 			responder->RespondTo(peer, JsonObject(move(_obj)).ToString());
 		}
@@ -102,6 +105,7 @@ namespace Server
 	[responder = _responder, worker = WORKER, peer = _peer](auto userLoggerPtr) mutable -> Void    \
 	{                                                                                              \
 		auto [paras, rawStr] = ReceiveFromPeer<CAT(NAME, Request)::Content, true>(peer.get());     \
+		printf("receive para %s\n", rawStr.c_str());\
 		auto id = GenerateRequestId();                                                             \
 		auto idLogger = userLoggerPtr->BornNewWith(id);                                            \
 		responder->RespondTo(peer, id);                                                            \
