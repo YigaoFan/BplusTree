@@ -4,12 +4,12 @@ namespace Network
 {
 	using ::std::lock_guard;
 	
-	Request::Request(Request&& that) noexcept : Mutex(), CondVar(), Success()
+	Request::Request(Request&& that) noexcept : Mutex(), CondVar(), Continuation()
 	{
 		lock_guard<mutex> guard(that.Mutex);
 		Done = that.Done;
-		Success = move(that.Success);
-		Fail = move(that.Fail);
+		Continuation = move(that.Continuation);
+		RegisterException = move(that.RegisterException);
 	}
 }
 

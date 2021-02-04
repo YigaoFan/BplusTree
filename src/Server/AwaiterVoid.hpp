@@ -25,7 +25,8 @@ namespace Server
 				if (auto c = p.Continuation; c != nullptr)
 				{
 					c.resume();
-					c.destroy();
+					// c.destroy();
+					printf("AwaiterVoid handle not destory\n");
 				}
 			}
 

@@ -129,33 +129,39 @@ namespace Server
 				struct Guard
 				{
 					decltype(request) Request;
-					decltype(lock) *Lock;
 
 					~Guard()
 					{
 						Request->Done = true;
-						if (std::current_exception() != nullptr)
-						{
-							Request->CondVar.wait(*Lock, [=]
-							{
-								return (bool)Request->Fail;
-							});
-							Request->Fail();
-						}
-
 						// 这里对 fail 的情况要区分下应该 TODO 和 log 里的信息能不能统一起来
 					}
 				};
 
-				Guard g{ request, &lock };
-				unique_lock<shared_mutex> dataGuard(this->_dataMutex);
-				task(request);
+				auto handleException = [&]
+				{
+					request->CondVar.wait(lock, [&]
+					{
+						return (bool)request->RegisterException;
+					});
+					request->RegisterException(std::current_exception());
+				};
+
+				Guard g{ request };
+				unique_lock<decltype(_dataMutex)> dataGuard(this->_dataMutex);
+				try
+				{
+					task(request);
+				}
+				catch(...)
+				{
+					handleException();
+				}
 
 				request->CondVar.wait(lock, [=]
 				{
-					return (bool)request->Success;
+					return (bool)request->Continuation;
 				});
-				request->Success();
+				request->Continuation();
 			};
 		}
 

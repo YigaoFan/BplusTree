@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <utility>
+#include <exception>
 #include <functional>
 #include <condition_variable>
 #include "../Json/Json.hpp"
@@ -14,6 +15,7 @@ namespace Network
 	using FuncLib::Compile::FuncType;
 	using Json::JsonObject;
 	using ::std::condition_variable;
+	using ::std::exception_ptr;
 	using ::std::function;
 	using ::std::mutex;
 	using ::std::pair;
@@ -32,6 +34,7 @@ namespace Network
 		AddAdminAccount,
 		RemoveAdminAccount,
 		GetFuncsInfo,
+		Shutdown,
 	};
 
 	/// Contain request handle thing
@@ -41,8 +44,8 @@ namespace Network
 		mutable condition_variable CondVar;
 		bool Done = false;
 		// Continuation
-		function<void()> Success;
-		function<void()> Fail;
+		function<void()> Continuation;
+		function<void(exception_ptr)> RegisterException;
 
 		Request() = default;
 		Request(Request&& that) noexcept;

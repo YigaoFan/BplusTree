@@ -43,42 +43,54 @@ namespace Server
 				struct Guard
 				{
 					decltype(request) Request;
-					decltype(lock)* Lock;
 
 					~Guard()
 					{
 						Request->Done = true;
-						if (std::current_exception() != nullptr)
-						{
-							Request->CondVar.wait(*Lock, [=]
-							{
-								return (bool)Request->Fail;
-							});
-							Request->Fail();
-						}
-						
 						// 这里对 fail 的情况要区分下应该 TODO 和 log 里的信息能不能统一起来
 					}
 				};
 
+				auto handleException = [&]
+				{
+					request->CondVar.wait(lock, [&]
+					{
+						return (bool)request->RegisterException;
+					});
+					request->RegisterException(std::current_exception());
+				};
 				if constexpr (ManualManageLock)
 				{
-					Guard g{ request, &lock };
+					Guard g{ request };
 					unique_lock<mutex> libLock(this->_funcLibMutex);
-					task(request, &libLock);
+					try
+					{
+						task(request, &libLock);
+					}
+					catch(...)
+					{
+						handleException();
+					}
 				}
 				else
 				{
-					Guard g{ request, &lock }; // 由于 C++ 逆序析构的原则，Guard 在 lock_guard 之先比较好
+					Guard g{ request }; // 由于 C++ 逆序析构的原则，Guard 在 lock_guard 之先比较好
 					lock_guard<mutex> libGuard(this->_funcLibMutex);
-					task(request);
+					try
+					{
+						task(request);
+					}
+					catch (...)
+					{
+						handleException();
+					}
 				}
 
-				request->CondVar.wait(lock, [=]
+				request->CondVar.wait(lock, [&]
 				{
-					return (bool)request->Success;
+					return (bool)request->Continuation;
 				});
-				request->Success();
+				request->Continuation();
 			};
 		}
 
@@ -127,7 +139,17 @@ namespace Server
 			auto requestPtr = make_shared<RemoveFuncRequest>(RemoveFuncRequest{ {}, move(paras) });
 			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
 			{
-				_funcLib.Remove(request->Paras.Func);
+				printf("worker start remove func\n");
+				try
+				{
+					_funcLib.Remove(request->Paras.Func);
+				}
+				catch (std::exception const& e)
+				{
+					printf("worker remove func has exception %s\n", e.what());
+					throw e;
+				}
+				printf("worker end remove func\n");
 			}));
 
 			return { requestPtr };
