@@ -21,6 +21,7 @@ namespace Server
 	using Network::IoContext;
 	using Network::NetworkAcceptor;
 	using Network::Socket;
+	using ::std::forward;
 	using ::std::istringstream;
 	using ::std::move;
 	using ::std::pair;
@@ -29,6 +30,7 @@ namespace Server
 	class Server
 	{
 	private:
+		bool _shutdown = false;
 		ThreadPool _threadPool;
 		NetworkAcceptor _netAcceptor;
 		BusinessAcceptor _businessAcceptor;
@@ -46,14 +48,16 @@ namespace Server
 			_funcLibWorker.SetThreadPool(&_threadPool);
 			_accountManager.SetThreadPool(&_threadPool);
 
+			auto shutdownOnAfterNextAccept = [this]
+			{
+				_shutdown = true;
+			};
 			_businessAcceptor.SetServiceFactory(
 				[&](shared_ptr<Socket> socket, Responder *responder) mutable { return ClientService(move(socket), &_funcLibWorker, responder); },
 				[&](shared_ptr<Socket> socket, Responder *responder) mutable { return AdminService(move(socket), &_funcLibWorker, responder, &_accountManager); });
 			_businessAcceptor.SetAccountManager(&_accountManager);
 
-			_netAcceptor.AsyncAccept(
-				std::bind(&BusinessAcceptor::HandleAccept, &_businessAcceptor,
-						  std::placeholders::_1, std::placeholders::_2));
+			SetAcceptCallback();
 		}
 
 		void StartRunBackground()
@@ -77,6 +81,7 @@ namespace Server
 			{
 				InitBasicFuncTo(funcLib);
 				accountData.Add(false, "yigao fan", "hello world");
+				accountData.Add(true, "admin", "hello world");
 			}
 
 			auto n = thread::hardware_concurrency();
@@ -91,23 +96,45 @@ namespace Server
 		}
 
 	private:
+		void SetAcceptCallback()
+		{
+			_netAcceptor.AsyncAccept([this]<typename... Ts>(Ts&&... ts)
+			{
+				_businessAcceptor.HandleAccept(forward<Ts>(ts)...);
+				// TODO add if and wait here to control server shutdown
+				if (_shutdown)
+				{
+					// wait time should be receive timeout
+					std::this_thread::sleep_for(std::chrono::seconds(30));
+				}
+				else
+				{
+					SetAcceptCallback();
+				}
+			});
+		}
+
 		static void InitBasicFuncTo(FunctionLibrary& lib)
 		{
 			auto def =
 				"int Zero()\n"
 				"{\n"
 				"	return 0;\n"
+				"}\n"
+				"int One()\n"
+				"{\n"
+				"	return 1;\n"
+				"}\n"
+				"#include <string>\n"
+				"using std::string;\n"
+				"string Add(string s1, string s2)\n"
+				"{\n"
+				"	return s1 + s2;\n"
+				"}\n"
+				"string Hello(string s1)\n"
+				"{\n"
+				"	return \"Hello \" + s1;\n"
 				"}\n";
-				// "int Add(int a, int b)\n"
-				// "{\n"
-				// "	return a + b;\n"
-				// "}\n"
-				// "#include <string>\n"
-				// "using std::string;\n"
-				// "string Add(string s1, string s2)\n"
-				// "{\n"
-				// "	return s1 + s2;\n"
-				// "}\n";
 
 			auto [pack, defReader] = MakeFuncDefReader(def);
 			lib.Add(pack, move(defReader), "");
