@@ -6,17 +6,20 @@
 #include <string_view>
 #include "StringMatcher.hpp"
 #include "../Server/CmdMetadata.hpp"
+#include "../Network/Socket.hpp"
+#include "../TestFrame/Util.hpp"
+using namespace Test;
 
 namespace Cmd
 {
-	using Server::ProcessCmd;
+	using Network::Socket;
 	using Server::GetCmdsName;
+	using Server::ProcessCmd;
 	using ::std::array;
 	using ::std::move;
 	using ::std::string;
 	using ::std::string_view;
 	using ::std::vector;
-	using Socket = asio::ip::tcp::socket;
 
 	// 运行命令，出异常了不要让程序停止，其他情况异常要抛出去
 	class Cmder
@@ -45,12 +48,14 @@ namespace Cmd
 			auto [requests, responseProcessor] = ProcessCmd(cmd);
 			for (auto& r : requests)
 			{
-				_socket.send(asio::buffer(r));
+				log("send request %s\n", r.c_str());
+				_socket.Send(r);
 			}
-
-			array<char, 1024> buff;
-			auto n = _socket.receive(asio::buffer(buff));//如何设置 block 的时限呢？
-			auto response = string(buff.data(), n);
+			log("send end\n");
+			auto id = _socket.Receive(); //如何设置 block 的时限呢？
+			log("receive id\n");
+			auto response = _socket.Receive();
+			log("receive response\n");
 			return responseProcessor(response);
 		}
 

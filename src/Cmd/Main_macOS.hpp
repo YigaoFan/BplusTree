@@ -3,29 +3,56 @@
 #include <vector>
 #include <iterator>
 #include <string_view>
-#include <asio.hpp>
+#include "../Basic/Exception.hpp"
+#include "../Network/Socket.hpp"
+#include "../Network/IoContext.hpp"
+#include "../Network/Request.hpp"
 #include "CmdUI.hpp"
 #include "Cmder.hpp"
+#include "../Network/Util.hpp"
+
+using namespace Test;
 
 int UI_Main()
 {
-	using ::asio::ip::tcp;
+	using Basic::InvalidOperationException;
 	using Cmd::Cmder;
 	using Cmd::CmdUI;
+	using Network::IoContext;
+	using Network::LoginRequest;
+	using Network::Socket;
 	using ::std::back_inserter;
 	using ::std::move;
 	using ::std::string;
 	using ::std::string_view;
 	using ::std::vector;
 
-	asio::io_context io;
-	// tcp::resolver resolver(io);
-	// auto endPoints = resolver.resolve("localhost", "daytime");
+	IoContext io;
+	auto port = 8888;
+	auto peer = io.GetConnectedSocketTo("127.0.0.1", port);
+	peer.Send("hello server");
+	auto r1 = peer.Receive();
+	if (r1 != "server ok")
+	{
+		throw InvalidOperationException("server response greet error: " + r1);
+	}
 
-	tcp::socket socket(io);
-	// asio::connect(socket, endPoints);
+	LoginRequest::Content loginInfo
+	{
+		"admin",
+		"hello world",
+	};
 
-	auto cmder = Cmder::NewFrom(move(socket));
+	peer.Send(Json::JsonConverter::Serialize(loginInfo).ToString());
+	auto r2 = peer.Receive();
+	log("receive after login %s\n", r2.c_str());
+
+	if (r2 != "server ok. welcome admin.")
+	{
+		throw InvalidOperationException("server response login error: " + r2);
+	}
+
+	auto cmder = Cmder::NewFrom(move(peer));
 
 	auto title = "Welcome to use Fan's cmd to control server(Press Up key can view history)";
 	auto ui = CmdUI(title);
@@ -85,17 +112,12 @@ int UI_Main()
 		else
 		{
 			history->push_back(std::to_string(n++) + ": " + string(">> ") + cmd);
-			currentCmdLine->clear();
-			hintLine->clear();
 			auto& showStart = *startShowLineNumPtr;
 			if ((history->size() - showStart) > ui.MaxUsableHeight())
 			{
 				showStart = history->size() - ui.MaxUsableHeight();
 			}
 
-			currentCmdLine->clear();
-			hintLine->clear();
-			
 			try
 			{
 				auto result = cmder.Run(*currentCmdLine);
@@ -103,8 +125,10 @@ int UI_Main()
 			}
 			catch (std::exception const& e)
 			{
-				history->push_back(string("operation failed: ") + e.what());
+				history->push_back(string("operation failed: ").append(e.what()));
 			}
+			currentCmdLine->clear();
+			hintLine->clear();
 		}
 	});
 
