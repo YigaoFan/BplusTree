@@ -89,6 +89,7 @@ namespace Server
 				return;
 			}
 			
+			printf("client connect\n");
 			auto addr = peer.Address();
 			auto connectLogger = subLogger.BornNewWith(addr);
 			_threadPool->Execute([this, p = make_shared<Socket>(move(peer)), conLogger = move(connectLogger)] () mutable
@@ -107,7 +108,7 @@ namespace Server
 				_responder.RespondTo(peer, message);
 			};
 
-				// 会不会有多余的空格问题？这个两端发送的时候要统一好
+			// 会不会有多余的空格问题？这个两端发送的时候要统一好
 			auto greet = Receive<string, false, ByteProcessWay::Raw>(peer.get());
 			if (greet == "hello server")
 			{
@@ -121,12 +122,14 @@ namespace Server
 			// client 那边应该会因为这边 socket 析构而收到中断异常或信息吧 TODO 测试下
 
 			auto loginInfo = Receive<LoginRequest::Content, false, ByteProcessWay::ParseThenDeserial>(peer.get());
+			printf("receive account\n");
 			if (_accountManager->IsRegistered(loginInfo.Username, loginInfo.Password))
 			{
 				auto userLogger = connectLogger.BornNewWith(loginInfo.Username);
 
 				if (_accountManager->IsAdmin(loginInfo.Username, loginInfo.Password))
 				{
+					printf("admin login\n");
 					send("server ok. welcome admin.");
 					auto s = _adminServiceFactory(move(peer), &_responder);
 					return s.Run(move(userLogger));

@@ -31,7 +31,6 @@ namespace FuncLib::Store
 		map<pos_label, pair<pos_int, size_t>> _deletedLabelTable; // 优先从这里分配
 	public:
 		StorageAllocator() = default;
-
 		pos_label AllocatePosLabel();
 		void AllocateSpecifiedLabel(pos_label posLabel);
 		bool Ready(pos_label posLabel) const;
