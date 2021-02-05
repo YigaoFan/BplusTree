@@ -10,6 +10,7 @@
 #include "CmdUI.hpp"
 #include "Cmder.hpp"
 #include "../Network/Util.hpp"
+#include "../Network/Login.hpp"
 
 using namespace Test;
 
@@ -19,6 +20,7 @@ int UI_Main()
 	using Cmd::Cmder;
 	using Cmd::CmdUI;
 	using Network::IoContext;
+	using Network::Login;
 	using Network::LoginRequest;
 	using Network::Socket;
 	using ::std::back_inserter;
@@ -30,28 +32,12 @@ int UI_Main()
 	IoContext io;
 	auto port = 8888;
 	auto peer = io.GetConnectedSocketTo("127.0.0.1", port);
-	peer.Send("hello server");
-	auto r1 = peer.Receive();
-	if (r1 != "server ok")
-	{
-		throw InvalidOperationException("server response greet error: " + r1);
-	}
-
 	LoginRequest::Content loginInfo
 	{
 		"admin",
 		"hello world",
 	};
-
-	peer.Send(Json::JsonConverter::Serialize(loginInfo).ToString());
-	auto r2 = peer.Receive();
-	log("receive after login %s\n", r2.c_str());
-
-	if (r2 != "server ok. welcome admin.")
-	{
-		throw InvalidOperationException("server response login error: " + r2);
-	}
-
+	Login(&peer, true, loginInfo);
 	auto cmder = Cmder::NewFrom(move(peer));
 
 	auto title = "Welcome to use Fan's cmd to control server(Press Up key can view history)";

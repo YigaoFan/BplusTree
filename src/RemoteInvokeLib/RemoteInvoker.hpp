@@ -13,6 +13,7 @@
 #include "../Network/Socket.hpp"
 #include "../Network/IoContext.hpp"
 #include "../Network/Util.hpp"
+#include "../Network/Login.hpp"
 #include "../TestFrame/Util.hpp"
 
 using namespace Test;
@@ -26,6 +27,7 @@ namespace RemoteInvokeLib
 	using ::Network::HandleOperationResponse;
 	using Network::InvokeFuncRequest;
 	using Network::IoContext;
+	using Network::Login;
 	using Network::LoginRequest;
 	using Network::Socket;
 	using ::std::forward;
@@ -102,22 +104,7 @@ namespace RemoteInvokeLib
 		{
 			// 这里的对方等待这里的回应会占用不必要的时间
 			auto peer = _ioContext.GetConnectedSocketTo(_serverIp, _port);
-			
-			peer.Send("hello server");
-			auto r1 = peer.Receive();
-			if (r1 != "server ok")
-			{
-				throw InvalidOperationException("server response greet error: " + r1);
-			}
-			log("greet ok %s\n", r1.c_str());
-
-			peer.Send(Json::JsonConverter::Serialize(_loginInfo).ToString());
-			auto r2 = peer.Receive();
-			if (r2 != "server ok. hello client.")
-			{
-				throw InvalidOperationException("server response login error: " + r2);
-			}
-			log("login ok %s\n", r2.c_str());
+			Login(&peer, false, _loginInfo);
 
 			peer.Send(request.ToString());
 			auto id = peer.Receive();
