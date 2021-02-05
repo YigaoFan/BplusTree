@@ -62,6 +62,7 @@ namespace Server
 			nameof(RemoveClientAccount),
 			nameof(AddAdminAccount),
 			nameof(RemoveAdminAccount),
+			nameof(Shutdown),
 		};
 	}
 
@@ -287,7 +288,7 @@ namespace Server
 
 		vector<string> ProcessResponse(string_view response)
 		{
-			return { std::to_string(HandleOperationResponse<bool>(response)) };
+			return { HandleOperationResponse<bool>(response) ? "true" : "false", };
 		}
 	};
 
@@ -309,6 +310,16 @@ namespace Server
 			}
 
 			return { "Predefine.hpp generated!" };
+		}
+	};
+
+	struct ShutdownCmd
+	{
+		/// no args need to process
+		vector<string> ProcessResponse(string_view response)
+		{
+			HandleOperationResponse<void>(response);
+			return { "Server will shutdown in 30s!" };
 		}
 	};
 
@@ -421,10 +432,20 @@ namespace Server
 			CASE_OF(AddAdminAccount);
 			CASE_OF(RemoveClientAccount);
 			CASE_OF(RemoveAdminAccount);
-		case StrToInt(nameof(GetFuncsInfoCmd)):
+		case StrToInt(nameof(GetFuncsInfo)):
 			requests.push_back(Json::JsonConverter::Serialize(Network::GetFuncsInfo).ToString());
 			{
 				auto c = GetFuncsInfoCmd();
+				responseProcessor = [c = move(c)](string_view response) mutable
+				{
+					return c.ProcessResponse(response);
+				};
+			}
+			break;
+		case StrToInt(nameof(Shutdown)):
+			requests.push_back(Json::JsonConverter::Serialize(Network::Shutdown).ToString());
+			{
+				auto c = ShutdownCmd();
 				responseProcessor = [c = move(c)](string_view response) mutable
 				{
 					return c.ProcessResponse(response);

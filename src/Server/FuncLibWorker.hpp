@@ -139,17 +139,7 @@ namespace Server
 			auto requestPtr = make_shared<RemoveFuncRequest>(RemoveFuncRequest{ {}, move(paras) });
 			_threadPool->Execute(GenerateTask(requestPtr, [this](auto request)
 			{
-				printf("worker start remove func\n");
-				try
-				{
-					_funcLib.Remove(request->Paras.Func);
-				}
-				catch (std::exception const& e)
-				{
-					printf("worker remove func has exception %s\n", e.what());
-					throw e;
-				}
-				printf("worker end remove func\n");
+				_funcLib.Remove(request->Paras.Func);
 			}));
 
 			return { requestPtr };
