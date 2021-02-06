@@ -6,7 +6,9 @@ namespace Test
 	template <typename... Ts>
 	void log(char const* format, Ts... ts)
 	{
-		printf(format, ts...);
+		auto f = fopen("cmd.log", "a");
+		fprintf(f, format, ts...);
+		fclose(f);
 	}
 
 	struct Cleaner
