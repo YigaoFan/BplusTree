@@ -108,9 +108,7 @@ namespace RemoteInvokeLib
 
 			peer.Send(request.ToString());
 			auto id = peer.Receive();
-			log("receive id %s\n", id.c_str());
 			auto response = peer.Receive();
-			log("response %s\n", response.c_str());
 			return HandleOperationResponse<ReturnType>(response);
 		}
 	};

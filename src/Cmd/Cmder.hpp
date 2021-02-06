@@ -48,14 +48,10 @@ namespace Cmd
 			auto [requests, responseProcessor] = ProcessCmd(cmd);
 			for (auto& r : requests)
 			{
-				log("send request %s\n", r.c_str());
 				_socket.Send(r);
 			}
-			log("send end\n");
-			auto id = _socket.Receive(); //如何设置 block 的时限呢？
-			log("receive id\n");
+			auto id = _socket.Receive();
 			auto response = _socket.Receive();
-			log("receive response\n");
 			return responseProcessor(response);
 		}
 
