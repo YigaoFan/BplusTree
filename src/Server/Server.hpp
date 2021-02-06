@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include <vector>
 #include <utility>
 #include <sstream>
@@ -21,6 +22,7 @@ namespace Server
 	using Network::IoContext;
 	using Network::NetworkAcceptor;
 	using Network::Socket;
+	using ::std::atomic;
 	using ::std::forward;
 	using ::std::istringstream;
 	using ::std::move;
@@ -30,7 +32,7 @@ namespace Server
 	class Server
 	{
 	private:
-		bool _shutdown = false;
+		atomic<bool> _shutdown = false;
 		ThreadPool _threadPool;
 		NetworkAcceptor _netAcceptor;
 		BusinessAcceptor _businessAcceptor;
@@ -48,13 +50,14 @@ namespace Server
 			_funcLibWorker.SetThreadPool(&_threadPool);
 			_accountManager.SetThreadPool(&_threadPool);
 
-			auto shutdownOnAfterNextAccept = [this]
+			auto shutdown = [this]()
 			{
-				_shutdown = true;
+				this->_shutdown = true;
+				this->_netAcceptor.Close();
 			};
 			_businessAcceptor.SetServiceFactory(
 				[&](shared_ptr<Socket> socket, Responder *responder) mutable { return ClientService(move(socket), &_funcLibWorker, responder); },
-				[&](shared_ptr<Socket> socket, Responder *responder) mutable { return AdminService(move(socket), &_funcLibWorker, responder, &_accountManager); });
+				[&, shutdown=shutdown](shared_ptr<Socket> socket, Responder *responder) mutable { return AdminService(move(socket), &_funcLibWorker, responder, &_accountManager, shutdown); });
 			_businessAcceptor.SetAccountManager(&_accountManager);
 
 			SetAcceptCallback();
@@ -92,6 +95,7 @@ namespace Server
 			auto funcLibWorker = FuncLibWorker(move(funcLib));
 			auto accountManager = AccountManager(move(accountData));
 			NetworkAcceptor netAcceptor = ioContext.GetNetworkAcceptorOf(port);
+			// 下面这一步里构造里牵涉到了指针，然后你这个对象是要 move 出去的
 			return Server(move(threadPool), move(netAcceptor), move(acceptor), move(funcLibWorker), move(accountManager));
 		}
 
@@ -101,13 +105,8 @@ namespace Server
 			_netAcceptor.AsyncAccept([this]<typename... Ts>(Ts&&... ts)
 			{
 				_businessAcceptor.HandleAccept(forward<Ts>(ts)...);
-				// TODO add if and wait here to control server shutdown
-				if (_shutdown)
-				{
-					// wait time should be receive timeout
-					std::this_thread::sleep_for(std::chrono::seconds(30));
-				}
-				else
+
+				if (not _shutdown)
 				{
 					SetAcceptCallback();
 				}

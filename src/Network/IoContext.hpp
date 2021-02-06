@@ -35,7 +35,7 @@ namespace Network
 		void Run()
 		{
 			int port = 8888;
-			for (auto& h : _connectHandlers)
+			auto& h = _connectHandlers[0];
 			{
 				h({}, Socket("localhost", port, _sendMessages));
 			}
@@ -44,8 +44,8 @@ namespace Network
 }
 
 #else
+#include <thread>
 #include <asio.hpp>
-
 namespace Network
 {
 	using asio::io_context;
@@ -70,12 +70,15 @@ namespace Network
 			tcp::endpoint p(asio::ip::address::from_string(hostname), port);
 			tcp::socket s(_context);
 			s.connect(p);
+			s.set_option(asio::detail::socket_option::integer<SOL_SOCKET, SO_RCVTIMEO>{200});
+
 			return move(s);
 		}
 
 		void Run()
 		{
 			_context.run();
+			std::this_thread::sleep_for(std::chrono::seconds(30));
 		}
 	};
 }

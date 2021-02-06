@@ -82,7 +82,7 @@ namespace Server
 			auto subLogger = _logger.GenerateSubLogger(ACCESS_LOG_FORMAT);
 #undef ACCESS_LOG_FORMAT
 
-			// 对端可能中途意外关掉
+			// async_accept 等待的时候被取消
 			if (error)
 			{
 				subLogger.Error("Wrong connect: " + error.message());
@@ -92,6 +92,7 @@ namespace Server
 			printf("client connect\n");
 			auto addr = peer.Address();
 			auto connectLogger = subLogger.BornNewWith(addr);
+			
 			_threadPool->Execute([this, p = make_shared<Socket>(move(peer)), conLogger = move(connectLogger)] () mutable
 			{
 				CommunicateWith(move(p), move(conLogger));

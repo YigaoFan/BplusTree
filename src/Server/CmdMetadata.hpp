@@ -44,9 +44,6 @@ namespace Server
 	using ::std::tuple;
 	using ::std::vector;
 
-	//如何设置 block 的时限呢？
-	// socket->set_option(asio::detail::socket_option::integer<SOL_SOCKET, SO_RCVTIMEO>{200});
-
 #define nameof(VAR) #VAR
 	/// Get admin command names
 	vector<string> GetCmdsName()

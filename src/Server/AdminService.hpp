@@ -1,29 +1,41 @@
 #pragma once
+#include <functional>
 #include "ServiceBase.hpp"
 #include "AccountManager.hpp"
 
 namespace Server
 {
 	using Network::AdminServiceOption;
-	
+	using ::std::function;
+
 	class AdminService : private ServiceBase
 	{
 	private:
 		using Base = ServiceBase;
 		AccountManager* _accountManager;
+		function<void()> _shutdown;
 
 	public:
-		AdminService(shared_ptr<Socket> peer, FuncLibWorker* funcLibWorker, Responder* responder, AccountManager* accountManager)
-			: Base(move(peer), funcLibWorker, responder), _accountManager(accountManager)
+		AdminService(shared_ptr<Socket> peer, FuncLibWorker* funcLibWorker, Responder* responder, AccountManager* accountManager, function<void()> shutdown)
+			: Base(move(peer), funcLibWorker, responder), _accountManager(accountManager), _shutdown(move(shutdown))
 		{ }
 
 #define ASYNC_ACCOUNT_MANAGE_HANDLER(NAME) ASYNC_HANDLER(NAME, _accountManager)
 		void Run(auto userLogger)
 		{
-			// 那出异常怎么设置失败呢
-			// 这里 LoopAcquireThenDispatch 用 userLogger 来记录这里面的日志
-			// 各个 handler 通过 capture 自行处理会产生的各自的 requestLogger
-			// 这个产生了不必要的 requestLogger，这点之后应该要处理
+			auto shutdown = [s=move(_shutdown), peer=_peer,responder=_responder](auto userLoggerPtr) -> Void
+			{
+				auto id = GenerateRequestId();
+				auto idLogger = userLoggerPtr->BornNewWith(id);
+				responder->RespondTo(peer, id);
+				auto requestLogger = idLogger.BornNewWith(nameof(Shutdown));
+				auto argLogger = requestLogger.BornNewWith(nameof(-));
+				JsonObject result;
+				s();
+				ReturnToPeer(responder, peer, move(result));
+				argLogger.BornNewWith(ResultStatus::Complete);
+				co_return; // TODO has bug in this function final awaiter 不用等了？
+			};
 			AsyncLoopAcquireThenDispatch<AdminServiceOption>(
 				move(userLogger),
 				_peer,
@@ -38,7 +50,8 @@ namespace Server
 				ASYNC_ACCOUNT_MANAGE_HANDLER(RemoveClientAccount),
 				ASYNC_ACCOUNT_MANAGE_HANDLER(AddAdminAccount),
 				ASYNC_ACCOUNT_MANAGE_HANDLER(RemoveAdminAccount),
-				ASYNC_HANDLER_WITHOUT_ARG(GetFuncsInfo, _funcLibWorker)
+				ASYNC_HANDLER_WITHOUT_ARG(GetFuncsInfo, _funcLibWorker),
+				move(shutdown)
 				);
 		}
 	};

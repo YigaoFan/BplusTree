@@ -56,6 +56,14 @@ namespace Network
 		{
 			_netAcceptor.async_accept(move(callback));
 		}
+
+		void Close()
+		{
+			if (_netAcceptor.is_open())
+			{
+				_netAcceptor.close();
+			}
+		}
 	};
 }
 #endif
