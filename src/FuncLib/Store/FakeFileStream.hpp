@@ -1,0 +1,4 @@
+fstream MakeFileStream()
+{
+	
+}
