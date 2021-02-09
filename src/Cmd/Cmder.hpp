@@ -5,7 +5,7 @@
 #include <asio.hpp>
 #include <string_view>
 #include "StringMatcher.hpp"
-#include "../Server/CmdMetadata.hpp"
+#include "../Server/CmdFunction.hpp"
 #include "../Network/Socket.hpp"
 #include "../TestFrame/Util.hpp"
 using namespace Test;

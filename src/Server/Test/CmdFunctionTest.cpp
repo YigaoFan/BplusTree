@@ -1,6 +1,6 @@
 #include "../../TestFrame/FlyTest.hpp"
 #define private public
-#include "../CmdMetadata.hpp"
+#include "../CmdFunction.hpp"
 
 using namespace Server;
 
