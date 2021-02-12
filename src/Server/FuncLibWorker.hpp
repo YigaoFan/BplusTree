@@ -59,22 +59,21 @@ namespace Server
 					});
 					request->RegisterException(std::current_exception());
 				};
+				Guard g{ request }; // 由于 C++ 逆序析构的原则，Guard 在 lock_guard 之先比较好
 				if constexpr (ManualManageLock)
 				{
-					Guard g{ request };
 					unique_lock<mutex> libLock(this->_funcLibMutex);
 					try
 					{
 						task(request, &libLock);
 					}
-					catch(...)
+					catch (...)
 					{
 						handleException();
 					}
 				}
 				else
 				{
-					Guard g{ request }; // 由于 C++ 逆序析构的原则，Guard 在 lock_guard 之先比较好
 					lock_guard<mutex> libGuard(this->_funcLibMutex);
 					try
 					{
