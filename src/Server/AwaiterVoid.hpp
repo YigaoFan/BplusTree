@@ -19,15 +19,16 @@ namespace Server
 				return false;
 			}
 
-			void await_suspend(auto handle) noexcept
+			// Final在外层还没有 Void 的情况下，就不用等了，直接进入 destroy 环节
+			bool await_suspend(auto handle) noexcept
 			{
 				auto& p = handle.promise();
 				if (auto c = p.Continuation; c != nullptr)
 				{
 					c.resume();
-					// c.destroy();
-					printf("AwaiterVoid handle not destory\n");
 				}
+
+				return false;
 			}
 
 			void await_resume() noexcept {}

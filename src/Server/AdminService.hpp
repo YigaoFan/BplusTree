@@ -36,6 +36,7 @@ namespace Server
 				argLogger.BornNewWith(ResultStatus::Complete);
 				co_return; // TODO has bug in this function final awaiter 不用等了？
 			};
+			// printf("start run admin service\n");
 			AsyncLoopAcquireThenDispatch<AdminServiceOption>(
 				move(userLogger),
 				_peer,

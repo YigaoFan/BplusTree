@@ -109,7 +109,6 @@ namespace Server
 				_responder.RespondTo(peer, message);
 			};
 
-			// 会不会有多余的空格问题？这个两端发送的时候要统一好
 			auto greet = Receive<string, false, ByteProcessWay::Raw>(peer.get());
 			if (greet == "hello server")
 			{
@@ -117,7 +116,7 @@ namespace Server
 			}
 			else
 			{
-				send("wrong greeting words.");
+				send("wrong greeting words: " + greet);
 				return;
 			}
 			// client 那边应该会因为这边 socket 析构而收到中断异常或信息吧 TODO 测试下

@@ -23,12 +23,20 @@ namespace Server
 	{
 		set<vector<string>> Packages;
 
+		void Add(vector<string> package)
+		{
+			if (not Packages.contains(package))
+			{
+				Packages.insert(move(package));
+			}
+		}
+
 		static PredefineHeader NewFrom(vector<FuncType> funcTypes)
 		{
 			PredefineHeader header;
 			for (auto& t : funcTypes)
 			{
-				header.Packages.insert(move(t.Package));
+				header.Add(move(t.Package));
 			}
 
 			return header;

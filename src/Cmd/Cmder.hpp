@@ -46,12 +46,19 @@ namespace Cmd
 			// 这里可以从哪获取一点被调用接口的信息然后进行提示和检查
 			// 使用一些代码去生成
 			auto [requests, responseProcessor] = ProcessCmd(cmd);
+			// log("start send\n");
+			// 1. 首先解析没有报错
+			// 2. 其次为什么两次的内容合成一个了
 			for (auto& r : requests)
 			{
+				// log("send %s\n", r.c_str());
 				_socket.Send(r);
 			}
+			// log("start receive\n");
 			auto id = _socket.Receive();
+			// log("receive id %s\n", id.c_str());
 			auto response = _socket.Receive();
+			// log("receive response %s\n", response.c_str());
 			return responseProcessor(response);
 		}
 

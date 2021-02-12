@@ -53,10 +53,12 @@ namespace Server
 		template <typename Receive, typename Dispatcher, typename... Handlers>
 		static Void AsyncLoopAcquireThenDispatch(auto userLogger, shared_ptr<Socket> peer, Dispatcher dispatcher, Handlers... handlers)
 		{
+			// printf("start run async acquire dispatch\n");
 			tuple handlersTuple = { move(handlers)...};
 			for (;;)
 			{
 				auto r = ReceiveFromPeer<Receive>(peer.get());
+				// printf("receive dispatch data\n");
 				auto d = dispatcher(move(r));
 				printf("dispatch result %d\n", d);
 				co_await InvokeWhenEqual(d, handlersTuple, &userLogger);

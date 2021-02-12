@@ -55,6 +55,7 @@ namespace Server
 			nameof(SearchFunc),
 			nameof(ModifyFunc),
 			nameof(ContainsFunc),
+			nameof(GetFuncsInfo),
 			nameof(AddClientAccount),
 			nameof(RemoveClientAccount),
 			nameof(AddAdminAccount),
