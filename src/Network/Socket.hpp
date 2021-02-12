@@ -89,8 +89,9 @@ namespace Network
 
 		void Send(string const& message)
 		{
-			string size;
-			size.push_back(static_cast<int>(message.size()));
+			// 其实这里用了网络牵涉到大端和小端
+			auto n = static_cast<int>(message.size());
+			string size(reinterpret_cast<char const*>(&n), sizeof(int));
 			_peer.send(asio::buffer(size));
 			_peer.send(asio::buffer(message));
 		}
@@ -98,11 +99,13 @@ namespace Network
 		string Receive()
 		{
 			asio::streambuf buf0;
-			asio::read(_peer, buf0, asio::transfer_exactly(1));
-			auto n = buf0.sgetc();
+			asio::read(_peer, buf0, asio::transfer_exactly(sizeof(int)));
+			auto sizeBytes = string(asio::buffers_begin(buf0.data()), asio::buffers_end(buf0.data()));
+			auto n = *reinterpret_cast<int const*>(sizeBytes.data());
 			asio::streambuf buf1;
 			asio::read(_peer, buf1, asio::transfer_exactly(n));
-			return string(asio::buffers_begin(buf1.data()), asio::buffers_end(buf1.data()));
+			auto m = string(asio::buffers_begin(buf1.data()), asio::buffers_end(buf1.data()));
+			return m;
 		}
 	};
 }
