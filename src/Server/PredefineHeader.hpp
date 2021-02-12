@@ -73,10 +73,10 @@ namespace Server
 			co_yield "{";
 			for (auto& p : Packages)
 			{
-				co_yield "case " + Join(p, '_') + ':';
-				co_yield "return {" + Join(p, ',') + '}';
+				co_yield "case PredefinePackage::" + Join(p, '_') + ':';
+				co_yield "return {" + Join(Surround(p, '"'), ',') + "};";
 			}
-			co_yield "{";
+			co_yield "}";
 			co_yield "}";
 		}
 
@@ -128,6 +128,17 @@ namespace Server
 			}
 
 			return joined;
+		}
+
+		static vector<string> Surround(vector<string> const& strs, char c)
+		{
+			vector<string> surrounded;
+
+			for (auto& s : strs)
+			{
+				surrounded.push_back(c + s + c);
+			}
+			return surrounded;
 		}
 	};
 }
