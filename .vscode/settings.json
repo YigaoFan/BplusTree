@@ -91,7 +91,17 @@
         "memory_resource": "cpp",
         "set": "cpp",
         "coroutine": "cpp",
-        "compare": "cpp"
+        "compare": "cpp",
+        "*.ipp": "cpp",
+        "future": "cpp",
+        "any": "cpp",
+        "queue": "cpp",
+        "thread": "cpp",
+        "codecvt": "cpp",
+        "condition_variable": "cpp",
+        "csignal": "cpp",
+        "cassert": "cpp",
+        "shared_mutex": "cpp"
     },
     "cmake.sourceDirectory": "${workspaceFolder}/src",
     "cmake.configureOnOpen": true
