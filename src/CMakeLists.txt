@@ -65,7 +65,8 @@ add_executable(RPC
 
         Network/Request.cpp
 
-        Server/Test/ServerMockTest.cpp
+        #Server/Test/ServerMockTest.cpp
+        Server/Test/ServerTest.cpp
         Server/Test/CmdFunctionTest.cpp
         Server/Test/FuncLibWorkerTest.cpp
         )
@@ -106,5 +107,4 @@ add_executable(client_demo
 
         Network/Request.cpp
 
-        FuncLib/Compile/FuncType.cpp
-)
+        FuncLib/Compile/FuncType.cpp)
