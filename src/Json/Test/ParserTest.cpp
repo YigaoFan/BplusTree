@@ -10,7 +10,6 @@ TESTCASE("Parser test")
 {
 	auto parse = Json::Parse;
 	// TODO test wrong case
-	// TODO see MoliY's blog
 	SECTION("Parse object")
 	{
 		SECTION("Simple object")

@@ -179,7 +179,6 @@ namespace Collections
 			return move(p);
 		}
 
-		// TODO why should use below code to compile code in MiddleNode
 		using Base::operator[];
 
 		template <typename T> 
@@ -215,7 +214,7 @@ namespace Collections
 
 		template <typename T>
 		requires MatchLessThanArgType<T, LessThan>
-		order_int SelectBranch(T const& key) const // TODO why here should add const&
+		order_int SelectBranch(T const& key) const
 		{
 			for (decltype(this->Count()) i = 1; i < this->Count(); ++i)
 			{

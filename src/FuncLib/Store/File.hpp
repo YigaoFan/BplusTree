@@ -228,9 +228,6 @@ namespace FuncLib::Store
 
 			if constexpr (OtherSearchTypeList::IsNull)
 			{
-				// 加入 cache 要清空里面相关类型的 setters TODO
-				// cache 提供查询 setters 的功能
-				// TODO
 				return SetItUp(ReadOn<Des>(label), label);
 			}
 			else

@@ -47,7 +47,6 @@ namespace Server
 					~Guard()
 					{
 						Request->Done = true;
-						// 这里对 fail 的情况要区分下应该 TODO 和 log 里的信息能不能统一起来
 					}
 				};
 
