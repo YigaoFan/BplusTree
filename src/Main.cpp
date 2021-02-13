@@ -6,7 +6,7 @@
 #define COLLECTIONS_TEST_SWITCH true
 #define JSON_TEST_SWITCH true
 #define FUNC_LIB_TEST_SWITCH true
-#define SERVER_TEST_SWITCH false
+#define SERVER_TEST_SWITCH true
 
 #if COLLECTIONS_TEST_SWITCH
 #include "Btree/Test/TestSuite.hpp"
@@ -49,10 +49,10 @@ int main()
 	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDOUT);
 #endif
-	COLLECTIONS_TEST(Collections::Test::AllTest(true));
-	JSON_TEST(Json::Test::AllTest(true));
+	COLLECTIONS_TEST(Collections::Test::AllTest(false));
+	JSON_TEST(Json::Test::AllTest(false));
 	FUNC_LIB_TEST(FuncLib::Test::AllTest(false));
-	SERVER_TEST(Server::Test::AllTest(false));
+	SERVER_TEST(Server::Test::AllTest(true));
 
 #if MEMO_CHECK
 	 _CrtDumpMemoryLeaks();
