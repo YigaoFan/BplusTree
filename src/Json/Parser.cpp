@@ -73,7 +73,7 @@ namespace Json
 		}
 	}
 
-		/// Detect forward unit parse type and move start to next position
+	/// Detect forward unit parse type and move start to next position
 	JsonType Parser::DetectForwardUnitType()
 	{
 		for (auto& i = _currentIndex; i < _len;)
@@ -210,17 +210,40 @@ namespace Json
 	{
 		auto escaped = false;
 		auto start = _currentIndex;
+		string s;
 		for (auto& i = _currentIndex; i < _len; ++i)
 		{
-			if (Str[i] == '"')
+			auto c = Str[i];
+			switch (c)
 			{
-				// TODO check below cons right
-				return { Str, start, (i++) - start };
-			}
-			else if (Str[i] == '\\')
-			{
-				escaped = true;
-				// TODO...
+			case '"':
+				if (not escaped)
+				{
+					// TODO check below cons right
+					++i;
+					return s;
+				}
+				goto Default;
+
+			case '\\':
+				if (not escaped)
+				{
+					escaped = true;
+				}
+				else
+				{
+					goto Default;
+				}
+				break;
+
+			default:
+			Default:
+				if (escaped)
+				{
+					escaped = false;
+				}
+				s.push_back(c);
+				break;
 			}
 		}
 

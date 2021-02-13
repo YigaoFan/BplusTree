@@ -177,7 +177,20 @@ namespace Json
 		}
 
 		case JsonType::Number:return to_string(GetNumber());
-		case JsonType::String:return string("\"").append(GetString()).append(1, '"');
+		case JsonType::String:
+			{
+				string escapedStr = "\"";
+				for (auto c : GetString())
+				{
+					if (c == '"' or c == '\\')
+					{
+						escapedStr.push_back('\\');
+					}
+					escapedStr.push_back(c);
+				}
+				escapedStr.push_back('"');
+				return escapedStr;
+			}
 		case JsonType::True:  return "true";
 		case JsonType::False: return "false";
 		case JsonType::Null:  return "null";

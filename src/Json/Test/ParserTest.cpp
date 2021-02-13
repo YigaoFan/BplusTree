@@ -124,10 +124,21 @@ TESTCASE("Parser test")
 
 	SECTION("Parse string")
 	{
-		auto jsonStr = "\"Hello world\"";
-		auto json = parse(jsonStr);
-		ASSERT(json.IsString() && json.GetString() == "Hello world");
-		ASSERT(json.ToString() == jsonStr);
+		SECTION("Simple")
+		{
+			auto jsonStr = "\"Hello world\"";
+			auto json = parse(jsonStr);
+			ASSERT(json.IsString() && json.GetString() == "Hello world");
+			ASSERT(json.ToString() == jsonStr);
+		}
+
+		SECTION("Escape")
+		{
+			auto jsonStr = "\"\\\"Hello World\\\"\""; // 思考提示： 只有字面量需要这么多的转义，直接往内存里读不用这么多转义
+			auto json = parse(jsonStr);
+			ASSERT(json.IsString() && json.GetString() == "\"Hello World\"");
+			ASSERT(json.ToString() == jsonStr);
+		}
 	}
 
 	SECTION("Parse bool")
