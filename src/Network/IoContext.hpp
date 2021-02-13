@@ -3,9 +3,11 @@
 
 #ifdef MOCK_NET
 #include <vector>
+#include <atomic>
 
 namespace Network
 {
+	using ::std::atomic;
 	using ::std::vector;
 
 	class IoContext
@@ -13,7 +15,8 @@ namespace Network
 	private:
 		using SendMessages = vector<string>;
 		using Handler = typename NetworkAcceptor::Handler;
-		vector<Handler> _connectHandlers;
+		atomic<bool> _closed = false;
+		Handler _handler;
 		SendMessages _sendMessages;
 
 	public:
@@ -22,22 +25,35 @@ namespace Network
 			_sendMessages = move(sendMessages);
 		}
 		
+		// 实现 Close
 		NetworkAcceptor GetNetworkAcceptorOf(int port)
 		{
+			// 修改下
 			auto handlerRegister = [this](Handler handler)
 			{
-				_connectHandlers.push_back(move(handler));
+				if (not _closed)
+				{
+					_handler = move(handler);
+				}
 			};
-			auto acceptor = NetworkAcceptor(move(handlerRegister));
+			auto close = [this]()
+			{
+				_closed = true;
+			};
+			auto acceptor = NetworkAcceptor(move(handlerRegister), move(close));
 			return acceptor;
 		}
 
 		void Run()
 		{
 			int port = 8888;
-			auto& h = _connectHandlers[0];
+			if (not _closed)
 			{
-				h({}, Socket("localhost", port, _sendMessages));
+				_handler({}, Socket("localhost", port, _sendMessages));
+			}
+			else
+			{
+				_handler({ -1, std::iostream_category() }, Socket("localhost", port, {}));
 			}
 		}
 	};
@@ -70,7 +86,7 @@ namespace Network
 			tcp::endpoint p(asio::ip::address::from_string(hostname), port);
 			tcp::socket s(_context);
 			s.connect(p);
-			s.set_option(asio::detail::socket_option::integer<SOL_SOCKET, SO_RCVTIMEO>{200});
+			// s.set_option(asio::detail::socket_option::integer<SOL_SOCKET, SO_RCVTIMEO>{200});
 
 			return move(s);
 		}

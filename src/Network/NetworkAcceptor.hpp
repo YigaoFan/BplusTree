@@ -19,10 +19,11 @@ namespace Network
 
 	private:
 		function<void(Handler)> _handlerRegister;
-		
+		function<void()> _close;
+
 	public:
-		NetworkAcceptor(function<void(Handler)> handlerRegister)
-			: _handlerRegister(move(handlerRegister))
+		NetworkAcceptor(function<void(Handler)> handlerRegister, function<void()> close)
+			: _handlerRegister(move(handlerRegister)), _close(move(close))
 		{ }
 
 		NetworkAcceptor(NetworkAcceptor&& that) noexcept = default;
@@ -31,6 +32,11 @@ namespace Network
 		void AsyncAccept(auto callback)
 		{
 			_handlerRegister(move(callback));
+		}
+
+		void Close()
+		{
+			_close();
 		}
 	};
 }
