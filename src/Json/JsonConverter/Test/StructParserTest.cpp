@@ -71,4 +71,4 @@ TESTCASE("StructParser test")
 	ASSERT(def.GetName(i) == name);
 }
 
-DEF_TEST_FUNC(structParserTest)
+DEF_TEST_FUNC(TestStructParser)

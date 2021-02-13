@@ -1,13 +1,13 @@
-extern void btreeTest(bool executed);
-extern void liteVectorTest(bool executed);
-extern void elementsTest(bool executed);
+extern void TestBtree(bool executed);
+extern void TestLiteVector(bool executed);
+extern void TestElements(bool executed);
 
 namespace Collections::Test
 {
 	void AllTest(bool executed)
 	{
-		liteVectorTest(executed);
-		btreeTest(executed);
-		elementsTest(executed);
+		TestLiteVector(executed);
+		TestBtree(executed);
+		TestElements(executed);
 	}
 }

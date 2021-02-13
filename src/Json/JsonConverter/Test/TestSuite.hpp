@@ -1,12 +1,12 @@
 #pragma once
-extern void wordEnumeratorTest(bool executed);
-extern void structParserTest(bool executed);
+extern void TestWordEnumerator(bool executed);
+extern void TestStructParser(bool executed);
 
 namespace JsonConverterTest
 {
 	void AllTest(bool executed)
 	{
-		wordEnumeratorTest(executed);
-		structParserTest(executed);
+		TestWordEnumerator(executed);
+		TestStructParser(executed);
 	}
 }

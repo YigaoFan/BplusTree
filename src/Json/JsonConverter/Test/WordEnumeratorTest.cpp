@@ -34,4 +34,4 @@ TESTCASE("WordEnumerator test")
 	ASSERT(!e.MoveNext());
 }
 
-DEF_TEST_FUNC(wordEnumeratorTest)
+DEF_TEST_FUNC(TestWordEnumerator)

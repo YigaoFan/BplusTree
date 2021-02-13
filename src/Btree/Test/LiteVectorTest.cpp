@@ -149,4 +149,4 @@ TESTCASE("String LiteVector test")
 	ASSERT(v.Count() == 2);
 }
 
-DEF_TEST_FUNC(liteVectorTest)
+DEF_TEST_FUNC(TestLiteVector)

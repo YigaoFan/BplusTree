@@ -158,4 +158,4 @@ TESTCASE("Parser test")
 	}
 }
 
-DEF_TEST_FUNC(parserTest)
+DEF_TEST_FUNC(TestParser)

@@ -162,4 +162,4 @@ TESTCASE("Type converter test")
 	}
 }
 
-DEF_TEST_FUNC(typeConverterTest)
+DEF_TEST_FUNC(TestTypeConverter)

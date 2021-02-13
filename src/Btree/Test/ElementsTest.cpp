@@ -90,4 +90,4 @@ TESTCASE("Element test")
 	}
 }
 
-DEF_TEST_FUNC(elementsTest)
+DEF_TEST_FUNC(TestElements)

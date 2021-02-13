@@ -337,4 +337,4 @@ TESTCASE("Int-Str btree test")
 	}
 }
 
-DEF_TEST_FUNC(btreeTest)
+DEF_TEST_FUNC(TestBtree)

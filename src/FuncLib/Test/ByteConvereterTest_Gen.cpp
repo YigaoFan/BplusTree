@@ -14,7 +14,7 @@ using namespace std;
 
 TESTCASE("Byte converter test")
 {
-	auto filename = "byteConverterTest";
+	auto filename = "TestByteConverter";
 	auto path = MakeFilePath(filename);
 	auto writer = ObjectBytes(0);// TODO 生成器要加下这个 pos_label 0
 	auto reader = FileReader(path, 0);
@@ -10627,4 +10627,4 @@ TESTCASE("Byte converter test")
 	}
 }
 
-DEF_TEST_FUNC(byteConverterTest_gen)
+DEF_TEST_FUNC(TestByteConverter_gen)

@@ -14,7 +14,7 @@ using namespace std;
 
 TESTCASE("Byte converter test")
 {
-	auto filename = "byteConverterTest";
+	auto filename = "TestByteConverter";
 	auto path = MakeFilePath(filename);
 	{
 		auto writer = ObjectBytes(0);// TODO pos_label
@@ -101,4 +101,4 @@ TESTCASE("Byte converter test")
 	remove(filename);
 }
 
-DEF_TEST_FUNC(byteConverterTest)
+DEF_TEST_FUNC(TestByteConverter)

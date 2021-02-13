@@ -6,8 +6,8 @@ extern void TestFileCache(bool executed);
 extern void TestCompile(bool executed);
 extern void TestLabelNode(bool executed);
 extern void TestObjectRelationTree(bool executed);
-extern void typeConverterTest(bool executed);
-extern void byteConverterTest(bool executed);
+extern void TestTypeConverter(bool executed);
+extern void TestByteConverter(bool executed);
 extern void TestFunctionLibrary(bool executed);
 
 namespace FuncLib::Test
@@ -23,7 +23,7 @@ namespace FuncLib::Test
 		TestFile(executed);
 		TestFunctionLibrary(executed);
 		// 有时间可以整理下面这两个
-		typeConverterTest(false);
-		byteConverterTest(false);
+		TestTypeConverter(false);
+		TestByteConverter(false);
 	}
 }

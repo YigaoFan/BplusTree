@@ -1,4 +1,5 @@
 #include <fstream>
+#include <filesystem>
 #include "../TestFrame/FlyTest.hpp"
 #include "../Compile/CompileProcess.hpp"
 #include "../Compile/ParseFunc.hpp"
@@ -100,25 +101,34 @@ TESTCASE("CompileTest")
 
 	SECTION("Compile")
 	{
+		using ::std::filesystem::exists;
+
 		auto filename = "FuncDef.cpp";
-		ifstream ifs(filename, ifstream::in | ifstream::binary);
-		auto reader = FuncsDefReader(make_unique<ifstream>(move(ifs)));
-		auto [funcs, bytes] = Compile(move(reader));
+		if (exists(filename))
+		{
+			ifstream ifs(filename, ifstream::in | ifstream::binary);
+			auto reader = FuncsDefReader(make_unique<ifstream>(move(ifs)));
+			auto [funcs, bytes] = Compile(move(reader));
 
-		ASSERT(funcs.size() == 3);
-		ASSERT(funcs[0].Type.FuncName == "Func");
-		ASSERT(funcs[1].Type.FuncName == "Func2");
-		ASSERT(funcs[2].Type.FuncName == "Func3");
+			ASSERT(funcs.size() == 3);
+			ASSERT(funcs[0].Type.FuncName == "Func");
+			ASSERT(funcs[1].Type.FuncName == "Func2");
+			ASSERT(funcs[2].Type.FuncName == "Func3");
 
-		auto libName = "temp_shared_lib.so";
-		ofstream ofs(libName, ofstream::out | ofstream::binary);
-		FilesCleaner c(libName);
-		ofs.write(bytes.data(), bytes.size());
-		ofs.flush();
+			auto libName = "temp_shared_lib.so";
+			ofstream ofs(libName, ofstream::out | ofstream::binary);
+			FilesCleaner c(libName);
+			ofs.write(bytes.data(), bytes.size());
+			ofs.flush();
 
-		SharedLibrary lib(libName);
-		auto r = lib.Invoke<JsonObject(JsonObject)>("Func3_wrapper", JsonObject());
-		ASSERT(r.IsNull());
+			SharedLibrary lib(libName);
+			auto r = lib.Invoke<JsonObject(JsonObject)>("Func3_wrapper", JsonObject());
+			ASSERT(r.IsNull());
+		}
+		else
+		{
+			printf("%s not exist, jump over CompileTest::Compile", filename);
+		}
 	}
 
 	SECTION("FuncType")

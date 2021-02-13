@@ -1,12 +1,12 @@
 #pragma once
 #include "../JsonConverter/Test/TestSuite.hpp"
-extern void parserTest(bool executed);
+extern void TestParser(bool executed);
 
 namespace Json::Test
 {
 	void AllTest(bool executed)
 	{
-		parserTest(executed);
+		TestParser(executed);
 		JsonConverterTest::AllTest(executed);
 	}
 }
