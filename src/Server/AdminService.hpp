@@ -34,9 +34,8 @@ namespace Server
 				s();
 				ReturnToPeer(responder, peer, move(result));
 				argLogger.BornNewWith(ResultStatus::Complete);
-				co_return; // TODO has bug in this function final awaiter 不用等了？
+				co_return;
 			};
-			// printf("start run admin service\n");
 			AsyncLoopAcquireThenDispatch<AdminServiceOption>(
 				move(userLogger),
 				_peer,

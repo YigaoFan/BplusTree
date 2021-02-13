@@ -46,22 +46,25 @@ namespace Server
 		{
 			for (;;)
 			{
-				co_await callback(&userLogger);
+				// 下面这行是想引发复制操作，复制里面 CurryedAccessLog 里包含的数据，制造出专属于这个 callback 的 userlogger
+				// 否则因为这是个 for 循环，一个 userLogger 会在多个 callback BornNewWith，而 BornNewWith 里的调用 CurryedAccessLog
+				// 自带 move 性质，这样一些公共信息就只在第一个 callback 看到，后面的 callback 就为空了
+				auto l = userLogger;
+				co_await callback(&l);
 			}
 		}
 
 		template <typename Receive, typename Dispatcher, typename... Handlers>
 		static Void AsyncLoopAcquireThenDispatch(auto userLogger, shared_ptr<Socket> peer, Dispatcher dispatcher, Handlers... handlers)
 		{
-			// printf("start run async acquire dispatch\n");
 			tuple handlersTuple = { move(handlers)...};
 			for (;;)
 			{
 				auto r = ReceiveFromPeer<Receive>(peer.get());
-				// printf("receive dispatch data\n");
 				auto d = dispatcher(move(r));
 				printf("dispatch result %d\n", d);
-				co_await InvokeWhenEqual(d, handlersTuple, &userLogger);
+				auto l = userLogger; // 看 AsyncLoop 的注释
+				co_await InvokeWhenEqual(d, handlersTuple, &l);
 			}
 		}
 

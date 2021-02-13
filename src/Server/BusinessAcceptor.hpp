@@ -77,7 +77,7 @@ namespace Server
 			// r: request function 这里可以放请求的功能: -
 			// a: argument
 			// s: request result status: 这里可以放请求结果的状态，可以自定义一些状态码
-			// timestamp 这个要不默认吧  %t
+			// timestamp 默认  %t
 
 			auto subLogger = _logger.GenerateSubLogger(ACCESS_LOG_FORMAT);
 #undef ACCESS_LOG_FORMAT
@@ -119,7 +119,6 @@ namespace Server
 				send("wrong greeting words: " + greet);
 				return;
 			}
-			// client 那边应该会因为这边 socket 析构而收到中断异常或信息吧 TODO 测试下
 
 			auto loginInfo = Receive<LoginRequest::Content, false, ByteProcessWay::ParseThenDeserial>(peer.get());
 			printf("receive account\n");
