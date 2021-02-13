@@ -12,195 +12,11 @@ namespace Json::JsonConverter
 {
 	using ::std::array;
 	using ::std::decay_t;
-	using ::std::declval;
-	using ::std::false_type;
-	using ::std::forward;
 	using ::std::make_shared;
-	using ::std::make_tuple;
 	using ::std::map;
+	using ::std::pair;
 	using ::std::string;
-	using ::std::true_type;
 	using ::std::vector;
-
-	// Below code to ToTuple inspire from Chris Ohk
-	// https://gist.github.com/utilForever/1a058050b8af3ef46b58bcfa01d5375d
-	template <typename T, typename... Args>
-	decltype(void(T{declval<Args>()...}), true_type())
-	TestBracesConstructible(int);
-
-	template <typename, typename...>
-	false_type
-	TestBracesConstructible(...); //... mean ?
-
-	template <typename T, typename... Args>
-	using IsBracesConstructible = decltype(TestBracesConstructible<T, Args...>(0));
-
-	struct AnyType
-	{
-		template <typename T>
-		constexpr operator T();
-	};
-
-	template <typename T>
-	auto ToTuple(T&& object) noexcept
-	{
-		using type = decay_t<T>;
-		// Here can use Boost macro replaced
-		if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8, p9] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8, p9);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7, p8] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7, p8);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6, p7] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6, p7);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5, p6] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5, p6);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4, p5] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4, p5);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3, p4] = forward<T>(object);
-			return make_tuple(p1, p2, p3, p4);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType, AnyType>())
-		{
-			auto&& [p1, p2, p3] = forward<T>(object);
-			return make_tuple(p1, p2, p3);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType, AnyType>())
-		{
-			auto&& [p1, p2] = forward<T>(object);
-			return make_tuple(p1, p2);
-		}
-		else if constexpr (IsBracesConstructible<type, AnyType>())
-		{
-			auto&& [p1] = forward<T>(object);
-			return make_tuple(p1);
-		}
-		else
-		{
-			return make_tuple();
-		}
-	}
 
 	template <typename T>
 	JsonObject Serialize(T const& t);
@@ -208,7 +24,7 @@ namespace Json::JsonConverter
 		// static_assert(false, "not support type");
 	// }
 	// why can not write like this?
-
+	// 看下模板函数偏特化的内容，然后把这里改一下 去掉 template<>
 	template <>
 	JsonObject Serialize(string const& t);
 
@@ -224,6 +40,19 @@ namespace Json::JsonConverter
 	template <>
 	JsonObject Serialize(JsonObject const& t);
 
+#define nameof(VAR) #VAR
+	template <typename T1, typename T2>
+	JsonObject Serialize(pair<T1, T2> const& p)
+	{
+		auto [first, second] = p;
+		JsonObject::_Object obj;
+		obj.insert({nameof(first), Serialize(first)});
+		obj.insert({nameof(second), Serialize(second)});
+
+		return JsonObject(move(obj));
+	}
+
+	// 莫非下面函数里面的 Serialize(i) 会挑选这里之前的符合类型的函数？
 	template <typename T>
 	JsonObject Serialize(vector<T> const& t)
 	{
@@ -271,6 +100,15 @@ namespace Json::JsonConverter
 	template <>
 	string Deserialize(JsonObject const& json);
 
+	template <typename T1, typename T2>
+	pair<T1, T2> Deserialize(JsonObject const &jsonObj)
+	{
+		auto first = Deserialize<T1>(jsonObj[nameof(first)]);
+		auto second = Deserialize<T2>(jsonObj[nameof(second)]);
+
+		return {move(first), move(second)};
+	}
+	
 	template <>
 	int Deserialize(JsonObject const& json);
 
@@ -279,6 +117,16 @@ namespace Json::JsonConverter
 
 	template <>
 	bool Deserialize(JsonObject const& json);
+
+	template <typename Key, typename Value>
+	pair<Key, Value> DeserializeImp(JsonObject const& json, pair<Key, Value>*)
+	{
+		return
+		{
+			Deserialize<Key>(json[nameof(first)]),
+			Deserialize<Value>(json[nameof(second)]),
+		};
+	}
 
 	template <typename T>
 	vector<T> DeserializeImp(JsonObject const& json, vector<T>*)
@@ -290,6 +138,24 @@ namespace Json::JsonConverter
 		}
 
 		return des;
+	}
+
+	template <typename T, size_t N>
+	array<T, N> DeserializeImp(JsonObject const &json, array<T, N> *)
+	{
+		using ::std::index_sequence;
+		using ::std::make_index_sequence;
+
+		auto a = json.GetArray();
+		auto consArray = [&a]<auto... Idxs>(index_sequence<Idxs...>)
+		{
+			return array<T, N>
+			{
+				Deserialize<T>(a[Idxs])...,
+			};
+		};
+
+		return consArray(make_index_sequence<N>());
 	}
 
 	template <typename Value>
@@ -311,4 +177,5 @@ namespace Json::JsonConverter
 		using type = decay_t<T>;
 		return DeserializeImp(json, static_cast<type*>(nullptr));
 	}
+#undef nameof
 }

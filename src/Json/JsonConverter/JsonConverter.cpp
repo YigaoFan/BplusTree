@@ -3,7 +3,7 @@
 namespace Json::JsonConverter
 {
 	template <>
-	JsonObject Serialize<string>(string const& t)
+	JsonObject Serialize(string const& t)
 	{
 		return JsonObject(t);
 	}
