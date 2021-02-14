@@ -234,14 +234,14 @@ namespace Collections
 			if (i <= (middle - 1))
 			{
 				auto items = self->_elements.PopOutItems(BtreeOrder - middle);
-				self->ProcessedAdd(move(p)); /* Add (Does it duplicate to SelectBranch before)*/
+				self->template ProcessedAdd<false>(move(p)); /* Add (Does it duplicate to SelectBranch before)*/
 				newNxtNode->AppendItems(move(items));
 			}
 			else
 			{
 				auto items = self->_elements.PopOutItems(middle);
 				newNxtNode->AppendItems(move(items));
-				newNxtNode->ProcessedAdd(move(p));
+				newNxtNode->template ProcessedAdd<true>(move(p));
 			}
 
 			(*self->_upNodeAddSubNodeCallbackPtr)(self, move(newNxtNode));

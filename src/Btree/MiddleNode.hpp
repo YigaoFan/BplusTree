@@ -216,7 +216,7 @@ namespace Collections
 			// newNextNode must not be MinSon
 			if (not _elements.Full())
 			{
-				return this->ProcessedAdd({ StoredKey(newNextNode->MinKey()), move(newNextNode) });
+				return this->ProcessedAdd<false>({ StoredKey(newNextNode->MinKey()), move(newNextNode) });
 			}
 
 			auto next = _queryNext(this);
@@ -392,13 +392,21 @@ namespace Collections
 			(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
 		}
 
+		template <bool SelfIsNewNode>
 		void ProcessedAdd(typename decltype(_elements)::Item item)
 		{
 			this->SetSubNodeCallback(item.second->Middle(), item.second);
-			_elements.Add(move(item), [this]()
+			if constexpr (SelfIsNewNode)
 			{
-				(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
-			});
+				_elements.Add(move(item));
+			}
+			else
+			{
+				_elements.Add(move(item), [this]()
+				{
+					(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
+				});
+			}
 		}
 
 		typename decltype(_elements)::Item

@@ -231,12 +231,20 @@ namespace Collections
 			(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
 		}
 
+		template <bool SelfIsNewNode>
 		void ProcessedAdd(typename decltype(_elements)::Item item)
 		{
-			_elements.Add(move(item), [this]()
+			if constexpr (SelfIsNewNode)
 			{
-				(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
-			});
+				_elements.Add(move(item));
+			}
+			else
+			{
+				_elements.Add(move(item), [this]()
+				{
+					(*this->_minKeyChangeCallbackPtr)(this->MinKey(), this);
+				});
+			}
 		}
 
 		typename decltype(_elements)::Item
