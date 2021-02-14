@@ -61,6 +61,7 @@ namespace Network
 #else
 #include <asio.hpp>
 #include <array>
+#include <vector>
 
 namespace Network
 {
@@ -68,13 +69,15 @@ namespace Network
 	using ::std::array;
 	using ::std::move;
 	using ::std::string;
+	using ::std::vector;
 
 	// async_accept 竟然可以匹配上这个类型
 	class Socket
 	{
 	private:
+		static constexpr int PackageSize = 32 * 1024;
 		tcp::socket _peer;
-		array<char, 512> _buff;
+		array<char, PackageSize> _buff;
 
 	public:
 		Socket(tcp::socket&& peer) noexcept : _peer(move(peer))
@@ -93,7 +96,15 @@ namespace Network
 			auto n = static_cast<int>(message.size());
 			string size(reinterpret_cast<char const*>(&n), sizeof(int));
 			_peer.send(asio::buffer(size));
-			_peer.send(asio::buffer(message));
+			auto remain = n;
+			auto i = 0;
+			do
+			{
+				auto currentWriteSize = remain > PackageSize ? PackageSize : remain;
+				_peer.send(asio::buffer(message.substr(i, currentWriteSize)));
+				remain -= currentWriteSize;
+				i += currentWriteSize;
+			} while (remain > 0);
 		}
 
 		string Receive()
@@ -102,10 +113,20 @@ namespace Network
 			asio::read(_peer, buf0, asio::transfer_exactly(sizeof(int)));
 			auto sizeBytes = string(asio::buffers_begin(buf0.data()), asio::buffers_end(buf0.data()));
 			auto n = *reinterpret_cast<int const*>(sizeBytes.data());
-			asio::streambuf buf1;
-			asio::read(_peer, buf1, asio::transfer_exactly(n));
-			auto m = string(asio::buffers_begin(buf1.data()), asio::buffers_end(buf1.data()));
-			return m;
+
+			string receive;
+			receive.reserve(n);
+
+			auto remain = n;
+			do
+			{
+				auto currentReadSize = remain > PackageSize ? PackageSize : remain;
+				asio::read(_peer, asio::buffer(_buff, PackageSize), asio::transfer_exactly(currentReadSize));
+				receive.append(_buff.data(), currentReadSize);
+				remain -= currentReadSize;
+			} while (remain > 0);
+
+			return receive;
 		}
 	};
 }
