@@ -108,3 +108,54 @@ add_executable(client_demo
         Network/Request.cpp
 
         FuncLib/Compile/FuncType.cpp)
+
+add_executable(test1
+        Client/Test1/Main.cpp
+
+        Basic/Debug.cpp
+        Basic/Exception.cpp
+        Basic/StringViewUtil.cpp
+        
+        Json/Json.cpp
+        Json/Parser.cpp
+        Json/LocationInfo.cpp
+        Json/ParseException.cpp
+        Json/JsonConverter/JsonConverter.cpp
+
+        Network/Request.cpp
+
+        FuncLib/Compile/FuncType.cpp)
+
+add_executable(test2
+        Client/Test2/Main.cpp
+
+        Basic/Debug.cpp
+        Basic/Exception.cpp
+        Basic/StringViewUtil.cpp
+        
+        Json/Json.cpp
+        Json/Parser.cpp
+        Json/LocationInfo.cpp
+        Json/ParseException.cpp
+        Json/JsonConverter/JsonConverter.cpp
+
+        Network/Request.cpp
+
+        FuncLib/Compile/FuncType.cpp)
+
+add_executable(test3
+        Client/Test3/Main.cpp
+
+        Basic/Debug.cpp
+        Basic/Exception.cpp
+        Basic/StringViewUtil.cpp
+        
+        Json/Json.cpp
+        Json/Parser.cpp
+        Json/LocationInfo.cpp
+        Json/ParseException.cpp
+        Json/JsonConverter/JsonConverter.cpp
+
+        Network/Request.cpp
+
+        FuncLib/Compile/FuncType.cpp)
