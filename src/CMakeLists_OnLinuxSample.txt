@@ -1,0 +1,62 @@
+cmake_minimum_required(VERSION 3.12)
+project(RPC)
+
+set(THREADS_PREFER_FLAG ON)
+find_package(Threads REQUIRED)
+set(CMAKE_CXX_STANDARD 20)
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+add_executable(test1
+        Client/Test1/Main.cpp
+
+        Basic/Debug.cpp
+        Basic/Exception.cpp
+        Basic/StringViewUtil.cpp
+        
+        Json/Json.cpp
+        Json/Parser.cpp
+        Json/LocationInfo.cpp
+        Json/ParseException.cpp
+        Json/JsonConverter/JsonConverter.cpp
+
+        Network/Request.cpp
+
+        FuncLib/Compile/FuncType.cpp)
+target_link_libraries(test1 ${CMAKE_THREAD_LIBS_INIT})
+
+add_executable(test2
+        Client/Test2/Main.cpp
+
+        Basic/Debug.cpp
+        Basic/Exception.cpp
+        Basic/StringViewUtil.cpp
+        
+        Json/Json.cpp
+        Json/Parser.cpp
+        Json/LocationInfo.cpp
+        Json/ParseException.cpp
+        Json/JsonConverter/JsonConverter.cpp
+
+        Network/Request.cpp
+
+        FuncLib/Compile/FuncType.cpp)
+target_link_libraries(test2 ${CMAKE_THREAD_LIBS_INIT})
+
+add_executable(test3
+        Client/Test3/Main.cpp
+
+        Basic/Debug.cpp
+        Basic/Exception.cpp
+        Basic/StringViewUtil.cpp
+        
+        Json/Json.cpp
+        Json/Parser.cpp
+        Json/LocationInfo.cpp
+        Json/ParseException.cpp
+        Json/JsonConverter/JsonConverter.cpp
+
+        Network/Request.cpp
+
+        FuncLib/Compile/FuncType.cpp)
+target_link_libraries(test3 ${CMAKE_THREAD_LIBS_INIT})
+
