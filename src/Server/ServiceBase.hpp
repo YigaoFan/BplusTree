@@ -44,6 +44,8 @@ namespace Server
 
 		static Void AsyncLoop(auto userLogger, auto callback)
 		{
+			try
+			{
 			for (;;)
 			{
 				// 下面这行是想引发复制操作，复制里面 CurryedAccessLog 里包含的数据，制造出专属于这个 callback 的 userlogger
@@ -51,6 +53,12 @@ namespace Server
 				// 自带 move 性质，这样一些公共信息就只在第一个 callback 看到，后面的 callback 就为空了
 				auto l = userLogger;
 				co_await callback(&l);
+			}
+			}
+			catch (std::exception const& e)
+			{
+				printf("Loop has exception %s\n", e.what());
+				throw e;
 			}
 		}
 
@@ -110,7 +118,6 @@ namespace Server
 	[responder = _responder, worker = WORKER, peer = _peer](auto userLoggerPtr) mutable -> Void    \
 	{                                                                                              \
 		auto [paras, rawStr] = ReceiveFromPeer<CAT(NAME, Request)::Content, true>(peer.get());     \
-		printf("receive para %s\n", rawStr.c_str());\
 		auto id = GenerateRequestId();                                                             \
 		auto idLogger = userLoggerPtr->BornNewWith(id);                                            \
 		responder->RespondTo(peer, id);                                                            \

@@ -31,7 +31,7 @@ int UI_Main()
 
 	IoContext io;
 	auto port = 8888;
-	auto peer = io.GetConnectedSocketTo("127.0.0.1", port);
+	auto peer = io.GetConnectedSocketTo("192.168.10.32", port);
 	LoginRequest::Content loginInfo
 	{
 		"admin",

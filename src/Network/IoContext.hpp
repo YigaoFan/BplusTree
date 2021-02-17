@@ -76,7 +76,11 @@ namespace Network
 
 		NetworkAcceptor GetNetworkAcceptorOf(int port)
 		{
-			NetworkAcceptor acceptor(_context, tcp::endpoint(tcp::v4(), port));
+			// auto p = tcp::endpoint(tcp::v4(), port);
+			tcp::endpoint p(asio::ip::address::from_string("192.168.10.32"), port);
+
+			NetworkAcceptor acceptor(_context, p);
+			printf("listen ip %s\n", p.address().to_string().c_str());
 			return acceptor;
 		}
 

@@ -55,7 +55,7 @@ namespace Server
 							return p.Continuation.has_value();
 						});
 					}
-					printf("continuation get value\n");
+					// printf("continuation get value\n");
 					if (auto c = p.Continuation.value(); c != nullptr)
 					{
 						printf("continuation resume\n");
@@ -151,7 +151,7 @@ namespace Server
 					// 上面直接就读了，可能也没有问题，因为设置 Continuation 的地方是顺序运行的
 					lock_guard<mutex> lock(p.ContinuationMutex);
 					p.Continuation = nullptr;
-					printf("continuation has value %d\n", p.Continuation.has_value());
+					// printf("continuation has value %d\n", p.Continuation.has_value());
 				}
 				p.CondVar.notify_one();
 			}

@@ -75,7 +75,8 @@ namespace Network
 	class Socket
 	{
 	private:
-		static constexpr int PackageSize = 32 * 1024;
+		// 下面这个值需要根据网络情况来调整大小，复杂的解决方法就是建立丢包重发机制
+		static constexpr int PackageSize = 1 * 1024;
 		tcp::socket _peer;
 		array<char, PackageSize> _buff;
 
@@ -113,7 +114,7 @@ namespace Network
 			asio::read(_peer, buf0, asio::transfer_exactly(sizeof(int)));
 			auto sizeBytes = string(asio::buffers_begin(buf0.data()), asio::buffers_end(buf0.data()));
 			auto n = *reinterpret_cast<int const*>(sizeBytes.data());
-
+			// printf("plan to receive %d\n", n);
 			string receive;
 			receive.reserve(n);
 
@@ -125,6 +126,7 @@ namespace Network
 				receive.append(_buff.data(), currentReadSize);
 				remain -= currentReadSize;
 			} while (remain > 0);
+			// printf("received %d\n", n);
 
 			return receive;
 		}

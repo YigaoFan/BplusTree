@@ -23,6 +23,7 @@ namespace Server
 	using ::std::shared_ptr;
 	using namespace Json;
 
+	int i = 0;
 	class BusinessAcceptor
 	{
 	private:
@@ -89,14 +90,17 @@ namespace Server
 				return;
 			}
 			
-			printf("client connect\n");
+			auto j = i++;
+			printf("client connect %d\n", j);
 			auto addr = peer.Address();
 			auto connectLogger = subLogger.BornNewWith(addr);
 			
 			_threadPool->Execute([this, p = make_shared<Socket>(move(peer)), conLogger = move(connectLogger)] () mutable
 			{
+				printf("start communicate\n");
 				CommunicateWith(move(p), move(conLogger));
 			});
+			printf("client accept %d\n", j);
 		}
 
 	private:
