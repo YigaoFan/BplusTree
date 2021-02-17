@@ -36,12 +36,15 @@ namespace Server
 				}
 
 				// Final在外层还没有 Void 的情况下，就不用等了，直接进入 destroy 环节
-				bool await_suspend(auto handle) noexcept
+				bool await_suspend(auto handle)
 				{
 					auto& p = handle.promise();
 					// 这里的异常处理还不完备，先这样
 					if (p.ExceptionPtr != nullptr)
 					{
+						// TODO 还是不知道这里为什么抛异常会导致 mutex 使用的问题
+						// printf("exception rethrow\n");
+						// std::rethrow_exception(p.ExceptionPtr);
 						return true;
 					}
 
@@ -94,8 +97,14 @@ namespace Server
 		
 		using coro_handle = coroutine_handle<promise_type>;
 
-		bool await_ready() const noexcept
+		bool await_ready() const
 		{
+			if (auto exception = handle.promise().ExceptionPtr; exception != nullptr)
+			{
+				// printf("exception rethrow\n");
+				std::rethrow_exception(exception);
+			}
+
 			return false;
 		}
 
@@ -134,6 +143,7 @@ namespace Server
 			{
 				return;
 			}
+
 			auto& p = handle.promise();
 			if (not p.Continuation.has_value())
 			{
