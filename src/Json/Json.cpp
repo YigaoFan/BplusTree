@@ -10,7 +10,6 @@ namespace Json
 	using ::std::get;
 	using ::std::map;
 	using ::std::move;
-	using ::std::shared_ptr; // In Json semantic, there are some data will be shared with external, so shared_ptr
 	using ::std::string;
 	using ::std::to_string;
 	using ::std::variant;

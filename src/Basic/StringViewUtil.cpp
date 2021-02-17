@@ -1,5 +1,6 @@
 #include "StringViewUtil.hpp"
 #include <cctype>
+#include <algorithm>
 
 namespace Basic
 {
