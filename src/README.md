@@ -6,15 +6,7 @@
 
   函数服务器项目的子项目按照功能来分，主要有三个：server、cmd和client。server是进行函数调用及相关功能的后端服务器，cmd是输入命令发起管理server请求的前端，client是借助客户端开发库发起函数调用请求的前端，相互之间通过网络来传递信息。
 
-  
-
-  |      |                                                              |
-  | ---- | ------------------------------------------------------------ |
-  |      | ![img](file:////private/var/folders/fg/17cmnr6j7hs12m4yg0fyd03h0000gn/T/com.kingsoft.wpsoffice.mac/wps-LaoFan/ksohtml/wpsxWKDOc.jpg) |
-
-   
-
-  
+![network communication](../img/network_communication.png)
 
   开发初始以源码跨平台为目标。需要考虑跨平台问题的部分是网络和cmd的UI显示部分的代码。网络部分选用Asio跨平台网络库来解决。UI显示部分尚未支持跨平台，目前仅支持macOS。现在这部分的实现是使用的*nix系统自带的ncurses TUI(Text-based user interface)库，所以在Windows上cmd无法编译过去。但在网络上搜索的过程中，看到了有人已经开发出Windows上类ncurses的库，所以可以通过一些修改支持。然后因为键盘按键编码的不同，此次只支持了macOS。
 
@@ -24,7 +16,7 @@
 
   二．server
 
-  ![img](file:////private/var/folders/fg/17cmnr6j7hs12m4yg0fyd03h0000gn/T/com.kingsoft.wpsoffice.mac/wps-LaoFan/ksohtml/wpsjUafnn.jpg) 
+![server](../img/server.png)
 
   server的运行依靠一个叫Server的类，代码在src/Server/Server中，Server类主要包含以上五个数据成员。从名字来看都比较好理解。
 
@@ -54,11 +46,7 @@
 
   函数库的代码在src/FuncLib目录下，其对外暴露的的接口是FunctionLibrary类型。FunctionLibrary主要包含两个部分，FuncBinaryLib和FuncBinaryLibIndex。
 
-  
-
-  |      |                                                              |
-  | ---- | ------------------------------------------------------------ |
-  |      | ![img](file:////private/var/folders/fg/17cmnr6j7hs12m4yg0fyd03h0000gn/T/com.kingsoft.wpsoffice.mac/wps-LaoFan/ksohtml/wpsH6rGqU.jpg) |
+![function library](../img/function_library.png)
 
   顾名思义，这两部分分别是函数编译后的二进制的库和这些二进制库的索引，这两部分都存储在硬盘上。关于存储部分的细节，后面我们再说。这里的索引的实现采用的是B+树，B+树的Key是函数类型信息（FuncType）按照一定规则组合后的一串字符串，Value中除了包含了函数Binary在FuncBinaryLib中的位置，还包含一些函数的信息——参数名称和称之为summary的注释信息——这些信息是函数搜索时的考察项，之后如果有需要，这部分信息也可以为客户端程序员书写调用程序时提供参考信息。
 
@@ -108,11 +96,7 @@
 
   如果之后会增加其他系统的支持，在适配各个按键的时候，ncurses内定义的按键编码不一定对，需要自己将按键编码打印出来获得。
 
-  
-
-  |      |                                                              |
-  | ---- | ------------------------------------------------------------ |
-  |      | ![img](file:////private/var/folders/fg/17cmnr6j7hs12m4yg0fyd03h0000gn/T/com.kingsoft.wpsoffice.mac/wps-LaoFan/ksohtml/wps0l9FV0.jpg) |
+![cmd run](../img/cmd_run.png)
 
   五．client
 
